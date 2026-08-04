@@ -1,6 +1,6 @@
-# ADR 0004 — Nommage : Perch et Atelier
+# ADR 0004 — Nommage : Perch
 
-**Statut :** acceptée · **Portée :** les deux projets
+**Statut :** acceptée · **Portée :** Perch
 
 ## Contexte
 
@@ -51,26 +51,12 @@ Cinq lettres, se dicte, un seul saut. **Risque résiduel assumé :** *perch* con
 
 Repli : **Facet**.
 
-### Atelier — le kit React Native
-
-> Les écrans React Native sont déjà taillés.
-> **Assemble, ajuste, expédie.**
-
-Le lieu où l'on fabrique à la main à partir de pièces préparées. Registre volontairement inverse de Perch.
-
-**Contradiction interne assumée :** un atelier connote le sur-mesure lent, le produit promet le prêt-à-porter. Résolue parce qu'un atelier est aussi le lieu où le prêt-à-porter est *produit* — mais « déjà taillés » doit le dire explicitement.
-
-Repli : **Vitrine**, ou « Atelier Native » si le mot nu est bloqué.
-
 ## Disponibilité vérifiée (npm, août 2026)
 
 | Nom | Scope `@nom` | Nom non-scopé |
 |---|---|---|
 | `perch` | **libre** | squat mort, v1.0.0 de 2022 |
-| `atelier` | **libre** | abandonné, v0.2.0 de 2022 |
 | `facet` | libre | abandonné, v0.5.0 de 2022 |
-| `vitrine` | libre | squat, v0.0.0-alpha.1 |
-| `maquette` | libre | **vivant** — v4.1.4, janvier 2026 → éliminé |
 
 ⚠️ Zéro résultat de recherche ne prouve pas qu'un scope n'est pas réservé sans publication. À confirmer par `npm org`.
 
@@ -82,7 +68,7 @@ Repli : **Vitrine**, ou « Atelier Native » si le mot nu est bloqué.
 2. **Ne jamais débattre d'un nom dans un fil de PR.** Réponse unique : lien vers la FAQ.
 3. `CONTRIBUTING.md` l'écrit : le nom est une décision close.
 
-**Pratique :** voir `../perch/00-PRD-MASTER.md` §14.4 pour la séquence priorisée. La seule action irréversible si quelqu'un passe avant : **réserver les organisations npm**, cinq minutes.
+**Pratique :** voir `../00-PRD-MASTER.md` §14.4 pour la séquence priorisée. La seule action irréversible si quelqu'un passe avant : **réserver les organisations npm**, cinq minutes.
 
 ## Règle de réouverture
 
