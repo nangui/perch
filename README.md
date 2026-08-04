@@ -33,3 +33,13 @@ docs/
 **Perch.** Le perchoir : le poste d'observation sur tes données.
 
 Le nom est une décision close, documentée dans l'[ADR 0004](docs/adr/0004-nommage.md).
+
+## Contribuer
+
+Le projet est en pré-implémentation : la contribution la plus utile porte aujourd'hui sur la documentation — une contradiction relevée, un cas non couvert. [`CONTRIBUTING.md`](CONTRIBUTING.md) précise la marche à suivre et ce qui n'est pas rediscuté.
+
+Ce projet suit le [Contributor Covenant](CODE_OF_CONDUCT.md).
+
+## Licence
+
+[MIT](LICENSE). L'usage du nom et du logo est encadré par [`TRADEMARK.md`](TRADEMARK.md).
