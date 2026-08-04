@@ -1,0 +1,31 @@
+# Architecture Decision Records
+
+Les décisions structurantes des deux projets, avec leur contexte, les options écartées et **la règle qui rouvrirait le débat**.
+
+## Pourquoi ce dossier existe
+
+Une décision non écrite est une décision qui sera reprise. Les cinq ci-dessous ont chacune été discutées plusieurs fois avant d'être tranchées — sans trace, elles le seraient encore.
+
+Un ADR n'est pas un document vivant. **Il n'est jamais modifié**, seulement remplacé par un ADR ultérieur qui le supersède. C'est ce qui permet de relire pourquoi on a décidé, et pas seulement ce qu'on a décidé.
+
+## Index
+
+| # | Décision | Portée | Statut |
+|---|---|---|---|
+| [0001](0001-ecosysteme-nestjs.md) | NestJS plutôt que Go ou Rust | Perch | acceptée |
+| [0002](0002-orm-prisma.md) | Prisma plutôt que Drizzle | Perch | acceptée |
+| [0003](0003-protocole-etat.md) | État autoritatif serveur, transport JSON + React | Perch | acceptée |
+| [0004](0004-nommage.md) | Perch et Atelier — et le principe de nommage | les deux | acceptée |
+| [0005](0005-rendu-rn.md) | Primitives RN stylées plutôt qu'Expo UI | Atelier | acceptée |
+
+## Format
+
+```
+Contexte          le problème, en quelques lignes
+Options           ce qui a été comparé, sur quels critères
+Décision          ce qui est retenu
+Conséquences      ce que ça verrouille, ce que ça coûte
+Règle de réouverture   ce qui — et seulement ce qui — rouvrirait le débat
+```
+
+La dernière rubrique est la plus importante. Sans elle, un ADR ne protège de rien : il suffit qu'une envie revienne pour que tout recommence.
