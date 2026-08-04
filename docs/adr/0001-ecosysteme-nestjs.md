@@ -4,7 +4,7 @@
 
 ## Contexte
 
-Construire un équivalent de Laravel Filament suppose six pré-conditions, dérivées de l'analyse de Filament (voir `../perch/REF-filament.md`) :
+Construire un équivalent de Laravel Filament suppose six pré-conditions, dérivées de l'analyse de Filament (voir `../REF-filament.md`) :
 
 1. un ORM introspectable à l'exécution
 2. de la métaprogrammation
