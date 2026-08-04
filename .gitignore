@@ -1,0 +1,16 @@
+# Dépendances
+node_modules
+
+# Build
+dist
+*.tsbuildinfo
+.turbo
+
+# Tests
+coverage
+
+# Environnement
+.env*
+
+# macOS
+.DS_Store
