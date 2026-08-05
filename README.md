@@ -12,14 +12,14 @@ Un framework UI open-source pour **NestJS**. On définit une resource en TypeScr
 | Statut | pré-implémentation — 14 documents figés |
 | Scope npm | `@perchjs/*` — organisation npm créée |
 | Chemin critique | jalon **A1** : select dépendant réactif, zéro JS utilisateur |
-| Décisions | ADR [0001](docs/adr/0001-ecosysteme-nestjs.md) · [0002](docs/adr/0002-orm-prisma.md) · [0003](docs/adr/0003-protocole-etat.md) · [0004](docs/adr/0004-nommage.md) |
+| Décisions | ADR [0001](docs/adr/0001-ecosysteme-nestjs.md) · [0002](docs/adr/0002-orm-prisma.md) · [0003](docs/adr/0003-protocole-etat.md) · [0004](docs/adr/0004-nommage.md) · [0005](docs/adr/0005-scope-npm.md) |
 
 ## Documentation
 
 ```
 docs/
 ├── README.md              ordre de lecture recommandé
-├── adr/                    4 décisions structurantes  ← commencer ici
+├── adr/                    5 décisions structurantes  ← commencer ici
 ├── REF-filament.md         la cible déconstruite
 ├── 00-PRD-MASTER.md        vision, roadmap, nom et marque
 ├── 01 … 11-PRD-*.md        les onze PRDs

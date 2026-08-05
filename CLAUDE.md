@@ -18,7 +18,7 @@ Ne commence aucune tâche sans avoir lu les documents concernés. Ils font autor
 
 | Tu vas… | Lis d'abord |
 |---|---|
-| n'importe quoi | `docs/adr/` — les 4 décisions structurantes |
+| n'importe quoi | `docs/adr/` — les 5 décisions structurantes |
 | comprendre la cible | `docs/REF-filament.md` |
 | toucher au backend | `docs/12-ARCH-backend.md` |
 | toucher au frontend | `docs/13-ARCH-frontend.md` |
