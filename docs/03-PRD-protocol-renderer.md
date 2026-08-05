@@ -1,4 +1,4 @@
-# PRD 03 — Protocole d'état & renderer UI (`@perch/ui`)
+# PRD 03 — Protocole d'état & renderer UI (`@perchjs/ui`)
 
 **Tier :** v0.1 · **Dépendances :** PRD 02 · **Débloque :** A1, A2
 
@@ -99,7 +99,7 @@ Chrome : sidebar de navigation, breadcrumbs, topbar, modales, slide-overs, toast
 | État client | local uniquement (champ en cours de saisie) | l'état canonique est serveur |
 | Dark mode | v0.1 | attendu par défaut en 2026 |
 
-**Contrainte forte** : `@perch/ui` est servi comme des assets statiques par le `PanelModule`. `npm i` puis un import de module, et le panel existe. **Zéro configuration Vite/Webpack demandée à l'utilisateur.**
+**Contrainte forte** : `@perchjs/ui` est servi comme des assets statiques par le `PanelModule`. `npm i` puis un import de module, et le panel existe. **Zéro configuration Vite/Webpack demandée à l'utilisateur.**
 
 ## 5. Theming
 

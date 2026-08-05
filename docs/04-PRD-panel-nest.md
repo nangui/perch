@@ -1,4 +1,4 @@
-# PRD 04 — PanelModule Nest (`@perch/nest`)
+# PRD 04 — PanelModule Nest (`@perchjs/nest`)
 
 **Tier :** v0.1 · **Dépendances :** PRD 02, 03 · **Débloque :** PRD 05
 
@@ -46,7 +46,7 @@ Les resources sont résolues **une fois au bootstrap** ; l'arbre de schéma est 
 | Route | Rôle |
 |---|---|
 | `GET {path}` | shell HTML du panel (une page, assets statiques) |
-| `GET {path}/assets/*` | assets de `@perch/ui` |
+| `GET {path}/assets/*` | assets de `@perchjs/ui` |
 | `{path}/api/*` | les 4 routes du protocole (PRD 03 §3) |
 
 Toutes les routes API sont enregistrées **dynamiquement** par le module, jamais écrites à la main par l'utilisateur. Le préfixe global Nest (`setGlobalPrefix`) et le versioning doivent être respectés.
@@ -119,7 +119,7 @@ Décisions à graver dès v0.1, même sans implémenter :
 4. `can.viewAny` à `false` retire l'item de navigation **et** renvoie 404 sur les routes de la resource.
 5. Le panel cohabite avec `setGlobalPrefix('api')` sans collision de routes.
 6. Bootstrap sur 30 resources < 500 ms.
-7. Aucun accès à `@perch/prisma` depuis ce package (passe par l'interface `DataAdapter`).
+7. Aucun accès à `@perchjs/prisma` depuis ce package (passe par l'interface `DataAdapter`).
 
 ## 10. Hors périmètre
 

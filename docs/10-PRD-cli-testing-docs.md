@@ -28,7 +28,7 @@ npx perch field StarRating      # squelette serveur + composant React
 npx perch doctor                # diagnostic de configuration
 ```
 
-Intégration au schematic Nest également : `nest g -c @perch/cli resource User`. Les deux entrées doivent exister — les habitudes diffèrent.
+Intégration au schematic Nest également : `nest g -c @perchjs/cli resource User`. Les deux entrées doivent exister — les habitudes diffèrent.
 
 ### 2.2 Qualité de la génération
 
@@ -76,7 +76,7 @@ export class UserResource {
 C'est la métrique produit n°1. Chemin cible, **< 15 min** pour un dev qui découvre l'outil :
 
 ```
-npm i @perch/nest @perch/prisma @perch/ui   (1 min)
+npm i @perchjs/nest @perchjs/prisma @perchjs/ui   (1 min)
 npx perch init                                   (1 min)
 npx perch resource User                          (30 s)
 npm run start:dev  →  ouvrir /admin                (1 min)

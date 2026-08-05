@@ -1,4 +1,4 @@
-# PRD 02 — Moteur de schémas (`@perch/core`)
+# PRD 02 — Moteur de schémas (`@perchjs/core`)
 
 **Tier :** v0.1 · **Dépendances :** PRD 01 · **Débloque :** tout le reste
 
@@ -6,7 +6,7 @@
 
 Le cœur. Un arbre de composants déclaratif, composable et **résolu côté serveur**, qui unifie formulaires, vues en lecture seule et mise en page — exactement comme les **Schemas** de Filament, qui depuis la v4 englobent forms, infolists *et* la structure des pages.
 
-`@perch/core` ne connaît **ni Nest, ni Prisma, ni React**. Il ne dépend que de l'interface `DataAdapter` (PRD 01).
+`@perchjs/core` ne connaît **ni Nest, ni Prisma, ni React**. Il ne dépend que de l'interface `DataAdapter` (PRD 01).
 
 ## 2. Le DSL cible — à figer AVANT tout code
 
@@ -159,7 +159,7 @@ type Paths<T, D extends number = 3> = D extends 0 ? never
 4. Un `Repeater` de 3 lignes × 4 champs se valide, se sauvegarde et se recharge intégralement (**A3**).
 5. Deux requêtes concurrentes sur la même resource ne partagent aucun état (test de concurrence sur 100 requêtes parallèles).
 6. Un cycle `afterStateUpdated` lève une erreur nommant les champs, en < 5 passes.
-7. `@perch/core` n'importe ni `@nestjs/*`, ni `@prisma/client`, ni `react` (vérifié par un test de dépendances).
+7. `@perchjs/core` n'importe ni `@nestjs/*`, ni `@prisma/client`, ni `react` (vérifié par un test de dépendances).
 
 ## 8. Hors périmètre
 

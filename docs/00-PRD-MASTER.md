@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Nom** | **Perch** — scope npm `@perch/*` vérifié libre · marque à déposer (voir §14) |
+| **Nom** | **Perch** — scope npm `@perchjs/*` vérifié libre · marque à déposer (voir §14) |
 | **Statut** | Draft v1 — pré-implémentation |
 | **Objectif produit** | Build apps & admin panels fast — vélocité de livraison |
 | **Stack cible** | NestJS + Prisma + PostgreSQL + React |
@@ -199,11 +199,11 @@ Détail des comportements transverses (`->required()`, `->live()`, `->visible()`
 
 | Package | Responsabilité | Dépend de |
 |---|---|---|
-| `@perch/core` | moteur de schémas : `Component`, `Field`, `Column`, `Action`, résolution d'état, validation. **Aucune dépendance Nest ni Prisma.** | — |
-| `@perch/prisma` | adaptateur métadonnées (DMMF → IR) + exécution des requêtes | core |
-| `@perch/nest` | `PanelModule` : découverte des resources, routing, guards, tenancy | core |
-| `@perch/ui` | renderer React + registre de champs (livré compilé) | core (types only) |
-| `@perch/cli` | génération de code | core |
+| `@perchjs/core` | moteur de schémas : `Component`, `Field`, `Column`, `Action`, résolution d'état, validation. **Aucune dépendance Nest ni Prisma.** | — |
+| `@perchjs/prisma` | adaptateur métadonnées (DMMF → IR) + exécution des requêtes | core |
+| `@perchjs/nest` | `PanelModule` : découverte des resources, routing, guards, tenancy | core |
+| `@perchjs/ui` | renderer React + registre de champs (livré compilé) | core (types only) |
+| `@perchjs/cli` | génération de code | core |
 
 La frontière `core` ↔ `prisma` est ce qui permettra d'ajouter Drizzle plus tard sans réécriture. **On ne l'implémente pas en v0.1, on ne la franchit jamais.**
 
@@ -302,7 +302,7 @@ Le second vers fait le travail que le nom ne fait pas. Il n'est pas optionnel.
 
 | # | Action | Coût | Urgence |
 |---|---|---|---|
-| 1 | Réserver l'organisation npm `perch` et publier un `@perch/core@0.0.0` placeholder | 5 min | **aujourd'hui** |
+| 1 | Réserver l'organisation npm `perch` et publier un `@perchjs/core@0.0.0` placeholder | 5 min | **aujourd'hui** |
 | 2 | Recherche d'antériorité de marque, **classes 9 et 42**, FR (INPI) + UE (EUIPO) + US (USPTO) | quelques heures | **avant toute ligne de code** |
 | 3 | Vérifier le statut du CMS PHP homonyme : marque vivante ou dormante, et dans quelle classe | 1 h | avant dépôt |
 | 4 | Organisation GitHub, domaine `.dev`, handles sociaux | 1 h | semaine 1 |

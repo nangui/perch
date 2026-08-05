@@ -1,6 +1,6 @@
 # ADR 0002 — Prisma plutôt que Drizzle
 
-**Statut :** acceptée · **Portée :** Perch (`@perch/prisma`)
+**Statut :** acceptée · **Portée :** Perch (`@perchjs/prisma`)
 
 ## Contexte
 

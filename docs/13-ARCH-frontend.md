@@ -1,4 +1,4 @@
-# ARCH 13 — Architecture frontend (`@perch/ui`)
+# ARCH 13 — Architecture frontend (`@perchjs/ui`)
 
 **Statut :** décision d'architecture · **Complète :** PRD 03, 06, 07
 
@@ -93,7 +93,7 @@ Le contrat de props d'un renderer est donc une **API publique versionnée**, doc
 
 ## 8. Livraison des assets
 
-`@perch/ui` est publié **précompilé**. Le `PanelModule` le sert en statique. L'utilisateur ne configure ni Vite, ni Webpack, ni Tailwind. C'est la promesse produit, pas une commodité.
+`@perchjs/ui` est publié **précompilé**. Le `PanelModule` le sert en statique. L'utilisateur ne configure ni Vite, ni Webpack, ni Tailwind. C'est la promesse produit, pas une commodité.
 
 - Un bundle principal + des chunks paresseux pour les champs lourds : `RichEditor` (TipTap), `CodeEditor`, `Charts`.
 - Noms de fichiers hachés, cache immuable.

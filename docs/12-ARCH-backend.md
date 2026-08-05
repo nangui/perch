@@ -12,7 +12,7 @@
 │                     QueryPlanner · ActionRunner           │
 ├─────────────────────────────────────────────────────────┤
 │  DOMAIN             Component · Field · Schema · Table    │
-│                     Action  (= @perch/core)             │
+│                     Action  (= @perchjs/core)             │
 ├─────────────────────────────────────────────────────────┤
 │  ADAPTERS OUT       DataAdapter(Prisma) · Storage · Clock │
 └─────────────────────────────────────────────────────────┘

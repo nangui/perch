@@ -1,6 +1,6 @@
 # ADR 0003 — État autoritatif serveur, transport JSON + React
 
-**Statut :** acceptée · **Portée :** Perch (`@perch/core`, `@perch/ui`) · **La décision la plus structurante du produit**
+**Statut :** acceptée · **Portée :** Perch (`@perchjs/core`, `@perchjs/ui`) · **La décision la plus structurante du produit**
 
 ## Contexte
 

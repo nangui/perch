@@ -1,10 +1,10 @@
-# PRD 01 — Couche métadonnées (`@perch/prisma`)
+# PRD 01 — Couche métadonnées (`@perchjs/prisma`)
 
 **Tier :** v0.1 · **Dépendances :** aucune · **Débloque :** PRD 02, 05, 06, 07, 10
 
 ## 1. Objectif
 
-Transformer le schéma Prisma en une **représentation intermédiaire (IR)** que le moteur de schémas consomme, sans jamais que `@perch/core` connaisse Prisma.
+Transformer le schéma Prisma en une **représentation intermédiaire (IR)** que le moteur de schémas consomme, sans jamais que `@perchjs/core` connaisse Prisma.
 
 C'est l'équivalent de ce qu'Eloquent offre gratuitement à Filament : savoir, à l'exécution, quels champs existent, de quel type, avec quelles relations et quelles contraintes. Prisma le permet via son **DMMF** (Data Model Meta Format), introspectable au runtime.
 

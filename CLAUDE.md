@@ -37,7 +37,7 @@ la documentation ; ne les rediscute pas, applique-les.
 1. **L'état est autoritatif côté serveur.** Le client est un interpréteur, pas une application :
    zéro logique métier, zéro évaluation de condition, zéro calcul d'options côté client. Si tu es
    tenté d'y déroger « juste pour la réactivité », la réponse est : le serveur, avec un debounce.
-2. **`@perch/core` n'importe ni `@nestjs/*`, ni `@prisma/client`, ni `react`.** Les flèches de
+2. **`@perchjs/core` n'importe ni `@nestjs/*`, ni `@prisma/client`, ni `react`.** Les flèches de
    dépendance ne pointent que vers l'intérieur. Un test `dependency-cruiser` doit le garantir.
 3. **Les builders sont immutables.** Chaque méthode fluide retourne un clone. Un builder mutable
    partagé entre requêtes fait fuiter l'état d'un utilisateur vers un autre — c'est une faille de
@@ -77,11 +77,11 @@ transaction), A4 (module tiers injectant un champ). Détaillés dans `docs/00-PR
 
 | Paquet | Responsabilité | Peut importer |
 |---|---|---|
-| `@perch/core` | moteur de schémas, résolution d'état, validation | rien |
-| `@perch/prisma` | DMMF → IR, exécution des requêtes | core |
-| `@perch/nest` | `PanelModule`, routing, guards, navigation | core |
-| `@perch/ui` | renderer React, registre de composants | core (types seulement) |
-| `@perch/cli` | génération de code | core |
+| `@perchjs/core` | moteur de schémas, résolution d'état, validation | rien |
+| `@perchjs/prisma` | DMMF → IR, exécution des requêtes | core |
+| `@perchjs/nest` | `PanelModule`, routing, guards, navigation | core |
+| `@perchjs/ui` | renderer React, registre de composants | core (types seulement) |
+| `@perchjs/cli` | génération de code | core |
 
 ## Stack
 
