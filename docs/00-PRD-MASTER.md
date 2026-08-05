@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Nom** | **Perch** — scope npm `@perchjs/*` vérifié libre · marque à déposer (voir §14) |
+| **Nom** | **Perch** — scope npm `@perchjs/*` réservé · marque à déposer (voir §14) |
 | **Statut** | Draft v1 — pré-implémentation |
 | **Objectif produit** | Build apps & admin panels fast — vélocité de livraison |
 | **Stack cible** | NestJS + Prisma + PostgreSQL + React |
@@ -302,7 +302,7 @@ Le second vers fait le travail que le nom ne fait pas. Il n'est pas optionnel.
 
 | # | Action | Coût | Urgence |
 |---|---|---|---|
-| 1 | Réserver l'organisation npm `perch` et publier un `@perchjs/core@0.0.0` placeholder | 5 min | **aujourd'hui** |
+| 1 | Réserver l'organisation npm `perchjs` et publier un `@perchjs/core@0.0.0` placeholder | 5 min | **aujourd'hui** |
 | 2 | Recherche d'antériorité de marque, **classes 9 et 42**, FR (INPI) + UE (EUIPO) + US (USPTO) | quelques heures | **avant toute ligne de code** |
 | 3 | Vérifier le statut du CMS PHP homonyme : marque vivante ou dormante, et dans quelle classe | 1 h | avant dépôt |
 | 4 | Organisation GitHub, domaine `.dev`, handles sociaux | 1 h | semaine 1 |
@@ -327,7 +327,7 @@ Le second vers fait le travail que le nom ne fait pas. Il n'est pas optionnel.
 
 ### 14.6 Repli
 
-Si la recherche d'antériorité bloque : **Facet** — la face visible d'un cristal existe *à cause* du réseau interne. Scope `@facet` vérifié libre. Risque connu : collision de catégorie avec la recherche à facettes, courante dans l'outillage data.
+Si la recherche d'antériorité bloque : **Facet** — la face visible d'un cristal existe *à cause* du réseau interne. Scope `@facet` **indisponible** : un paquet `facet` existe, et npm refuse une organisation homonyme d'un paquet. Risque connu : collision de catégorie avec la recherche à facettes, courante dans l'outillage data.
 
 ## 15. Index des PRDs
 
