@@ -2,7 +2,7 @@
 
 ## Décisions (ADR) — à lire en premier
 
-Les cinq décisions structurantes, avec leur contexte, les options écartées et **la règle qui rouvrirait le débat**. Une décision non écrite est une décision qui sera reprise.
+Les six décisions structurantes, avec leur contexte, les options écartées et **la règle qui rouvrirait le débat**. Une décision non écrite est une décision qui sera reprise.
 
 | # | Décision |
 |---|---|
@@ -11,6 +11,7 @@ Les cinq décisions structurantes, avec leur contexte, les options écartées et
 | [0003](adr/0003-protocole-etat.md) | État autoritatif serveur, transport JSON + React |
 | [0004](adr/0004-nommage.md) | Perch — et le principe de nommage |
 | [0005](adr/0005-scope-npm.md) | Scope npm `@perchjs` plutôt que `@perch` |
+| [0006](adr/0006-lecture-marche-cible.md) | Lecture de « marché cible » dans la règle de réouverture du nom |
 
 ## Perch — framework UI pour NestJS
 
