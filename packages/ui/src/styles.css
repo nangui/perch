@@ -390,14 +390,24 @@
   gap: var(--perch-space-6);
 }
 
+/*
+ * 24 px tall, not the design's 22: WCAG 2.2 §2.5.8 asks 24 × 24 of a pointer
+ * target. The switch is the only control in the system that was under it.
+ *
+ * `flex` and `align-items: center` come with the extra 2 px — the knob used to
+ * fill the padding box exactly, so growing the track without centring it would
+ * have left the knob sitting 2 px high.
+ */
 .perch-toggle {
   position: relative;
+  display: flex;
+  align-items: center;
   flex: none;
   width: 36px;
-  height: 22px;
+  height: 24px;
   padding: var(--perch-space-1);
   border: 1px solid var(--perch-border-strong);
-  border-radius: 11px;
+  border-radius: 12px;
   background: var(--perch-surface-skeleton-strong);
   cursor: pointer;
   transition:
@@ -476,6 +486,10 @@
   font-size: var(--perch-text-base);
   color: var(--perch-content-muted);
   text-wrap: pretty;
+}
+
+.perch-toggle-text__help[data-error="true"] {
+  color: var(--perch-danger-content);
 }
 
 /* -------------------------------------------------------------------- select */
@@ -776,6 +790,9 @@
 }
 
 .perch-button--icon {
+  /* `flex: none` so a narrow container can never shrink it below 24 px. A width
+     alone is only a preference to a flex item. */
+  flex: none;
   width: var(--perch-control-height-sm);
   padding: 0;
   border-color: var(--perch-border);
@@ -1059,18 +1076,34 @@
   background: var(--perch-pending-surface);
 }
 
+/*
+ * The last track holds the row's buttons and is sized for exactly the buttons
+ * there are: 3 × 28 px plus 2 × 6 px of gap. It was 62 px for two. Adding a
+ * third without widening it would have let flex compress each button to ~19 px,
+ * under the 24 px §2.5.8 asks — a target broken by its container, which is the
+ * one thing `target-size.test.ts` cannot see from a declaration.
+ */
 .perch-repeater__row {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 132px) 62px;
+  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 132px) 96px;
   align-items: center;
   gap: var(--perch-space-6);
   padding: var(--perch-space-4) var(--perch-space-5);
 }
 
+/*
+ * The minimum is declared rather than inherited from the content. A bare button
+ * around a glyph and a 10 px number collapses to roughly 12 × 22 px, under the
+ * 24 × 24 that §2.5.8 asks — and this is the one control a user has to hit
+ * repeatedly while dragging.
+ */
 .perch-repeater__handle {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
   gap: 1px;
   border: none;
   background: none;

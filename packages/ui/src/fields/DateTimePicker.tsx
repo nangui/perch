@@ -231,7 +231,17 @@ export function Calendar({ selected, onSelect, min, today }: CalendarProps): Rea
         </div>
       </div>
 
-      <div className="perch-calendar__grid" style={{ marginBottom: "4px" }}>
+      {/*
+        Hidden from assistive tech on purpose. Seven one-letter abbreviations
+        carry the column meaning to the eye and nothing at all to a screen
+        reader, which reads them as "M T W T F S S" between the month and the
+        dates. The weekday reaches that user through each day's own name below.
+      */}
+      <div
+        className="perch-calendar__grid"
+        style={{ marginBottom: "4px" }}
+        aria-hidden="true"
+      >
         {WEEKDAYS.map((label, index) => (
           <div key={`${label}-${String(index)}`} className="perch-calendar__weekday">
             {label}
@@ -239,7 +249,17 @@ export function Calendar({ selected, onSelect, min, today }: CalendarProps): Rea
         ))}
       </div>
 
-      <div className="perch-calendar__grid" role="grid">
+      {/*
+        A group, not a grid. `role="grid"` obliges `row` and `gridcell`
+        descendants and a two-dimensional keyboard contract; declared over plain
+        buttons it is invalid ARIA, and a screen reader entering table mode finds
+        no rows to read — strictly worse than claiming no role at all.
+        Implementing the real thing means the APG date-grid pattern, with a roving
+        tabindex, and that is a change to how the field is operated rather than a
+        correction to how it is labelled. Recorded as the next decision instead of
+        smuggled in here.
+      */}
+      <div className="perch-calendar__grid" role="group" aria-label={monthLabel}>
         {cells.map((cell) => {
           const disabled = min !== undefined && cell.iso < min;
           return (
@@ -251,7 +271,10 @@ export function Calendar({ selected, onSelect, min, today }: CalendarProps): Rea
               data-selected={cell.iso === selected ? "true" : "false"}
               data-today={cell.iso === today ? "true" : "false"}
               aria-current={cell.iso === today ? "date" : undefined}
-              aria-label={cell.iso}
+              // "Saturday 12 September 2026", not "2026-09-12". The ISO form is
+              // read out as a run of digits, and it drops the weekday, which the
+              // visual grid conveys by position and the group role cannot.
+              aria-label={humanDate(cell.iso)}
               disabled={disabled}
               onClick={() => {
                 onSelect(cell.iso);
@@ -278,6 +301,31 @@ function shiftMonth(
 
 function iso(y: number, m: number, d: number): string {
   return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/**
+ * Built once, not per day. `toLocaleDateString` constructs a formatter on every
+ * call and the calendar names 42 of them per render; the construction is the
+ * expensive part, not the formatting.
+ *
+ * The locale is fixed, like the month heading and the weekday strip above it. That
+ * is a gap rather than a decision — a panel served in French would announce its
+ * dates in English — and it belongs with whatever carries locale into the renderer,
+ * not here.
+ */
+const DAY_NAME = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/** A day's accessible name. Falls back to the ISO string rather than throwing. */
+function humanDate(value: string): string {
+  const parts = parseIso(value);
+  if (parts === null) return value;
+  return DAY_NAME.format(new Date(Date.UTC(parts.y, parts.m - 1, parts.d)));
 }
 
 function toIso(date: Date): string {

@@ -161,6 +161,24 @@ export function Repeater<T extends RepeaterItem>({
               {children(item, index)}
 
               <div className="perch-repeater__actions">
+                {/*
+                  Both directions, and §2.5.7 is why. Dragging needs a
+                  single-pointer alternative; a lone "move down" is technically
+                  one, since any order is reachable by pushing the other items
+                  past, but a user who cannot drag would have to move four rows to
+                  raise the fifth. The pair costs 24 px.
+                */}
+                <button
+                  type="button"
+                  className="perch-button perch-button--icon"
+                  aria-label={`Move item ${String(index + 1)} up`}
+                  onClick={() => {
+                    move(item.id, -1);
+                  }}
+                  disabled={index === 0}
+                >
+                  ↑
+                </button>
                 <button
                   type="button"
                   className="perch-button perch-button--icon"
@@ -170,7 +188,7 @@ export function Repeater<T extends RepeaterItem>({
                   }}
                   disabled={index === items.length - 1}
                 >
-                  ↕
+                  ↓
                 </button>
                 <button
                   type="button"
