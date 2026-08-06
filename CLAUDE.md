@@ -121,9 +121,9 @@ Le dépôt est la publication : un ADR répond à « pourquoi c'est comme ça »
 sert à rien à un contributeur qui ne peut pas la lire. Rédiger en français puis publier en
 anglais reste parfaitement légitime.
 
-**Migration en cours.** `README`, `CONTRIBUTING`, `TRADEMARK` et les ADR 0007–0008 sont passés.
-Les ADR 0001–0006, les quinze PRD/ARCH et ce fichier sont encore en français — n'en traduis aucun
-de ta propre initiative.
+**Migration terminée, à deux exceptions près.** Tout `docs/` et les fichiers racine sont en
+anglais. Restent en français : `docs/BRIEF-design.md`, qui porte un prompt destiné à un outil de
+design plutôt que de la spécification, et ce fichier. N'en traduis aucun de ta propre initiative.
 
 ## Vocabulaire
 

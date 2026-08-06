@@ -1,95 +1,95 @@
-# PRD 08 — Actions, modales & notifications
+# PRD 08 — Actions, modals & notifications
 
-**Tier :** v0.1 → v0.3 · **Dépendances :** PRD 02, 03, 04
+**Tier:** v0.1 → v0.3 · **Depends on:** PRD 02, 03, 04
 
-## 1. Objectif
+## 1. Objective
 
-Deux systèmes couplés. Filament les présente comme *« définir des actions réutilisables avec boutons, dropdowns et déclencheurs en masse, avec étapes de confirmation, formulaires en modale, vérifications d'autorisation et exécution synchrone ou en queue »* — et les notifications comme le retour utilisateur associé.
+Two coupled systems. Filament presents them as *"defining reusable actions with buttons, dropdowns and bulk triggers, with confirmation steps, modal forms, authorization checks and synchronous or queued execution"* — and notifications as the user feedback that goes with them.
 
-C'est le système qui transforme un CRUD en outil métier : « archiver », « rembourser », « renvoyer l'email », « valider la commande ».
+This is the system that turns a CRUD into a business tool: "archive", "refund", "resend the email", "approve the order".
 
-## 2. API — une action
+## 2. API — one action
 
 ```ts
 Action.make('archive')
-  .label('Archiver')
+  .label('Archive')
   .icon('archive-box')
   .color('warning')
   .requiresConfirmation()
-  .modalHeading('Archiver cet article ?')
-  .modalDescription('Il ne sera plus éditable.')
-  .modalSubmitActionLabel('Archiver')
-  .schema([                                        // formulaire dans la modale
-    TextInput.make('reason').label('Motif').maxLength(255).required(),
+  .modalHeading('Archive this article?')
+  .modalDescription('It will no longer be editable.')
+  .modalSubmitActionLabel('Archive')
+  .schema([                                        // form inside the modal
+    TextInput.make('reason').label('Reason').maxLength(255).required(),
   ])
   .authorize((user, record) => user.isAdmin)
   .visible((ctx) => !ctx.record.archivedAt)
   .action(async (record, data) => {
     await this.posts.archive(record.id, data.reason);
     return Notification.make()
-      .title('Article archivé')
-      .body('Il ne peut plus être édité.')
+      .title('Article archived')
+      .body('It can no longer be edited.')
       .success();
   });
 ```
 
-Ce contrat est **identique** partout : ligne de table, header, page Edit, bulk, notification, relation manager, infolist. Une seule classe `Action`. C'est la force du modèle Filament — ne pas la fragmenter.
+This contract is **identical** everywhere: table row, header, Edit page, bulk, notification, relation manager, infolist. One single `Action` class. That is the strength of Filament's model — do not fragment it.
 
-## 3. Contextes de déclenchement
+## 3. Trigger contexts
 
-| Contexte | Reçoit | Tier |
+| Context | Receives | Tier |
 |---|---|---|
-| Action de ligne (table) | 1 record | v0.1 |
-| Header action (List / Edit) | aucun ou 1 record | v0.1 |
-| Bulk action | N records ou un prédicat | v0.1 |
-| Action de formulaire (Submit, Save & another) | l'état du formulaire | v0.1 |
-| Action groupée (dropdown) | idem | v0.2 |
-| Action dans une notification | contexte porté | v0.2 |
-| Action dans un relation manager | record enfant | v0.2 |
-| Action dans une infolist | record | v0.2 |
-| Action de résultat de recherche globale | record | v0.3 |
+| Row action (table) | 1 record | v0.1 |
+| Header action (List / Edit) | none, or 1 record | v0.1 |
+| Bulk action | N records or a predicate | v0.1 |
+| Form action (Submit, Save & another) | the form state | v0.1 |
+| Grouped action (dropdown) | same | v0.2 |
+| Action inside a notification | the carried context | v0.2 |
+| Action inside a relation manager | the child record | v0.2 |
+| Action inside an infolist | the record | v0.2 |
+| Action on a global search result | the record | v0.3 |
 
-## 4. Actions prêtes à l'emploi
+## 4. Ready-made actions
 
 | Action | Tier | Notes |
 |---|---|---|
-| `CreateAction` | v0.1 | navigation ou modale |
-| `EditAction` | v0.1 | navigation ou modale |
-| `ViewAction` | v0.2 | infolist en modale ou page |
-| `DeleteAction` / `DeleteBulkAction` | v0.1 | confirmation obligatoire par défaut |
+| `CreateAction` | v0.1 | navigation or modal |
+| `EditAction` | v0.1 | navigation or modal |
+| `ViewAction` | v0.2 | infolist in a modal or a page |
+| `DeleteAction` / `DeleteBulkAction` | v0.1 | confirmation mandatory by default |
 | `ReplicateAction` | v0.2 | `.excludeAttributes()` `.beforeReplicaSaved()` |
 | `RestoreAction` / `ForceDeleteAction` (+ bulk) | v0.2 | soft deletes |
-| `ImportAction` | v0.3 | CSV, mapping de colonnes, validation ligne par ligne, rapport d'échecs |
-| `ExportAction` | v0.3 | CSV/XLSX du résultat filtré, en queue au-delà d'un seuil |
-| `AssociateAction` / `AttachAction` / `DetachAction` | v0.2 | relations n-n |
+| `ImportAction` | v0.3 | CSV, column mapping, row-by-row validation, failure report |
+| `ExportAction` | v0.3 | CSV/XLSX of the filtered result, queued beyond a threshold |
+| `AssociateAction` / `AttachAction` / `DetachAction` | v0.2 | n-n relations |
 
-## 5. Modales
+## 5. Modals
 
-| Capacité | Tier |
+| Capability | Tier |
 |---|---|
-| Confirmation (heading, description, labels, icône, couleur) | v0.1 |
-| Formulaire en modale (schéma complet, réactivité incluse) | v0.1 |
+| Confirmation (heading, description, labels, icon, color) | v0.1 |
+| Form in a modal (complete schema, reactivity included) | v0.1 |
 | Slide-over | v0.2 |
-| Tailles (`sm` → `7xl`, `screen`) | v0.2 |
-| Modale de contenu libre (infolist, custom) | v0.2 |
-| Modale à étapes (wizard) | v0.3 |
-| Fermeture par échap / clic extérieur configurable | v0.1 |
+| Sizes (`sm` → `7xl`, `screen`) | v0.2 |
+| Free-content modal (infolist, custom) | v0.2 |
+| Stepped modal (wizard) | v0.3 |
+| Configurable close on escape / outside click | v0.1 |
 
-**Contrainte** : une modale contenant un schéma utilise **exactement** le même moteur et le même protocole d'état qu'un formulaire de page. Pas de chemin de code parallèle — sinon la réactivité y sera cassée et personne ne comprendra pourquoi.
+**Constraint**: a modal containing a schema uses **exactly** the same engine and the same state protocol as a page form. No parallel code path — otherwise reactivity will be broken in it and nobody will understand why.
 
-## 6. Exécution
+## 6. Execution
 
 | Mode | Tier | Notes |
 |---|---|---|
-| Synchrone | v0.1 | défaut |
-| Retour de notification | v0.1 | l'action retourne une ou plusieurs notifications |
-| Redirection après action | v0.1 | `.successRedirectUrl()` |
-| Rafraîchissement de la table | v0.1 | automatique après mutation |
-| Queue (BullMQ) | v0.3 | pour import/export et lots longs |
-| Suivi de progression | v0.3 | barre de progression sur action longue |
-| Annulation | hors périmètre | — |
+| Synchronous | v0.1 | default |
+| Notification return | v0.1 | the action returns one or more notifications |
+| Redirect after the action | v0.1 | `.successRedirectUrl()` |
+| Table refresh | v0.1 | automatic after a mutation |
+| Queue (BullMQ) | v0.3 | for import/export and long batches |
+| Progress tracking | v0.3 | a progress bar on a long action |
+| Cancellation | out of scope | — |
 
-**Sécurité** : `authorize()` est vérifié **côté serveur au moment de l'exécution**, pas seulement au rendu du bouton. Un bouton masqué n'est pas une protection. Test explicite : appeler l'endpoint d'une action non autorisée renvoie 403 et ne mute rien.
+**Security**: `authorize()` is checked **on the server at execution time**, not only when the button is rendered. A hidden button is not a protection. Explicit test: calling the endpoint of an unauthorized action returns 403 and mutates nothing.
 
 ## 7. Notifications
 
@@ -97,11 +97,11 @@ Ce contrat est **identique** partout : ligne de table, header, page Edit, bulk, 
 
 ```ts
 Notification.make()
-  .title('Rapport généré')
-  .body('Le rapport mensuel est prêt.')
+  .title('Report generated')
+  .body('The monthly report is ready.')
   .icon('document-chart-bar')
   .success()                       // .warning() .danger() .info()
-  .persistent()                    // ne disparaît pas automatiquement
+  .persistent()                    // does not disappear on its own
   .duration(5000)
   .actions([
     Action.make('download').color('primary').url(`/reports/${id}`),
@@ -110,40 +110,40 @@ Notification.make()
   .send();
 ```
 
-### 7.2 Canaux
+### 7.2 Channels
 
-| Canal | Tier | Notes |
+| Channel | Tier | Notes |
 |---|---|---|
-| Toast in-app (réponse de requête) | v0.1 | le seul indispensable |
-| Toast in-app (flash inter-requêtes / après redirection) | v0.1 | survit à une redirection |
-| Notifications persistées en base + panneau de cloche | v0.3 | table dédiée, marquage lu/non lu |
-| Broadcast temps réel (WebSocket) | v0.3 | pour les jobs asynchrones |
-| Email / push | **hors périmètre** | c'est le travail de l'app hôte |
+| In-app toast (request response) | v0.1 | the only indispensable one |
+| In-app toast (flash across requests / after a redirect) | v0.1 | survives a redirect |
+| Notifications persisted in the database + a bell panel | v0.3 | a dedicated table, read/unread marking |
+| Real-time broadcast (WebSocket) | v0.3 | for asynchronous jobs |
+| Email / push | **out of scope** | that is the host app's job |
 
-## 8. Critères d'acceptation
+## 8. Acceptance criteria
 
-1. Une action avec confirmation + formulaire en modale + notification de succès fonctionne sur une action de ligne, une bulk action et un header action, **avec le même code**.
-2. `authorize()` refusée → endpoint renvoie 403, aucune mutation, aucune information sur la raison.
-3. Une modale contenant un `Select` dépendant est réactive (le protocole d'état fonctionne en modale).
-4. Une bulk action sur 500 lignes s'exécute en une transaction et rapporte le nombre d'éléments traités.
-5. Une action qui échoue affiche une notification d'erreur lisible — jamais une stack trace, jamais un silence.
-6. Une notification de succès survit à une redirection vers la page List.
-7. Une action déclenchée deux fois par double-clic n'exécute la mutation qu'une fois (idempotence côté client + garde serveur).
+1. An action with confirmation + a modal form + a success notification works as a row action, a bulk action and a header action, **with the same code**.
+2. `authorize()` refused → the endpoint returns 403, no mutation, no information about the reason.
+3. A modal containing a dependent `Select` is reactive (the state protocol works inside a modal).
+4. A bulk action over 500 rows runs in one transaction and reports the number of items processed.
+5. An action that fails shows a readable error notification — never a stack trace, never silence.
+6. A success notification survives a redirect to the List page.
+7. An action triggered twice by a double click performs the mutation only once (client-side idempotence + a server guard).
 
-## 9. Hors périmètre
+## 9. Out of scope
 
-- Envoi d'email / SMS / push (l'app hôte s'en charge).
-- Actions planifiées (cron).
-- Undo / annulation d'action.
-- Chaînage d'actions / workflow engine.
-- Signature d'approbation multi-utilisateurs.
+- Sending email / SMS / push (the host app handles it).
+- Scheduled actions (cron).
+- Undo / action cancellation.
+- Action chaining / workflow engine.
+- Multi-user approval sign-off.
 
-## 10. Risques
+## 10. Risks
 
-| Risque | Impact | Mitigation |
+| Risk | Impact | Mitigation |
 |---|---|---|
-| Deux chemins de code pour les schémas en modale vs en page | **Élevé** | un seul moteur, un seul protocole — test croisé obligatoire |
-| Autorisation vérifiée seulement au rendu | **Critique** | test d'attaque en CI sur chaque action prête à l'emploi |
-| Double soumission sur action non idempotente | Moyen | désactivation du bouton + jeton de requête |
-| Import/export bloque le process Node | Moyen | seuil au-delà duquel l'exécution part en queue (v0.3) |
-| Les notifications en base dérivent vers un système de messagerie | Faible | périmètre écrit : feedback d'action, rien d'autre |
+| Two code paths for schemas in a modal versus on a page | **High** | one engine, one protocol — a cross test is mandatory |
+| Authorization checked only at render time | **Critical** | an attack test in CI on every ready-made action |
+| Double submission on a non-idempotent action | Medium | button disabled + a request token |
+| Import/export blocks the Node process | Medium | a threshold beyond which execution goes to a queue (v0.3) |
+| Database notifications drift into a messaging system | Low | the scope is written down: action feedback, nothing else |

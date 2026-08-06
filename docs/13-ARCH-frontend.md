@@ -1,80 +1,80 @@
-# ARCH 13 — Architecture frontend (`@perchjs/ui`)
+# ARCH 13 — Frontend architecture (`@perchjs/ui`)
 
-**Statut :** décision d'architecture · **Complète :** PRD 03, 06, 07
+**Status:** architecture decision · **Completes:** PRD 03, 06, 07
 
-## 1. Principe fondateur
+## 1. Founding principle
 
-> **Le client est un interpréteur, pas une application.**
+> **The client is an interpreter, not an application.**
 
-Trois responsabilités, aucune autre : rendre un arbre, capturer une saisie, appliquer un patch. Zéro logique métier, zéro évaluation de condition, zéro calcul d'options, zéro décision de visibilité.
+Three responsibilities, no others: render a tree, capture input, apply a patch. No business logic, no condition evaluation, no option computation, no visibility decision.
 
-Chaque fois qu'on est tenté de mettre une règle côté client « juste pour la réactivité », on perd l'essence du produit. La réponse est toujours : le serveur, avec un debounce.
+Every time there is a temptation to put a rule on the client "just for reactivity", the essence of the product is lost. The answer is always: the server, with a debounce.
 
-## 2. Graphe de modules
+## 2. Module graph
 
 ```
-shell/         routing, layout, sidebar, topbar, frontière d'auth
+shell/         routing, layout, sidebar, topbar, auth boundary
 kernel/        SchemaRenderer · ComponentRegistry · StateStore
                TransportClient · PatchApplier
-components/    fields/ · layouts/ · columns/ · entries/     ← feuilles bêtes
-table/         renderer plat, registre de colonnes
-overlays/      modales, slide-overs, toasts
-theme/         variables CSS, tokens, dark mode
+components/    fields/ · layouts/ · columns/ · entries/     ← dumb leaves
+table/         flat renderer, column registry
+overlays/      modals, slide-overs, toasts
+theme/         CSS variables, tokens, dark mode
 ```
 
-**Règle de dépendance :** `components/` n'importe jamais l'intérieur de `kernel/` et n'appelle jamais le transport. Un composant reçoit des props et un `onChange`. C'est exactement ce qui le rend remplaçable par un plugin — un composant qui connaît le transport n'est pas substituable.
+**Dependency rule:** `components/` never imports the inside of `kernel/` and never calls the transport. A component receives props and an `onChange`. That is exactly what makes it replaceable by a plugin — a component that knows about the transport is not substitutable.
 
-## 3. Propriété de l'état — le modèle à 3 zones
+## 3. State ownership — the 3-zone model
 
-C'est la décision la plus structurante du frontend.
+This is the most structural decision on the frontend.
 
-| Zone | Propriétaire | Exemples | Survit à un patch ? |
+| Zone | Owner | Examples | Survives a patch? |
 |---|---|---|---|
-| **Canonique** | **serveur** | valeurs, visibilité, options, `disabled`, erreurs | remplacée |
-| **Brouillon** | client, éphémère | caractères tapés avant le flush du debounce | protégée (§4) |
-| **UI pure** | client seul | section repliée, onglet actif, scroll, largeur de colonne, tri visuel | intacte |
+| **Canonical** | **the server** | values, visibility, options, `disabled`, errors | replaced |
+| **Draft** | the client, ephemeral | characters typed before the debounce flushes | protected (§4) |
+| **Pure UI** | the client alone | collapsed section, active tab, scroll, column width, visual sort | untouched |
 
-**Règle :** tout état qui influence la persistance ou la validation est canonique. On ne duplique **jamais** un état canonique dans l'état client — on le lit. En cas de conflit, **le serveur gagne**.
+**Rule:** any state that influences persistence or validation is canonical. Canonical state is **never** duplicated into client state — it is read. In case of conflict, **the server wins**.
 
-Corollaire pratique : il n'y a pas de bibliothèque de state management globale. Un store minimal pour la zone canonique, `useState` local pour la zone UI pure. Introduire Redux/Zustand ici, c'est inviter la duplication d'état canonique.
+Practical corollary: there is no global state-management library. A minimal store for the canonical zone, local `useState` for the pure-UI zone. Introducing Redux/Zustand here is an invitation to duplicate canonical state.
 
-## 4. Le problème de réconciliation
+## 4. The reconciliation problem
 
-**C'est le bug qui fait qu'un clone de Livewire « donne l'impression d'être cassé », et personne ne le planifie.**
+**This is the bug that makes a Livewire clone "feel broken", and nobody plans for it.**
 
-Scénario : l'utilisateur tape dans le champ B pendant qu'un patch déclenché par le champ A revient du serveur. Naïvement, le patch écrase B → frappes perdues, curseur qui saute.
+Scenario: the user types in field B while a patch triggered by field A comes back from the server. Naively, the patch overwrites B → keystrokes lost, cursor jumping.
 
-Solution en trois mécanismes :
+The solution, in three mechanisms:
 
-1. **Révisions et chemins sales.** Le store maintient un `Set<path>` des chemins modifiés localement et non encore confirmés. Un patch **n'écrase jamais** un chemin sale.
-2. **Exception autoritaire.** Le serveur peut marquer un chemin `authoritative: true` (valeur calculée, ex. un total). Celui-là écrase, même sale — et le renderer signale visuellement le changement.
-3. **File single-flight par formulaire.** Une seule requête `/state` en vol à la fois. Les changements survenant pendant le vol sont **fusionnés** dans la requête suivante, jamais empilés. Chaque requête porte un numéro de séquence ; une réponse hors séquence est jetée.
+1. **Revisions and dirty paths.** The store keeps a `Set<path>` of paths modified locally and not yet confirmed. A patch **never overwrites** a dirty path.
+2. **Authoritative exception.** The server can mark a path `authoritative: true` (a computed value, a total for instance). That one overwrites, dirty or not — and the renderer signals the change visually.
+3. **Single-flight queue per form.** One `/state` request in flight at a time. Changes occurring during the flight are **merged** into the next request, never stacked. Every request carries a sequence number; an out-of-sequence response is thrown away.
 
-À concevoir maintenant, pas quand les bugs arriveront.
+To be designed now, not when the bugs arrive.
 
 ## 5. TransportClient
 
-| Aspect | Décision |
+| Aspect | Decision |
 |---|---|
-| Concurrence | single-flight + coalescence par formulaire |
-| Debounce | par type de champ : texte 400 ms, select/toggle/date 0 ms |
-| Ordonnancement | numéro de séquence, réponses obsolètes ignorées |
-| Échec réseau | bandeau + réessai manuel, **jamais** de perte silencieuse |
-| Erreur 422 | erreurs appliquées par chemin, focus sur le premier champ invalide |
-| Erreur 500 | bandeau avec `requestId` copiable |
-| Optimisme | uniquement sur la zone brouillon ; jamais sur la visibilité ou les options |
+| Concurrency | single-flight + coalescing per form |
+| Debounce | by field type: text 400 ms, select/toggle/date 0 ms |
+| Ordering | sequence number, stale responses ignored |
+| Network failure | a banner + manual retry, **never** a silent loss |
+| 422 error | errors applied per path, focus moved to the first invalid field |
+| 500 error | a banner with a copyable `requestId` |
+| Optimism | on the draft zone only; never on visibility or options |
 
-Ce dernier point est important : afficher optimistiquement un champ qui apparaîtra peut-être produit des scintillements. On préfère 150 ms de latence à un flash.
+That last point matters: optimistically showing a field that may appear produces flicker. We prefer 150 ms of latency to a flash.
 
-## 6. Rendu
+## 6. Rendering
 
-**SchemaRenderer** parcourt l'arbre et mémoïse par nœud, clé `(component.key, revision)`. Un nœud dont la révision n'a pas changé n'est pas re-rendu.
+**SchemaRenderer** walks the tree and memoizes per node, keyed on `(component.key, revision)`. A node whose revision has not changed is not re-rendered.
 
-**Table : rendu plat.** Contrainte héritée de PRD 07 §2 — Filament v4 a dû réécrire son rendu de cellules parce que les composants imbriqués s'écroulaient sur les gros volumes. Concrètement chez nous : une fonction de rendu mémoïsée **par type de colonne**, des cellules qui sont des sorties simples, pas des composants React avec hooks et contexte. Non négociable dès le premier commit.
+**Table: flat rendering.** A constraint inherited from PRD 07 §2 — Filament v4 had to rewrite its cell rendering because nested components collapsed at volume. Concretely for us: one render function memoized **per column type**, and cells that are simple outputs, not React components with hooks and context. Non-negotiable from the first commit.
 
-**Frontières d'erreur** au niveau de chaque nœud de layout de premier rang. Un composant cassé dégrade sa section, jamais la page. Un type de composant inconnu affiche un marqueur visible en dev, discret en prod.
+**Error boundaries** at every top-level layout node. A broken component degrades its section, never the page. An unknown component type shows a marker, visible in development and discreet in production.
 
-## 7. Registre de composants et plugins
+## 7. Component registry and plugins
 
 ```ts
 registerField('TextInput', TextInputRenderer);
@@ -82,46 +82,46 @@ registerColumn('Text', TextColumnRenderer);
 registerEntry('Text', TextEntryRenderer);
 ```
 
-**Deux façons de charger un composant de plugin :**
+**Two ways to load a plugin's component:**
 
-| Option | Coût | Verdict |
+| Option | Cost | Verdict |
 |---|---|---|
-| (a) le plugin publie du source React, l'utilisateur recompile | exige un toolchain front chez l'utilisateur → **tue la promesse « zéro configuration »** | rejeté |
-| (b) le plugin livre un bundle précompilé (ESM), servi par son propre endpoint d'assets, chargé au runtime | contrat de props à versionner | **retenu** |
+| (a) the plugin publishes React source, the user recompiles | requires a front-end toolchain on the user's side → **kills the "zero configuration" promise** | rejected |
+| (b) the plugin ships a precompiled bundle (ESM), served by its own assets endpoint, loaded at runtime | a props contract to version | **kept** |
 
-Le contrat de props d'un renderer est donc une **API publique versionnée**, documentée comme telle.
+A renderer's props contract is therefore a **versioned public API**, documented as such.
 
-## 8. Livraison des assets
+## 8. Asset delivery
 
-`@perchjs/ui` est publié **précompilé**. Le `PanelModule` le sert en statique. L'utilisateur ne configure ni Vite, ni Webpack, ni Tailwind. C'est la promesse produit, pas une commodité.
+`@perchjs/ui` is published **precompiled**. `PanelModule` serves it statically. The user configures neither Vite, nor Webpack, nor Tailwind. That is the product promise, not a convenience.
 
-- Un bundle principal + des chunks paresseux pour les champs lourds : `RichEditor` (TipTap), `CodeEditor`, `Charts`.
-- Noms de fichiers hachés, cache immuable.
-- **Budget : bundle principal < 250 Ko gzip.** Mesuré en CI, bloquant.
+- One main bundle + lazy chunks for the heavy fields: `RichEditor` (TipTap), `CodeEditor`, `Charts`.
+- Hashed filenames, immutable cache.
+- **Budget: main bundle < 250 KB gzip.** Measured in CI, blocking.
 
 ## 9. Theming
 
-Variables CSS uniquement — pas de theming en JS. Trois niveaux :
+CSS variables only — no theming in JavaScript. Three levels:
 
-1. tokens sémantiques (`--perch-color-primary`, `--perch-radius-md`, `--perch-space-2`)
-2. **CSS hooks** : une classe stable sur chaque élément structurant (comme Filament), pour surcharger sans forker
-3. mode sombre par attribut sur la racine, pas par duplication de règles
+1. semantic tokens (`--perch-color-primary`, `--perch-radius-md`, `--perch-space-2`)
+2. **CSS hooks**: a stable class on every structural element (as in Filament), to override without forking
+3. dark mode by an attribute on the root, not by duplicating rules
 
-## 10. Accessibilité — traitée comme une exigence, pas un correctif
+## 10. Accessibility — treated as a requirement, not a correction
 
-| Exigence | Moyen |
+| Requirement | Means |
 |---|---|
-| Primitives accessibles | Radix (combobox, dialog, tabs, dropdown) — on ne réécrit pas un combobox |
-| Focus | piégé dans les modales, restitué à la fermeture, visible partout |
-| Table | navigation clavier complète, en-têtes triables actionnables au clavier |
-| Notifications | région live polie |
-| Contraste | AA minimum, vérifié en CI |
-| Erreurs de formulaire | liées au champ par `aria-describedby`, annoncées |
+| Accessible primitives | Radix (combobox, dialog, tabs, dropdown) — we do not rewrite a combobox |
+| Focus | trapped in modals, restored on close, visible everywhere |
+| Table | full keyboard navigation, sortable headers actionable from the keyboard |
+| Notifications | a polite live region |
+| Contrast | AA minimum, verified in CI |
+| Form errors | bound to the field by `aria-describedby`, announced |
 
-## 11. Ce que cette architecture interdit délibérément
+## 11. What this architecture deliberately forbids
 
-- Pas de state management global (invite la duplication d'état canonique).
-- Pas de logique conditionnelle côté client (perd l'essence du produit).
-- Pas de composant de cellule de table avec hooks (mur de performance).
-- Pas de toolchain front chez l'utilisateur (perd la promesse d'installation).
-- Pas de rendu optimiste de la structure (scintillements).
+- No global state management (it invites duplication of canonical state).
+- No conditional logic on the client (it loses the essence of the product).
+- No table cell component with hooks (the performance wall).
+- No front-end toolchain on the user's side (it loses the installation promise).
+- No optimistic rendering of structure (flicker).

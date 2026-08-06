@@ -1,8 +1,8 @@
 # Documentation
 
-## Décisions (ADR) — à lire en premier
+## Decisions (ADR) — read these first
 
-Les décisions structurantes, avec leur contexte, les options écartées et **la règle qui rouvrirait le débat**. Une décision non écrite est une décision qui sera reprise. Ces documents sont en anglais.
+The structural decisions, with their context, the options set aside and **the rule that would reopen the debate**. An unwritten decision is a decision that will be relitigated.
 
 | # | Decision |
 |---|---|
@@ -15,41 +15,43 @@ Les décisions structurantes, avec leur contexte, les options écartées et **la
 | [0007](adr/0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets — *proposed* |
 | [0008](adr/0008-versioning-policy.md) | Lockstep versioning across the five packages — *proposed* |
 
-## Perch — framework UI pour NestJS
+## Perch — a UI framework for NestJS
 
-Ordre de lecture recommandé : **ADR → REF → 00 → 12 → 13 → 01 → 02 → 03**, puis le reste selon le lot en cours.
+Recommended reading order: **ADR → REF → 00 → 12 → 13 → 01 → 02 → 03**, then the rest according to the batch in progress.
 
-| Doc | Titre | Tier | Rôle |
+| Doc | Title | Tier | Role |
 |---|---|---|---|
-| [00](00-PRD-MASTER.md) | **Master** | — | vision, inventaire Filament, roadmap, nom et marque |
-| [01](01-PRD-metadata-layer.md) | Couche métadonnées (Prisma → IR) | v0.1 | premier lot à construire |
-| [02](02-PRD-schema-engine.md) | Moteur de schémas | v0.1 | le cœur |
-| [03](03-PRD-protocol-renderer.md) | Protocole d'état & renderer | v0.1 | remplace Livewire |
-| [04](04-PRD-panel-nest.md) | PanelModule Nest | v0.1 | routing, auth, navigation |
-| [05](05-PRD-resources.md) | Resources & pages CRUD | v0.1 | |
-| [06](06-PRD-forms-fields.md) | Forms — catalogue de champs | v0.1→v0.3 | |
+| [00](00-PRD-MASTER.md) | **Master** | — | vision, Filament inventory, roadmap, name and trademark |
+| [01](01-PRD-metadata-layer.md) | Metadata layer (Prisma → IR) | v0.1 | the first batch to build |
+| [02](02-PRD-schema-engine.md) | Schema engine | v0.1 | the core |
+| [03](03-PRD-protocol-renderer.md) | State protocol & renderer | v0.1 | replaces Livewire |
+| [04](04-PRD-panel-nest.md) | Nest PanelModule | v0.1 | routing, auth, navigation |
+| [05](05-PRD-resources.md) | Resources & CRUD pages | v0.1 | |
+| [06](06-PRD-forms-fields.md) | Forms — field catalog | v0.1→v0.3 | |
 | [07](07-PRD-tables.md) | Table builder | v0.1→v0.3 | |
-| [08](08-PRD-actions-notifications.md) | Actions, modales, notifications | v0.1 | |
+| [08](08-PRD-actions-notifications.md) | Actions, modals, notifications | v0.1 | |
 | [09](09-PRD-infolists-widgets.md) | Infolists, widgets, dashboard | v0.2→v0.3 | |
 | [10](10-PRD-cli-testing-docs.md) | CLI, testing, documentation | v0.1→v0.2 | |
-| [11](11-PRD-plugins-ecosystem.md) | Extensibilité & plugins | v0.1 (contrat) | le vrai fossé concurrentiel |
-| [12](12-ARCH-backend.md) | **Architecture backend** | — | couches, pipeline 9 étages, caches |
-| [13](13-ARCH-frontend.md) | **Architecture frontend** | — | 3 zones d'état, réconciliation |
-| [REF](REF-filament.md) | *Filament déconstruit* | — | la cible, ses 6 pré-conditions, le paysage |
+| [11](11-PRD-plugins-ecosystem.md) | Extensibility & plugins | v0.1 (contract) | the real competitive moat |
+| [12](12-ARCH-backend.md) | **Backend architecture** | — | layers, 9-stage pipeline, caches |
+| [13](13-ARCH-frontend.md) | **Frontend architecture** | — | 3 state zones, reconciliation |
+| [REF](REF-filament.md) | *Filament taken apart* | — | the target, its 6 preconditions, the landscape |
 
-### Les 4 jalons bloquants
+### The 4 blocking milestones
 
-| # | Cas | Valide | Si ça échoue |
+| # | Case | Validates | If it fails |
 |---|---|---|---|
-| **A1** | Select dépendant pays → ville, zéro JS | le protocole d'état | **arrêter et redessiner le protocole** |
-| **A2** | Table : colonne de relation + filtre + bulk + modale | la couche requêtes | revoir le QueryPlanner |
-| **A3** | Repeater imbriqué en transaction | l'arbre de schéma | revoir le WriteTree |
-| **A4** | Module tiers injectant un champ | l'extensibilité | pas d'écosystème possible |
+| **A1** | Dependent select, country → city, zero JavaScript | the state protocol | **stop and redesign the protocol** |
+| **A2** | Table: relation column + filter + bulk + modal | the query layer | revisit the QueryPlanner |
+| **A3** | Nested Repeater in a transaction | the schema tree | revisit the WriteTree |
+| **A4** | Third-party module injecting a field | extensibility | no ecosystem is possible |
 
 ---
 
 ## Conventions
 
-- Chaque PRD porte : objectif · spécification · **critères d'acceptation** · hors périmètre · risques.
-- Le « hors périmètre » est aussi contraignant que le périmètre. Il empêche la dérive vers un CMS.
-- Un budget de performance chiffré est une exigence testée en CI, pas une intention.
+- Every PRD carries: objective · specification · **acceptance criteria** · out of scope · risks.
+- "Out of scope" is as binding as in scope. It is what stops the drift toward a CMS.
+- A quantified performance budget is a requirement tested in CI, not an intention.
+
+`BRIEF-design.md` is a working note rather than specification — it carries a prompt meant for a design tool — and is still in French.
