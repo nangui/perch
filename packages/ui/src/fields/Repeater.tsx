@@ -161,13 +161,9 @@ export function Repeater<T extends RepeaterItem>({
               {children(item, index)}
 
               <div className="perch-repeater__actions">
-                {/*
-                  Both directions, and §2.5.7 is why. Dragging needs a
-                  single-pointer alternative; a lone "move down" is technically
-                  one, since any order is reachable by pushing the other items
-                  past, but a user who cannot drag would have to move four rows to
-                  raise the fifth. The pair costs 24 px.
-                */}
+                {/* Both directions: §2.5.7 wants a single-pointer alternative to
+                    dragging, and "down" alone means moving four rows to raise
+                    the fifth. */}
                 <button
                   type="button"
                   className="perch-button perch-button--icon"

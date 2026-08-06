@@ -6,6 +6,6 @@ export default defineConfig({
   dts: true,
   clean: true,
   tsconfig: "tsconfig.build.json",
-  // ESM only: this package is a binary, and nothing requires a binary.
+  // Pinned: see core/tsdown.config.ts.
   outExtensions: () => ({ js: ".js", dts: ".d.ts" }),
 });

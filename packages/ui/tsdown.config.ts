@@ -6,12 +6,10 @@ export default defineConfig({
   dts: true,
   clean: true,
   tsconfig: "tsconfig.build.json",
-  // The renderer is served to a browser by PanelModule, never required from a
-  // Node process, so it is ESM only and built for the browser.
+  // Served to a browser by PanelModule, never required from Node.
   platform: "browser",
+  // Pinned: see core/tsdown.config.ts.
   outExtensions: () => ({ js: ".js", dts: ".d.ts" }),
-  // The CSS chunk is named `style.css` by default. The package advertises
-  // `@perchjs/ui/styles.css` and the exports map has to point at a real file, so
-  // the name is pinned rather than the published contract bent to fit a default.
+  // Defaults to style.css; the exports map advertises styles.css.
   css: { fileName: "styles.css" },
 });

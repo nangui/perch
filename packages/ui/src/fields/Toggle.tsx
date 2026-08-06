@@ -12,11 +12,8 @@
  * says, the caller flips it optimistically, and a refusal flips it back with an
  * error on the reserved line.
  *
- * Unlike every other field it does not sit inside `FieldShell` — the design puts
- * the label beside the switch rather than above it — so it owns the wiring
- * `FieldShell` would otherwise provide. That is not a detail: without it Radix
- * gives the role and the keyboard contract, and a screen reader still announces
- * only "switch, off" with no idea what is being switched.
+ * The only field outside `FieldShell` — the design puts the label beside the
+ * switch — so it owns the label and description wiring itself.
  */
 import type { ReactNode } from "react";
 import { useId } from "react";
@@ -60,10 +57,8 @@ export function Toggle({
         disabled={locked}
         data-inflight={inFlight ? "true" : "false"}
         id={controlId}
-        // The name comes from the label span alone, not from the whole label
-        // element: the tag beside it says `on` / `off` / `in flight`, and the
-        // switch already announces its own state. Naming it from both would read
-        // the state twice.
+        // The label span alone: the tag says on/off and the switch reports its
+        // own state.
         aria-labelledby={labelId}
         aria-describedby={helpId}
         {...(status.error === undefined ? {} : { "aria-invalid": true })}

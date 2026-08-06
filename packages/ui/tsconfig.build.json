@@ -1,12 +1,6 @@
 {
-  // The bundler generates declarations through its own pipeline, which cannot
-  // run on a `composite` project (TS6307). Typechecking keeps composite in
-  // tsconfig.json for incremental builds and reference-level isolation; this
-  // file exists only for the bundler.
-  //
-  // Maps are off here and on in tsconfig.json: tsdown honours these two, unlike
-  // tsup, and shipping sourcemaps in the published package is a decision of its
-  // own rather than a side effect of changing bundler.
+  // Separate from tsconfig.json because the dts pipeline cannot run on a
+  // `composite` project (TS6307). Maps off: shipping them is its own decision.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,

@@ -50,11 +50,8 @@ jobs:
       - name: Test
         run: pnpm test
 
-      # What a consumer actually receives. publint validates the manifest;
-      # arethetypeswrong resolves the package the four ways TypeScript can, which
-      # is the only check that catches an ESM declaration served to a `require`
-      # caller — the failure that hit @perchjs/nest, whose consumers are CJS
-      # NestJS applications.
+      # What a consumer receives: publint validates the manifest, attw resolves
+      # the package the four ways TypeScript can.
       - name: Published package contract
         run: pnpm package:check
 

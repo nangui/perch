@@ -1,16 +1,10 @@
 /**
- * Target size, read from the stylesheet.
+ * WCAG 2.2 §2.5.8 — 24 × 24 CSS px per pointer target, read from the stylesheet
+ * because jsdom computes no layout and a rendered box would measure zero. Same
+ * approach as `contrast.test.ts` against `tokens.css`.
  *
- * WCAG 2.2 §2.5.8 asks 24 × 24 CSS px of a pointer target. This is checked here
- * rather than in `a11y.test.tsx` because it is static analysis, not a DOM
- * assertion — the same reason `contrast.test.ts` computes ratios from
- * `tokens.css`. jsdom computes no layout at all, so a rendered check would
- * measure zeros and pass everything.
- *
- * The limit of reading declarations: it cannot catch a target squeezed by its
- * container. It does catch the failure that actually happens, which is a control
- * declared at 22 px. Where a container decides the size — the calendar's days —
- * the container is checked instead.
+ * Reading declarations cannot see a target squeezed by its container, so where a
+ * container decides the size the container is checked instead.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -21,9 +15,8 @@ const TOKENS = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
 const MIN_TARGET = 24;
 
 /**
- * The declared box of a selector, `var()` resolved against the token file.
- * `null` means the dimension is not declared, so it is set by the content or by
- * the parent layout and this file cannot speak to it.
+ * The declared box of a selector, `var()` resolved against the tokens. `null`
+ * means the dimension is set by content or by the parent, not here.
  */
 function declaredBox(selectors: readonly string[]): {
   width: number | null;
@@ -75,9 +68,8 @@ function token(name: string): number {
 }
 
 /**
- * Selectors cascade left to right, so a modifier can be listed after the base it
- * refines. `bothAxes: false` marks a target sized by its content on one axis — a
- * text button is as wide as its label, and no declaration can promise that.
+ * Selectors cascade left to right. `bothAxes: false` marks a target sized by its
+ * content on one axis — a text button is as wide as its label.
  */
 const TARGETS: readonly {
   readonly name: string;
@@ -111,8 +103,7 @@ describe("2.5.8 Target Size — 24 × 24 CSS px minimum", () => {
   });
 
   it("leaves a calendar day at least 24 px wide inside the panel", () => {
-    // A day's width is `1fr` of a seven-column grid, so the panel decides it.
-    // Narrowing the panel is the plausible regression, and it would shrink 42
+    // A day is `1fr` of a seven-column grid, so narrowing the panel shrinks 42
     // targets at once without touching the day's own rule.
     const panel = declaredBox([".perch-calendar"]).width;
     expect(panel, "the calendar panel declares no width").not.toBeNull();
@@ -128,9 +119,8 @@ describe("2.5.8 Target Size — 24 × 24 CSS px minimum", () => {
   });
 
   it("keeps the switch's knob travel consistent with its box", () => {
-    // The switch was 22 px tall and its knob filled the padding box exactly, so
-    // growing the track without centring the knob would have left it 2 px high —
-    // the kind of defect a size assertion alone does not see.
+    // The knob filled the padding box exactly at 22 px, so growing the track
+    // without centring it left the knob high — a size assertion alone misses that.
     const box = declaredBox([".perch-toggle"]);
     const inner = box.width! - 2 - token("--perch-space-1") * 2; // 1 px border each side
     const knob = declaredBox([".perch-toggle__knob"]);
@@ -143,12 +133,7 @@ describe("2.5.8 Target Size — 24 × 24 CSS px minimum", () => {
     );
   });
 
-  /**
-   * How many icon buttons a repeater row puts in its last track. Asserted against
-   * the rendered row in `a11y.test.tsx` — the two have to move together, and this
-   * is the pair that already went wrong once: the track was sized for two buttons
-   * and a third was added, which let flex compress all three to 19 px.
-   */
+  /** Asserted against the rendered row in `a11y.test.tsx`; the two move together. */
   const ROW_ACTION_BUTTONS = 3;
 
   it("gives the repeater's action column room for every button in it", () => {
@@ -167,8 +152,7 @@ describe("2.5.8 Target Size — 24 × 24 CSS px minimum", () => {
   });
 
   it("refuses to let a flex parent shrink an icon button", () => {
-    // A width is only a preference to a flex item; without `flex: none` a tight
-    // container compresses it and the declared 28 px means nothing.
+    // A width is only a preference to a flex item.
     expect(blockFor(".perch-button--icon")).toMatch(/flex:\s*none;/);
   });
 });
