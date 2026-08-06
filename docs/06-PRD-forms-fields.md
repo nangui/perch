@@ -1,122 +1,122 @@
-# PRD 06 — Forms : catalogue de champs
+# PRD 06 — Forms: field catalog
 
-**Tier :** v0.1 → v0.3 · **Dépendances :** PRD 02, 03
+**Tier:** v0.1 → v0.3 · **Depends on:** PRD 02, 03
 
-## 1. Objectif
+## 1. Objective
 
-Le catalogue de champs est ce que l'utilisateur touche 90 % du temps. Filament en propose une vingtaine plus une API de champs custom. Chaque champ doit être **complet** — un champ à moitié fini est pire qu'un champ absent, car il pousse au fork.
+The field catalog is what the user touches 90% of the time. Filament offers around twenty fields plus a custom field API. Every field has to be **complete** — a half-finished field is worse than a missing one, because it pushes people to fork.
 
-## 2. API transverse (héritée par tous les champs)
+## 2. Cross-cutting API (inherited by every field)
 
-Ces méthodes valent pour **tous** les champs. Elles sont plus importantes que le catalogue lui-même.
+These methods apply to **all** fields. They matter more than the catalog itself.
 
-| Méthode | Rôle | Tier |
+| Method | Role | Tier |
 |---|---|---|
-| `.required()` | validation + astérisque | v0.1 |
-| `.default(v \| Resolver)` | valeur initiale en création | v0.1 |
-| `.label()` / `.helperText()` / `.placeholder()` | libellés (acceptent un `Resolver`) | v0.1 |
-| `.hint()` / `.hintIcon()` / `.hintAction()` | indication à droite du label | v0.2 |
-| `.visible()` / `.hidden()` / `.disabled()` | conditionnel, **évalué serveur** | v0.1 |
-| `.readOnly()` | affiché, non éditable, non persisté | v0.1 |
-| `.live()` | déclenche un round-trip au changement | v0.1 |
-| `.live({ onBlur: true })` / `.live({ debounce: 500 })` | granularité du déclenchement | v0.1 |
-| `.afterStateUpdated(fn)` | effet de bord serveur (peut `set()` d'autres champs) | v0.1 |
-| `.dehydrated(false)` | présent dans le formulaire, exclu de la persistance | v0.1 |
-| `.dehydrateStateUsing(fn)` / `.formatStateUsing(fn)` | transformation à l'écriture / à la lecture | v0.1 |
-| `.rule(fn)` / `.rules([...])` | validation custom | v0.1 |
-| `.validationMessages({})` | messages personnalisés | v0.2 |
-| `.columnSpan()` | mise en page | v0.1 |
+| `.required()` | validation + asterisk | v0.1 |
+| `.default(v \| Resolver)` | initial value on create | v0.1 |
+| `.label()` / `.helperText()` / `.placeholder()` | labels (accept a `Resolver`) | v0.1 |
+| `.hint()` / `.hintIcon()` / `.hintAction()` | hint to the right of the label | v0.2 |
+| `.visible()` / `.hidden()` / `.disabled()` | conditional, **evaluated on the server** | v0.1 |
+| `.readOnly()` | displayed, not editable, not persisted | v0.1 |
+| `.live()` | triggers a round trip on change | v0.1 |
+| `.live({ onBlur: true })` / `.live({ debounce: 500 })` | trigger granularity | v0.1 |
+| `.afterStateUpdated(fn)` | server-side effect (may `set()` other fields) | v0.1 |
+| `.dehydrated(false)` | present in the form, excluded from persistence | v0.1 |
+| `.dehydrateStateUsing(fn)` / `.formatStateUsing(fn)` | transform on write / on read | v0.1 |
+| `.rule(fn)` / `.rules([...])` | custom validation | v0.1 |
+| `.validationMessages({})` | custom messages | v0.2 |
+| `.columnSpan()` | layout | v0.1 |
 | `.prefix()` / `.suffix()` / `.prefixIcon()` | affixes | v0.2 |
-| `.autofocus()` / `.extraAttributes()` | divers | v0.2 |
-| `.extend(fn)` / `.configureUsing(fn)` | extension globale ou locale (PRD 11) | v0.1 |
+| `.autofocus()` / `.extraAttributes()` | miscellaneous | v0.2 |
+| `.extend(fn)` / `.configureUsing(fn)` | global or local extension (PRD 11) | v0.1 |
 
-**Invariant** : `.dehydrated(false)` et `.visible(false)` doivent tous deux garantir la **non-persistance**. C'est un invariant de sécurité, testé.
+**Invariant**: `.dehydrated(false)` and `.visible(false)` must both guarantee **non-persistence**. That is a security invariant, and it is tested.
 
-## 3. Catalogue
+## 3. Catalog
 
-### 3.1 Tier v0.1 — les 10 indispensables
+### 3.1 Tier v0.1 — the 10 essentials
 
-| Champ | Spécificités attendues |
+| Field | Expected specifics |
 |---|---|
 | `TextInput` | `.email()` `.url()` `.password()` `.numeric()` `.tel()` `.minLength()` `.maxLength()` `.unique(ignoreRecord)` `.mask()` (v0.2) |
-| `Textarea` | `.rows()` `.autosize()` `.maxLength()` avec compteur |
-| `Select` | `.options(v \| Resolver)` · **`.relationship(name, labelField)`** · `.searchable()` (recherche **serveur**, pas filtrage client) · `.multiple()` · `.preload()` · `.createOptionForm()` (v0.2) · `.optionsLimit()` |
+| `Textarea` | `.rows()` `.autosize()` `.maxLength()` with a counter |
+| `Select` | `.options(v \| Resolver)` · **`.relationship(name, labelField)`** · `.searchable()` (**server-side** search, not client filtering) · `.multiple()` · `.preload()` · `.createOptionForm()` (v0.2) · `.optionsLimit()` |
 | `Checkbox` | `.inline()` |
 | `Toggle` | `.onIcon()` `.offIcon()` `.onColor()` |
-| `Radio` | `.options()` `.inline()` · *(note : Filament v4 a séparé « boutons inline » et « label inline » — reprendre cette distinction)* |
-| `DateTimePicker` | `.date()` `.time()` `.minDate()` `.maxDate()` `.timezone()` `.format()` · **gestion explicite des timezones** |
+| `Radio` | `.options()` `.inline()` · *(note: Filament v4 separated "inline buttons" from "inline label" — take up that distinction)* |
+| `DateTimePicker` | `.date()` `.time()` `.minDate()` `.maxDate()` `.timezone()` `.format()` · **explicit timezone handling** |
 | `FileUpload` | `.disk()` `.directory()` `.image()` `.maxSize()` `.acceptedFileTypes()` `.multiple()` `.imageEditor()` (v0.3) |
 | `Hidden` | — |
-| `Placeholder` | affichage d'une valeur calculée non éditable |
+| `Placeholder` | displays a computed, non-editable value |
 
-**`Select.relationship()` est le champ le plus important du catalogue.** C'est lui qui porte la promesse : `Select.make('authorId').relationship('author', 'name')` doit charger, chercher côté serveur, paginer et persister la clé étrangère, sans configuration.
+**`Select.relationship()` is the most important field in the catalog.** It is the one that carries the promise: `Select.make('authorId').relationship('author', 'name')` has to load, search on the server, paginate and persist the foreign key, with no configuration.
 
-**`.searchable()` doit être serveur.** Filtrer 10 000 options côté client est le bug classique. Une recherche `searchable` déclenche une requête paginée.
+**`.searchable()` has to be server-side.** Filtering 10,000 options on the client is the classic bug. A `searchable` search issues a paginated query.
 
 ### 3.2 Tier v0.2
 
-| Champ | Notes |
+| Field | Notes |
 |---|---|
-| `Repeater` | `.relationship()` · `.schema([])` · `.minItems()` `.maxItems()` · `.reorderable()` · `.collapsible()` · `.itemLabel(Resolver)` · `.cloneable()` · `.deleteAction()`. **Le cas dur du projet (A3).** |
+| `Repeater` | `.relationship()` · `.schema([])` · `.minItems()` `.maxItems()` · `.reorderable()` · `.collapsible()` · `.itemLabel(Resolver)` · `.cloneable()` · `.deleteAction()`. **The project's hard case (A3).** |
 | `CheckboxList` | `.options()` `.relationship()` `.searchable()` `.bulkToggleable()` `.columns()` |
 | `TagsInput` | `.separator()` `.suggestions()` `.nestedRecursiveRules()` |
-| `KeyValue` | `.keyLabel()` `.valueLabel()` `.reorderable()` · pour les champs `Json` |
-| `RichEditor` | **TipTap**, pas Trix — Filament v4 a fait ce basculement. Toolbar configurable, upload d'images, placeholders de variables |
+| `KeyValue` | `.keyLabel()` `.valueLabel()` `.reorderable()` · for `Json` fields |
+| `RichEditor` | **TipTap**, not Trix — Filament v4 made that switch. Configurable toolbar, image upload, variable placeholders |
 | `MarkdownEditor` | preview, toolbar |
 | `ColorPicker` | hex / rgb / hsl |
-| `ToggleButtons` | alternative visuelle au Radio, `.inline()` `.grouped()` |
+| `ToggleButtons` | a visual alternative to Radio, `.inline()` `.grouped()` |
 
 ### 3.3 Tier v0.3
 
-| Champ | Notes |
+| Field | Notes |
 |---|---|
-| `Builder` | blocs polymorphes réordonnables — le champ « page builder ». Complexité élevée, valeur élevée. |
+| `Builder` | reorderable polymorphic blocks — the "page builder" field. High complexity, high value. |
 | `Slider` | min/max/step |
-| `CodeEditor` | coloration syntaxique, langage configurable |
-| `Wizard` (layout) | étapes, validation par étape, navigation conditionnelle |
+| `CodeEditor` | syntax highlighting, configurable language |
+| `Wizard` (layout) | steps, per-step validation, conditional navigation |
 
-### 3.4 Champs custom (v0.2) — PRD 11
+### 3.4 Custom fields (v0.2) — PRD 11
 
-Contrat en deux parties : une classe serveur étendant `Field`, un composant React enregistré dans le registre. Documenté comme un chemin de première classe, pas comme un hack.
+A two-part contract: a server class extending `Field`, and a React component registered in the registry. Documented as a first-class path, not as a hack.
 
-## 4. Layouts (composants de schéma)
+## 4. Layouts (schema components)
 
-| Composant | Tier | Notes |
+| Component | Tier | Notes |
 |---|---|---|
-| `Schema` (racine) | v0.1 | `.columns(n \| Responsive)` |
-| `Grid` | v0.1 | grille responsive |
+| `Schema` (root) | v0.1 | `.columns(n \| Responsive)` |
+| `Grid` | v0.1 | responsive grid |
 | `Section` | v0.1 | `.description()` `.icon()` `.collapsible()` `.collapsed()` `.aside()` |
-| `Fieldset` | v0.2 | groupement léger |
-| `Tabs` | v0.2 | `.persistTab()` dans l'URL |
-| `Callout` | v0.2 | encart info/warning/danger |
-| `Prime` (Text/Image/Icon) | v0.2 | contenu statique dans un schéma |
+| `Fieldset` | v0.2 | light grouping |
+| `Tabs` | v0.2 | `.persistTab()` in the URL |
+| `Callout` | v0.2 | info/warning/danger box |
+| `Prime` (Text/Image/Icon) | v0.2 | static content inside a schema |
 | `EmptyState` | v0.2 | — |
 | `Wizard` | v0.3 | — |
 | `Split` | v0.3 | — |
 
-## 5. Critères d'acceptation
+## 5. Acceptance criteria
 
-1. Les 10 champs v0.1 passent une matrice de tests commune : rendu, saisie, validation, conditionnel, persistance, rechargement.
-2. `Select.relationship()` sur une table de 50 000 options : ouverture < 200 ms, recherche serveur < 200 ms, aucune requête N+1.
-3. `.visible(false)` et `.dehydrated(false)` garantissent tous deux la non-persistance — test explicite pour chacun.
-4. `DateTimePicker` : une date saisie en UTC+2 est persistée en UTC et réaffichée en UTC+2 sans dérive (test sur changement d'heure d'été).
-5. `FileUpload` : un upload interrompu ne laisse pas de fichier orphelin ni de ligne partielle.
-6. **A3** — Repeater : ajout, modification, réordonnancement et suppression de lignes dans une transaction unique, avec rollback intégral en cas d'échec.
-7. Chaque champ est navigable au clavier et annoncé correctement par un lecteur d'écran.
+1. The 10 v0.1 fields pass a shared test matrix: rendering, input, validation, conditional behavior, persistence, reload.
+2. `Select.relationship()` on a table of 50,000 options: opening < 200 ms, server-side search < 200 ms, no N+1 query.
+3. `.visible(false)` and `.dehydrated(false)` both guarantee non-persistence — an explicit test for each.
+4. `DateTimePicker`: a date entered in UTC+2 is persisted in UTC and displayed again in UTC+2 with no drift (tested across a daylight-saving change).
+5. `FileUpload`: an interrupted upload leaves neither an orphan file nor a partial row.
+6. **A3** — Repeater: adding, editing, reordering and deleting rows in a single transaction, with a complete rollback on failure.
+7. Every field is keyboard-navigable and announced correctly by a screen reader.
 
-## 6. Hors périmètre
+## 6. Out of scope
 
-- Champs de géolocalisation / cartes (candidat plugin).
-- Signature manuscrite (candidat plugin).
-- Éditeur de tableaux WYSIWYG.
-- Champs de paiement.
-- i18n des libellés en v0.1.
+- Geolocation / map fields (plugin candidate).
+- Handwritten signature (plugin candidate).
+- WYSIWYG table editor.
+- Payment fields.
+- i18n of labels in v0.1.
 
-## 7. Risques
+## 7. Risks
 
-| Risque | Impact | Mitigation |
+| Risk | Impact | Mitigation |
 |---|---|---|
-| Trop de champs à moitié finis | **Élevé** | matrice de tests commune obligatoire avant de livrer un champ ; mieux vaut 10 champs finis que 20 approximatifs |
-| Timezones (le piège classique des admins) | Élevé | politique explicite : stockage UTC, affichage dans le fuseau de l'utilisateur, tests sur DST |
-| `Repeater` et `Builder` consomment tout le budget | Moyen | `Repeater` en v0.2 car requis par A3 ; `Builder` repoussé en v0.3 |
-| `RichEditor` (TipTap) alourdit le bundle | Moyen | chargement paresseux du champ, hors du bundle principal |
+| Too many half-finished fields | **High** | a shared test matrix mandatory before shipping a field; 10 finished fields beat 20 approximate ones |
+| Timezones (the classic admin trap) | High | an explicit policy: store UTC, display in the user's zone, tests across DST |
+| `Repeater` and `Builder` eat the whole budget | Medium | `Repeater` in v0.2 because A3 requires it; `Builder` pushed to v0.3 |
+| `RichEditor` (TipTap) weighs down the bundle | Medium | lazy-load the field, outside the main bundle |

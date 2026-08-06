@@ -1,20 +1,20 @@
-# PRD 05 — Resources & pages CRUD
+# PRD 05 — Resources & CRUD pages
 
-**Tier :** v0.1 → v0.3 · **Dépendances :** PRD 01, 02, 03, 04
+**Tier:** v0.1 → v0.3 · **Depends on:** PRD 01, 02, 03, 04
 
-## 1. Objectif
+## 1. Objective
 
-Reproduire ce que la doc Filament appelle *« le cœur de ton application »* : les resources sont des UI CRUD pour tes modèles. Filament génère d'office trois pages — **List** (table paginée), **Create** (formulaire) et **Edit** (formulaire) — plus une page **View** optionnelle en lecture seule, et enregistre automatiquement l'item de sidebar dès qu'une resource est créée.
+Reproduce what the Filament documentation calls *"the heart of your application"*: resources are CRUD UIs for your models. Filament generates three pages out of the box — **List** (paginated table), **Create** (form) and **Edit** (form) — plus an optional read-only **View** page, and automatically registers the sidebar item as soon as a resource is created.
 
-## 2. Anatomie d'une resource
+## 2. Anatomy of a resource
 
 ```ts
 @PanelResource({
   model: 'Post',
-  slug: 'posts',                    // défaut : pluriel kebab-case du modèle
+  slug: 'posts',                    // default: kebab-case plural of the model
   label: 'Article',
   pluralLabel: 'Articles',
-  recordTitle: 'title',             // défaut : inféré (PRD 01 §3.2)
+  recordTitle: 'title',             // default: inferred (PRD 01 §3.2)
   navigationGroup: 'Content',
   navigationSort: 10,
   icon: 'document-text',
@@ -32,51 +32,51 @@ export class PostResource {
 }
 ```
 
-Une seule méthode `form()` sert Create et Edit, différenciées par `ctx.operation` — comme Filament. Un `form()` par opération est possible mais non requis.
+One single `form()` method serves both Create and Edit, told apart by `ctx.operation` — as in Filament. One `form()` per operation is possible but not required.
 
-## 3. Pages générées
+## 3. Generated pages
 
-| Page | Route | Tier | Contenu |
+| Page | Route | Tier | Content |
 |---|---|---|---|
 | **List** | `{path}/posts` | v0.1 | table + header actions (Create) |
-| **Create** | `{path}/posts/create` | v0.1 | formulaire + Save / Save & create another |
-| **Edit** | `{path}/posts/:id/edit` | v0.1 | formulaire + Save + actions (Delete, Replicate…) |
-| **View** | `{path}/posts/:id` | v0.2 | infolist en lecture seule |
+| **Create** | `{path}/posts/create` | v0.1 | form + Save / Save & create another |
+| **Edit** | `{path}/posts/:id/edit` | v0.1 | form + Save + actions (Delete, Replicate, …) |
+| **View** | `{path}/posts/:id` | v0.2 | read-only infolist |
 
-### 3.1 Cycle de vie (hooks)
+### 3.1 Lifecycle (hooks)
 
-Points d'extension, indispensables pour les cas réels et pour les plugins :
+Extension points, indispensable for real cases and for plugins:
 
 ```ts
 mutateFormDataBeforeCreate(data)   // v0.1
 mutateFormDataBeforeSave(data)     // v0.1
-mutateFormDataBeforeFill(data)     // v0.1  (Edit : DB → formulaire)
+mutateFormDataBeforeFill(data)     // v0.1  (Edit: DB → form)
 beforeCreate() / afterCreate(record)
 beforeSave()   / afterSave(record)
 beforeDelete() / afterDelete(record)
-handleRecordCreation(data)         // v0.2 — remplacer entièrement la persistance
+handleRecordCreation(data)         // v0.2 — replace persistence entirely
 handleRecordUpdate(record, data)   // v0.2
 ```
 
-`handleRecord*` est l'échappatoire qui permet de brancher un service métier ou un event bus au lieu d'écrire en base directement. Sans elle, l'outil est inutilisable dans une app avec de la logique domaine.
+`handleRecord*` is the escape hatch that allows plugging in a business service or an event bus instead of writing to the database directly. Without it, the tool is unusable in an app that has domain logic.
 
-### 3.2 Redirection après création
+### 3.2 Redirect after creation
 
-Configurable **au niveau du panel** (index / view / edit), surchargeable par resource — reprise directe d'un ajout de Filament v4.
+Configurable **at panel level** (index / view / edit), overridable per resource — taken directly from an addition in Filament v4.
 
-## 4. Suppression & soft deletes (v0.2)
+## 4. Deletion & soft deletes (v0.2)
 
-| Comportement | Détail |
+| Behavior | Detail |
 |---|---|
-| Delete | confirmation obligatoire par défaut |
-| Bulk delete | confirmation + compteur |
-| Soft delete | détecté via `deletedAt` ou déclaré ; ajoute un filtre ternaire *avec/sans supprimés* |
-| Restore / Force delete | actions dédiées, autorisation séparée |
-| Contraintes FK | une erreur de contrainte remonte en **notification lisible**, pas en 500 |
+| Delete | confirmation mandatory by default |
+| Bulk delete | confirmation + count |
+| Soft delete | detected through `deletedAt` or declared; adds a ternary filter *with/without deleted* |
+| Restore / Force delete | dedicated actions, separate authorization |
+| FK constraints | a constraint error surfaces as a **readable notification**, not a 500 |
 
 ## 5. Relation managers (v0.2)
 
-Gérer les enfants depuis la page parente — la fonctionnalité qui sépare un vrai admin d'un CRUD jouet.
+Managing children from the parent page — the feature that separates a real admin from a toy CRUD.
 
 ```ts
 relations() {
@@ -86,68 +86,68 @@ relations() {
       .form(s => s.schema([Textarea.make('body').required()]))
       .actions([EditAction.make(), DeleteAction.make()])
       .headerActions([CreateAction.make()]),
-    RelationManager.make('tags').attachable(),   // n-n : attach/detach
+    RelationManager.make('tags').attachable(),   // n-n: attach/detach
   ];
 }
 ```
 
-**Distinction fonctionnelle à respecter** : `Repeater` (PRD 06) édite les enfants *dans* le formulaire parent, en une transaction. `RelationManager` les gère *à côté*, avec sa propre pagination et ses propres actions. Les deux sont nécessaires ; les confondre est l'erreur classique.
+**A functional distinction to respect**: `Repeater` (PRD 06) edits children *inside* the parent form, in one transaction. `RelationManager` manages them *alongside*, with its own pagination and its own actions. Both are needed; conflating them is the classic mistake.
 
-Rendu : onglets sous le formulaire (défaut), ou emplacement libre en v0.3 quand la structure de page devient un schéma.
+Rendering: tabs under the form (default), or a free placement in v0.3 once page structure becomes a schema.
 
 ## 6. Nested resources (v0.3)
 
-Filament v4 les supporte nativement : déclarer une resource comme enfant d'une autre, le framework gérant routing et breadcrumbs.
+Filament v4 supports them natively: declare a resource as a child of another, and the framework handles routing and breadcrumbs.
 
 ```ts
 @PanelResource({ model: 'Product', parent: { resource: CategoryResource, relation: 'category' } })
 ```
 
-Routes : `{path}/categories/:parentId/products/:id/edit`. Le scoping au parent est automatique. Pas d'item de navigation propre.
+Routes: `{path}/categories/:parentId/products/:id/edit`. Scoping to the parent is automatic. No navigation item of its own.
 
 ## 7. Singular resources (v0.3)
 
-Une seule instance, pas de page List : Settings, Profil de l'organisation, Configuration de facturation. Route unique, formulaire direct.
+A single instance, no List page: Settings, organization profile, billing configuration. One route, a direct form.
 
 ## 8. Global search (v0.3)
 
-Recherche transverse à toutes les resources, avec palette de commandes (⌘K).
+Search across every resource, with a command palette (⌘K).
 
 ```ts
 globalSearch = {
   attributes: ['title', 'excerpt'],
   resultTitle: (r) => r.title,
-  resultDetails: (r) => ({ Auteur: r.author.name }),
-  actions: [ /* actions rapides depuis le résultat */ ],
+  resultDetails: (r) => ({ Author: r.author.name }),
+  actions: [ /* quick actions from the result */ ],
 };
 ```
 
-**Contrainte de performance** : Filament a dû ajouter une option pour désactiver le découpage du terme de recherche en mots, celui-ci s'écroulant sur de gros jeux de données. → décision : **pas de découpage par défaut**, activable.
+**Performance constraint**: Filament had to add an option to disable splitting the search term into words, which collapsed on large datasets. → decision: **no splitting by default**, opt-in.
 
-## 9. Critères d'acceptation
+## 9. Acceptance criteria
 
-1. Une resource de 15 lignes de code produit List/Create/Edit fonctionnels avec navigation.
-2. `mutateFormDataBeforeCreate` permet de hacher un mot de passe avant persistance.
-3. `handleRecordCreation` permet de router la création vers un service métier sans que l'outil touche la base.
-4. **A2** — table avec colonne de relation + filtre + bulk delete + confirmation.
-5. **A3** — un Repeater sur `addresses` crée, met à jour et supprime les enfants en une transaction.
-6. Un relation manager pagine 500 enfants sans dégrader la page parente.
-7. Une violation de contrainte FK produit une notification d'erreur lisible.
-8. Une resource sans `table()` déclaré génère une table par défaut depuis l'IR (PRD 01) — utilisable immédiatement.
+1. A 15-line resource produces a working List/Create/Edit with navigation.
+2. `mutateFormDataBeforeCreate` allows hashing a password before persistence.
+3. `handleRecordCreation` allows routing creation to a business service without the tool touching the database.
+4. **A2** — a table with a relation column + filter + bulk delete + confirmation.
+5. **A3** — a Repeater on `addresses` creates, updates and deletes children in one transaction.
+6. A relation manager paginates 500 children without degrading the parent page.
+7. An FK constraint violation produces a readable error notification.
+8. A resource with no declared `table()` generates a default table from the IR (PRD 01) — usable immediately.
 
-## 10. Hors périmètre
+## 10. Out of scope
 
-- Versioning / historique des enregistrements.
-- Workflows d'approbation.
-- Audit log (candidat plugin, v2+).
-- Import massif (v0.3, PRD 08).
-- Résolution de conflits d'édition concurrente (afficher un avertissement suffit en v1).
+- Record versioning / history.
+- Approval workflows.
+- Audit log (plugin candidate, v2+).
+- Bulk import (v0.3, PRD 08).
+- Resolving concurrent-edit conflicts (showing a warning is enough for v1).
 
-## 11. Risques
+## 11. Risks
 
-| Risque | Mitigation |
+| Risk | Mitigation |
 |---|---|
-| Le couple Repeater / RelationManager confond les utilisateurs | arbre de décision explicite dans la doc, dès la page Resources |
-| Les hooks ne couvrent pas un cas réel → fork | `handleRecord*` comme échappatoire totale dès v0.2 |
-| Table par défaut inutilisable (trop de colonnes) | limite à 6 colonnes inférées, priorisées : titre, uniques, relations, dates |
-| Nested resources explosent la complexité du routing | reporté en v0.3, après stabilisation du routing simple |
+| The Repeater / RelationManager pair confuses users | an explicit decision tree in the docs, from the Resources page onward |
+| The hooks do not cover a real case → a fork | `handleRecord*` as a total escape hatch from v0.2 |
+| The default table is unusable (too many columns) | capped at 6 inferred columns, prioritized: title, uniques, relations, dates |
+| Nested resources blow up routing complexity | deferred to v0.3, after simple routing has stabilized |

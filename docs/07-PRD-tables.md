@@ -1,26 +1,26 @@
 # PRD 07 — Table builder
 
-**Tier :** v0.1 → v0.3 · **Dépendances :** PRD 01, 02, 03
+**Tier:** v0.1 → v0.3 · **Depends on:** PRD 01, 02, 03
 
-## 1. Objectif
+## 1. Objective
 
-Reprendre ce que Filament décrit comme *« parcourir et filtrer de grands jeux de données avec des colonnes, actions et opérations en masse puissantes »*. La table est la première chose que voit un utilisateur final : c'est là que se juge la qualité perçue du produit.
+Take up what Filament describes as *"browsing and filtering large datasets with powerful columns, actions and bulk operations"*. The table is the first thing an end user sees: it is where the product's perceived quality is judged.
 
-## 2. Leçon à intégrer avant d'écrire une ligne
+## 2. A lesson to absorb before writing a line
 
-Filament v3 rendait ses cellules avec des composants Blade profondément imbriqués, ce qui s'écroulait sur les tables volumineuses. La v4 a **entièrement réécrit** le rendu des cellules pour cette raison.
+Filament v3 rendered its cells with deeply nested Blade components, which collapsed on large tables. v4 **completely rewrote** cell rendering for that reason.
 
-**Conséquence de conception, non négociable :** le rendu de cellule est **plat**. Pas de composant React par cellule avec contexte et hooks. Un registre par type de colonne, une fonction de rendu, mémoïsation par colonne et non par cellule. Cette contrainte est structurelle — on ne la rétrofitte pas.
+**Design consequence, non-negotiable:** cell rendering is **flat**. No React component per cell carrying context and hooks. One registry per column type, one render function, memoization per column and not per cell. This constraint is structural — you do not retrofit it.
 
 ## 3. API
 
 ```ts
 table() {
   return Table.make()
-    .query(q => q.where({ published: true }))     // scope de base
+    .query(q => q.where({ published: true }))     // base scope
     .columns([
       TextColumn.make('title').searchable().sortable(),
-      TextColumn.make('author.name').label('Auteur').sortable(),
+      TextColumn.make('author.name').label('Author').sortable(),
       IconColumn.make('isPriority').boolean(),
       TextColumn.make('status').badge().color(s => STATUS_COLORS[s]),
       TextColumn.make('createdAt').dateTime().sortable().toggleable(hiddenByDefault: true),
@@ -36,106 +36,106 @@ table() {
     .headerActions([CreateAction.make()])
     .defaultSort('createdAt', 'desc')
     .paginated([10, 25, 50, 100])
-    .searchPlaceholder('Rechercher un article…')
-    .emptyState(e => e.heading('Aucun article').description('Crée le premier.'));
+    .searchPlaceholder('Search for an article…')
+    .emptyState(e => e.heading('No articles').description('Create the first one.'));
 }
 ```
 
-## 4. Colonnes
+## 4. Columns
 
-| Colonne | Tier | Options clés |
+| Column | Tier | Key options |
 |---|---|---|
 | `TextColumn` | v0.1 | `.searchable()` `.sortable()` `.badge()` `.color()` `.icon()` `.limit()` `.tooltip()` `.money()` `.dateTime()` `.numeric()` `.copyable()` `.wrap()` `.listWithLineBreaks()` |
 | `IconColumn` | v0.1 | `.boolean()` `.icons()` `.colors()` |
 | `ImageColumn` | v0.2 | `.circular()` `.stacked()` `.size()` `.limit()` |
 | `ColorColumn` | v0.2 | `.copyable()` |
-| `SelectColumn` | v0.2 | édition inline |
-| `ToggleColumn` | v0.2 | édition inline |
-| `TextInputColumn` | v0.2 | édition inline |
-| `CheckboxColumn` | v0.2 | édition inline |
+| `SelectColumn` | v0.2 | inline editing |
+| `ToggleColumn` | v0.2 | inline editing |
+| `TextInputColumn` | v0.2 | inline editing |
+| `CheckboxColumn` | v0.2 | inline editing |
 
-**Options transverses** : `.label()` `.alignment()` `.width()` `.toggleable()` `.visible()` `.extraAttributes()` `.state(Resolver)` `.default()` `.placeholder()`.
+**Cross-cutting options**: `.label()` `.alignment()` `.width()` `.toggleable()` `.visible()` `.extraAttributes()` `.state(Resolver)` `.default()` `.placeholder()`.
 
-**Colonnes d'agrégat** (v0.3) : `.counts('comments')`, `.sum('items', 'total')`, `.avg()`, `.max()` — traduits en sous-requêtes, jamais en boucle applicative.
+**Aggregate columns** (v0.3): `.counts('comments')`, `.sum('items', 'total')`, `.avg()`, `.max()` — translated into subqueries, never into an application loop.
 
-**Édition inline** (v0.2) : c'est une écriture depuis une table. Elle doit passer par la même autorisation et la même validation que le formulaire. Piège classique : contourner les policies. Interdit.
+**Inline editing** (v0.2): this is a write from a table. It has to go through the same authorization and the same validation as the form. The classic trap is bypassing the policies. Forbidden.
 
-## 5. Filtres
+## 5. Filters
 
-| Filtre | Tier |
+| Filter | Tier |
 |---|---|
 | `SelectFilter` (+ `.relationship()` `.multiple()` `.searchable()`) | v0.1 |
 | `TextFilter` | v0.1 |
-| `TernaryFilter` (oui / non / tous — incl. soft deletes) | v0.2 |
+| `TernaryFilter` (yes / no / all — including soft deletes) | v0.2 |
 | `DateRangeFilter` | v0.2 |
 | `NumberRangeFilter` | v0.2 |
-| `Filter.make().schema([...])` — filtre custom à schéma libre | v0.2 |
-| `QueryBuilder` (conditions imbriquées AND/OR) | v0.3 |
+| `Filter.make().schema([...])` — a custom filter with a free schema | v0.2 |
+| `QueryBuilder` (nested AND/OR conditions) | v0.3 |
 
-Comportements : persistance des filtres dans l'URL (partageable, rechargeable), badge du nombre de filtres actifs, `.deferFilters()` (appliquer sur clic plutôt qu'à chaque frappe), indicateurs de filtres actifs supprimables un par un.
+Behaviors: filters persisted in the URL (shareable, reloadable), a badge with the number of active filters, `.deferFilters()` (apply on click rather than on every keystroke), active-filter indicators removable one by one.
 
-## 6. Recherche, tri, pagination
+## 6. Search, sorting, pagination
 
-- **Recherche** : globale sur les colonnes `searchable()`, ou par colonne (`isIndividual`). Recherche sur relation supportée. **Pas de découpage du terme en mots par défaut** — Filament a dû ajouter cette option pour raisons de performance ; on prend le défaut performant.
-- **Tri** : simple en v0.1 ; multi-colonnes en v0.3. Filament v4 trie automatiquement par clé primaire en complément, pour garantir un ordre stable entre pages — **reprendre ce comportement**, c'est un correctif de justesse, pas une préférence.
-- **Pagination** : offset en v0.1 ; curseur en v0.3 pour les très gros volumes. `perPage` persisté par utilisateur (v0.2).
+- **Search**: global across `searchable()` columns, or per column (`isIndividual`). Searching on a relation is supported. **No splitting of the term into words by default** — Filament had to add that option for performance reasons; we take the fast default.
+- **Sorting**: single-column in v0.1; multi-column in v0.3. Filament v4 also sorts by primary key as a tiebreaker, to guarantee a stable order between pages — **take up that behavior**, it is a correctness fix, not a preference.
+- **Pagination**: offset in v0.1; cursor in v0.3 for very large volumes. `perPage` persisted per user (v0.2).
 
-## 7. Sélection & bulk actions
+## 7. Selection & bulk actions
 
-- Sélection de page, sélection de tout le résultat filtré (attention : ne pas charger 100k IDs en mémoire — sur « tout sélectionner », transmettre le **prédicat**, pas la liste d'IDs).
-- Compteur, désélection, barre d'actions flottante.
-- Bulk actions avec confirmation, progression pour les lots longs (v0.3, via queue).
+- Page selection, selection of the whole filtered result (careful: do not load 100k IDs into memory — on "select all", pass the **predicate**, not the list of IDs).
+- Counter, deselection, floating action bar.
+- Bulk actions with confirmation, progress for long batches (v0.3, through a queue).
 
-## 8. Fonctionnalités avancées
+## 8. Advanced features
 
-| Fonctionnalité | Tier |
+| Feature | Tier |
 |---|---|
-| Layout responsive (split, stack, colonnes masquées sur mobile) | v0.2 |
-| Empty state configurable (heading, description, icône, actions) | v0.2 |
-| Summaries (agrégats en pied : count, sum, avg, range) | v0.3 |
-| Grouping rows (groupes repliables avec compteurs) | v0.3 |
-| Réordonnancement drag & drop (colonne d'ordre) | v0.3 |
-| Custom data (source non-ORM : API externe, tableau en mémoire) | v0.3 |
-| Colonnes toggleables persistées par utilisateur | v0.2 |
-| Export CSV du résultat filtré | v0.3 (PRD 08) |
+| Responsive layout (split, stack, columns hidden on mobile) | v0.2 |
+| Configurable empty state (heading, description, icon, actions) | v0.2 |
+| Summaries (footer aggregates: count, sum, avg, range) | v0.3 |
+| Grouping rows (collapsible groups with counts) | v0.3 |
+| Drag-and-drop reordering (an order column) | v0.3 |
+| Custom data (non-ORM source: external API, in-memory array) | v0.3 |
+| Toggleable columns persisted per user | v0.2 |
+| CSV export of the filtered result | v0.3 (PRD 08) |
 
-**Note écosystème** : certaines fonctions haut de gamme (vues sauvegardées par l'utilisateur, quick filters, tri multi-colonnes, gestion de vues) sont vendues comme **plugins commerciaux** dans l'écosystème Filament. → candidates naturelles pour notre propre couche plugin (PRD 11), **pas** pour le cœur.
+**Ecosystem note**: some high-end features (user-saved views, quick filters, multi-column sorting, view management) are sold as **commercial plugins** in the Filament ecosystem. → natural candidates for our own plugin layer (PRD 11), **not** for the core.
 
-## 9. Budget de performance
+## 9. Performance budget
 
-| Scénario | Budget v0.1 | Budget v1.0 |
+| Scenario | v0.1 budget | v1.0 budget |
 |---|---|---|
-| 10k lignes, 8 colonnes dont 2 de relation, page 25 | 300 ms | 150 ms |
-| Tri sur colonne indexée | 200 ms | 100 ms |
-| Recherche globale sur 3 colonnes | 400 ms | 200 ms |
-| 100k lignes, pagination curseur | — | 200 ms |
-| Requêtes SQL par rendu de page | **≤ 3** (count + rows + filtres) | ≤ 3 |
+| 10k rows, 8 columns of which 2 are relations, page of 25 | 300 ms | 150 ms |
+| Sorting on an indexed column | 200 ms | 100 ms |
+| Global search across 3 columns | 400 ms | 200 ms |
+| 100k rows, cursor pagination | — | 200 ms |
+| SQL queries per page render | **≤ 3** (count + rows + filters) | ≤ 3 |
 
-Le compteur de requêtes SQL est un test de non-régression en CI, pas une bonne intention.
+The SQL query counter is a regression test in CI, not a good intention.
 
-## 10. Critères d'acceptation
+## 10. Acceptance criteria
 
-1. **A2** — colonne de relation + filtre select + bulk delete + modale de confirmation, sur une resource réelle.
-2. 10 000 lignes : premier rendu < 300 ms, ≤ 3 requêtes SQL, aucune requête par ligne.
-3. Filtres et tri persistés dans l'URL : recharger la page restitue l'état exact ; l'URL est partageable.
-4. Deux pages consécutives ne montrent jamais deux fois la même ligne (ordre stable garanti par le tri complémentaire sur clé primaire).
-5. « Tout sélectionner » sur 100 000 lignes filtrées ne charge pas 100 000 IDs côté client.
-6. Une édition inline sur une ligne non autorisée est refusée côté serveur.
-7. Une table sans `columns()` déclaré est générée depuis l'IR (max 6 colonnes) et est immédiatement utilisable.
+1. **A2** — relation column + select filter + bulk delete + confirmation modal, on a real resource.
+2. 10,000 rows: first render < 300 ms, ≤ 3 SQL queries, no per-row query.
+3. Filters and sorting persisted in the URL: reloading the page restores the exact state; the URL is shareable.
+4. Two consecutive pages never show the same row twice (stable order guaranteed by the tiebreaker sort on the primary key).
+5. "Select all" over 100,000 filtered rows does not load 100,000 IDs on the client.
+6. Inline editing on an unauthorized row is refused on the server.
+7. A table with no declared `columns()` is generated from the IR (6 columns maximum) and is immediately usable.
 
-## 11. Hors périmètre
+## 11. Out of scope
 
-- Vue Kanban / calendrier / carte (candidats plugins).
-- Vues sauvegardées par utilisateur (candidat plugin commercial).
-- Tableaux croisés dynamiques.
-- Édition de masse via cellules type tableur.
-- Virtual scrolling (la pagination suffit en v1).
+- Kanban / calendar / map views (plugin candidates).
+- User-saved views (commercial plugin candidate).
+- Pivot tables.
+- Spreadsheet-style bulk cell editing.
+- Virtual scrolling (pagination is enough for v1).
 
-## 12. Risques
+## 12. Risks
 
-| Risque | Impact | Mitigation |
+| Risk | Impact | Mitigation |
 |---|---|---|
-| Rendu de cellule imbriqué → le mur de performance de Filament v3 | **Élevé** | rendu plat imposé dès le premier commit ; budget mesuré en CI |
-| N+1 sur colonnes de relation | Élevé | compteur de requêtes SQL en test |
-| Filtres complexes générant du SQL non indexé | Moyen | avertissement en mode dev sur les full scans |
-| « Tout sélectionner » fait exploser la mémoire | Moyen | transmission de prédicat, jamais de liste d'IDs |
+| Nested cell rendering → Filament v3's performance wall | **High** | flat rendering enforced from the first commit; budget measured in CI |
+| N+1 on relation columns | High | an SQL query counter in the tests |
+| Complex filters generating unindexed SQL | Medium | a development-mode warning on full scans |
+| "Select all" blows up memory | Medium | pass a predicate, never a list of IDs |

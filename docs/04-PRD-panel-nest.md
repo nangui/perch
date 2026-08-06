@@ -1,14 +1,14 @@
-# PRD 04 — PanelModule Nest (`@perchjs/nest`)
+# PRD 04 — Nest PanelModule (`@perchjs/nest`)
 
-**Tier :** v0.1 · **Dépendances :** PRD 02, 03 · **Débloque :** PRD 05
+**Tier:** v0.1 · **Depends on:** PRD 02, 03 · **Unblocks:** PRD 05
 
-## 1. Objectif
+## 1. Objective
 
-Le point d'intégration. C'est ce qui doit rendre le produit *Nest-native* plutôt que « un admin monté à côté » — le reproche principal fait à AdminJS.
+The integration point. This is what has to make the product *Nest-native* rather than "an admin bolted on beside the app" — the main charge against AdminJS.
 
-Principe : **réutiliser Nest, ne rien réimplémenter.** Filament ne réécrit ni l'auth ni les policies de Laravel ; on ne réécrit ni les guards ni la DI de Nest.
+Principle: **reuse Nest, reimplement nothing.** Filament rewrites neither Laravel's auth nor its policies; we rewrite neither Nest's guards nor its DI.
 
-## 2. API d'installation
+## 2. Installation API
 
 ```ts
 @Module({
@@ -18,7 +18,7 @@ Principe : **réutiliser Nest, ne rien réimplémenter.** Filament ne réécrit 
       path: '/admin',
       resources: [UserResource, PostResource, OrderResource],
       pages: [SettingsPage],
-      guards: [JwtAuthGuard, AdminRoleGuard],      // guards Nest existants
+      guards: [JwtAuthGuard, AdminRoleGuard],      // existing Nest guards
       brand: { name: 'Acme', logo: '/logo.svg' },
       colors: { primary: 'indigo' },
       navigationGroups: ['Access', 'Content', 'Commerce'],
@@ -28,38 +28,38 @@ Principe : **réutiliser Nest, ne rien réimplémenter.** Filament ne réécrit 
 export class AdminModule {}
 ```
 
-**Objectif produit : cette configuration + une resource = un panel qui tourne.** Time-to-first-CRUD < 15 min.
+**Product goal: this configuration + one resource = a working panel.** Time-to-first-CRUD < 15 min.
 
-## 3. Découverte des resources
+## 3. Resource discovery
 
-Deux modes, dans cet ordre de priorité :
+Two modes, in this order of precedence:
 
-1. **Explicite** — le tableau `resources: []`. Recommandé, prévisible, tree-shakable.
-2. **Par scan de dossier** (v0.2) — `discoverResources({ in: 'src/**/*.resource.ts' })`, à la manière du `discoverResources()` de Filament.
+1. **Explicit** — the `resources: []` array. Recommended, predictable, tree-shakable.
+2. **By folder scan** (v0.2) — `discoverResources({ in: 'src/**/*.resource.ts' })`, in the manner of Filament's `discoverResources()`.
 
-Chaque resource est **instanciée par le conteneur Nest**, donc bénéficie de l'injection de dépendances normale. C'est non négociable : c'est ce qui permet à un resolver d'appeler un service métier (`this.cities.byCountry(...)`).
+Every resource is **instantiated by the Nest container**, and therefore gets ordinary dependency injection. That is non-negotiable: it is what lets a resolver call a business service (`this.cities.byCountry(...)`).
 
-Les resources sont résolues **une fois au bootstrap** ; l'arbre de schéma est reconstruit par requête (immutabilité, PRD 02 §3.4).
+Resources are resolved **once at bootstrap**; the schema tree is rebuilt per request (immutability, PRD 02 §3.4).
 
 ## 4. Routing
 
-| Route | Rôle |
+| Route | Role |
 |---|---|
-| `GET {path}` | shell HTML du panel (une page, assets statiques) |
-| `GET {path}/assets/*` | assets de `@perchjs/ui` |
-| `{path}/api/*` | les 4 routes du protocole (PRD 03 §3) |
+| `GET {path}` | the panel's HTML shell (one page, static assets) |
+| `GET {path}/assets/*` | assets from `@perchjs/ui` |
+| `{path}/api/*` | the 4 protocol routes (PRD 03 §3) |
 
-Toutes les routes API sont enregistrées **dynamiquement** par le module, jamais écrites à la main par l'utilisateur. Le préfixe global Nest (`setGlobalPrefix`) et le versioning doivent être respectés.
+All API routes are registered **dynamically** by the module, never written by hand by the user. Nest's global prefix (`setGlobalPrefix`) and versioning must be respected.
 
-## 5. Authentification & autorisation
+## 5. Authentication & authorization
 
 ### 5.1 Position
 
-**On ne fournit pas d'auth.** Pas de page de login, pas de reset de mot de passe, pas de MFA. Filament les fournit parce que Laravel a un système d'auth canonique ; Node n'en a pas — chaque app a le sien (Passport, JWT, Clerk, Auth.js, session…). Fournir le nôtre créerait un conflit dans 100 % des apps existantes.
+**We do not provide auth.** No login page, no password reset, no MFA. Filament provides them because Laravel has a canonical auth system; Node does not — every app has its own (Passport, JWT, Clerk, Auth.js, sessions, and so on). Providing ours would create a conflict in 100% of existing apps.
 
-**On fournit un point de branchement.** Les guards passés à `forRoot()` s'appliquent à toutes les routes du panel. L'utilisateur authentifié est extrait via un `UserResolver` configurable et injecté dans le `ResolverContext`.
+**We provide a plug-in point.** The guards passed to `forRoot()` apply to every panel route. The authenticated user is extracted through a configurable `UserResolver` and injected into the `ResolverContext`.
 
-### 5.2 Autorisation par resource
+### 5.2 Per-resource authorization
 
 ```ts
 @PanelResource({ model: 'Post' })
@@ -74,22 +74,23 @@ export class PostResource {
 }
 ```
 
-**Invariants de sécurité :**
-- Un refus `viewAny` retire l'entrée de navigation **et** protège les routes (pas seulement l'UI).
-- L'autorisation est vérifiée **côté serveur à chaque requête**, jamais déduite du client.
-- Défaut si `can` est absent : **autorisé** (le panel est déjà derrière les guards). Documenté explicitement, car c'est un choix discutable.
+**Security invariants:**
+
+- A `viewAny` refusal removes the navigation entry **and** protects the routes (not only the UI).
+- Authorization is checked **on the server on every request**, never inferred from the client.
+- Default when `can` is absent: **allowed** (the panel already sits behind the guards). Documented explicitly, because it is a debatable choice.
 
 ## 6. Navigation
 
-- Items générés depuis les resources (label, icône, groupe, tri, badge dynamique).
-- Groupes déclarés au niveau du panel, avec ordre stable.
-- Badge dynamique : `navigationBadge: () => this.orders.pendingCount()` — résolu côté serveur, mis en cache par requête.
-- Filtrage automatique par autorisation.
-- v0.3 : **Clusters** (regroupement de resources partageant une sous-navigation), comme Filament.
+- Items generated from the resources (label, icon, group, sort order, dynamic badge).
+- Groups declared at panel level, with a stable order.
+- Dynamic badge: `navigationBadge: () => this.orders.pendingCount()` — resolved on the server, cached per request.
+- Automatic filtering by authorization.
+- v0.3: **Clusters** (grouping resources that share a sub-navigation), like Filament.
 
 ## 7. Custom pages (v0.2)
 
-Une page = une classe avec un schéma, sans modèle Prisma derrière. Cas d'usage : settings, documentation, écran d'import, tableau de bord métier.
+A page is a class with a schema and no Prisma model behind it. Use cases: settings, documentation, an import screen, a business dashboard.
 
 ```ts
 @PanelPage({ path: 'settings', navigationGroup: 'System', icon: 'cog' })
@@ -99,41 +100,42 @@ export class SettingsPage {
 }
 ```
 
-En v0.3, la structure de la page elle-même devient un schéma (`content()`), reprenant l'apport majeur de Filament v4 : réorganiser une page sans publier de template.
+In v0.3, the page's structure itself becomes a schema (`content()`), taking up Filament v4's major addition: reorganizing a page without publishing a template.
 
-## 8. Multi-tenancy (v0.3, architecture prévue en v0.1)
+## 8. Multi-tenancy (v0.3, architecture planned in v0.1)
 
-Filament v4 **scope automatiquement toutes les requêtes du panel au tenant courant et associe les nouveaux enregistrements au tenant**. C'est puissant et dangereux : sa propre doc renvoie vers des considérations de sécurité.
+Filament v4 **automatically scopes every panel query to the current tenant and associates new records with the tenant**. That is powerful and dangerous: its own documentation points to security considerations.
 
-Décisions à graver dès v0.1, même sans implémenter :
-- Le scoping se fait dans le `DataAdapter`, **pas** dans les resources — sinon une resource oubliée devient une fuite de données.
-- Le tenant courant vit dans un contexte de requête (`AsyncLocalStorage`), jamais dans une variable de module.
-- Une resource explicitement non scopée doit le **déclarer** (`tenantScoped: false`), pour que l'audit soit possible par grep.
-- Test obligatoire : une requête du tenant A ne retourne jamais une ligne du tenant B, sur toutes les routes.
+Decisions to carve in from v0.1, even without implementing:
 
-## 9. Critères d'acceptation
+- Scoping happens in the `DataAdapter`, **not** in the resources — otherwise one forgotten resource becomes a data leak.
+- The current tenant lives in a request context (`AsyncLocalStorage`), never in a module variable.
+- A resource that is explicitly not scoped has to **declare** it (`tenantScoped: false`), so that an audit can be done by grep.
+- Mandatory test: a request from tenant A never returns a row from tenant B, on any route.
 
-1. `PanelModule.forRoot()` + une resource → panel fonctionnel avec CRUD, en < 15 min pour un dev qui découvre l'outil.
-2. Un guard Nest existant protège le panel sans une ligne d'adaptation.
-3. Un resolver peut injecter et appeler un service Nest arbitraire.
-4. `can.viewAny` à `false` retire l'item de navigation **et** renvoie 404 sur les routes de la resource.
-5. Le panel cohabite avec `setGlobalPrefix('api')` sans collision de routes.
-6. Bootstrap sur 30 resources < 500 ms.
-7. Aucun accès à `@perchjs/prisma` depuis ce package (passe par l'interface `DataAdapter`).
+## 9. Acceptance criteria
 
-## 10. Hors périmètre
+1. `PanelModule.forRoot()` + one resource → a working panel with CRUD, in < 15 min for a developer seeing the tool for the first time.
+2. An existing Nest guard protects the panel with no adapter code.
+3. A resolver can inject and call an arbitrary Nest service.
+4. `can.viewAny` at `false` removes the navigation item **and** returns 404 on the resource's routes.
+5. The panel coexists with `setGlobalPrefix('api')` without route collisions.
+6. Bootstrap on 30 resources < 500 ms.
+7. No access to `@perchjs/prisma` from this package (it goes through the `DataAdapter` interface).
 
-- Login, register, reset password, email verification, MFA.
+## 10. Out of scope
+
+- Login, register, password reset, email verification, MFA.
 - Impersonation.
-- Gestion des rôles/permissions (on consomme celle de l'app).
-- Multi-panels (v0.3).
-- Fastify adapter en v0.1 (Express uniquement ; l'abstraction Nest doit permettre les deux ensuite).
+- Role/permission management (we consume the app's).
+- Multiple panels (v0.3).
+- The Fastify adapter in v0.1 (Express only; the Nest abstraction has to allow both later).
 
-## 11. Risques
+## 11. Risks
 
-| Risque | Impact | Mitigation |
+| Risk | Impact | Mitigation |
 |---|---|---|
-| Refuser de fournir l'auth est perçu comme une lacune | Moyen | recettes documentées pour Passport-JWT, session, Clerk, Auth.js |
-| Défaut « autorisé » cause une fuite chez un utilisateur | Élevé | avertissement dans la doc + warning au bootstrap si aucune resource ne déclare `can` |
-| Le scoping tenant est contourné par une requête custom | **Critique** | scoping au niveau adapter, jamais resource ; test cross-tenant en CI |
-| Conflits de routes avec l'app hôte | Moyen | préfixe configurable + détection de collision au bootstrap |
+| Refusing to provide auth is read as a gap | Medium | documented recipes for Passport-JWT, sessions, Clerk, Auth.js |
+| The "allowed" default causes a leak for some user | High | a warning in the docs + a bootstrap warning if no resource declares `can` |
+| Tenant scoping is bypassed by a custom query | **Critical** | scoping at adapter level, never at resource level; cross-tenant test in CI |
+| Route conflicts with the host app | Medium | configurable prefix + collision detection at bootstrap |
