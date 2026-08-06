@@ -12,6 +12,7 @@ Les six décisions structurantes, avec leur contexte, les options écartées et 
 | [0004](adr/0004-nommage.md) | Perch — et le principe de nommage |
 | [0005](adr/0005-scope-npm.md) | Scope npm `@perchjs` plutôt que `@perch` |
 | [0006](adr/0006-lecture-marche-cible.md) | Lecture de « marché cible » dans la règle de réouverture du nom |
+| [0007](adr/0007-livraison-des-assets-du-panneau.md) | `@perchjs/nest` dépend de `@perchjs/ui` pour servir les assets — *proposée* |
 
 ## Perch — framework UI pour NestJS
 

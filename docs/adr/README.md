@@ -18,6 +18,7 @@ Un ADR n'est pas un document vivant. **Il n'est jamais modifié**, seulement rem
 | [0004](0004-nommage.md) | Perch — et le principe de nommage | acceptée |
 | [0005](0005-scope-npm.md) | Scope npm `@perchjs` plutôt que `@perch` | acceptée |
 | [0006](0006-lecture-marche-cible.md) | Lecture de « marché cible » dans la règle de réouverture du nom | acceptée |
+| [0007](0007-livraison-des-assets-du-panneau.md) | `@perchjs/nest` dépend de `@perchjs/ui` pour servir les assets | **proposée** |
 
 ## Format
 
