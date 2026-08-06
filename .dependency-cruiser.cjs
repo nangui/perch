@@ -128,11 +128,20 @@ module.exports = {
     {
       name: "not-to-dev-dep",
       comment:
-        "A runtime module must not reach into a devDependency: it would be " +
-        "missing for whoever installs the published package.",
+        "A runtime module must not reach a dependency that is *only* a " +
+        "devDependency: it would be missing for whoever installs the published " +
+        "package. `dependencyTypesNot` is what makes this usable in a component " +
+        "library — React is correctly both a peerDependency, since the consumer " +
+        "provides it, and a devDependency, since building and testing need it " +
+        "here. Without the exclusion the rule fires on every correct React " +
+        "import.",
       severity: "error",
-      from: { path: "^packages/[^/]+/src", pathNot: "\\.(spec|test)\\.ts$" },
-      to: { dependencyTypes: ["npm-dev"], pathNot: "^packages/" },
+      from: { path: "^packages/[^/]+/src", pathNot: "\\.(spec|test)\\.tsx?$" },
+      to: {
+        dependencyTypes: ["npm-dev"],
+        dependencyTypesNot: ["npm", "npm-peer", "npm-optional"],
+        pathNot: "^packages/",
+      },
     },
     {
       name: "no-non-package-json",

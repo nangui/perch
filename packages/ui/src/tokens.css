@@ -1,0 +1,206 @@
+/**
+ * Atlas — the token layer.
+ *
+ * Every value here is lifted from the `Perch Forms` design, which expressed them
+ * as inline hex. They are re-expressed as semantic custom properties because
+ * ARCH 13 §9 requires the panel to be re-themable by changing tokens, and a
+ * screen that names `#21594a` cannot be re-themed. The rule that follows from
+ * that: component styles below reference `--perch-*` only, never a raw colour.
+ *
+ * Dark mode is NOT in the source design, which specified light only. The dark
+ * ramp here is derived — surfaces inverted, accent lightened to hold contrast on
+ * a dark ground — and is explicitly provisional until reviewed against the
+ * design. It exists now rather than later because retrofitting a second theme is
+ * what forces raw colours back into components.
+ */
+
+:where(:root),
+:where([data-perch-theme="light"]) {
+  /* Surfaces, from the page ground upward. */
+  --perch-surface-page: #e9ebec;
+  --perch-surface: #ffffff;
+  --perch-surface-raised: #fbfbfc;
+  --perch-surface-muted: #f6f7f8;
+  --perch-surface-sunken: #eef0f1;
+  --perch-surface-skeleton: #e2e6e8;
+  --perch-surface-skeleton-strong: #eceef0;
+
+  /* Borders, weakest to strongest. */
+  --perch-border-subtle: #eef0f1;
+  --perch-border: #dfe3e6;
+  --perch-border-strong: #c4cace;
+  --perch-border-hover: #9aa4a9;
+
+  /* Content, weakest to strongest. */
+  --perch-content-subtle: #616c72;
+  --perch-content-muted: #59646a;
+  --perch-content-secondary: #3c464b;
+  --perch-content: #14181a;
+  --perch-content-inverse: #ffffff;
+
+  /* Accent. The one hue that carries interaction. */
+  --perch-accent: #21594a;
+  --perch-accent-hover: #163f34;
+  --perch-accent-surface: #f2f7f5;
+  --perch-accent-border: #dbe6e2;
+  --perch-accent-track: #a8bdb5;
+  --perch-accent-track-border: #8ba79d;
+  --perch-accent-ring: rgb(33 89 74 / 0.28);
+
+  /* Danger. */
+  --perch-danger: #a32b1c;
+  --perch-danger-content: #7d2114;
+  --perch-danger-surface: #fdf4f2;
+  --perch-danger-surface-strong: #fbe9e5;
+  --perch-danger-border: #e3c9c4;
+
+  /* Warning and success — used by badges, never by controls. */
+  --perch-warning-content: #6b4700;
+  --perch-warning-surface: #f6ecd6;
+  --perch-success-content: #15503a;
+  --perch-success-surface: #dff0e7;
+
+  /* A pending item that has never been sent. */
+  --perch-pending-border: #c9c3a8;
+  --perch-pending-surface: #fbfaf5;
+
+  --perch-shadow-popover: 0 6px 16px rgb(20 24 26 / 0.1);
+  --perch-shadow-dragging: 0 8px 18px rgb(20 24 26 / 0.14);
+}
+
+:where([data-perch-theme="dark"]) {
+  --perch-surface-page: #0d1012;
+  --perch-surface: #14181a;
+  --perch-surface-raised: #191e21;
+  --perch-surface-muted: #1d2326;
+  --perch-surface-sunken: #232a2e;
+  --perch-surface-skeleton: #283034;
+  --perch-surface-skeleton-strong: #222a2d;
+
+  --perch-border-subtle: #232a2e;
+  --perch-border: #2c353a;
+  --perch-border-strong: #3c464b;
+  --perch-border-hover: #59646a;
+
+  --perch-content-subtle: #8c979d;
+  --perch-content-muted: #a3adb2;
+  --perch-content-secondary: #c4cace;
+  --perch-content: #eef0f1;
+  --perch-content-inverse: #0d1012;
+
+  --perch-accent: #6cbfa5;
+  --perch-accent-hover: #8ed4bd;
+  --perch-accent-surface: #14231f;
+  --perch-accent-border: #24413a;
+  --perch-accent-track: #3d6b5e;
+  --perch-accent-track-border: #4e8071;
+  --perch-accent-ring: rgb(108 191 165 / 0.32);
+
+  --perch-danger: #e8705c;
+  --perch-danger-content: #f4a396;
+  --perch-danger-surface: #241412;
+  --perch-danger-surface-strong: #2e1a17;
+  --perch-danger-border: #4a2622;
+
+  --perch-warning-content: #e5c07b;
+  --perch-warning-surface: #2a2013;
+  --perch-success-content: #86d0ac;
+  --perch-success-surface: #14261d;
+
+  --perch-pending-border: #4a4635;
+  --perch-pending-surface: #1f1d16;
+
+  --perch-shadow-popover: 0 6px 16px rgb(0 0 0 / 0.5);
+  --perch-shadow-dragging: 0 8px 18px rgb(0 0 0 / 0.6);
+}
+
+/* Follows the operating system unless an explicit theme is stamped on an
+   ancestor, so the panel is dark on a dark desktop without configuration. */
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-perch-theme="light"])) {
+    --perch-surface-page: #0d1012;
+    --perch-surface: #14181a;
+    --perch-surface-raised: #191e21;
+    --perch-surface-muted: #1d2326;
+    --perch-surface-sunken: #232a2e;
+    --perch-surface-skeleton: #283034;
+    --perch-surface-skeleton-strong: #222a2d;
+    --perch-border-subtle: #232a2e;
+    --perch-border: #2c353a;
+    --perch-border-strong: #3c464b;
+    --perch-border-hover: #59646a;
+    --perch-content-subtle: #8c979d;
+    --perch-content-muted: #a3adb2;
+    --perch-content-secondary: #c4cace;
+    --perch-content: #eef0f1;
+    --perch-content-inverse: #0d1012;
+    --perch-accent: #6cbfa5;
+    --perch-accent-hover: #8ed4bd;
+    --perch-accent-surface: #14231f;
+    --perch-accent-border: #24413a;
+    --perch-accent-track: #3d6b5e;
+    --perch-accent-track-border: #4e8071;
+    --perch-accent-ring: rgb(108 191 165 / 0.32);
+    --perch-danger: #e8705c;
+    --perch-danger-content: #f4a396;
+    --perch-danger-surface: #241412;
+    --perch-danger-surface-strong: #2e1a17;
+    --perch-danger-border: #4a2622;
+    --perch-warning-content: #e5c07b;
+    --perch-warning-surface: #2a2013;
+    --perch-success-content: #86d0ac;
+    --perch-success-surface: #14261d;
+    --perch-pending-border: #4a4635;
+    --perch-pending-surface: #1f1d16;
+    --perch-shadow-popover: 0 6px 16px rgb(0 0 0 / 0.5);
+    --perch-shadow-dragging: 0 8px 18px rgb(0 0 0 / 0.6);
+  }
+}
+
+:where(:root) {
+  /* Type. The panel ships no font files: these are stacks, and an integrator
+     may load the named faces or let the fallback stand. */
+  --perch-font-sans: "Libre Franklin", system-ui, -apple-system, sans-serif;
+  --perch-font-serif: "Newsreader", Georgia, serif;
+  --perch-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --perch-text-xs: 10px;
+  --perch-text-sm: 11px;
+  --perch-text-base: 12px;
+  --perch-text-control: 13px;
+  --perch-text-lg: 14px;
+  --perch-text-xl: 16px;
+
+  /* Metrics the source design states in its own header. */
+  --perch-control-height: 34px;
+  --perch-control-height-inner: 32px;
+  --perch-control-height-sm: 28px;
+  --perch-radius: 4px;
+  --perch-radius-lg: 6px;
+  --perch-radius-sm: 3px;
+
+  /* Space scale, 4 px base. */
+  --perch-space-1: 2px;
+  --perch-space-2: 4px;
+  --perch-space-3: 6px;
+  --perch-space-4: 8px;
+  --perch-space-5: 10px;
+  --perch-space-6: 12px;
+  --perch-space-7: 16px;
+  --perch-space-8: 20px;
+
+  /* The reserved help line. This single value is why a server patch never
+     shifts the layout: help and error share it, so a field is the same height
+     at rest, in flight and in error. */
+  --perch-help-line-height: 16px;
+
+  /* 2 px ring at 1 px offset, per the design header. The inner white stop is
+     the offset; it uses the surface token so it works on any ground. */
+  --perch-focus-ring:
+    0 0 0 1px var(--perch-surface), 0 0 0 3px var(--perch-accent-ring);
+
+  /* Debounce, from ARCH 13 §5. Exposed as tokens so a field cannot invent its
+     own timing. */
+  --perch-debounce-text: 400ms;
+  --perch-debounce-immediate: 0ms;
+}

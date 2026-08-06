@@ -17,7 +17,7 @@ export default tseslint.config(
   },
   {
     // Tests may assert on deliberately wrong shapes.
-    files: ["**/*.test.ts", "**/*.spec.ts"],
+    files: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
     rules: {
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-non-null-assertion": "off",

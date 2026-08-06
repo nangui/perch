@@ -1,0 +1,1156 @@
+/**
+ * Atlas — component styles.
+ *
+ * Shipped precompiled and served as static assets by the PanelModule (ARCH 13
+ * §8): the user of the framework configures no bundler and no CSS pipeline.
+ *
+ * Not one raw colour appears below. Every value is a token from tokens.css,
+ * which is what makes the panel re-themable by replacing that one file.
+ */
+@import "./tokens.css";
+
+.perch-root {
+  font-family: var(--perch-font-sans);
+  color: var(--perch-content);
+  background: var(--perch-surface-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+.perch-root *,
+.perch-root *::before,
+.perch-root *::after {
+  box-sizing: border-box;
+}
+
+/* ---------------------------------------------------------------- field shell
+
+   The heart of the design, stated in its own header: help text and error share
+   one reserved line under the control, so a field is exactly as tall at rest, in
+   flight and in error. A server patch therefore never shifts what is below it —
+   which is the visual half of "the state is authoritative on the server". */
+
+.perch-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--perch-space-3);
+  min-width: 0;
+}
+
+.perch-field__label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--perch-space-3);
+}
+
+.perch-field__label-text {
+  font-size: var(--perch-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--perch-content-muted);
+}
+
+.perch-field__required {
+  color: var(--perch-danger);
+  font-weight: 600;
+}
+
+.perch-field__tag {
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-xs);
+  letter-spacing: 0.06em;
+  color: var(--perch-content-subtle);
+}
+
+/* Never `display: none` and never conditional height: the line is always here. */
+.perch-field__help {
+  font-size: var(--perch-text-base);
+  color: var(--perch-content-muted);
+  min-height: var(--perch-help-line-height);
+  text-wrap: pretty;
+}
+
+.perch-field__help[data-error="true"] {
+  color: var(--perch-danger-content);
+}
+
+/* ------------------------------------------------------------------- control */
+
+.perch-control {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  min-width: 0;
+  height: var(--perch-control-height);
+  padding: 0 var(--perch-space-5);
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+  color: var(--perch-content);
+  font-family: var(--perch-font-sans);
+  font-size: var(--perch-text-control);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.perch-control:hover:not([data-disabled="true"]):not([data-readonly="true"]) {
+  border-color: var(--perch-border-hover);
+  background: var(--perch-surface-raised);
+}
+
+/* :focus-within rather than :focus so the wrapper lights up for the inner
+   input, the combobox trigger and the segmented date control alike. */
+.perch-control:focus-within {
+  border-color: var(--perch-accent);
+  box-shadow: var(--perch-focus-ring);
+  outline: none;
+}
+
+.perch-control[data-state="draft"] {
+  border-color: var(--perch-accent);
+  background: var(--perch-accent-surface);
+}
+
+.perch-control[data-invalid="true"] {
+  border-color: var(--perch-danger);
+}
+
+.perch-control[data-disabled="true"],
+.perch-control[data-readonly="true"] {
+  border-color: var(--perch-border);
+  background: var(--perch-surface-muted);
+  color: var(--perch-content-muted);
+}
+
+.perch-control[data-empty="true"] {
+  border-style: dashed;
+  background: var(--perch-surface-muted);
+  color: var(--perch-content-subtle);
+}
+
+/* The control owns the frame; the input is transparent inside it. Border and
+   ring live in one place, so every field type lines up to the pixel. */
+.perch-control__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.perch-control__input::placeholder {
+  color: var(--perch-content-subtle);
+}
+
+.perch-control__input:disabled {
+  cursor: not-allowed;
+}
+
+.perch-control--mono .perch-control__input,
+.perch-control__input[data-mono="true"] {
+  font-family: var(--perch-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Affixes: a fixed scheme, a unit, a verification mark. Part of the frame, not
+   of the value — they are never typed into. */
+.perch-control__affix {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  flex: none;
+  padding: 0 var(--perch-space-4);
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-muted);
+  background: var(--perch-surface-muted);
+}
+
+.perch-control__affix--prefix {
+  margin-left: calc(-1 * var(--perch-space-5));
+  border-right: 1px solid var(--perch-border);
+  border-top-left-radius: calc(var(--perch-radius) - 1px);
+  border-bottom-left-radius: calc(var(--perch-radius) - 1px);
+}
+
+.perch-control__affix--suffix {
+  margin-right: calc(-1 * var(--perch-space-5));
+  margin-left: auto;
+  border-left: 1px solid var(--perch-border);
+  border-top-right-radius: calc(var(--perch-radius) - 1px);
+  border-bottom-right-radius: calc(var(--perch-radius) - 1px);
+}
+
+.perch-control__affix--ok {
+  background: var(--perch-accent-surface);
+  border-color: var(--perch-accent-border);
+  color: var(--perch-accent);
+}
+
+.perch-control__affix--button {
+  background: var(--perch-surface-muted);
+  border: none;
+  border-left: 1px solid var(--perch-border);
+  color: var(--perch-content-muted);
+  cursor: pointer;
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+}
+
+.perch-control__affix--button:hover {
+  color: var(--perch-content);
+}
+
+/* Status marks: Unsaved, Saving…, and the error badge. */
+.perch-control__mark {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--perch-text-sm);
+  font-weight: 600;
+  color: var(--perch-content-muted);
+  white-space: nowrap;
+}
+
+.perch-control__mark--draft {
+  color: var(--perch-accent);
+}
+
+.perch-control__mark--error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--perch-radius);
+  background: var(--perch-danger);
+  color: var(--perch-content-inverse);
+  font-size: var(--perch-text-sm);
+  font-weight: 700;
+}
+
+/* The round-trip hairline. 3 px inside the control's own frame, so showing it
+   costs no layout — the field does not grow when a patch is in flight. */
+.perch-control__track {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: var(--perch-surface-skeleton-strong);
+  overflow: hidden;
+}
+
+.perch-control--tracked {
+  position: relative;
+  overflow: hidden;
+}
+
+.perch-control__track-fill {
+  height: 100%;
+  background: var(--perch-border-strong);
+  transition: width 160ms ease;
+}
+
+.perch-control__track-fill--draft {
+  background: var(--perch-accent);
+}
+
+.perch-control__track[data-state="draft"] {
+  background: var(--perch-accent-border);
+}
+
+/* A value being fetched. Never a spinner in place of the control: the box keeps
+   its height and its border so the fields under it do not move. */
+.perch-skeleton {
+  display: block;
+  height: 9px;
+  border-radius: var(--perch-space-1);
+  background: var(--perch-surface-skeleton);
+}
+
+.perch-loading-note {
+  margin-left: auto;
+  flex: none;
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-muted);
+}
+
+/* ------------------------------------------------------------------ textarea */
+
+.perch-textarea {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.perch-textarea:focus-within {
+  border-color: var(--perch-accent);
+  box-shadow: var(--perch-focus-ring);
+}
+
+.perch-textarea[data-state="draft"] {
+  border-color: var(--perch-accent);
+  background: var(--perch-accent-surface);
+}
+
+.perch-textarea[data-invalid="true"] {
+  border-color: var(--perch-danger);
+}
+
+.perch-textarea[data-readonly="true"] {
+  border-color: var(--perch-border);
+  background: var(--perch-surface-muted);
+}
+
+.perch-textarea__input {
+  min-height: 96px;
+  padding: var(--perch-space-4) var(--perch-space-5);
+  border: none;
+  background: none;
+  color: var(--perch-content);
+  font-family: var(--perch-font-sans);
+  font-size: var(--perch-text-control);
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  text-wrap: pretty;
+}
+
+.perch-textarea__input::placeholder {
+  color: var(--perch-content-subtle);
+}
+
+.perch-textarea[data-readonly="true"] .perch-textarea__input {
+  color: var(--perch-content-secondary);
+  resize: none;
+}
+
+.perch-textarea__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  padding: var(--perch-space-3) var(--perch-space-5);
+  border-top: 1px solid var(--perch-border);
+}
+
+.perch-textarea[data-state="draft"] .perch-textarea__footer {
+  border-top-color: var(--perch-accent-border);
+}
+
+.perch-textarea[data-invalid="true"] .perch-textarea__footer {
+  border-top-color: var(--perch-danger-border);
+  background: var(--perch-danger-surface);
+}
+
+.perch-textarea__status {
+  font-size: var(--perch-text-sm);
+  font-weight: 600;
+  color: var(--perch-accent);
+}
+
+.perch-textarea__status--error {
+  color: var(--perch-danger-content);
+}
+
+.perch-textarea__status--muted {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--perch-content-muted);
+}
+
+.perch-textarea__count {
+  margin-left: auto;
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--perch-content-muted);
+}
+
+.perch-textarea__count--error {
+  color: var(--perch-danger-content);
+}
+
+/* -------------------------------------------------------------------- toggle
+
+   Commits at 0 ms. The knob moves immediately and does not return unless the
+   server refuses; the hairline under the row marks the round trip. */
+
+.perch-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--perch-space-6);
+}
+
+.perch-toggle {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 22px;
+  padding: var(--perch-space-1);
+  border: 1px solid var(--perch-border-strong);
+  border-radius: 11px;
+  background: var(--perch-surface-skeleton-strong);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.perch-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--perch-focus-ring);
+  border-color: var(--perch-accent);
+}
+
+.perch-toggle[data-state="checked"] {
+  background: var(--perch-accent);
+  border-color: var(--perch-accent);
+}
+
+.perch-toggle[data-inflight="true"][data-state="checked"] {
+  background: var(--perch-accent-track);
+  border-color: var(--perch-accent-track-border);
+}
+
+.perch-toggle[data-disabled],
+.perch-toggle:disabled {
+  cursor: not-allowed;
+  background: var(--perch-surface-skeleton);
+  border-color: var(--perch-border);
+}
+
+.perch-toggle[data-disabled][data-state="checked"],
+.perch-toggle:disabled[data-state="checked"] {
+  background: var(--perch-surface-skeleton);
+  border-color: var(--perch-border);
+}
+
+.perch-toggle__knob {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--perch-surface);
+  transition: transform 140ms ease;
+  will-change: transform;
+}
+
+.perch-toggle[data-state="checked"] .perch-toggle__knob {
+  transform: translateX(14px);
+}
+
+.perch-toggle:disabled .perch-toggle__knob {
+  background: var(--perch-surface-muted);
+}
+
+.perch-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--perch-space-1);
+  min-width: 0;
+}
+
+.perch-toggle-text__label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--perch-space-4);
+  font-size: var(--perch-text-control);
+  font-weight: 500;
+  color: var(--perch-content);
+}
+
+.perch-toggle-row[data-disabled="true"] .perch-toggle-text__label {
+  color: var(--perch-content-muted);
+}
+
+.perch-toggle-text__help {
+  font-size: var(--perch-text-base);
+  color: var(--perch-content-muted);
+  text-wrap: pretty;
+}
+
+/* -------------------------------------------------------------------- select */
+
+.perch-select__chevron {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--perch-text-xs);
+  color: var(--perch-content-muted);
+}
+
+.perch-control:focus-within .perch-select__chevron {
+  color: var(--perch-accent);
+}
+
+.perch-popover {
+  overflow: hidden;
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius-lg);
+  background: var(--perch-surface);
+  box-shadow: var(--perch-shadow-popover);
+  z-index: 40;
+}
+
+.perch-option {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  height: var(--perch-control-height-inner);
+  padding: 0 var(--perch-space-5);
+  border-left: 2px solid transparent;
+  color: var(--perch-content);
+  font-size: var(--perch-text-control);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.perch-option[data-highlighted],
+.perch-option:hover {
+  background: var(--perch-surface-muted);
+}
+
+.perch-option[data-state="checked"] {
+  border-left-color: var(--perch-accent);
+  background: var(--perch-accent-surface);
+  font-weight: 600;
+}
+
+.perch-option[data-disabled] {
+  color: var(--perch-content-muted);
+  background: var(--perch-surface-muted);
+  cursor: not-allowed;
+}
+
+.perch-option__meta {
+  margin-left: auto;
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-muted);
+}
+
+.perch-option__check {
+  width: 12px;
+  flex: none;
+  color: var(--perch-accent);
+  font-size: var(--perch-text-base);
+}
+
+/* Relation combobox: a search header, results, and a footer that states the
+   keyboard contract rather than hiding it. */
+.perch-combobox {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius-lg);
+  background: var(--perch-surface);
+}
+
+.perch-combobox__search {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  height: 36px;
+  padding: 0 var(--perch-space-5);
+  border-bottom: 1px solid var(--perch-border);
+  background: var(--perch-surface-raised);
+}
+
+.perch-combobox__search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--perch-content);
+  font-family: var(--perch-font-sans);
+  font-size: var(--perch-text-control);
+  outline: none;
+}
+
+.perch-combobox__glass {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--perch-content-muted);
+  border-radius: 50%;
+}
+
+.perch-combobox__count {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--perch-content-muted);
+}
+
+.perch-combobox__result {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-5);
+  min-height: 38px;
+  padding: var(--perch-space-3) var(--perch-space-5);
+  border-bottom: 1px solid var(--perch-border-subtle);
+  cursor: pointer;
+  outline: none;
+}
+
+.perch-combobox__result[data-highlighted="true"],
+.perch-combobox__result:hover {
+  background: var(--perch-surface-muted);
+}
+
+.perch-combobox__result[data-selected="true"] {
+  background: var(--perch-accent-surface);
+}
+
+.perch-combobox__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface-skeleton-strong);
+  font-size: var(--perch-text-xs);
+  font-weight: 600;
+  color: var(--perch-content-muted);
+}
+
+.perch-combobox__lines {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.perch-combobox__name {
+  overflow: hidden;
+  font-size: var(--perch-text-control);
+  color: var(--perch-content);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.perch-combobox__meta {
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-subtle);
+}
+
+.perch-combobox__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  height: 30px;
+  padding: 0 var(--perch-space-5);
+  background: var(--perch-surface-raised);
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-subtle);
+}
+
+.perch-badge {
+  flex: none;
+  margin-left: auto;
+  padding: var(--perch-space-1) var(--perch-space-3);
+  border-radius: var(--perch-space-1);
+  font-size: var(--perch-text-sm);
+  font-weight: 600;
+}
+
+.perch-badge--success {
+  color: var(--perch-success-content);
+  background: var(--perch-success-surface);
+}
+
+.perch-badge--neutral {
+  color: var(--perch-content-secondary);
+  background: var(--perch-surface-skeleton-strong);
+}
+
+.perch-badge--warning {
+  color: var(--perch-warning-content);
+  background: var(--perch-warning-surface);
+}
+
+/* --------------------------------------------------------------- empty state */
+
+.perch-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--perch-space-4);
+  padding: var(--perch-space-8) var(--perch-space-7);
+  text-align: center;
+}
+
+.perch-empty__glyph {
+  width: 40px;
+  height: 40px;
+  border: 1px dashed var(--perch-border-strong);
+  border-radius: var(--perch-radius-lg);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--perch-surface-muted),
+    var(--perch-surface-muted) 5px,
+    var(--perch-surface-sunken) 5px,
+    var(--perch-surface-sunken) 10px
+  );
+}
+
+.perch-empty__glyph--wide {
+  width: 100%;
+  height: 56px;
+}
+
+.perch-empty__title {
+  font-size: var(--perch-text-control);
+  font-weight: 600;
+  color: var(--perch-content);
+}
+
+.perch-empty__body {
+  max-width: 280px;
+  font-size: var(--perch-text-base);
+  color: var(--perch-content-muted);
+  text-wrap: pretty;
+}
+
+/* -------------------------------------------------------------------- button */
+
+.perch-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--perch-space-3);
+  height: var(--perch-control-height-sm);
+  padding: 0 var(--perch-space-5);
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+  color: var(--perch-content);
+  font-family: var(--perch-font-sans);
+  font-size: var(--perch-text-base);
+  cursor: pointer;
+}
+
+.perch-button:hover {
+  background: var(--perch-surface-muted);
+}
+
+.perch-button:focus-visible {
+  outline: none;
+  border-color: var(--perch-accent);
+  box-shadow: var(--perch-focus-ring);
+}
+
+.perch-button:disabled {
+  color: var(--perch-content-muted);
+  background: var(--perch-surface-muted);
+  cursor: not-allowed;
+}
+
+.perch-button--primary {
+  border-color: var(--perch-accent);
+  background: var(--perch-accent);
+  color: var(--perch-content-inverse);
+  font-weight: 500;
+}
+
+.perch-button--primary:hover {
+  background: var(--perch-accent-hover);
+  border-color: var(--perch-accent-hover);
+}
+
+.perch-button--icon {
+  width: var(--perch-control-height-sm);
+  padding: 0;
+  border-color: var(--perch-border);
+  color: var(--perch-content-muted);
+}
+
+.perch-button--icon:hover {
+  color: var(--perch-content);
+}
+
+.perch-button--danger {
+  border-color: var(--perch-danger-border);
+  color: var(--perch-danger);
+}
+
+.perch-button--danger:hover {
+  background: var(--perch-danger-surface);
+}
+
+/* ----------------------------------------------------------- date and time */
+
+.perch-datetime__segment {
+  flex: none;
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-control);
+  color: var(--perch-content);
+  white-space: nowrap;
+}
+
+.perch-datetime__zone {
+  flex: none;
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-muted);
+}
+
+.perch-datetime__divider {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  background: var(--perch-border);
+}
+
+.perch-calendar {
+  width: 300px;
+  padding: var(--perch-space-6);
+}
+
+.perch-calendar__head {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  margin-bottom: var(--perch-space-5);
+  font-size: var(--perch-text-control);
+  font-weight: 600;
+}
+
+.perch-calendar__nav {
+  display: flex;
+  gap: var(--perch-space-2);
+  margin-left: auto;
+}
+
+.perch-calendar__nav-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius);
+  background: none;
+  color: var(--perch-content-muted);
+  font-size: var(--perch-text-sm);
+  cursor: pointer;
+}
+
+.perch-calendar__nav-button:hover {
+  background: var(--perch-surface-muted);
+  color: var(--perch-content);
+}
+
+.perch-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--perch-space-1);
+}
+
+.perch-calendar__weekday {
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-xs);
+  color: var(--perch-content-subtle);
+  text-align: center;
+}
+
+.perch-calendar__day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  border: none;
+  border-radius: var(--perch-radius);
+  background: none;
+  color: var(--perch-content);
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-base);
+  cursor: pointer;
+}
+
+.perch-calendar__day:hover:not(:disabled) {
+  background: var(--perch-surface-skeleton-strong);
+}
+
+.perch-calendar__day:focus-visible {
+  outline: none;
+  box-shadow: var(--perch-focus-ring);
+}
+
+.perch-calendar__day[data-outside="true"],
+.perch-calendar__day:disabled {
+  color: var(--perch-content-muted);
+  cursor: not-allowed;
+}
+
+.perch-calendar__day[data-today="true"] {
+  box-shadow: inset 0 0 0 1px var(--perch-accent);
+}
+
+.perch-calendar__day[data-selected="true"] {
+  background: var(--perch-accent);
+  color: var(--perch-content-inverse);
+}
+
+.perch-calendar__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  margin-top: var(--perch-space-5);
+  padding-top: var(--perch-space-5);
+  border-top: 1px solid var(--perch-border-subtle);
+}
+
+/* --------------------------------------------------------------- code editor */
+
+.perch-code {
+  overflow: hidden;
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+}
+
+.perch-code[data-invalid="true"] {
+  border-color: var(--perch-danger);
+}
+
+.perch-code[data-readonly="true"] {
+  background: var(--perch-surface-muted);
+}
+
+.perch-code__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  height: 28px;
+  padding: 0 var(--perch-space-5);
+  border-bottom: 1px solid var(--perch-border);
+  background: var(--perch-surface-muted);
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-muted);
+}
+
+.perch-code__diagnostic {
+  margin-left: auto;
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  color: var(--perch-danger-content);
+}
+
+.perch-code__status {
+  margin-left: auto;
+  font-size: var(--perch-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--perch-content-muted);
+}
+
+.perch-code__line {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+}
+
+.perch-code__line[data-error="true"] {
+  background: var(--perch-danger-surface);
+}
+
+.perch-code__gutter {
+  padding-right: var(--perch-space-4);
+  background: var(--perch-surface-muted);
+  color: var(--perch-content-muted);
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-base);
+  line-height: 22px;
+  text-align: right;
+  user-select: none;
+}
+
+.perch-code__line[data-error="true"] .perch-code__gutter {
+  background: var(--perch-danger-surface-strong);
+  color: var(--perch-danger-content);
+}
+
+.perch-code__text {
+  padding-left: var(--perch-space-5);
+  color: var(--perch-content);
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-base);
+  line-height: 22px;
+  white-space: pre;
+}
+
+.perch-code__line[data-error="true"] .perch-code__text {
+  color: var(--perch-danger-content);
+}
+
+/* ------------------------------------------------------------------ repeater */
+
+.perch-repeater {
+  overflow: hidden;
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-lg);
+  background: var(--perch-surface);
+}
+
+.perch-repeater__head {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-5);
+  height: 42px;
+  padding: 0 var(--perch-space-7);
+  border-bottom: 1px solid var(--perch-border);
+}
+
+.perch-repeater__title {
+  font-size: var(--perch-text-lg);
+  font-weight: 600;
+  color: var(--perch-content);
+}
+
+.perch-repeater__count {
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-subtle);
+}
+
+.perch-repeater__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--perch-space-4);
+  padding: var(--perch-space-6) var(--perch-space-7);
+}
+
+.perch-repeater__item {
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-lg);
+  background: var(--perch-surface);
+}
+
+.perch-repeater__item[data-invalid="true"] {
+  border-color: var(--perch-danger-border);
+}
+
+.perch-repeater__item[data-dragging="true"] {
+  border-color: var(--perch-border-strong);
+  box-shadow: var(--perch-shadow-dragging);
+}
+
+.perch-repeater__item[data-pending="true"] {
+  border-color: var(--perch-pending-border);
+  background: var(--perch-pending-surface);
+}
+
+.perch-repeater__row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 132px) 62px;
+  align-items: center;
+  gap: var(--perch-space-6);
+  padding: var(--perch-space-4) var(--perch-space-5);
+}
+
+.perch-repeater__handle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  border: none;
+  background: none;
+  color: var(--perch-content-subtle);
+  cursor: grab;
+}
+
+.perch-repeater__handle:focus-visible {
+  outline: none;
+  border-radius: var(--perch-radius-sm);
+  box-shadow: var(--perch-focus-ring);
+}
+
+.perch-repeater__index {
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-xs);
+}
+
+.perch-repeater__actions {
+  display: flex;
+  gap: var(--perch-space-3);
+  justify-content: flex-end;
+}
+
+.perch-repeater__note {
+  min-height: var(--perch-help-line-height);
+  padding: 0 var(--perch-space-5) var(--perch-space-4) 50px;
+  font-size: var(--perch-text-base);
+  color: var(--perch-content-muted);
+  text-wrap: pretty;
+}
+
+.perch-repeater__note[data-error="true"] {
+  color: var(--perch-danger-content);
+}
+
+.perch-repeater__dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--perch-space-4);
+  height: 40px;
+  border: 1px dashed var(--perch-border-strong);
+  border-radius: var(--perch-radius-lg);
+  background: var(--perch-surface-muted);
+  font-size: var(--perch-text-base);
+  color: var(--perch-content-muted);
+}
+
+.perch-kbd {
+  padding: 1px var(--perch-space-3);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-sm);
+  background: var(--perch-surface-muted);
+  color: var(--perch-content);
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+}
+
+/* --------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .perch-root *,
+  .perch-root *::before,
+  .perch-root *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Screen-reader-only text. Used for the label of a control whose visible label
+   sits elsewhere, and for live status announcements. */
+.perch-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
