@@ -28,8 +28,14 @@
   /* Borders, weakest to strongest. */
   --perch-border-subtle: #eef0f1;
   --perch-border: #dfe3e6;
-  --perch-border-strong: #c4cace;
-  --perch-border-hover: #9aa4a9;
+  /* `strong` is the resting edge of every control, so WCAG 1.4.11 asks 3:1 of
+     it: #767f84 gives 4.09:1 on white. The design's #c4cace measured 1.66:1.
+     `hover` has to move with it — the design says the border darkens one step,
+     and leaving it at #9aa4a9 (2.54:1) would have made hovering *weaken* the
+     edge. `subtle` and `border` stay low on purpose: they divide sections, they
+     are not the edge of a control, and 1.4.11 does not cover them. */
+  --perch-border-strong: #767f84;
+  --perch-border-hover: #59646a;
 
   /* Content, weakest to strongest. */
   --perch-content-subtle: #616c72;
@@ -79,8 +85,9 @@
 
   --perch-border-subtle: #232a2e;
   --perch-border: #2c353a;
-  --perch-border-strong: #3c464b;
-  --perch-border-hover: #59646a;
+  /* On a dark ground stronger means lighter: 3.79:1 and 5.98:1 on the surface. */
+  --perch-border-strong: #6b757b;
+  --perch-border-hover: #8c979d;
 
   --perch-content-subtle: #8c979d;
   --perch-content-muted: #a3adb2;
@@ -127,8 +134,8 @@
     --perch-surface-skeleton-strong: #222a2d;
     --perch-border-subtle: #232a2e;
     --perch-border: #2c353a;
-    --perch-border-strong: #3c464b;
-    --perch-border-hover: #59646a;
+    --perch-border-strong: #6b757b;
+    --perch-border-hover: #8c979d;
     --perch-content-subtle: #8c979d;
     --perch-content-muted: #a3adb2;
     --perch-content-secondary: #c4cace;

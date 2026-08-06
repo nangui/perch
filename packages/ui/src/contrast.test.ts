@@ -98,8 +98,26 @@ const TEXT_PAIRS: readonly (readonly [string, string, string])[] = [
 
 /** Non-text: a user must be able to make out the edge of a control. */
 const UI_PAIRS: readonly (readonly [string, string, string])[] = [
+  ["--perch-border-strong", "--perch-surface", "the resting edge of a control"],
+  ["--perch-border-hover", "--perch-surface", "the edge on hover"],
   ["--perch-accent", "--perch-surface", "the focus ring against a card"],
   ["--perch-danger", "--perch-surface", "the border of an invalid control"],
+];
+
+/**
+ * The border ramp has to keep its order, and that is not obvious to the eye.
+ *
+ * Raising `--perch-border-strong` to clear 1.4.11 left it darker than
+ * `--perch-border-hover`, which inverted the interaction: hovering *weakened* the
+ * edge, the opposite of what the design describes. Contrast alone would not have
+ * caught it — both values passed their own thresholds. So the ordering is
+ * asserted, in both themes, where "stronger" means further from the surface.
+ */
+const RAMP: readonly string[] = [
+  "--perch-border-subtle",
+  "--perch-border",
+  "--perch-border-strong",
+  "--perch-border-hover",
 ];
 
 /**
@@ -121,30 +139,27 @@ const UI_PAIRS: readonly (readonly [string, string, string])[] = [
  * (4.09:1) and stays distinct from `--perch-border`. Dark theme needs #616c72
  * or darker.
  */
+/**
+ * Contrast failures accepted on purpose, with the reason and the measured ratio.
+ *
+ * Empty, and that is the point: `--perch-border-strong` lived here until the
+ * value was corrected. Anything added must carry why it is tolerable, and the
+ * assertion below locks the measured ratio so the deviation cannot quietly get
+ * worse.
+ */
 const KNOWN_DEVIATIONS: readonly {
   readonly theme: "light" | "dark";
   readonly fg: string;
   readonly bg: string;
   readonly ratio: number;
   readonly required: number;
-}[] = [
-  {
-    theme: "light",
-    fg: "--perch-border-strong",
-    bg: "--perch-surface",
-    ratio: 1.66,
-    required: AA_LARGE,
-  },
-  {
-    theme: "dark",
-    fg: "--perch-border-strong",
-    bg: "--perch-surface",
-    ratio: 1.85,
-    required: AA_LARGE,
-  },
-];
+}[] = [];
 
 describe("known contrast deviations", () => {
+  it("has none, or each is measured below its threshold", () => {
+    expect(Array.isArray(KNOWN_DEVIATIONS)).toBe(true);
+  });
+
   it.each(KNOWN_DEVIATIONS)(
     "$theme: $fg on $bg is still $ratio:1, below $required:1",
     ({ theme: name, fg, bg, ratio: expected, required }) => {
@@ -185,6 +200,24 @@ describe.each(["light", "dark"] as const)("contrast — %s theme", (name) => {
       r,
       `${fg} (${a!}) on ${bg} (${b!}) is ${r.toFixed(2)}:1, below ${String(AA_LARGE)}:1`,
     ).toBeGreaterThanOrEqual(AA_LARGE);
+  });
+
+  it("keeps the border ramp monotonic, so hover never weakens the edge", () => {
+    const distances = RAMP.map((token) => {
+      const value = tokens[token];
+      expect(value, `${token} missing from the ${name} theme`).toBeDefined();
+      return { token, contrast: ratio(value!, tokens["--perch-surface"]!) };
+    });
+    for (let i = 1; i < distances.length; i += 1) {
+      const previous = distances[i - 1]!;
+      const current = distances[i]!;
+      expect(
+        current.contrast,
+        `${current.token} (${current.contrast.toFixed(2)}:1) must stand out more ` +
+          `than ${previous.token} (${previous.contrast.toFixed(2)}:1), otherwise ` +
+          `the ramp inverts and hovering weakens the border`,
+      ).toBeGreaterThan(previous.contrast);
+    }
   });
 
   it("defines every token the other theme defines", () => {
