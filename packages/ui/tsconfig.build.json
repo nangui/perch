@@ -1,11 +1,17 @@
 {
-  // tsup generates declarations through its own rollup, which cannot run on a
-  // `composite` project (TS6307). Typechecking keeps composite in tsconfig.json
-  // for incremental builds and reference-level isolation; this file exists only
-  // for the bundler.
+  // The bundler generates declarations through its own pipeline, which cannot
+  // run on a `composite` project (TS6307). Typechecking keeps composite in
+  // tsconfig.json for incremental builds and reference-level isolation; this
+  // file exists only for the bundler.
+  //
+  // Maps are off here and on in tsconfig.json: tsdown honours these two, unlike
+  // tsup, and shipping sourcemaps in the published package is a decision of its
+  // own rather than a side effect of changing bundler.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    "sourceMap": false,
+    "declarationMap": false,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx"
   },

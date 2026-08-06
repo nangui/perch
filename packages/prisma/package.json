@@ -31,7 +31,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean --tsconfig tsconfig.build.json",
+    "build": "tsdown",
     "typecheck": "tsc --build",
     "lint": "eslint src",
     "package:check": "publint && attw --pack ."

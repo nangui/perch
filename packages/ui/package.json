@@ -27,7 +27,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/styles.css --format esm --dts --clean --tsconfig tsconfig.build.json --external react --external react-dom",
+    "build": "tsdown",
     "typecheck": "tsc --build",
     "lint": "eslint src",
     "package:check": "publint && attw --pack . --profile esm-only --exclude-entrypoints ./styles.css"
