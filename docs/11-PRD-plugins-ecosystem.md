@@ -1,38 +1,38 @@
-# PRD 11 — Extensibilité, plugins & écosystème
+# PRD 11 — Extensibility, plugins & ecosystem
 
-**Tier :** v0.1 (le contrat) → v2 (l'écosystème public) · **Dépendances :** PRD 02, 03, 04
+**Tier:** v0.1 (the contract) → v2 (the public ecosystem) · **Depends on:** PRD 02, 03, 04
 
-## 1. Pourquoi ce PRD existe maintenant
+## 1. Why this PRD exists now
 
-**949+ plugins communautaires.** C'est le chiffre affiché par Filament, à côté de ses 31,7K étoiles et 32,8M téléchargements. Ce n'est pas une conséquence du succès, c'est **la cause** : un utilisateur de Filament témoigne que *« dès qu'il rencontre quelque chose qui n'est pas déjà dans le framework, la communauté a presque toujours résolu le problème avec un plugin »*.
+**949+ community plugins.** That is the figure Filament shows, next to its 31.7K stars and 32.8M downloads. It is not a consequence of success, it is **the cause**: one Filament user reports that *"whenever he runs into something not already in the framework, the community has almost always solved the problem with a plugin"*.
 
-Le vrai fossé concurrentiel de Filament n'est pas son code. C'est son écosystème.
+Filament's real competitive moat is not its code. It is its ecosystem.
 
-**Conséquence opérationnelle :** on ne publie **pas** d'API de plugins en v0.1. Mais on **conçoit le contrat en v0.1**, parce que c'est la seule chose de tout ce projet qu'on ne pourra pas rétrofitter. Une architecture qui n'a pas prévu l'extension ne devient jamais extensible — elle se fait forker.
+**Operational consequence:** we do **not** publish a plugin API in v0.1. But we **design the contract in v0.1**, because it is the one thing in this entire project that cannot be retrofitted. An architecture that did not plan for extension never becomes extensible — it gets forked.
 
-## 2. Les 6 points d'extension à câbler en v0.1
+## 2. The 6 extension points to wire in v0.1
 
-Même sans API publique, ces coutures doivent exister dans le code dès le début.
+Even without a public API, these seams have to exist in the code from the start.
 
-| # | Point d'extension | Mécanisme | Cas d'usage réel |
+| # | Extension point | Mechanism | Real use case |
 |---|---|---|---|
-| E1 | **Configuration globale d'un composant** | `TextInput.configureUsing(fn)` | forcer `maxLength` par défaut partout, changer un style global |
-| E2 | **Injection dans un schéma existant** | `SchemaHook` par resource + position | un module « audit » ajoute `createdBy` à toutes les resources |
-| E3 | **Nouveau type de champ / colonne / entry** | registre serveur + registre React | champ `StarRating`, colonne `Sparkline` |
-| E4 | **Render hooks** | positions nommées dans le chrome | injecter une bannière, un bouton dans la topbar |
-| E5 | **Nouvelle resource / page fournie par un package** | le plugin est un `DynamicModule` Nest | un plugin « Permissions » livre sa resource `Role` |
-| E6 | **Assets (CSS/JS) d'un plugin** | enregistrement auprès du `PanelModule` | un plugin qui a besoin de sa lib front |
+| E1 | **Global configuration of a component** | `TextInput.configureUsing(fn)` | force a default `maxLength` everywhere, change a global style |
+| E2 | **Injection into an existing schema** | a `SchemaHook` per resource + position | an "audit" module adds `createdBy` to every resource |
+| E3 | **A new field / column / entry type** | server registry + React registry | a `StarRating` field, a `Sparkline` column |
+| E4 | **Render hooks** | named positions in the chrome | inject a banner, a button in the topbar |
+| E5 | **A new resource / page provided by a package** | the plugin is a Nest `DynamicModule` | a "Permissions" plugin ships its `Role` resource |
+| E6 | **A plugin's assets (CSS/JS)** | registration with `PanelModule` | a plugin that needs its own front-end library |
 
-**E2 est le critère d'acceptation A4 du PRD 00.** Si un module Nest tiers ne peut pas injecter un champ dans une resource qu'il ne possède pas, aucun écosystème n'est possible. C'est un jalon v0.1, pas v2.
+**E2 is acceptance criterion A4 of PRD 00.** If a third-party Nest module cannot inject a field into a resource it does not own, no ecosystem is possible. That is a v0.1 milestone, not a v2 one.
 
-## 3. Le contrat de plugin (v2, conçu en v0.1)
+## 3. The plugin contract (v2, designed in v0.1)
 
-Filament distingue deux natures de plugins, distinction à reprendre :
+Filament distinguishes two kinds of plugin, a distinction worth taking up:
 
-| Nature | Portée | Exemple |
+| Kind | Reach | Example |
 |---|---|---|
-| **Panel plugin** | enregistre resources, pages, widgets, navigation dans un panel | plugin de gestion de rôles |
-| **Standalone plugin** | fournit un composant réutilisable, sans panel | un champ, une colonne |
+| **Panel plugin** | registers resources, pages, widgets, navigation in a panel | a role-management plugin |
+| **Standalone plugin** | provides a reusable component, with no panel | a field, a column |
 
 ```ts
 export class AuditLogPlugin implements PanelPlugin {
@@ -46,7 +46,7 @@ export class AuditLogPlugin implements PanelPlugin {
       .assets({ css: ['audit.css'] });
   }
 
-  // E2 : injection dans les schémas d'autrui
+  // E2: injection into other people's schemas
   extendResourceSchemas(resource: ResourceMeta, schema: Schema) {
     if (!resource.auditable) return schema;
     return schema.push(
@@ -59,76 +59,78 @@ export class AuditLogPlugin implements PanelPlugin {
 }
 ```
 
-Filament propose aussi des **resources et pages configurables** par les plugins — la possibilité pour l'utilisateur final de reconfigurer ce qu'un plugin fournit. À reprendre en v2 : un plugin dont les resources sont figées est un plugin qu'on forke.
+Filament also offers **configurable resources and pages** for plugins — the ability for the end user to reconfigure what a plugin provides. To take up in v2: a plugin whose resources are frozen is a plugin people fork.
 
-## 4. Règles de conception non négociables
+## 4. Non-negotiable design rules
 
-1. **Le cœur n'a aucun cas particulier de plugin.** Si un plugin a besoin d'un accès que le cœur ne donne pas à tous, c'est le cœur qu'il faut corriger.
-2. **Tout point d'extension est versionné et documenté.** Un point d'extension non documenté sera utilisé quand même, puis cassé, puis reproché.
-3. **Un plugin ne peut pas contourner l'autorisation.** Les schémas injectés passent par le même filtrage serveur (PRD 03 §3.2). Un plugin ne doit pas pouvoir exposer un champ qu'un utilisateur n'a pas le droit de voir.
-4. **Ordre d'exécution déterministe.** Deux plugins modifiant la même resource s'appliquent dans un ordre stable et déclaré, pas dans l'ordre de résolution des modules.
-5. **Défaillance isolée.** Un plugin qui lève une exception dégrade sa propre zone, pas le panel entier.
-6. **Pas d'ouverture prématurée.** L'API n'est publiée qu'en v2, une fois le cœur stable. Publier tôt = geler des erreurs et empêcher les plugins de survivre à v1.
+1. **The core has no plugin special cases.** If a plugin needs access the core does not give everyone, it is the core that has to be fixed.
+2. **Every extension point is versioned and documented.** An undocumented extension point will be used anyway, then broken, then held against you.
+3. **A plugin cannot bypass authorization.** Injected schemas go through the same server-side filtering (PRD 03 §3.2). A plugin must not be able to expose a field a user has no right to see.
+4. **Deterministic execution order.** Two plugins modifying the same resource apply in a stable, declared order, not in module resolution order.
+5. **Isolated failure.** A plugin that throws degrades its own area, not the whole panel.
+6. **No premature opening.** The API is only published in v2, once the core is stable. Publishing early means freezing mistakes and preventing plugins from surviving v1.
 
-## 5. Écosystème (v2)
+## 5. Ecosystem (v2)
 
-| Brique | Description |
+| Piece | Description |
 |---|---|
-| Catalogue | page listant les plugins, cherchable, avec compatibilité de version. Filament héberge un catalogue de 949+ plugins sans les vendre. |
-| Convention de nommage | `perch-plugin-*` sur npm, pour la découvrabilité |
-| Template de plugin | `npx perch plugin create` |
-| Matrice de compatibilité | version de plugin × version de cœur, vérifiée automatiquement |
-| Badge de qualité | tests présents, doc présente, maintenu récemment |
+| Catalog | a page listing plugins, searchable, with version compatibility. Filament hosts a catalog of 949+ plugins without selling them. |
+| Naming convention | `perch-plugin-*` on npm, for discoverability |
+| Plugin template | `npx perch plugin create` |
+| Compatibility matrix | plugin version × core version, checked automatically |
+| Quality badge | tests present, documentation present, recently maintained |
 
-## 6. Surface commerciale future — **hors périmètre actuel**
+## 6. Future commercial surface — **out of current scope**
 
-Documenté pour ne pas fermer les portes. Modèle observé chez Filament, dans l'ordre de ce qui marche :
+Documented so as not to close doors. The model observed at Filament, in order of what works:
 
-| # | Levier | Ce que fait Filament | Applicabilité |
+| # | Lever | What Filament does | Applicability |
 |---|---|---|---|
-| 1 | **Sponsoring par tiers** | GitHub Sponsors avec tiers Agency Partner / Gold / Silver / Bronze, logos sur le site et dans la doc | Le plus simple, dès que la traction existe |
-| 2 | **Plugins officiels payants** | vend son plugin *Custom Dashboards* (dashboards en drag & drop) tout en gardant le framework gratuit | Le plus prometteur. Candidats identifiés dans les PRDs : dashboards drag & drop (09), vues de table sauvegardées + quick filters (07), command palette, RBAC avec éditeur graphique |
-| 3 | **Marché de plugins tiers** | héberge le catalogue, ne prend pas de commission ; des tiers vendent leurs propres plugins commerciaux | Effet réseau, revenu indirect |
-| 4 | **Consulting** | page dédiée + réseau d'agences partenaires | Dépend de la notoriété personnelle |
-| 5 | **Shop** | goodies | Marginal |
+| 1 | **Tiered sponsorship** | GitHub Sponsors with Agency Partner / Gold / Silver / Bronze tiers, logos on the site and in the documentation | The simplest, as soon as traction exists |
+| 2 | **Paid official plugins** | sells its *Custom Dashboards* plugin (drag-and-drop dashboards) while keeping the framework free | The most promising. Candidates identified across the PRDs: drag-and-drop dashboards (09), saved table views + quick filters (07), command palette, RBAC with a graphical editor |
+| 3 | **Third-party plugin market** | hosts the catalog, takes no commission; third parties sell their own commercial plugins | Network effect, indirect revenue |
+| 4 | **Consulting** | a dedicated page + a network of partner agencies | Depends on personal reputation |
+| 5 | **Shop** | merchandise | Marginal |
 
-### Décisions de principe, à graver maintenant
+### Decisions of principle, to carve in now
 
-- **Le cœur reste MIT et fonctionnellement complet.** On ne mutile jamais le cœur pour vendre. C'est ce qui a fait la réputation de Filament face à Nova (payant) et Backpack (par paliers).
-- Toute monétisation passe par des **plugins additifs**, jamais par des fonctionnalités retirées du cœur.
-- Un plugin payant ne doit **jamais** avoir besoin d'un point d'extension privé. S'il en a besoin, le point d'extension devient public pour tous.
-- Aucune télémétrie, aucun compte requis, aucune phone-home.
-- Décision de licence à documenter avant v1 : MIT pour le cœur, licence commerciale séparée par plugin.
+- **The core stays MIT and functionally complete.** We never mutilate the core in order to sell. That is what made Filament's reputation against Nova (paid) and Backpack (tiered).
+- All monetization goes through **additive plugins**, never through features removed from the core.
+- A paid plugin must **never** need a private extension point. If it needs one, the extension point becomes public for everyone.
+- No telemetry, no required account, no phoning home.
+- A licensing decision to document before v1: MIT for the core, a separate commercial license per plugin.
 
-**Statut : rien de tout cela n'est construit avant v2.** Ce PRD sert uniquement à garantir que l'architecture ne l'interdit pas.
+**Status: none of this is built before v2.** This PRD exists solely to guarantee that the architecture does not forbid it.
 
-## 7. Critères d'acceptation
+## 7. Acceptance criteria
 
 ### v0.1
-1. **A4** — un module Nest tiers, dans un package séparé, ajoute un champ à `UserResource` sans modifier son code source.
-2. `TextInput.configureUsing()` appliqué au bootstrap affecte tous les `TextInput` de tous les panels.
-3. Un champ custom (classe serveur + composant React) fonctionne bout en bout, incluant la réactivité et la validation.
-4. Un composant inconnu côté client n'écrase pas le rendu de la page.
-5. Un schéma injecté par un tiers subit le même filtrage d'autorisation qu'un schéma natif (test d'attaque).
+
+1. **A4** — a third-party Nest module, in a separate package, adds a field to `UserResource` without modifying its source.
+2. `TextInput.configureUsing()` applied at bootstrap affects every `TextInput` in every panel.
+3. A custom field (server class + React component) works end to end, including reactivity and validation.
+4. An unknown component on the client does not wipe out the page's rendering.
+5. A schema injected by a third party undergoes the same authorization filtering as a native one (attack test).
 
 ### v2
-6. Deux plugins modifiant la même resource s'appliquent dans un ordre déterministe et documenté.
-7. Un plugin qui lève une exception au `register()` est désactivé avec un message clair ; le panel démarre.
-8. Un plugin déclarant une version de cœur incompatible est refusé au bootstrap avec un message actionnable.
 
-## 8. Hors périmètre
+6. Two plugins modifying the same resource apply in a deterministic, documented order.
+7. A plugin that throws in `register()` is disabled with a clear message; the panel still starts.
+8. A plugin declaring an incompatible core version is refused at bootstrap with an actionable message.
 
-- Le catalogue, le template de plugin, la matrice de compatibilité (v2).
-- Toute forme de facturation, licensing, gestion de clés.
-- Sandboxing / isolation de sécurité des plugins (ils tournent dans le process ; documenté comme tel).
-- Marketplace avec paiement intégré.
+## 8. Out of scope
 
-## 9. Risques
+- The catalog, the plugin template, the compatibility matrix (v2).
+- Any form of billing, licensing, key management.
+- Sandboxing / security isolation of plugins (they run in-process; documented as such).
+- A marketplace with integrated payment.
 
-| Risque | Impact | Mitigation |
+## 9. Risks
+
+| Risk | Impact | Mitigation |
 |---|---|---|
-| L'architecture v0.1 ne permet pas l'extension → il faut tout réécrire pour v2 | **Fatal** | A4 est un jalon **v0.1**, testé, non reportable |
-| Publier l'API trop tôt gèle des erreurs de design | Élevé | API interne mais fonctionnelle en v0.1 ; publique seulement en v2 |
-| Un plugin contourne l'autorisation → fuite chez un utilisateur | **Critique** | filtrage serveur unique, jamais bypassable ; test d'attaque sur schéma injecté |
-| Pas d'écosystème = pas de fossé concurrentiel | Élevé | écrire 3 plugins nous-mêmes en v2 pour prouver l'API et amorcer |
-| La monétisation dégrade la confiance | Élevé | principe écrit publiquement : le cœur ne sera jamais mutilé |
+| The v0.1 architecture does not allow extension → everything has to be rewritten for v2 | **Fatal** | A4 is a **v0.1** milestone, tested, not deferrable |
+| Publishing the API too early freezes design mistakes | High | internal but working API in v0.1; public only in v2 |
+| A plugin bypasses authorization → a leak for some user | **Critical** | one single server-side filter, never bypassable; attack test on an injected schema |
+| No ecosystem means no competitive moat | High | write 3 plugins ourselves in v2 to prove the API and prime the pump |
+| Monetization erodes trust | High | a principle stated publicly: the core will never be mutilated |

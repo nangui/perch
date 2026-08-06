@@ -1,8 +1,8 @@
-# ARCH 12 — Architecture backend
+# ARCH 12 — Backend architecture
 
-**Statut :** décision d'architecture · **Complète :** PRD 01, 02, 03, 04
+**Status:** architecture decision · **Completes:** PRD 01, 02, 03, 04
 
-## 1. Les 4 couches et la règle de dépendance
+## 1. The 4 layers and the dependency rule
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -18,107 +18,107 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Règle unique, non négociable :** les flèches ne pointent que vers l'intérieur.
+**One rule, non-negotiable:** the arrows only point inward.
 
-| Couche | Peut importer | Ne peut jamais importer |
+| Layer | May import | May never import |
 |---|---|---|
-| Domain | rien | Nest, Prisma, React, Express |
-| Application | Domain + interfaces de ports | implémentations concrètes d'adapters |
-| Adapters | Application + Domain | un autre adapter |
+| Domain | nothing | Nest, Prisma, React, Express |
+| Application | Domain + port interfaces | concrete adapter implementations |
+| Adapters | Application + Domain | another adapter |
 
-Vérifié par un test de dépendances (`dependency-cruiser`) **bloquant en CI dès v0.1**. C'est ce qui garantit qu'un futur adaptateur Drizzle ou Fastify ne demande aucune réécriture.
+Verified by a dependency test (`dependency-cruiser`), **blocking in CI from v0.1**. That is what guarantees a future Drizzle or Fastify adapter needs no rewrite.
 
-## 2. Cycle de vie d'une requête `/state` — un pipeline de 9 étages
+## 2. Lifecycle of a `/state` request — a 9-stage pipeline
 
-Le cœur du produit. Chaque étage est une fonction isolée et testable séparément.
+The core of the product. Each stage is an isolated function, testable on its own.
 
-| # | Étage | Responsabilité | Couche |
+| # | Stage | Responsibility | Layer |
 |---|---|---|---|
-| 1 | **Decode** | parser le corps, valider la forme du transport | Adapter in |
-| 2 | **Authenticate** | guards Nest → `principal` | Adapter in |
-| 3 | **Locate** | résoudre resource + opération + autorisation (`can`) | Application |
-| 4 | **Build** | construire l'arbre de schéma pour cette requête | Application |
-| 5 | **Sanitize** | filtrer l'état entrant contre l'arbre | Application |
-| 6 | **Reduce** | machine à états : apply → hooks → resolve → prune | Application |
-| 7 | **Validate** | Zod compilé depuis l'arbre, champs visibles seulement | Application |
-| 8 | **Dehydrate** | produire `{ state, schemaPatch, errors }` | Application |
-| 9 | **Encode** | sérialiser, en-têtes, statut | Adapter in |
+| 1 | **Decode** | parse the body, validate the transport shape | Adapter in |
+| 2 | **Authenticate** | Nest guards → `principal` | Adapter in |
+| 3 | **Locate** | resolve resource + operation + authorization (`can`) | Application |
+| 4 | **Build** | build the schema tree for this request | Application |
+| 5 | **Sanitize** | filter incoming state against the tree | Application |
+| 6 | **Reduce** | state machine: apply → hooks → resolve → prune | Application |
+| 7 | **Validate** | Zod compiled from the tree, visible fields only | Application |
+| 8 | **Dehydrate** | produce `{ state, schemaPatch, errors }` | Application |
+| 9 | **Encode** | serialize, headers, status | Adapter in |
 
-**L'étage 5 est la frontière de confiance.** Tout ce qui arrive du client y est confronté à l'arbre : chemin inconnu, champ invisible, champ `disabled` ou `readOnly` → **écarté silencieusement**. Pas d'erreur explicite : un message qui dit « ce champ est en lecture seule » renseigne l'attaquant.
+**Stage 5 is the trust boundary.** Everything arriving from the client is confronted with the tree there: an unknown path, an invisible field, a `disabled` or `readOnly` field → **discarded silently**. No explicit error: a message saying "this field is read-only" informs the attacker.
 
-**L'étage 6 est la seule boucle du système.** Bornée à 5 passes. Si deux passes consécutives produisent le même état, on sort. Au-delà de 5, exception nommant les champs impliqués — jamais un débordement de pile silencieux.
+**Stage 6 is the only loop in the system.** Bounded to 5 passes. If two consecutive passes produce the same state, we exit. Beyond 5, an exception naming the fields involved — never a silent stack overflow.
 
-## 3. Où vit la machine à états
+## 3. Where the state machine lives
 
-**Dans la couche application, pas dans le domaine, pas dans le contrôleur.**
+**In the application layer, not in the domain, not in the controller.**
 
-Raison : elle orchestre des objets de domaine *et* des appels d'adapter (options asynchrones, validation `unique`, badges de navigation). Elle a besoin d'I/O. Le domaine reste pur — c'est ce qui le rend testable sans base de données et sans Nest.
+The reason: it orchestrates domain objects *and* adapter calls (asynchronous options, `unique` validation, navigation badges). It needs I/O. The domain stays pure — which is what makes it testable without a database and without Nest.
 
-Un `Resolver` du domaine ne fait jamais d'I/O lui-même : il reçoit un `ResolverContext` que l'application a peuplé.
+A domain `Resolver` never performs I/O itself: it receives a `ResolverContext` that the application populated.
 
-## 4. Contexte de requête
+## 4. Request context
 
-Un `AsyncLocalStorage` unique, créé à l'étage 2, portant :
+A single `AsyncLocalStorage`, created at stage 2, carrying:
 
 ```ts
 interface RequestContext {
   requestId: string;
   principal: unknown;
   tenantId?: string;         // scoping (PRD 04 §8)
-  sqlQueryCount: number;     // alimente le test anti-N+1
-  resolverTrace: string[];   // dépendances tracées (PRD 02 §4)
+  sqlQueryCount: number;     // feeds the anti-N+1 test
+  resolverTrace: string[];   // traced dependencies (PRD 02 §4)
   cache: Map<string, unknown>;
 }
 ```
 
-**Aucune variable de module mutable, nulle part.** C'est ce qui rend possibles à la fois le scoping multi-tenant, le compteur de requêtes SQL en CI, et le test de concurrence. Trois garde-fous pour une décision.
+**No mutable module variable, anywhere.** That is what makes multi-tenant scoping, the SQL query counter in CI and the concurrency test all possible at once. Three guardrails from one decision.
 
-## 5. Trois niveaux de cache, trois durées de vie
+## 5. Three cache levels, three lifetimes
 
-| Niveau | Durée | Contenu | Interdit |
+| Level | Lifetime | Contents | Forbidden |
 |---|---|---|---|
-| **Bootstrap** | vie du process | IR du DMMF, métadonnées de resources, arbre de navigation, prototypes de composants, schémas Zod de base | tout ce qui dépend d'un utilisateur |
-| **Requête** | une requête | labels de relations, résultats d'autorisation, badges | — |
-| **Aucun** | — | — | **jamais** de cache inter-requêtes d'une valeur dérivée d'une entrée utilisateur |
+| **Bootstrap** | the process's life | the DMMF's IR, resource metadata, the navigation tree, component prototypes, base Zod schemas | anything that depends on a user |
+| **Request** | one request | relation labels, authorization results, badges | — |
+| **None** | — | — | **never** cache a value derived from user input across requests |
 
-La troisième ligne est la règle la plus importante du tableau.
+The third row is the most important rule in the table.
 
-## 6. Immutabilité et concurrence
+## 6. Immutability and concurrency
 
-Les composants sont définis **une fois** au bootstrap sous forme de prototypes. Chaque requête en fait un `clone()`. Chaque méthode fluide retourne un nouvel objet.
+Components are defined **once** at bootstrap, as prototypes. Each request makes a `clone()` of them. Each fluent method returns a new object.
 
-Un builder mutable partagé entre requêtes fait fuiter l'état d'un utilisateur vers un autre. **C'est une faille, pas un choix de style.** Test de concurrence : 100 requêtes parallèles sur la même resource, avec des états divergents, aucune contamination.
+A mutable builder shared across requests leaks one user's state to another. **That is a vulnerability, not a style choice.** Concurrency test: 100 parallel requests on the same resource, with divergent states, no contamination.
 
-## 7. Taxonomie d'erreurs
+## 7. Error taxonomy
 
-| Classe | Origine | Réponse | Fuite d'information |
+| Class | Origin | Response | Information leaked |
 |---|---|---|---|
-| `ValidationError` | étage 7 | 422 + erreurs par champ | aucune |
-| `AuthorizationError` | étages 3, 8 | **404**, indistinguable de « n'existe pas » | aucune |
-| `IntegrityError` | contrainte FK / unique de la base | 409 + notification lisible | message traduit, jamais le SQL |
-| `ResolverError` | code utilisateur dans un resolver | dégradation **locale** du composant | requestId seulement |
-| `InternalError` | nous | 500 + requestId | rien, jamais de stack |
+| `ValidationError` | stage 7 | 422 + per-field errors | none |
+| `AuthorizationError` | stages 3, 8 | **404**, indistinguishable from "does not exist" | none |
+| `IntegrityError` | an FK / unique constraint in the database | 409 + a readable notification | a translated message, never the SQL |
+| `ResolverError` | user code inside a resolver | **local** degradation of the component | the requestId only |
+| `InternalError` | us | 500 + requestId | nothing, never a stack |
 
-Un resolver qui lève une exception ne doit **jamais** produire un 500 : le composant concerné se dégrade, la page vit.
+A resolver that throws must **never** produce a 500: the component concerned degrades, the page lives.
 
-## 8. Coutures d'extension dans le pipeline
+## 8. Extension seams in the pipeline
 
-Le contrat de plugins (PRD 11) n'est pas une couche à part : ce sont trois points nommés dans le pipeline.
+The plugin contract (PRD 11) is not a separate layer: it is three named points in the pipeline.
 
-| Étage | Couture | Utilisé par |
+| Stage | Seam | Used by |
 |---|---|---|
-| 4 (Build) | `SchemaHook` — un tiers modifie l'arbre | E2, injection de champs |
-| 6 (Reduce) | traçage des resolvers | graphe de dépendances |
-| 8 (Dehydrate) | filtres de payload | masquage par autorisation |
+| 4 (Build) | `SchemaHook` — a third party modifies the tree | E2, field injection |
+| 6 (Reduce) | resolver tracing | the dependency graph |
+| 8 (Dehydrate) | payload filters | hiding by authorization |
 
-Un plugin n'a **aucun** chemin de code privilégié. S'il a besoin d'un accès que le pipeline ne donne pas, c'est le pipeline qu'on corrige.
+A plugin has **no** privileged code path. If it needs access the pipeline does not give, it is the pipeline that gets fixed.
 
-## 9. Ce que cette architecture achète
+## 9. What this architecture buys
 
-| Décision | Ce qu'elle rend possible plus tard |
+| Decision | What it makes possible later |
 |---|---|
-| Domaine sans dépendance | adaptateur Drizzle, adaptateur Fastify, tests sans base |
-| Pipeline en étages | insérer tenancy, audit, i18n sans toucher au reste |
-| Contexte de requête | scoping, compteurs, traçage, sans variables globales |
-| Frontière de confiance à l'étage 5 | la sécurité est en un seul endroit, auditable |
-| Prototypes immutables | concurrence sûre par construction |
+| A dependency-free domain | a Drizzle adapter, a Fastify adapter, tests without a database |
+| A staged pipeline | inserting tenancy, audit, i18n without touching the rest |
+| A request context | scoping, counters, tracing, with no global variables |
+| The trust boundary at stage 5 | security lives in one place, auditable |
+| Immutable prototypes | safe concurrency by construction |

@@ -1,41 +1,41 @@
-# PRD 10 — CLI, génération de code, testing & doc
+# PRD 10 — CLI, code generation, testing & docs
 
-**Tier :** v0.1 (CLI) · v0.2 (testing, doc) · **Dépendances :** PRD 01, 02, 05
+**Tier:** v0.1 (CLI) · v0.2 (testing, docs) · **Depends on:** PRD 01, 02, 05
 
-## 1. Objectif
+## 1. Objective
 
-Trois choses qui ne sont pas des fonctionnalités mais qui décident de l'adoption : la première minute (CLI), la confiance (testing), la découvrabilité (doc).
+Three things that are not features but that decide adoption: the first minute (CLI), confidence (testing), discoverability (docs).
 
-Filament traite ces trois axes explicitement : générateurs Artisan, chapitre Testing dédié (resources, tables, schemas, actions, notifications), et une doc réorganisée en v4 pour donner *« une vision plus claire de comment les fonctionnalités s'articulent »*, avec plus d'exemples et d'explications du fonctionnement interne. Il a aussi une page **« AI-assisted development »** et un `llms.txt` indexant toute la doc — signe que la consommation de doc par des agents est devenue un critère de produit.
+Filament addresses all three explicitly: Artisan generators, a dedicated Testing chapter (resources, tables, schemas, actions, notifications), and documentation reorganized in v4 to give *"a clearer picture of how features fit together"*, with more examples and more explanation of internals. It also has an **"AI-assisted development"** page and an `llms.txt` indexing the whole documentation — a sign that documentation being consumed by agents has become a product criterion.
 
 ## 2. CLI (v0.1)
 
-### 2.1 Commandes
+### 2.1 Commands
 
 ```bash
-# Installation dans une app Nest existante
+# Installing into an existing Nest app
 npx perch init
-#  → crée src/panel/panel.module.ts, l'enregistre dans AppModule,
-#    détecte le client Prisma, écrit la config, affiche l'URL du panel
+#  → creates src/panel/panel.module.ts, registers it in AppModule,
+#    detects the Prisma client, writes the config, prints the panel URL
 
-# Génération d'une resource depuis un modèle Prisma
+# Generating a resource from a Prisma model
 npx perch resource User
 npx perch resource User --with-view --with-relations --soft-deletes
-#  → src/panel/resources/user.resource.ts, enregistrée dans le module
+#  → src/panel/resources/user.resource.ts, registered in the module
 
 npx perch page Settings
-npx perch field StarRating      # squelette serveur + composant React
-npx perch doctor                # diagnostic de configuration
+npx perch field StarRating      # server skeleton + React component
+npx perch doctor                # configuration diagnosis
 ```
 
-Intégration au schematic Nest également : `nest g -c @perchjs/cli resource User`. Les deux entrées doivent exister — les habitudes diffèrent.
+Integration with the Nest schematic as well: `nest g -c @perchjs/cli resource User`. Both entry points have to exist — habits differ.
 
-### 2.2 Qualité de la génération
+### 2.2 Quality of the generated output
 
-**C'est le critère différenciant.** Une resource générée doit être immédiatement bonne, pas un squelette vide. Elle utilise l'inférence de PRD 01 §3.2 :
+**This is the differentiating criterion.** A generated resource has to be immediately good, not an empty skeleton. It uses the inference from PRD 01 §3.2:
 
 ```ts
-// npx perch resource User  →  produit ceci, pas un fichier vide
+// npx perch resource User  →  produces this, not an empty file
 @PanelResource({ model: 'User', navigationGroup: 'Access', icon: 'users' })
 export class UserResource {
   form() {
@@ -64,31 +64,32 @@ export class UserResource {
 }
 ```
 
-**Règles de génération :**
-- Idempotente : régénérer ne détruit pas les modifications manuelles → demander confirmation, proposer un diff.
-- Formatée avec le Prettier/ESLint du projet, pas avec le nôtre.
-- Champs exclus automatiquement : `id`, `createdAt`, `updatedAt`, `deletedAt`, relations `many`.
-- Max 6 colonnes de table, priorisées : champ label, uniques, relations `one`, booléens, dates.
-- Aucune dépendance ajoutée sans le dire.
+**Generation rules:**
+
+- Idempotent: regenerating does not destroy manual edits → ask for confirmation, offer a diff.
+- Formatted with the project's Prettier/ESLint, not ours.
+- Fields excluded automatically: `id`, `createdAt`, `updatedAt`, `deletedAt`, `many` relations.
+- At most 6 table columns, prioritized: the label field, uniques, `one` relations, booleans, dates.
+- No dependency added without saying so.
 
 ### 2.3 Time-to-first-CRUD
 
-C'est la métrique produit n°1. Chemin cible, **< 15 min** pour un dev qui découvre l'outil :
+This is product metric number one. Target path, **< 15 min** for a developer seeing the tool for the first time:
 
 ```
 npm i @perchjs/nest @perchjs/prisma @perchjs/ui   (1 min)
 npx perch init                                   (1 min)
 npx perch resource User                          (30 s)
-npm run start:dev  →  ouvrir /admin                (1 min)
+npm run start:dev  →  open /admin                  (1 min)
 ```
 
-Tout écart à ce chemin est un bug produit, pas un détail de doc.
+Any deviation from that path is a product bug, not a documentation detail.
 
 ## 3. Testing (v0.2)
 
-### 3.1 Helpers fournis
+### 3.1 Helpers provided
 
-Sans helpers, personne ne testera son panel, et les régressions seront invisibles.
+Without helpers, nobody will test their panel, and regressions will be invisible.
 
 ```ts
 const panel = await createPanelTest({ module: AdminModule, as: adminUser });
@@ -109,75 +110,75 @@ await panel.resource(UserResource).table()
   .assertCanSeeRecords([u1, u2])
   .filter('roleId', adminRole.id)
   .assertCanSeeRecords([u1])
-  .assertQueryCount(3);          // ← garde-fou N+1
+  .assertQueryCount(3);          // ← N+1 guardrail
 
 // Actions
 await panel.resource(PostResource).action('archive', post)
   .assertVisible()
   .call({ reason: 'obsolete' })
-  .assertNotification('success', 'Article archivé');
+  .assertNotification('success', 'Article archived');
 
-// Autorisation
+// Authorization
 await panel.as(guestUser).resource(UserResource).assertForbidden();
 ```
 
-### 3.2 Ce que la CI doit garder
+### 3.2 What CI has to hold
 
-| Garde-fou | Pourquoi | PRD source |
+| Guardrail | Why | Source PRD |
 |---|---|---|
-| Compteur de requêtes SQL par page | prévenir les N+1 | 01, 07 |
-| Budget de latence p95 sur `/state` et `/records` | prévenir la dérive de perf | 03, 07 |
-| Test de concurrence (100 requêtes parallèles, aucun état partagé) | immutabilité des builders | 02 |
-| Tests d'attaque : état falsifié, action non autorisée, chemin inconnu | sécurité | 03, 08 |
-| Test cross-tenant | fuite de données | 04 |
-| Test de dépendances : `core` n'importe ni Nest, ni Prisma, ni React | intégrité d'architecture | 02 |
-| Test de contrat DMMF | fragilité de l'API Prisma | 01 |
+| SQL query counter per page | prevent N+1 | 01, 07 |
+| p95 latency budget on `/state` and `/records` | prevent performance drift | 03, 07 |
+| Concurrency test (100 parallel requests, no shared state) | builder immutability | 02 |
+| Attack tests: forged state, unauthorized action, unknown path | security | 03, 08 |
+| Cross-tenant test | data leaks | 04 |
+| Dependency test: `core` imports neither Nest, nor Prisma, nor React | architectural integrity | 02 |
+| DMMF contract test | fragility of the Prisma API | 01 |
 
-Ces garde-fous existent **dès v0.1**, même si les helpers publics n'arrivent qu'en v0.2.
+These guardrails exist **from v0.1**, even though the public helpers only arrive in v0.2.
 
 ## 4. Documentation (v0.2)
 
 ### 4.1 Structure
 
-Reprendre l'organisation de Filament, qui est excellente : Introduction → Getting started (tour d'ensemble, comment les pièces s'articulent) → Resources → Tables → Schemas → Forms → Infolists → Actions → Notifications → Widgets → Configuration → Navigation → Users → Styling → Advanced → Testing → Plugins → Deployment → Upgrade.
+Take up Filament's organization, which is excellent: Introduction → Getting started (an overview of how the pieces fit together) → Resources → Tables → Schemas → Forms → Infolists → Actions → Notifications → Widgets → Configuration → Navigation → Users → Styling → Advanced → Testing → Plugins → Deployment → Upgrade.
 
-### 4.2 Exigences
+### 4.2 Requirements
 
-| Exigence | Détail |
+| Requirement | Detail |
 |---|---|
-| Chaque page a un exemple copiable qui **fonctionne** | testé en CI par extraction des blocs de code |
-| Chaque champ / colonne / action a sa page dédiée | pas de page fourre-tout |
-| Une démo publique déployée | Filament en a une, open-source, avec un vrai jeu de données. Indispensable. |
-| Un `llms.txt` indexant toute la doc | l'agent de code de l'utilisateur est un lecteur de première classe |
-| Une page « développement assisté par IA » | règles de projet pour agents, conventions, pièges |
-| Guide d'upgrade dès la première rupture | jamais rétroactivement |
-| Recettes d'intégration auth | Passport-JWT, session, Clerk, Auth.js (PRD 04 §5.1) |
+| Every page has a copyable example that **works** | tested in CI by extracting the code blocks |
+| Every field / column / action has its own page | no catch-all page |
+| A public deployed demo | Filament has one, open-source, with a real dataset. Indispensable. |
+| An `llms.txt` indexing the whole documentation | the user's coding agent is a first-class reader |
+| An "AI-assisted development" page | project rules for agents, conventions, pitfalls |
+| An upgrade guide from the first breaking change | never retroactively |
+| Auth integration recipes | Passport-JWT, sessions, Clerk, Auth.js (PRD 04 §5.1) |
 
-**Le `llms.txt` n'est pas un gadget.** En 2026, une part significative des utilisateurs découvriront l'outil via un agent. Une doc que les agents lisent mal = un outil que les agents recommandent mal.
+**The `llms.txt` is not a gimmick.** In 2026, a significant share of users will discover the tool through an agent. Documentation that agents read badly means a tool that agents recommend badly.
 
-## 5. Critères d'acceptation
+## 5. Acceptance criteria
 
-1. Time-to-first-CRUD mesuré < 15 min sur 3 développeurs n'ayant jamais vu l'outil (test utilisateur réel, chronométré).
-2. `npx perch resource User` produit un fichier qui compile, passe le lint du projet et fonctionne sans édition.
-3. Régénérer une resource modifiée ne détruit rien sans confirmation explicite.
-4. `npx perch doctor` détecte : Prisma absent, client non généré, module non enregistré, collision de route, version de Prisma non supportée.
-5. Les 7 garde-fous CI du §3.2 sont en place et bloquants sur la branche principale dès v0.1.
-6. Tous les blocs de code de la doc sont extraits et compilés en CI.
-7. La démo publique est déployée et son code est open-source.
+1. Time-to-first-CRUD measured at < 15 min on 3 developers who have never seen the tool (a real, timed user test).
+2. `npx perch resource User` produces a file that compiles, passes the project's lint and works with no editing.
+3. Regenerating a modified resource destroys nothing without explicit confirmation.
+4. `npx perch doctor` detects: Prisma missing, client not generated, module not registered, route collision, unsupported Prisma version.
+5. The 7 CI guardrails from §3.2 are in place and blocking on the main branch from v0.1.
+6. Every code block in the documentation is extracted and compiled in CI.
+7. The public demo is deployed and its code is open-source.
 
-## 6. Hors périmètre
+## 6. Out of scope
 
-- Interface graphique de génération.
-- Migration automatique depuis AdminJS / Payload / Refine.
-- Traduction de la doc (anglais en v1 ; le français viendra de la communauté).
-- Playground en ligne type StackBlitz (v0.3 si possible).
+- A graphical generation interface.
+- Automatic migration from AdminJS / Payload / Refine.
+- Translating the documentation (English in v1; French will come from the community).
+- An online playground of the StackBlitz kind (v0.3 if possible).
 
-## 7. Risques
+## 7. Risks
 
-| Risque | Impact | Mitigation |
+| Risk | Impact | Mitigation |
 |---|---|---|
-| Génération de mauvaise qualité → mauvaise première impression | **Fatal** | l'inférence de PRD 01 est un prérequis, pas un bonus ; test utilisateur chronométré |
-| Personne ne teste son panel → régressions invisibles chez les utilisateurs | Élevé | helpers livrés en v0.2, pas en v1 |
-| Doc en retard sur le code | Élevé | blocs de code testés en CI ; pas de merge de feature sans page de doc |
-| Le CLI casse à chaque version de Nest | Moyen | s'appuyer sur les schematics officiels plutôt que réécrire un générateur |
-| `perch init` modifie du code utilisateur et casse quelque chose | Moyen | dry-run par défaut avec diff affiché, confirmation avant écriture |
+| Poor generation quality → a bad first impression | **Fatal** | the inference from PRD 01 is a prerequisite, not a bonus; a timed user test |
+| Nobody tests their panel → regressions invisible to users | High | helpers shipped in v0.2, not in v1 |
+| Documentation lagging behind the code | High | code blocks tested in CI; no feature merged without a documentation page |
+| The CLI breaks on every Nest version | Medium | lean on the official schematics rather than rewriting a generator |
+| `perch init` edits user code and breaks something | Medium | dry run by default with the diff shown, confirmation before writing |

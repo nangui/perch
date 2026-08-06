@@ -1,36 +1,36 @@
 # PRD 09 — Infolists, widgets & dashboard
 
-**Tier :** v0.2 → v0.3 · **Dépendances :** PRD 02, 03, 05
+**Tier:** v0.2 → v0.3 · **Depends on:** PRD 02, 03, 05
 
-## 1. Objectif
+## 1. Objective
 
-Deux briques que Filament liste parmi ses six blocs de base.
+Two building blocks Filament lists among its six core ones.
 
-**Infolists** — *« rendre des vues d'enregistrement en lecture seule, avec des mises en page structurées et un formatage personnalisé »*. Usage : pages de détail, panneaux latéraux, interfaces d'inspection.
+**Infolists** — *"rendering read-only record views, with structured layouts and custom formatting"*. Use: detail pages, side panels, inspection interfaces.
 
-**Widgets** — *« faire remonter métriques, agrégats, graphiques et activité récente avec des composants pilotés par la donnée »*. Chez Filament, chaque widget est techniquement un composant Livewire, donc pleinement interactif.
+**Widgets** — *"surfacing metrics, aggregates, charts and recent activity with data-driven components"*. At Filament, every widget is technically a Livewire component, and therefore fully interactive.
 
 ## 2. Infolists (v0.2)
 
-### 2.1 Positionnement
+### 2.1 Positioning
 
-Une infolist n'est **pas** un formulaire désactivé. C'est un arbre de composants distinct, optimisé pour la lecture : formatage riche, mises en page denses, pas d'état éditable, pas de validation. Réutiliser le même `Component` racine (PRD 02) mais une sous-hiérarchie `Entry`.
+An infolist is **not** a disabled form. It is a distinct component tree, optimized for reading: rich formatting, dense layouts, no editable state, no validation. It reuses the same root `Component` (PRD 02) but an `Entry` sub-hierarchy.
 
-**Gain architectural** : les layouts (`Section`, `Grid`, `Tabs`) sont partagés avec les formulaires. Une seule implémentation.
+**Architectural gain**: the layouts (`Section`, `Grid`, `Tabs`) are shared with forms. One single implementation.
 
 ### 2.2 API
 
 ```ts
 infolist() {
   return Schema.make([
-    Section.make('Commande').columns(3).schema([
-      TextEntry.make('number').label('N°').copyable(),
+    Section.make('Order').columns(3).schema([
+      TextEntry.make('number').label('No.').copyable(),
       TextEntry.make('status').badge().color(s => STATUS_COLORS[s]),
       TextEntry.make('total').money('EUR'),
-      TextEntry.make('customer.email').label('Client').url(r => `mailto:${r.customer.email}`),
+      TextEntry.make('customer.email').label('Customer').url(r => `mailto:${r.customer.email}`),
       TextEntry.make('createdAt').dateTime(),
     ]),
-    Section.make('Lignes').schema([
+    Section.make('Line items').schema([
       RepeatableEntry.make('items').schema([
         TextEntry.make('product.name'),
         TextEntry.make('quantity'),
@@ -41,7 +41,7 @@ infolist() {
 }
 ```
 
-### 2.3 Catalogue d'entries
+### 2.3 Entry catalog
 
 | Entry | Tier | Options |
 |---|---|---|
@@ -49,19 +49,20 @@ infolist() {
 | `IconEntry` | v0.2 | `.boolean()` `.icons()` `.colors()` |
 | `ImageEntry` | v0.2 | `.circular()` `.stacked()` `.size()` |
 | `ColorEntry` | v0.2 | `.copyable()` |
-| `KeyValueEntry` | v0.2 | pour les champs Json |
-| `CodeEntry` | v0.3 | coloration syntaxique |
-| `RepeatableEntry` | v0.2 | relations hasMany en lecture |
-| `Custom entries` | v0.2 | même contrat que les champs custom (PRD 11) |
+| `KeyValueEntry` | v0.2 | for Json fields |
+| `CodeEntry` | v0.3 | syntax highlighting |
+| `RepeatableEntry` | v0.2 | hasMany relations, read-only |
+| `Custom entries` | v0.2 | the same contract as custom fields (PRD 11) |
 
-**Invariants** :
-- Une infolist ne persiste **jamais** rien.
-- Une entry masquée par autorisation ne doit pas apparaître dans le payload JSON — masquer côté client est une fuite de données.
-- Le chargement des relations est planifié en une requête (`include`), comme pour les tables.
+**Invariants**:
 
-### 2.4 Contextes d'usage
+- An infolist **never** persists anything.
+- An entry hidden by authorization must not appear in the JSON payload — hiding it on the client is a data leak.
+- Relation loading is planned as a single query (`include`), as it is for tables.
 
-Page View d'une resource · modale d'une `ViewAction` · panneau latéral d'une table · dans un relation manager · dans une custom page.
+### 2.4 Usage contexts
+
+A resource's View page · the modal of a `ViewAction` · a table's side panel · inside a relation manager · inside a custom page.
 
 ## 3. Widgets (v0.3)
 
@@ -69,10 +70,10 @@ Page View d'une resource · modale d'une `ViewAction` · panneau latéral d'une 
 
 | Widget | Tier | Notes |
 |---|---|---|
-| `StatsWidget` | v0.3 | cartes de métriques : valeur, description, icône, couleur, tendance, sparkline |
-| `ChartWidget` | v0.3 | line, bar, pie, doughnut, area — via une lib de charting unique |
-| `TableWidget` | v0.3 | réutilise le Table builder (PRD 07), pas de code parallèle |
-| `CustomWidget` | v0.3 | échappatoire React |
+| `StatsWidget` | v0.3 | metric cards: value, description, icon, color, trend, sparkline |
+| `ChartWidget` | v0.3 | line, bar, pie, doughnut, area — through a single charting library |
+| `TableWidget` | v0.3 | reuses the Table builder (PRD 07), no parallel code |
+| `CustomWidget` | v0.3 | React escape hatch |
 
 ```ts
 @PanelWidget({ sort: 1, columnSpan: 2, pollingInterval: 30_000 })
@@ -80,8 +81,8 @@ export class SalesStats extends StatsWidget {
   async stats() {
     const [views, sales, change] = await this.analytics.summary();
     return [
-      Stat.make('Vues uniques', views).icon('eye'),
-      Stat.make('Ventes', sales)
+      Stat.make('Unique views', views).icon('eye'),
+      Stat.make('Sales', sales)
         .color(change >= 0 ? 'success' : 'danger')
         .descriptionIcon(change >= 0 ? 'trending-up' : 'trending-down')
         .description(`${Math.abs(change)}%`),
@@ -90,55 +91,56 @@ export class SalesStats extends StatsWidget {
 }
 ```
 
-### 3.2 Comportements
+### 3.2 Behaviors
 
-| Capacité | Tier |
+| Capability | Tier |
 |---|---|
-| Placement sur le dashboard (ordre, `columnSpan` responsive) | v0.3 |
-| Widgets sur les pages de resource (List / Edit / View) | v0.3 |
-| Polling / rafraîchissement automatique | v0.3 |
-| Filtre global de dashboard (période) propagé aux widgets | v0.3 |
-| Autorisation par widget | v0.3 |
-| Cache par widget (TTL) | v0.3 |
-| Chargement paresseux (le widget ne bloque pas le rendu de la page) | v0.3 |
-| **Dashboards en drag & drop configurables par l'utilisateur final** | **Hors périmètre — candidat plugin commercial** |
+| Placement on the dashboard (order, responsive `columnSpan`) | v0.3 |
+| Widgets on resource pages (List / Edit / View) | v0.3 |
+| Polling / automatic refresh | v0.3 |
+| A global dashboard filter (period) propagated to the widgets | v0.3 |
+| Per-widget authorization | v0.3 |
+| Per-widget cache (TTL) | v0.3 |
+| Lazy loading (a widget does not block the page render) | v0.3 |
+| **End-user-configurable drag-and-drop dashboards** | **Out of scope — commercial plugin candidate** |
 
-Ce dernier point est délibéré : Filament vend précisément cette fonctionnalité comme plugin officiel payant (*Custom Dashboards*). C'est un excellent indicateur de ce qui a une valeur marchande. Voir PRD 11.
+That last point is deliberate: Filament sells precisely that feature as a paid official plugin (*Custom Dashboards*). It is an excellent indicator of what has market value. See PRD 11.
 
 ### 3.3 Performance
 
-Un dashboard est l'écran le plus lent d'un admin mal conçu : 8 widgets = 8 agrégats potentiellement lourds.
+A dashboard is the slowest screen in a badly designed admin: 8 widgets means 8 potentially heavy aggregates.
 
-**Règles :**
-- Chaque widget est chargé **indépendamment et en parallèle**, après le rendu du chrome. Le dashboard s'affiche immédiatement avec des squelettes.
-- Un widget lent ne bloque pas les autres ; un widget en échec affiche une erreur locale, jamais un écran blanc.
-- Budget : chaque widget < 500 ms, dashboard interactif < 400 ms.
-- Cache par défaut recommandé (TTL 60 s) et documenté.
+**Rules:**
 
-## 4. Critères d'acceptation
+- Each widget is loaded **independently and in parallel**, after the chrome has rendered. The dashboard appears immediately with skeletons.
+- A slow widget does not block the others; a failed widget shows a local error, never a blank screen.
+- Budget: each widget < 500 ms, dashboard interactive < 400 ms.
+- A default cache is recommended (TTL 60 s) and documented.
 
-1. La page View d'une resource s'affiche depuis `infolist()` en ≤ 2 requêtes SQL, relations incluses.
-2. Une entry non autorisée est absente du payload JSON (vérifié par inspection réseau).
-3. `RepeatableEntry` affiche 20 lignes enfants sans requête N+1.
-4. Les layouts (`Section`, `Grid`, `Tabs`) fonctionnent à l'identique dans un formulaire et dans une infolist — **une seule implémentation**, testée dans les deux contextes.
-5. Un dashboard de 6 widgets s'affiche en < 400 ms avec squelettes, chaque widget se remplissant indépendamment.
-6. Un widget qui lève une exception affiche une erreur localisée et n'empêche pas les 5 autres de s'afficher.
-7. `TableWidget` réutilise le Table builder sans duplication de code (vérifié par revue).
+## 4. Acceptance criteria
 
-## 5. Hors périmètre
+1. A resource's View page renders from `infolist()` in ≤ 2 SQL queries, relations included.
+2. An unauthorized entry is absent from the JSON payload (verified by network inspection).
+3. `RepeatableEntry` displays 20 child rows with no N+1 query.
+4. The layouts (`Section`, `Grid`, `Tabs`) behave identically in a form and in an infolist — **one single implementation**, tested in both contexts.
+5. A 6-widget dashboard renders in < 400 ms with skeletons, each widget filling in independently.
+6. A widget that throws shows a localized error and does not prevent the other 5 from rendering.
+7. `TableWidget` reuses the Table builder with no code duplication (verified by review).
 
-- Dashboards configurables par l'utilisateur final (drag & drop) → plugin.
-- Constructeur de rapports / BI.
-- Export de dashboard en PDF.
-- Widgets temps réel via WebSocket (v0.3 au mieux, couplé aux notifications broadcast).
-- Widgets de carte géographique → plugin.
+## 5. Out of scope
 
-## 6. Risques
+- End-user-configurable dashboards (drag and drop) → a plugin.
+- Report builder / BI.
+- Exporting a dashboard to PDF.
+- Real-time widgets over WebSocket (v0.3 at the earliest, coupled to broadcast notifications).
+- Geographic map widgets → a plugin.
 
-| Risque | Impact | Mitigation |
+## 6. Risks
+
+| Risk | Impact | Mitigation |
 |---|---|---|
-| Le dashboard devient l'écran le plus lent du panel | Élevé | chargement parallèle et paresseux imposé + budget par widget |
-| Infolists dupliquent le code des formulaires | Moyen | `Component` racine partagé (PRD 02) ; revue d'architecture avant merge |
-| Entries masquées côté client seulement → fuite | **Élevé** | filtrage serveur du payload + test d'inspection réseau |
-| Le choix de lib de charting alourdit le bundle | Faible | une seule lib, chargée paresseusement avec les widgets |
-| Les agrégats de widgets ignorent le scoping tenant | **Critique** | scoping au niveau `DataAdapter` (PRD 04 §8), jamais dans le widget |
+| The dashboard becomes the slowest screen in the panel | High | parallel, lazy loading enforced + a per-widget budget |
+| Infolists duplicate the forms code | Medium | shared root `Component` (PRD 02); architecture review before merge |
+| Entries hidden on the client only → a leak | **High** | server-side payload filtering + a network inspection test |
+| The charting library choice weighs down the bundle | Low | one library, lazily loaded with the widgets |
+| Widget aggregates ignore tenant scoping | **Critical** | scoping at `DataAdapter` level (PRD 04 §8), never in the widget |
