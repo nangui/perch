@@ -7,7 +7,7 @@
 Deux documents décrivent la même chose et une règle exécutable l'interdit.
 
 - **ARCH 13 §8** : « `@perchjs/ui` est publié précompilé. **Le `PanelModule` le sert en statique.** L'utilisateur ne configure ni Vite, ni Webpack, ni Tailwind. C'est la promesse produit, pas une commodité. »
-- **PRD 04 §5** spécifie la route : `GET {path}/assets/*` → « assets de `@perchjs/ui` ».
+- **PRD 04 §4** spécifie la route : `GET {path}/assets/*` → « assets de `@perchjs/ui` ».
 - **`.dependency-cruiser.cjs`, `no-adapter-to-adapter`**, sévérité `error`, bloquante : `packages/nest/src` ne peut atteindre `packages/ui/`.
 
 Il n'existe donc aucune arête `nest → ui`, et `PanelModule` doit servir les fichiers de `ui`.
@@ -24,8 +24,10 @@ Deux fixtures posées dans `packages/nest/src`, puis retirées :
 
 | Construction | Arête vue par dependency-cruiser |
 |---|---|
-| `import` / `import()` d'un paquet frère | **oui** — la règle se déclenche |
+| `import` de `ui` **une fois `ui` déclaré** | **oui** — `no-adapter-to-adapter` se déclenche |
 | `require.resolve()` d'une dépendance déclarée | **non** — aucune arête créée |
+
+La première ligne a été mesurée dans les conditions de la décision, pas dans les conditions actuelles : `@perchjs/ui` ajouté en dépendance de `nest`, fixture posée, `pnpm install`, puis tout restauré. Sans cela la sonde ne prouvait rien — `not-to-unresolvable` se déclenchait avant, et la règle d'architecture n'avait jamais l'occasion de parler.
 
 **La frontière garde les imports, pas les résolutions de chemin.** C'est ce qui rend la décision ci-dessous possible, et c'est aussi un angle mort : `require.resolve` suivi d'une lecture de fichier traverse la frontière sans que rien ne le signale.
 
@@ -36,6 +38,11 @@ Deux fixtures posées dans `packages/nest/src`, puis retirées :
 | **A. `nest` déclare `ui` en dépendance** | `PanelModule` résout la racine du paquet et sert `dist/` | **retenue** — voir ci-dessous |
 | **B. L'utilisateur installe les deux et passe le chemin à `forRoot()`** | aucune arête, règle intacte | rejetée : reporte la plomberie sur l'utilisateur, ce que le produit existe pour supprimer. PRD 04 vise « cette configuration + une resource = un panel qui tourne », et calculer un chemin dans `node_modules` n'en fait pas partie |
 | **C. Un troisième paquet `@perchjs/panel-assets`** | `nest` en dépend, `ui` y publie | rejetée : ajoute un paquet à publier, à versionner et à documenter pour résoudre un problème de classement, pas de conception |
+| **D. `ui` en `peerDependency` de `nest`** | résolvable, mais la version appartient à l'application hôte | rejetée **sous réserve de l'ADR 0008** — voir ci-dessous |
+
+L'option D est le mécanisme fait pour « j'ai besoin que ce paquet soit là, mais je ne possède pas sa version ». Elle vaut donc exactement ce que vaut cette liberté — et l'ADR 0008 propose de la supprimer : sous une politique de versions en lockstep, l'application hôte n'a aucun choix de version à exercer, et la `peerDependency` n'ajoute que la cérémonie et de moins bons messages d'erreur quand elle n'est pas satisfaite.
+
+**Conséquence à assumer : cette ligne du présent ADR n'est pas décidable seule.** Si l'ADR 0008 est refusé et que les paquets versionnent indépendamment, D devient la meilleure réponse et la décision ci-dessous doit être relue.
 
 ## Décision
 

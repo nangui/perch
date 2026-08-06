@@ -26,7 +26,11 @@ Deux faits mesurés plutôt que supposés, sur l'état actuel du dépôt :
 |---|---|---|
 | **A. Lockstep** | les cinq portent toujours le même numéro et sont publiés ensemble | **retenue** |
 | **B. Indépendant** | chaque paquet suit son propre rythme | rejetée : la feuille de route est écrite par version *du produit*, et « Perch 0.2 » est l'unité qu'un auteur de plugin peut nommer (PRD 11). `@perchjs/core@0.4.1` + `@perchjs/nest@0.2.3` n'est pas une information pour lui |
-| **C. Hybride** — `core`/`prisma`/`nest` liés, `ui` et `cli` libres | moins de publications vides | rejetée : l'ADR 0007 couple `nest` à `ui`, donc la coupure tomberait exactement là où est le couplage |
+| **C. Hybride** — cœur lié, périphérie libre | moins de publications vides | rejetée, mais c'est l'option sérieuse — voir ci-dessous |
+
+**L'hybride mérite mieux qu'une ligne, parce que l'écosystème cible le pratique.** Relevé sur le registre : `@nestjs/core` et `@nestjs/common` sont tous deux en `11.1.28`, tandis que `@nestjs/config` est en `4.0.4`. NestJS lie son cœur et laisse ses satellites libres.
+
+Ce qui rend le précédent inapplicable ici : **Perch n'a pas de satellite.** `@nestjs/config` est optionnel, beaucoup d'applications ne l'installent jamais, et il a son propre cycle. Les cinq paquets de Perch sont tous du cœur — il en faut trois ou quatre pour obtenir un panneau qui tourne, et aucun n'a de raison d'avancer seul. Le jour où un satellite existe — un `@perchjs/drizzle`, un plugin communautaire — le précédent NestJS devient la bonne réponse **pour lui**, et c'est exactement la première règle de réouverture ci-dessous.
 
 ## Décision
 
@@ -40,7 +44,7 @@ Deux faits mesurés plutôt que supposés, sur l'état actuel du dépôt :
 
 ## Conséquences
 
-1. Un correctif dans `cli` fait monter les cinq numéros. Quatre paquets changent de version sans changer de contenu. **Coût accepté** — Angular et Prisma font exactement cela, et l'alternative coûte plus cher en confusion qu'elle n'économise en numéros.
+1. Un correctif dans `cli` fait monter les cinq numéros. Quatre paquets changent de version sans changer de contenu. **Coût accepté** — relevé sur le registre : `@angular/core`, `@angular/common` et `@angular/forms` sont tous en `22.1.0` ; `prisma` et `@prisma/client` tous deux en `7.9.1`. L'alternative coûte plus cher en confusion qu'elle n'économise en numéros.
 2. Le décalage `ui` / `core`, que rien ne détecterait à l'installation, devient structurellement impossible. C'est une raison de la décision, pas une retombée.
 3. La publication devient tout-ou-rien : une release interrompue en cours laisse le registre incohérent. `pnpm publish -r` couvre le cas nominal ; un échec partiel demande une reprise manuelle.
 4. Un auteur de plugin peut écrire une seule contrainte — « exige Perch ≥ 0.2 » — au lieu d'une matrice.
