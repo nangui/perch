@@ -18,7 +18,7 @@ Ne commence aucune tâche sans avoir lu les documents concernés. Ils font autor
 
 | Tu vas… | Lis d'abord |
 |---|---|
-| n'importe quoi | `docs/adr/` — les 6 décisions structurantes |
+| n'importe quoi | `docs/adr/` — les décisions structurantes |
 | comprendre la cible | `docs/REF-filament.md` |
 | toucher au backend | `docs/12-ARCH-backend.md` |
 | toucher au frontend | `docs/13-ARCH-frontend.md` |
@@ -116,8 +116,14 @@ Types : `feat` `fix` `docs` `chore` `refactor` `test` `build` `ci`.
 Scopes : `core` `prisma` `nest` `ui` `cli` `docs` `repo`.
 Un commit = un changement logique. Le corps explique le *pourquoi*, pas le *comment*.
 
-**Documentation :** en français. **Code, commentaires, messages de commit, noms de symboles :**
-en anglais.
+**Tout en anglais** — documentation, code, commentaires, noms de symboles, messages de commit.
+Le dépôt est la publication : un ADR répond à « pourquoi c'est comme ça », et cette réponse ne
+sert à rien à un contributeur qui ne peut pas la lire. Rédiger en français puis publier en
+anglais reste parfaitement légitime.
+
+**Migration en cours.** `README`, `CONTRIBUTING`, `TRADEMARK` et les ADR 0007–0008 sont passés.
+Les ADR 0001–0006, les quinze PRD/ARCH et ce fichier sont encore en français — n'en traduis aucun
+de ta propre initiative.
 
 ## Vocabulaire
 

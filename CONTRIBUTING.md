@@ -1,67 +1,67 @@
-# Contribuer à Perch
+# Contributing to Perch
 
-Merci de l'intérêt porté au projet. Ce document dit comment contribuer utilement, et surtout ce
-qui n'est pas à rediscuter.
+Thanks for your interest in the project. This document says how to contribute usefully, and
+above all what is not up for discussion.
 
-Perch est en **pré-implémentation** : la documentation est complète et figée, le code n'existe pas
-encore. La contribution la plus utile aujourd'hui porte sur la documentation — une contradiction
-relevée, un cas non couvert, une pré-condition technique manquante.
+Perch is **pre-implementation**: the documentation is complete and frozen, the code does not
+exist yet. The most useful contribution today is to the documentation — a contradiction spotted,
+a case left uncovered, a missing technical pre-condition.
 
-## Avant d'ouvrir une issue ou une pull request
+## Before opening an issue or a pull request
 
-1. Lis les [décisions structurantes](docs/adr/) — quatre ADR.
-2. Lis le document concerné. [`docs/README.md`](docs/README.md) donne l'ordre de lecture.
-3. Vérifie que ce que tu proposes n'est pas listé en **hors périmètre** dans le PRD concerné. Le
-   hors périmètre est aussi contraignant que le périmètre : il empêche la dérive vers un CMS.
+1. Read the [structural decisions](docs/adr/) — eight records, six of them accepted.
+2. Read the document concerned. [`docs/README.md`](docs/README.md) gives the reading order.
+3. Check that what you are proposing is not listed as **out of scope** in the relevant PRD. Out
+   of scope is as binding as in scope: it is what stops the drift toward a CMS.
 
-## Les décisions closes
+## Closed decisions
 
-Chaque ADR porte une **règle de réouverture** : la condition — et la seule — qui rouvrirait le
-débat. Si elle n'est pas remplie, le dossier est clos. Une préférence personnelle n'est pas une
-règle de réouverture.
+Every ADR carries a **reopening rule**: the condition — and the only one — that would reopen the
+debate. If it is not met, the matter is closed. A personal preference is not a reopening rule.
 
-**Le nom du projet est une décision close.** Il est documenté dans l'[ADR 0004](docs/adr/0004-nommage.md),
-avec le raisonnement complet et le post-mortem du candidat rejeté. **Il n'est pas rediscuté dans
-les issues ni dans les pull requests.** Les propositions de renommage sont fermées sans débat,
-avec un lien vers cet ADR.
+**The project name is a closed decision.** It is recorded in [ADR 0004](docs/adr/0004-nommage.md),
+with the full reasoning and the post-mortem of the rejected candidate. **It is not re-argued in
+issues or pull requests.** Renaming proposals are closed without debate, with a link to that ADR.
 
-Un ADR n'est jamais modifié. Une décision qui change donne lieu à un **nouvel** ADR qui supersède
-l'ancien.
+An ADR is never edited. A decision that changes produces a **new** ADR superseding the old one.
 
-L'usage du nom et du logo est encadré par [`TRADEMARK.md`](TRADEMARK.md).
+Use of the name and logo is governed by [`TRADEMARK.md`](TRADEMARK.md).
 
-## Langues
+## Languages
 
-- **Documentation** : français.
-- **Code, commentaires, noms de symboles, messages de commit** : anglais.
+**English, everywhere** — documentation, code, comments, symbol names, commit messages.
 
-## Messages de commit
+Documentation may be drafted in any language. What ships in the repository is English, because
+the repository is the publication: an ADR answers "why is it like this", and that answer is
+useless to a contributor who cannot read it.
 
-[Conventional Commits](https://www.conventionalcommits.org/), en anglais, à l'impératif, sans
-point final.
+## Commit messages
+
+[Conventional Commits](https://www.conventionalcommits.org/), in English, imperative, no trailing
+full stop.
 
 ```
 <type>(<scope>): <description>
 ```
 
-Types : `feat` `fix` `docs` `chore` `refactor` `test` `build` `ci` `style` `revert`
-Scopes : `core` `prisma` `nest` `ui` `cli` `docs` `repo`
+Types: `feat` `fix` `docs` `chore` `refactor` `test` `build` `ci` `style` `revert`
+Scopes: `core` `prisma` `nest` `ui` `cli` `docs` `repo`
 
-- La ligne de sujet fait **72 caractères maximum**.
-- **Un commit = un changement logique.** Pas de commit fourre-tout.
-- Un corps de message si le *pourquoi* n'est pas évident. Il explique le pourquoi, pas le comment.
+- The subject line is **72 characters maximum**.
+- **One commit = one logical change.** No catch-all commits.
+- A body when the *why* is not obvious. It explains the why, not the how.
 
 ```
 feat(core): resolve dependent select options on the server
 docs(adr): record the state protocol decision
 ```
 
-## Code de conduite
+## Code of conduct
 
-Ce projet suit le [Contributor Covenant](CODE_OF_CONDUCT.md). En participant, tu acceptes de le
-respecter.
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). By taking part, you agree to
+uphold it.
 
-## Licence
+## License
 
-En contribuant, tu acceptes que ta contribution soit publiée sous la [licence MIT](LICENSE) du
-projet.
+By contributing, you agree that your contribution is published under the project's
+[MIT license](LICENSE).

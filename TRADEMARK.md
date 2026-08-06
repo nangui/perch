@@ -1,15 +1,15 @@
-# Politique de marque
+# Trademark policy
 
-Le code de Perch est sous licence MIT. Cette licence porte sur le code, pas sur le nom : « Perch »
-et son logo identifient ce projet.
+Perch's code is under the MIT license. That license covers the code, not the name: "Perch" and
+its logo identify this project.
 
-| Usage | Autorisé |
+| Use | Allowed |
 |---|---|
-| « Plugin Perch pour X », « compatible Perch » | ✅ |
-| `perch-plugin-x` sur npm | ✅ |
-| Un fork nommé « Perch » | ❌ |
-| Un produit commercial nommé « Perch Pro », « Perch Cloud » | ❌ |
-| Le logo modifié | ❌ |
+| "Perch plugin for X", "Perch-compatible" | ✅ |
+| `perch-plugin-x` on npm | ✅ |
+| A fork named "Perch" | ❌ |
+| A commercial product named "Perch Pro", "Perch Cloud" | ❌ |
+| The logo, modified | ❌ |
 
-Le raisonnement derrière le nom est dans l'[ADR 0004](docs/adr/0004-nommage.md). Le contexte
-complet, marque comprise, est dans [`docs/00-PRD-MASTER.md`](docs/00-PRD-MASTER.md) §14.
+The reasoning behind the name is in [ADR 0004](docs/adr/0004-nommage.md). The full context,
+trademark included, is in [`docs/00-PRD-MASTER.md`](docs/00-PRD-MASTER.md) §14.
