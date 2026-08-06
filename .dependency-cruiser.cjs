@@ -22,7 +22,7 @@ module.exports = {
         "possible later without a rewrite, and the domain testable without a " +
         "database.",
       severity: "error",
-      from: { path: "^packages/core/src", pathNot: "\\.(spec|test)\\.ts$" },
+      from: { path: "^packages/core/src", pathNot: "\\.(spec|test)\\.tsx?$" },
       to: {
         dependencyTypes: ["npm", "npm-dev", "npm-optional", "npm-peer", "npm-no-pkg"],
         pathNot: "^packages/core/",
@@ -36,7 +36,7 @@ module.exports = {
         "that does its own I/O breaks the rule of ARCH 12 §3 — it receives a " +
         "ResolverContext instead.",
       severity: "error",
-      from: { path: "^packages/core/src", pathNot: "\\.(spec|test)\\.ts$" },
+      from: { path: "^packages/core/src", pathNot: "\\.(spec|test)\\.tsx?$" },
       to: { dependencyTypes: ["core"] },
     },
     {
@@ -89,14 +89,19 @@ module.exports = {
         "a runtime dependency of it — and it would drag domain code into a " +
         "browser bundle.",
       severity: "error",
-      from: { path: "^packages/ui/src", pathNot: "\\.(spec|test)\\.ts$" },
+      from: { path: "^packages/ui/src", pathNot: "\\.(spec|test)\\.tsx?$" },
       to: { path: "^packages/core/", dependencyTypesNot: ["type-only"] },
     },
     {
       name: "ui-no-node-builtins",
-      comment: "ARCH 13: the renderer runs in a browser. No Node core modules.",
+      comment:
+        "ARCH 13: the renderer runs in a browser. No Node core modules.\n\n" +
+        "Tests are exempt because they do not ship: the contrast check reads " +
+        "tokens.css off disk, which is right for a test and wrong for a bundle. " +
+        "The exemption is on the file pattern rather than on the rule, so a Node " +
+        "import in shipped code still fails.",
       severity: "error",
-      from: { path: "^packages/ui/src" },
+      from: { path: "^packages/ui/src", pathNot: "\\.(spec|test)\\.tsx?$" },
       to: { dependencyTypes: ["core"] },
     },
 
