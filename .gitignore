@@ -14,3 +14,15 @@ coverage
 
 # macOS
 .DS_Store
+
+# pnpm
+.pnpm-store
+
+# Turborepo
+.turbo/
+
+# Fixtures écrites par les tests de frontières
+**/__boundary_fixture__.ts
+
+# Sortie de tsc --build (typecheck), distincte de dist/ produit par tsup
+.tsbuild/

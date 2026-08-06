@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A superseded run has nothing left to prove.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Build comes first on purpose: @perchjs/* resolves through its exports
+      # map into dist, so boundaries and tests both need it to exist.
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      # ARCH 12 §1 — the domain stays pure and no adapter reaches another.
+      # Blocking from the first commit, before the code it protects exists.
+      - name: Architecture boundaries
+        run: pnpm boundaries
+
+      - name: Test
+        run: pnpm test
+
+      - name: Formatting
+        run: pnpm format:check
+
+# Guardrails still to come, each with the lot that makes it measurable
+# (CLAUDE.md, "Garde-fous CI"):
+#
+#   SQL query counter per page (anti N+1)     → PRD 01, with the DataAdapter
+#   p95 latency budget on /state, /records    → PRD 03, milestone A1
+#   concurrency: 100 parallel requests        → PRD 02, once builders exist
+#   attack tests: forged state, unknown path  → PRD 03, pipeline stage 5
+#   DMMF contract test                        → PRD 01
+#
+# They are listed here rather than in a backlog so that adding one is a visible
+# edit to this file, and so that their absence is legible today.

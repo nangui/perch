@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": ".tsbuild",
+    "tsBuildInfoFile": ".tsbuild/.tsbuildinfo",
+
+    // NestJS repose sur les décorateurs legacy et l'injection par propriétés de
+    // constructeur. Les trois réglages ci-dessous sont donc désactivés ici, et
+    // ici seulement : le domaine (`core`) reste sans décorateur ni métadonnée.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "erasableSyntaxOnly": false
+  },
+  "include": ["src/**/*"],
+  "references": [{ "path": "../core" }]
+}

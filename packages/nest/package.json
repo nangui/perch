@@ -1,0 +1,32 @@
+{
+  "name": "@perchjs/nest",
+  "version": "0.0.0",
+  "description": "Perch NestJS adapter: PanelModule, routing, guards, navigation.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "typecheck": "tsc --build",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@perchjs/core": "workspace:*"
+  }
+}

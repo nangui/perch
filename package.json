@@ -1,0 +1,43 @@
+{
+  "name": "perch",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Declarative admin panel framework for NestJS \u2014 monorepo root",
+  "license": "MIT",
+  "author": "Adonai Nangui <adonainangui03@gmail.com>",
+  "homepage": "https://github.com/nangui/perch#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nangui/perch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nangui/perch/issues"
+  },
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "vitest run",
+    "boundaries": "depcruise packages --config .dependency-cruiser.cjs",
+    "boundaries:graph": "depcruise packages --config .dependency-cruiser.cjs --output-type dot",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "pnpm build && pnpm typecheck && pnpm lint && pnpm boundaries && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "dependency-cruiser": "^18.1.1",
+    "eslint": "^9.39.0",
+    "prettier": "^3.9.6",
+    "tsup": "^8.5.1",
+    "turbo": "^2.10.8",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.66.0",
+    "vitest": "^4.1.10"
+  }
+}

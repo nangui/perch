@@ -1,0 +1,7 @@
+packages:
+  - "packages/*"
+
+# Autorisé explicitement : tsup en dépend pour compiler. Toute autre dépendance
+# exécutant un script d'installation doit être ajoutée ici sciemment.
+onlyBuiltDependencies:
+  - esbuild
