@@ -101,6 +101,29 @@ describe("architecture boundaries (ARCH 12 §1)", () => {
     expect(exitCode()).not.toBe(0);
   });
 
+  it("rejects an npm package imported by the domain", () => {
+    // CLAUDE.md invariant 2, the headline one. `vitest/config` is used because a
+    // root devDependency is reachable from a package by directory walk-up, so
+    // the import resolves and the architecture rule is what stops it — rather
+    // than resolution failing first, which is what happens for any package not
+    // installed at all.
+    plant(
+      "core",
+      `import { defineConfig } from "vitest/config";\nexport const x = defineConfig;\n`,
+    );
+    expect(violatedRules()).toContain("core-imports-no-npm-package");
+    expect(exitCode()).not.toBe(0);
+  });
+
+  it("rejects a runtime module reaching a devDependency", () => {
+    plant(
+      "prisma",
+      `import { defineConfig } from "vitest/config";\nexport const x = defineConfig;\n`,
+    );
+    expect(violatedRules()).toContain("not-to-dev-dep");
+    expect(exitCode()).not.toBe(0);
+  });
+
   it("rejects a sibling package imported by the domain, by name", () => {
     // Unresolvable rather than a core-* rule: @perchjs/prisma is not a
     // dependency of @perchjs/core, so pnpm never links it and resolution fails
