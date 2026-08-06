@@ -37,6 +37,30 @@ autorité sur les ADR ni sur les PRD : en cas de contradiction, ceux-ci gagnent.
 > Quand les deux s'opposent, **le second gagne**. Un back-office est un outil de
 > travail, pas une vitrine.
 >
+> ### Aucun design system existant n'est attaché — c'est volontaire
+>
+> **Les tokens sont le livrable, pas le point de départ.** N'attache aucun design
+> system préexistant, et n'en dérive pas ta direction visuelle.
+>
+> Trois raisons, dans cet ordre :
+>
+> 1. **Perch est un framework dont le design system sera rethémé par ses
+>    utilisateurs** (ARCH 13 §9). Il doit donc être coulé pour ça. Le poser sur le
+>    preset de quelqu'un d'autre, c'est peindre par-dessus une fondation qui n'a
+>    pas été prévue pour porter ce poids.
+> 2. **Les presets disponibles sont des systèmes éditoriaux** — grille suisse,
+>    fond parchemin, mise en page de journal. Ils sont faits pour des pages qui
+>    racontent quelque chose. Un back-office dense, navigable au clavier et
+>    vérifié AA en CI a des contraintes opposées.
+> 3. **Un preset attaché devient la contrainte**, et il ne reste plus trois partis
+>    pris à départager.
+>
+> Le type visé : **système d'application, dense, token-first.** Sémantique
+> uniquement — jamais `blue-500` dans un écran. Clair et sombre à parité dès le
+> premier jeton. Primitives Radix habillées par notre propre couche de style.
+> Classe de référence : Linear, Supabase Studio, Directus, Filament — pas un
+> starter éditorial.
+>
 > ### Contraintes non négociables
 >
 > Elles viennent de décisions d'architecture déjà prises. Ne les rediscute pas,
@@ -136,6 +160,20 @@ autorité sur les ADR ni sur les PRD : en cas de contradiction, ceux-ci gagnent.
 ---
 
 ## Notes pour moi, hors prompt
+
+**Décision du 6 août 2026 — aucun design system attaché.** L'outil de design
+proposait cinq presets (Modernist, Nocturne, Organic, Broadsheet, Industry) ;
+aucun n'a été retenu. La raison qui compte n'est pas esthétique : le design
+system de Perch *est* un livrable du produit, destiné à être rethémé par ses
+utilisateurs, et un framework ne construit pas sa fondation sur le preset d'un
+autre. S'y ajoute que ces presets sont des systèmes éditoriaux, alors que la
+cible est un système d'application dense.
+
+Cette note existe pour éviter de rouvrir le sujet. Ce qui le rouvrirait : un
+preset réellement conçu pour l'outillage dense — dans ce cas il devient un
+*candidat* à évaluer comme les autres directions, jamais une contrainte imposée
+d'avance.
+
 
 **Ce qui reste à trancher avant que le design serve à quelque chose :** rien ne
 bloque le travail de design, il peut démarrer maintenant et en parallèle du
