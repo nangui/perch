@@ -1,0 +1,96 @@
+/**
+ * The intermediate representation: what the domain knows about a data model.
+ *
+ * These types live in the domain, not in the Prisma adapter, because the domain
+ * defines the port and the adapter fills it (ARCH 12 §1, PRD 01 §3.4). A Drizzle
+ * adapter would produce the same shapes from entirely different metadata, and
+ * nothing in the schema engine would notice.
+ */
+
+/** Scalar types the IR carries. Named after Prisma's, but not owned by it. */
+export type ScalarType =
+  | "String"
+  | "Int"
+  | "Float"
+  | "Decimal"
+  | "Boolean"
+  | "DateTime"
+  | "Json"
+  | "Bytes"
+  | "BigInt";
+
+export type FieldKind = "scalar" | "enum" | "json";
+
+export interface FieldMeta {
+  readonly name: string;
+  readonly kind: FieldKind;
+  readonly type: ScalarType;
+  readonly isRequired: boolean;
+  readonly isList: boolean;
+  readonly isId: boolean;
+  readonly isUnique: boolean;
+  /** `@default(autoincrement())`, `@updatedAt`: the database owns this value. */
+  readonly isReadOnly: boolean;
+  readonly hasDefault: boolean;
+  readonly default?: unknown;
+  readonly enumValues?: readonly string[];
+  /** From `@db.VarChar(n)`. */
+  readonly maxLength?: number;
+  /** From `@db.Decimal(p, s)`. */
+  readonly precision?: number;
+  readonly scale?: number;
+  /** A `///` comment on the field. Becomes helper text. */
+  readonly documentation?: string;
+  /** True for `@db.Text`: renders as a textarea rather than a single line. */
+  readonly isLongText: boolean;
+}
+
+export type RelationCardinality = "one" | "many";
+
+export type ReferentialAction = "Cascade" | "SetNull" | "Restrict" | "NoAction";
+
+export interface RelationMeta {
+  readonly name: string;
+  readonly type: RelationCardinality;
+  readonly targetModel: string;
+  readonly foreignKeyFields: readonly string[];
+  readonly referencedFields: readonly string[];
+  readonly isRequired: boolean;
+  readonly isList: boolean;
+  readonly onDelete?: ReferentialAction;
+  readonly documentation?: string;
+}
+
+export interface ModelMeta {
+  readonly name: string;
+  readonly dbName: string;
+  readonly primaryKey: FieldMeta;
+  readonly fields: readonly FieldMeta[];
+  readonly relations: readonly RelationMeta[];
+  readonly uniqueConstraints: readonly (readonly string[])[];
+  /** Detected by the `deletedAt` convention, or declared in configuration. */
+  readonly hasSoftDelete: boolean;
+  /**
+   * The field a human reads to recognise a row, resolved by PRD 01 §3.2:
+   * name → title → label → email → slug → first unique String → primary key.
+   */
+  readonly labelField: string;
+  readonly documentation?: string;
+}
+
+/** Everything the domain knows about the data source, resolved once at bootstrap. */
+export interface Schema {
+  readonly models: readonly ModelMeta[];
+}
+
+export function findModel(schema: Schema, name: string): ModelMeta | undefined {
+  return schema.models.find((m) => m.name === name);
+}
+
+export function findField(model: ModelMeta, name: string): FieldMeta | undefined {
+  return model.fields.find((f) => f.name === name);
+}
+
+export function findRelation(model: ModelMeta, name: string): RelationMeta | undefined {
+  return model.relations.find((r) => r.name === name);
+}

@@ -1,11 +1,16 @@
 /**
- * `@perchjs/prisma` — outbound adapter: Prisma DMMF to intermediate
+ * `@perchjs/prisma` — outbound adapter: Prisma DMMF to the intermediate
  * representation, and query execution.
  *
- * May import `@perchjs/core`. May never import `@perchjs/nest` or
- * `@perchjs/ui`: an adapter never imports another adapter (ARCH 12 §1).
- *
- * To be built here first: PRD 01. It is mechanical and unblocks everything else.
+ * May import `@perchjs/core`. May never import `@perchjs/nest` or `@perchjs/ui`:
+ * an adapter never imports another adapter (ARCH 12 §1).
  */
 
-export const PERCH_PRISMA_STATUS = "pre-implementation" as const;
+export type {
+  Dmmf,
+  DmmfEnum,
+  DmmfField,
+  DmmfModel,
+  ReadOptions,
+} from "./dmmf-reader.js";
+export { DmmfContractError, readDmmf, SUPPORTED_PRISMA_RANGE } from "./dmmf-reader.js";

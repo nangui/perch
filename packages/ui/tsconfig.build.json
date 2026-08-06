@@ -1,0 +1,13 @@
+{
+  // tsup generates declarations through its own rollup, which cannot run on a
+  // `composite` project (TS6307). Typechecking keeps composite in tsconfig.json
+  // for incremental builds and reference-level isolation; this file exists only
+  // for the bundler.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx"
+  },
+  "include": ["src/**/*"]
+}
