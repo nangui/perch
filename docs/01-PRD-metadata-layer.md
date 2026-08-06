@@ -1,20 +1,20 @@
-# PRD 01 — Couche métadonnées (`@perchjs/prisma`)
+# PRD 01 — Metadata layer (`@perchjs/prisma`)
 
-**Tier :** v0.1 · **Dépendances :** aucune · **Débloque :** PRD 02, 05, 06, 07, 10
+**Tier:** v0.1 · **Depends on:** nothing · **Unblocks:** PRD 02, 05, 06, 07, 10
 
-## 1. Objectif
+## 1. Objective
 
-Transformer le schéma Prisma en une **représentation intermédiaire (IR)** que le moteur de schémas consomme, sans jamais que `@perchjs/core` connaisse Prisma.
+Turn the Prisma schema into an **intermediate representation (IR)** that the schema engine consumes, without `@perchjs/core` ever knowing about Prisma.
 
-C'est l'équivalent de ce qu'Eloquent offre gratuitement à Filament : savoir, à l'exécution, quels champs existent, de quel type, avec quelles relations et quelles contraintes. Prisma le permet via son **DMMF** (Data Model Meta Format), introspectable au runtime.
+This is the equivalent of what Eloquent gives Filament for free: knowing, at runtime, which fields exist, of what type, with which relations and which constraints. Prisma allows it through its **DMMF** (Data Model Meta Format), introspectable at runtime.
 
-## 2. Pourquoi c'est le premier lot
+## 2. Why this is the first batch
 
-Tout le reste en dépend : les valeurs par défaut intelligentes (`TextInput.make('email')` devine `type=email`, `maxLength`, `required`), la génération de code, la résolution de `'author.name'`, les filtres de relation. C'est aussi le lot le plus mécanique — donc le meilleur pour démarrer.
+Everything else depends on it: smart defaults (`TextInput.make('email')` infers `type=email`, `maxLength`, `required`), code generation, resolving `'author.name'`, relation filters. It is also the most mechanical batch — which makes it the best one to start with.
 
-## 3. Spécification fonctionnelle
+## 3. Functional specification
 
-### 3.1 L'IR
+### 3.1 The IR
 
 ```ts
 interface ModelMeta {
@@ -24,7 +24,7 @@ interface ModelMeta {
   fields: FieldMeta[];
   relations: RelationMeta[];
   uniqueConstraints: string[][];
-  hasSoftDelete: boolean;    // détecté par convention (deletedAt) ou config
+  hasSoftDelete: boolean;    // detected by convention (deletedAt) or by config
 }
 
 interface FieldMeta {
@@ -40,8 +40,8 @@ interface FieldMeta {
   hasDefault: boolean;
   default?: unknown;
   enumValues?: string[];
-  maxLength?: number;        // depuis @db.VarChar(n)
-  documentation?: string;    // le commentaire /// devient le helperText
+  maxLength?: number;        // from @db.VarChar(n)
+  documentation?: string;    // the /// comment becomes the helperText
 }
 
 interface RelationMeta {
@@ -55,43 +55,44 @@ interface RelationMeta {
 }
 ```
 
-### 3.2 Inférence de champ (le vrai apport)
+### 3.2 Field inference (the real contribution)
 
-Table de mapping IR → champ par défaut. C'est ce qui rend la génération utile plutôt que bête.
+Mapping table from IR to default field. This is what makes generation useful rather than dumb.
 
-| Métadonnée | Champ inféré | Options auto |
+| Metadata | Inferred field | Automatic options |
 |---|---|---|
-| `String` | `TextInput` | `maxLength` depuis `@db.VarChar` |
-| `String` + nom contient `email` | `TextInput` | `.email()` |
-| `String` + nom contient `password` | `TextInput` | `.password()`, `.dehydrated(false si vide)` |
-| `String` + nom contient `url`/`link` | `TextInput` | `.url()` |
+| `String` | `TextInput` | `maxLength` from `@db.VarChar` |
+| `String` + name contains `email` | `TextInput` | `.email()` |
+| `String` + name contains `password` | `TextInput` | `.password()`, `.dehydrated(false if empty)` |
+| `String` + name contains `url`/`link` | `TextInput` | `.url()` |
 | `String` + `@db.Text` | `Textarea` | — |
-| `Int` / `Float` / `Decimal` | `TextInput` | `.numeric()`, précision depuis `@db.Decimal` |
+| `Int` / `Float` / `Decimal` | `TextInput` | `.numeric()`, precision from `@db.Decimal` |
 | `Boolean` | `Toggle` | — |
-| `DateTime` | `DateTimePicker` | `.date()` seul si nom finit par `Date`/`On` |
-| `enum` | `Select` | `.options()` depuis `enumValues` |
-| `Json` | `KeyValue` (v0.2) | fallback `CodeEditor` |
-| relation `one` | `Select` | `.relationship(name, labelField)` |
-| relation `many` | *exclu du form* | proposé comme relation manager |
+| `DateTime` | `DateTimePicker` | `.date()` alone if the name ends in `Date`/`On` |
+| `enum` | `Select` | `.options()` from `enumValues` |
+| `Json` | `KeyValue` (v0.2) | falls back to `CodeEditor` |
+| `one` relation | `Select` | `.relationship(name, labelField)` |
+| `many` relation | *excluded from the form* | offered as a relation manager |
 | `isRequired && !hasDefault` | — | `.required()` |
 | `isUnique` | — | `.unique(ignoreRecord: true)` |
-| `isReadOnly` ou `isId` | *exclu du form* | visible en table et infolist |
-| `documentation` non vide | — | `.helperText(documentation)` |
+| `isReadOnly` or `isId` | *excluded from the form* | visible in the table and the infolist |
+| non-empty `documentation` | — | `.helperText(documentation)` |
 
-**Détection du champ label** d'un modèle cible, par ordre de priorité : `name` → `title` → `label` → `email` → `slug` → premier `String` unique → clé primaire.
+**Label field detection** on a target model, in priority order: `name` → `title` → `label` → `email` → `slug` → first unique `String` → primary key.
 
-### 3.3 Résolution de chemins de relation
+### 3.3 Relation path resolution
 
-`'author.country.name'` doit se résoudre en :
-- une validation à la compilation (type-level, voir PRD 02 §5)
-- un plan de chargement Prisma : `{ include: { author: { include: { country: true } } } }`
-- un accès à la valeur sans planter sur `null` intermédiaire
+`'author.country.name'` has to resolve into:
 
-Profondeur max : **3 niveaux** en v0.1. Au-delà → erreur explicite.
+- a compile-time validation (type level, see PRD 02 §5)
+- a Prisma loading plan: `{ include: { author: { include: { country: true } } } }`
+- value access that does not blow up on an intermediate `null`
 
-### 3.4 Couche d'exécution
+Maximum depth: **3 levels** in v0.1. Beyond that → an explicit error.
 
-Un `PrismaDataAdapter` implémentant l'interface que `core` définit :
+### 3.4 Execution layer
+
+A `PrismaDataAdapter` implementing the interface `core` defines:
 
 ```ts
 interface DataAdapter {
@@ -105,36 +106,36 @@ interface DataAdapter {
 }
 ```
 
-`WriteTree` supporte les écritures imbriquées (`create`/`connect`/`update`/`delete` de Prisma) — c'est ce qui rend le Repeater du critère A3 possible.
+`WriteTree` supports nested writes (Prisma's `create`/`connect`/`update`/`delete`) — which is what makes the Repeater of acceptance criterion A3 possible.
 
-## 4. Contraintes techniques
+## 4. Technical constraints
 
-- **Chargement du DMMF** : via `prisma.$dmmf` sur le client généré. Aucune lecture du fichier `.prisma` (fragile), aucun parsing de SQL.
-- **Coût** : le DMMF est lu **une fois au bootstrap** et mis en cache. Zéro accès en chemin chaud.
-- **Résilience de version** : le DMMF n'est pas une API publique stable de Prisma. → l'accès est isolé dans **un seul fichier**, `dmmf-reader.ts`, avec un test de contrat qui échoue bruyamment si la forme change. Documenter la plage de versions Prisma supportée.
-- **N+1** : toute colonne de relation doit produire un `include`, jamais une requête par ligne. Test de non-régression comptant les requêtes SQL.
+- **Loading the DMMF**: through `prisma.$dmmf` on the generated client. No reading of the `.prisma` file (fragile), no SQL parsing.
+- **Cost**: the DMMF is read **once at bootstrap** and cached. Zero access on the hot path.
+- **Version resilience**: the DMMF is not a stable public API of Prisma. → access is isolated in **a single file**, `dmmf-reader.ts`, with a contract test that fails loudly if the shape changes. Document the supported range of Prisma versions.
+- **N+1**: every relation column must produce an `include`, never one query per row. A regression test counting SQL queries.
 
-## 5. Critères d'acceptation
+## 5. Acceptance criteria
 
-1. Sur un schéma Prisma de 12 modèles avec relations 1-1, 1-n et n-n, `meta()` retourne l'IR complet sans erreur.
-2. `TextInput.make('email')` sur `User` produit automatiquement `required`, `email`, `maxLength=255` sans configuration.
-3. `TextColumn.make('author.country.name')` sur une table de 50 lignes génère **une seule** requête SQL.
-4. Un chemin de champ inexistant échoue à la **compilation** TypeScript.
-5. Un `WriteTree` avec 3 enfants imbriqués s'exécute dans une transaction unique et rollback intégralement en cas d'échec du 3e.
-6. Le bootstrap sur 50 modèles prend < 200 ms.
+1. On a Prisma schema of 12 models with 1-1, 1-n and n-n relations, `meta()` returns the complete IR without error.
+2. `TextInput.make('email')` on `User` automatically produces `required`, `email`, `maxLength=255` with no configuration.
+3. `TextColumn.make('author.country.name')` on a 50-row table generates **one single** SQL query.
+4. A field path that does not exist fails at TypeScript **compile time**.
+5. A `WriteTree` with 3 nested children runs in a single transaction and rolls back entirely if the third fails.
+6. Bootstrap on 50 models takes < 200 ms.
 
-## 6. Hors périmètre
+## 6. Out of scope
 
-- Drizzle, TypeORM, Mongoose (l'interface `DataAdapter` les rend possibles ; on n'en écrit aucun).
+- Drizzle, TypeORM, Mongoose (the `DataAdapter` interface makes them possible; we write none of them).
 - MySQL, SQLite, MongoDB.
-- Migrations (c'est le travail de Prisma).
-- Champs polymorphes.
-- Relations self-referential profondes (> 3 niveaux).
+- Migrations (that is Prisma's job).
+- Polymorphic fields.
+- Deep self-referential relations (> 3 levels).
 
-## 7. Risques
+## 7. Risks
 
-| Risque | Mitigation |
+| Risk | Mitigation |
 |---|---|
-| DMMF change entre versions de Prisma | isolation dans un fichier + test de contrat + plage de versions documentée |
-| Inférence trop « magique », surprend l'utilisateur | toute inférence est surchargeable ; un mode `strict` désactive l'inférence par nom |
-| Écritures imbriquées Prisma trop limitées pour A3 | prototyper A3 **pendant** ce lot, pas après |
+| The DMMF changes between Prisma versions | isolation in one file + contract test + documented version range |
+| Inference too "magic", surprises the user | every inference is overridable; a `strict` mode disables name-based inference |
+| Prisma nested writes too limited for A3 | prototype A3 **during** this batch, not after |

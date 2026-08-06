@@ -1,21 +1,21 @@
-# PRD 02 — Moteur de schémas (`@perchjs/core`)
+# PRD 02 — Schema engine (`@perchjs/core`)
 
-**Tier :** v0.1 · **Dépendances :** PRD 01 · **Débloque :** tout le reste
+**Tier:** v0.1 · **Depends on:** PRD 01 · **Unblocks:** everything else
 
-## 1. Objectif
+## 1. Objective
 
-Le cœur. Un arbre de composants déclaratif, composable et **résolu côté serveur**, qui unifie formulaires, vues en lecture seule et mise en page — exactement comme les **Schemas** de Filament, qui depuis la v4 englobent forms, infolists *et* la structure des pages.
+The core. A declarative, composable component tree, **resolved on the server**, that unifies forms, read-only views and layout — exactly like Filament's **Schemas**, which since v4 encompass forms, infolists *and* page structure.
 
-`@perchjs/core` ne connaît **ni Nest, ni Prisma, ni React**. Il ne dépend que de l'interface `DataAdapter` (PRD 01).
+`@perchjs/core` knows **neither Nest, nor Prisma, nor React**. It depends only on the `DataAdapter` interface (PRD 01).
 
-## 2. Le DSL cible — à figer AVANT tout code
+## 2. The target DSL — to be frozen BEFORE any code
 
-Ce fichier est le livrable n°1 du projet. S'il n'est pas agréable à lire, aucun moteur ne le sauvera.
+This file is deliverable number one for the project. If it is not pleasant to read, no engine will save it.
 
 ```ts
 @PanelResource({ model: 'User', navigationGroup: 'Access', icon: 'users' })
 export class UserResource {
-  constructor(private readonly cities: CityService) {}   // DI Nest normale
+  constructor(private readonly cities: CityService) {}   // ordinary Nest DI
 
   form() {
     return Schema.make([
@@ -26,7 +26,7 @@ export class UserResource {
         Select.make('cityId')
           .options(({ get }) => this.cities.byCountry(get('countryId')))
           .visible(({ get }) => !!get('countryId'))
-          .helperText('Choisis d\'abord un pays'),
+          .helperText('Pick a country first'),
       ]),
       Section.make('Addresses').collapsible().schema([
         Repeater.make('addresses').relationship().schema([
@@ -39,24 +39,24 @@ export class UserResource {
 }
 ```
 
-## 3. Modèle d'objets
+## 3. Object model
 
-### 3.1 Hiérarchie
+### 3.1 Hierarchy
 
 ```
-Component (abstrait)
-├── Field (a un state, participe à la validation)
+Component (abstract)
+├── Field (holds state, takes part in validation)
 │   ├── TextInput, Select, Toggle, DateTimePicker, …
-│   └── ContainerField (a des enfants ET un state)
+│   └── ContainerField (has children AND state)
 │       ├── Repeater
 │       └── Builder
-├── Layout (pas de state, groupe des enfants)
-│   ├── Schema (racine), Grid, Section, Tabs, Wizard, Fieldset
-├── Entry (lecture seule — PRD 09)
-└── Prime (statique : Text, Image, Icon)
+├── Layout (no state, groups children)
+│   ├── Schema (root), Grid, Section, Tabs, Wizard, Fieldset
+├── Entry (read-only — PRD 09)
+└── Prime (static: Text, Image, Icon)
 ```
 
-### 3.2 Contrat de base
+### 3.2 Base contract
 
 ```ts
 abstract class Component {
@@ -65,14 +65,14 @@ abstract class Component {
   // Structure
   schema(children: Component[]): this;
   columnSpan(span: number | 'full' | Responsive): this;
-  key(k: string): this;                 // identité stable pour le diff
+  key(k: string): this;                 // stable identity for the diff
 
-  // Conditionnel — TOUJOURS évalué côté serveur
+  // Conditional — ALWAYS evaluated on the server
   visible(v: boolean | Resolver<boolean>): this;
   hidden(v: boolean | Resolver<boolean>): this;
   disabled(v: boolean | Resolver<boolean>): this;
 
-  // Métadonnées
+  // Metadata
   label(l: string | Resolver<string>): this;
   helperText(t: string | Resolver<string>): this;
 
@@ -82,57 +82,57 @@ abstract class Component {
 }
 ```
 
-### 3.3 Le `Resolver` — la clé de la réactivité
+### 3.3 The `Resolver` — the key to reactivity
 
 ```ts
 type Resolver<T> = (ctx: ResolverContext) => T | Promise<T>;
 
 interface ResolverContext {
-  get(path: FieldPath): unknown;     // lit l'état d'un autre champ
+  get(path: FieldPath): unknown;     // reads another field's state
   set(path: FieldPath, v: unknown): void;
-  record?: Row;                      // l'enregistrement en cours (Edit)
+  record?: Row;                      // the record being edited (Edit)
   operation: 'create' | 'edit' | 'view';
-  user: unknown;                     // l'utilisateur authentifié
-  livewireOf?: never;                // (rappel : pas de fuite de transport ici)
+  user: unknown;                     // the authenticated user
+  livewireOf?: never;                // (reminder: no transport leaking in here)
 }
 ```
 
-**Toute** option d'un composant accepte une valeur ou un `Resolver`. C'est ce qui remplace Livewire : le serveur réévalue les resolvers concernés à chaque changement d'état.
+**Every** option on a component accepts either a value or a `Resolver`. That is what replaces Livewire: the server re-evaluates the affected resolvers on every state change.
 
-### 3.4 Immutabilité des builders
+### 3.4 Builder immutability
 
-Chaque appel fluide retourne un **clone**. Raison : les composants sont définis une fois au bootstrap et réutilisés entre requêtes concurrentes. Un builder mutable = fuite d'état entre utilisateurs. **C'est un risque de sécurité, pas un détail de style.**
+Every fluent call returns a **clone**. The reason: components are defined once at bootstrap and reused across concurrent requests. A mutable builder means state leaking between users. **That is a security risk, not a style detail.**
 
-## 4. Cycle de résolution
+## 4. Resolution cycle
 
-Le lot le plus délicat. Séquence pour un changement d'état :
+The most delicate batch. Sequence for a state change:
 
 ```
-1. HYDRATE    état client + record → arbre d'état interne
-2. APPLY      appliquer le patch { path, value }
-3. HOOKS      exécuter afterStateUpdated() du champ modifié
-              (peut set() d'autres champs → boucle contrôlée, max 5 passes)
-4. RESOLVE    réévaluer visible / disabled / options / label
-              UNIQUEMENT pour les composants dont les dépendances ont changé
-5. PRUNE      retirer de l'état les champs devenus invisibles
-6. VALIDATE   valider les champs visibles seulement
-7. DEHYDRATE  produire { state, schemaPatch, errors }
+1. HYDRATE    client state + record → internal state tree
+2. APPLY      apply the patch { path, value }
+3. HOOKS      run afterStateUpdated() on the changed field
+              (may set() other fields → controlled loop, max 5 passes)
+4. RESOLVE    re-evaluate visible / disabled / options / label
+              ONLY for components whose dependencies changed
+5. PRUNE      drop fields that became invisible from the state
+6. VALIDATE   validate visible fields only
+7. DEHYDRATE  produce { state, schemaPatch, errors }
 ```
 
-**Graphe de dépendances.** À l'étape 4, réévaluer tout l'arbre est inacceptable en performance. Chaque `Resolver` déclare ses dépendances, soit explicitement (`.dependsOn(['countryId'])`), soit par **traçage** : au premier appel, on instrumente `get()` pour enregistrer les chemins lus. Décision : **traçage automatique**, avec `.dependsOn()` disponible comme échappatoire.
+**Dependency graph.** At step 4, re-evaluating the whole tree is unacceptable for performance. Each `Resolver` declares its dependencies, either explicitly (`.dependsOn(['countryId'])`) or by **tracing**: on the first call, `get()` is instrumented to record the paths read. Decision: **automatic tracing**, with `.dependsOn()` available as an escape hatch.
 
-**Détection de cycle** : si deux passes produisent le même état, on s'arrête. Si 5 passes sont dépassées, on lève une erreur explicite nommant les champs impliqués (pas un stack overflow silencieux).
+**Cycle detection**: if two passes produce the same state, we stop. If 5 passes are exceeded, an explicit error is raised naming the fields involved (not a silent stack overflow).
 
-## 5. Type-safety des chemins de champs
+## 5. Type safety of field paths
 
-L'exercice le plus exigeant du projet. Objectif :
+The most demanding exercise in the project. Goal:
 
 ```ts
-TextColumn.make('author.country.name')   // ✅ compile
-TextColumn.make('author.contry.name')    // ❌ erreur de compilation
+TextColumn.make('author.country.name')   // ✅ compiles
+TextColumn.make('author.contry.name')    // ❌ compile error
 ```
 
-Approche : types utilitaires générant l'union des chemins valides depuis les types Prisma générés, avec limite de profondeur pour éviter l'explosion de l'inférence.
+Approach: utility types generating the union of valid paths from the generated Prisma types, with a depth limit to avoid an inference explosion.
 
 ```ts
 type Paths<T, D extends number = 3> = D extends 0 ? never
@@ -141,38 +141,38 @@ type Paths<T, D extends number = 3> = D extends 0 ? never
     }[keyof T & string];
 ```
 
-**Décision de repli explicite** : si le coût de compilation dépasse **3 s sur un schéma de 50 modèles**, on livre v0.1 avec `string` faiblement typé + validation runtime au bootstrap, et on durcit en v0.2. Ne pas bloquer le produit sur un exploit de type-level.
+**Explicit fallback decision**: if compilation cost exceeds **3 s on a 50-model schema**, v0.1 ships with a weakly typed `string` plus runtime validation at bootstrap, and it is hardened in v0.2. Do not block the product on a type-level stunt.
 
 ## 6. Validation
 
-- **Source de vérité** : le schéma déclaré, pas un DTO parallèle.
-- **Moteur** : Zod, généré depuis l'arbre de composants. Choisi plutôt que `class-validator` car composable dynamiquement au runtime (indispensable quand la visibilité conditionne la validation).
-- **Règles v0.1** : `required`, `email`, `url`, `minLength`, `maxLength`, `min`, `max`, `numeric`, `regex`, `unique` (async, avec `ignoreRecord`), `confirmed`, `in`.
-- **Règles custom** : `.rule(fn)` synchrone ou async.
-- **Invariant** : un champ invisible n'est **jamais** validé et **jamais** persisté.
+- **Source of truth**: the declared schema, not a parallel DTO.
+- **Engine**: Zod, generated from the component tree. Chosen over `class-validator` because it composes dynamically at runtime — indispensable when visibility conditions validation.
+- **v0.1 rules**: `required`, `email`, `url`, `minLength`, `maxLength`, `min`, `max`, `numeric`, `regex`, `unique` (async, with `ignoreRecord`), `confirmed`, `in`.
+- **Custom rules**: `.rule(fn)`, synchronous or async.
+- **Invariant**: an invisible field is **never** validated and **never** persisted.
 
-## 7. Critères d'acceptation
+## 7. Acceptance criteria
 
-1. **A1** — un `Select` dont les `options` dépendent d'un autre champ se met à jour après un seul round-trip, avec le champ dépendant masqué tant que le parent est vide.
-2. Réévaluation ciblée : sur un formulaire de 40 champs, changer 1 champ réévalue ≤ 3 resolvers (mesuré par compteur).
-3. Un champ masqué par `visible()` disparaît de l'état persisté.
-4. Un `Repeater` de 3 lignes × 4 champs se valide, se sauvegarde et se recharge intégralement (**A3**).
-5. Deux requêtes concurrentes sur la même resource ne partagent aucun état (test de concurrence sur 100 requêtes parallèles).
-6. Un cycle `afterStateUpdated` lève une erreur nommant les champs, en < 5 passes.
-7. `@perchjs/core` n'importe ni `@nestjs/*`, ni `@prisma/client`, ni `react` (vérifié par un test de dépendances).
+1. **A1** — a `Select` whose `options` depend on another field updates after a single round trip, with the dependent field hidden while the parent is empty.
+2. Targeted re-evaluation: on a 40-field form, changing 1 field re-evaluates ≤ 3 resolvers (measured with a counter).
+3. A field hidden by `visible()` disappears from the persisted state.
+4. A `Repeater` of 3 rows × 4 fields validates, saves and reloads in full (**A3**).
+5. Two concurrent requests on the same resource share no state (concurrency test over 100 parallel requests).
+6. An `afterStateUpdated` cycle raises an error naming the fields, in < 5 passes.
+7. `@perchjs/core` imports neither `@nestjs/*`, nor `@prisma/client`, nor `react` (checked by a dependency test).
 
-## 8. Hors périmètre
+## 8. Out of scope
 
-- Wizards, Builder, Tabs → v0.2/v0.3 (l'architecture doit les permettre).
-- Rendu : ce package ne produit **aucun** HTML. Il produit du JSON.
-- Persistance : déléguée au `DataAdapter`.
+- Wizards, Builder, Tabs → v0.2/v0.3 (the architecture has to allow them).
+- Rendering: this package produces **no** HTML. It produces JSON.
+- Persistence: delegated to the `DataAdapter`.
 - i18n.
 
-## 9. Risques
+## 9. Risks
 
-| Risque | Impact | Mitigation |
+| Risk | Impact | Mitigation |
 |---|---|---|
-| Le graphe de dépendances par traçage rate un cas | Élevé | `.dependsOn()` en échappatoire + mode debug listant les dépendances tracées |
-| Explosion du temps de compilation TS | Moyen | repli documenté au §5 |
-| Builders mutables → fuite d'état inter-requêtes | **Critique** | immutabilité imposée + test de concurrence en CI dès le premier jour |
-| Le DSL diverge en 4 dialectes (form/table/infolist/page) | Élevé | une seule classe `Component` racine, comme les Schemas de Filament v4 |
+| The traced dependency graph misses a case | High | `.dependsOn()` as an escape hatch + a debug mode listing traced dependencies |
+| TypeScript compilation time explodes | Medium | fallback documented in §5 |
+| Mutable builders → state leaking across requests | **Critical** | immutability enforced + a concurrency test in CI from day one |
+| The DSL diverges into 4 dialects (form/table/infolist/page) | High | one single root `Component` class, like Filament v4's Schemas |
