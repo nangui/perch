@@ -1,34 +1,34 @@
 # Architecture Decision Records
 
-Les décisions structurantes de Perch, avec leur contexte, les options écartées et **la règle qui rouvrirait le débat**.
+Perch's structural decisions, with their context, the options set aside and **the rule that would reopen the debate**.
 
-## Pourquoi ce dossier existe
+## Why this folder exists
 
-Une décision non écrite est une décision qui sera reprise. Celles ci-dessous ont chacune été discutées plusieurs fois avant d'être tranchées — sans trace, elles le seraient encore.
+An unwritten decision is a decision that will be relitigated. Each of the records below was argued several times before being settled — without a trace, they would still be.
 
-Un ADR n'est pas un document vivant. **Il n'est jamais modifié**, seulement remplacé par un ADR ultérieur qui le supersède. C'est ce qui permet de relire pourquoi on a décidé, et pas seulement ce qu'on a décidé.
+An ADR is not a living document. **It is never edited**, only replaced by a later ADR that supersedes it. That is what lets you read back why a decision was made, and not only what was decided.
 
 ## Index
 
-| # | Décision | Statut |
+| # | Decision | Status |
 |---|---|---|
-| [0001](0001-ecosysteme-nestjs.md) | NestJS plutôt que Go ou Rust | acceptée |
-| [0002](0002-orm-prisma.md) | Prisma plutôt que Drizzle | acceptée |
-| [0003](0003-protocole-etat.md) | État autoritatif serveur, transport JSON + React | acceptée |
-| [0004](0004-nommage.md) | Perch — et le principe de nommage | acceptée |
-| [0005](0005-scope-npm.md) | Scope npm `@perchjs` plutôt que `@perch` | acceptée |
-| [0006](0006-lecture-marche-cible.md) | Lecture de « marché cible » dans la règle de réouverture du nom | acceptée |
+| [0001](0001-nestjs-ecosystem.md) | NestJS rather than Go or Rust | accepted |
+| [0002](0002-prisma-orm.md) | Prisma rather than Drizzle | accepted |
+| [0003](0003-state-protocol.md) | Server-authoritative state, JSON transport + React | accepted |
+| [0004](0004-naming.md) | Perch — and the naming principle | accepted |
+| [0005](0005-npm-scope.md) | npm scope `@perchjs` rather than `@perch` | accepted |
+| [0006](0006-target-market-reading.md) | Reading "target market" in the name's reopening rule | accepted |
 | [0007](0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets | **proposed** |
 | [0008](0008-versioning-policy.md) | Lockstep versioning across the five packages | **proposed** |
 
 ## Format
 
 ```
-Contexte          le problème, en quelques lignes
-Options           ce qui a été comparé, sur quels critères
-Décision          ce qui est retenu
-Conséquences      ce que ça verrouille, ce que ça coûte
-Règle de réouverture   ce qui — et seulement ce qui — rouvrirait le débat
+Context           the problem, in a few lines
+Options           what was compared, against which criteria
+Decision          what is kept
+Consequences      what it locks in, what it costs
+Reopening rule    what — and only what — would reopen the debate
 ```
 
-La dernière rubrique est la plus importante. Sans elle, un ADR ne protège de rien : il suffit qu'une envie revienne pour que tout recommence.
+The last heading is the most important one. Without it an ADR protects nothing: a returning urge is enough for everything to start over.

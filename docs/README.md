@@ -2,16 +2,16 @@
 
 ## Décisions (ADR) — à lire en premier
 
-Les six décisions structurantes, avec leur contexte, les options écartées et **la règle qui rouvrirait le débat**. Une décision non écrite est une décision qui sera reprise.
+Les décisions structurantes, avec leur contexte, les options écartées et **la règle qui rouvrirait le débat**. Une décision non écrite est une décision qui sera reprise. Ces documents sont en anglais.
 
-| # | Décision |
+| # | Decision |
 |---|---|
-| [0001](adr/0001-ecosysteme-nestjs.md) | NestJS plutôt que Go ou Rust |
-| [0002](adr/0002-orm-prisma.md) | Prisma plutôt que Drizzle |
-| [0003](adr/0003-protocole-etat.md) | État autoritatif serveur, transport JSON + React |
-| [0004](adr/0004-nommage.md) | Perch — et le principe de nommage |
-| [0005](adr/0005-scope-npm.md) | Scope npm `@perchjs` plutôt que `@perch` |
-| [0006](adr/0006-lecture-marche-cible.md) | Lecture de « marché cible » dans la règle de réouverture du nom |
+| [0001](adr/0001-nestjs-ecosystem.md) | NestJS rather than Go or Rust |
+| [0002](adr/0002-prisma-orm.md) | Prisma rather than Drizzle |
+| [0003](adr/0003-state-protocol.md) | Server-authoritative state, JSON transport + React |
+| [0004](adr/0004-naming.md) | Perch — and the naming principle |
+| [0005](adr/0005-npm-scope.md) | npm scope `@perchjs` rather than `@perch` |
+| [0006](adr/0006-target-market-reading.md) | Reading "target market" in the name's reopening rule |
 | [0007](adr/0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets — *proposed* |
 | [0008](adr/0008-versioning-policy.md) | Lockstep versioning across the five packages — *proposed* |
 

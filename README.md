@@ -12,7 +12,7 @@ An open-source UI framework for **NestJS**. Define a resource in TypeScript, get
 | Status | pre-implementation — 14 documents frozen |
 | npm scope | `@perchjs/*` — npm organization created |
 | Critical path | milestone **A1**: reactive dependent select, zero user JavaScript |
-| Decisions | ADR [0001](docs/adr/0001-ecosysteme-nestjs.md) · [0002](docs/adr/0002-orm-prisma.md) · [0003](docs/adr/0003-protocole-etat.md) · [0004](docs/adr/0004-nommage.md) · [0005](docs/adr/0005-scope-npm.md) · [0006](docs/adr/0006-lecture-marche-cible.md) · [0007](docs/adr/0007-panel-asset-delivery.md) · [0008](docs/adr/0008-versioning-policy.md) |
+| Decisions | ADR [0001](docs/adr/0001-nestjs-ecosystem.md) · [0002](docs/adr/0002-prisma-orm.md) · [0003](docs/adr/0003-state-protocol.md) · [0004](docs/adr/0004-naming.md) · [0005](docs/adr/0005-npm-scope.md) · [0006](docs/adr/0006-target-market-reading.md) · [0007](docs/adr/0007-panel-asset-delivery.md) · [0008](docs/adr/0008-versioning-policy.md) |
 
 ## Documentation
 
@@ -32,7 +32,7 @@ docs/
 
 **Perch.** A bird's perch: the vantage point over your data.
 
-The name is a closed decision, recorded in [ADR 0004](docs/adr/0004-nommage.md).
+The name is a closed decision, recorded in [ADR 0004](docs/adr/0004-naming.md).
 
 ## Contributing
 

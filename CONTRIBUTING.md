@@ -19,7 +19,7 @@ a case left uncovered, a missing technical pre-condition.
 Every ADR carries a **reopening rule**: the condition — and the only one — that would reopen the
 debate. If it is not met, the matter is closed. A personal preference is not a reopening rule.
 
-**The project name is a closed decision.** It is recorded in [ADR 0004](docs/adr/0004-nommage.md),
+**The project name is a closed decision.** It is recorded in [ADR 0004](docs/adr/0004-naming.md),
 with the full reasoning and the post-mortem of the rejected candidate. **It is not re-argued in
 issues or pull requests.** Renaming proposals are closed without debate, with a link to that ADR.
 

@@ -11,5 +11,5 @@ its logo identify this project.
 | A commercial product named "Perch Pro", "Perch Cloud" | ❌ |
 | The logo, modified | ❌ |
 
-The reasoning behind the name is in [ADR 0004](docs/adr/0004-nommage.md). The full context,
+The reasoning behind the name is in [ADR 0004](docs/adr/0004-naming.md). The full context,
 trademark included, is in [`docs/00-PRD-MASTER.md`](docs/00-PRD-MASTER.md) §14.
