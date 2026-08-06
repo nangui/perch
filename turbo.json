@@ -13,6 +13,9 @@
     "lint": {
       "dependsOn": ["^build"]
     },
+    "package:check": {
+      "dependsOn": ["build"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

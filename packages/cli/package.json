@@ -15,6 +15,9 @@
   "bin": {
     "perch": "./dist/index.js"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "files": [
     "dist",
     "LICENSE"
@@ -25,7 +28,8 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --tsconfig tsconfig.build.json",
     "typecheck": "tsc --build",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "package:check": "publint && attw --pack . --profile esm-only"
   },
   "dependencies": {
     "@perchjs/core": "workspace:*"

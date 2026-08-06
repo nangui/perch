@@ -9,10 +9,19 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
   },
   "files": [
     "dist",
@@ -24,7 +33,8 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean --tsconfig tsconfig.build.json",
     "typecheck": "tsc --build",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "package:check": "publint && attw --pack ."
   },
   "dependencies": {
     "@perchjs/core": "workspace:*"
