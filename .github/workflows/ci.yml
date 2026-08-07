@@ -62,7 +62,7 @@ jobs:
 # (CLAUDE.md, "Garde-fous CI"):
 #
 #   SQL query counter per page (anti N+1)     → PRD 01, with the DataAdapter
-#   p95 latency budget on /state, /records    → PRD 03, milestone A1
+#   p95 over HTTP, and /records               → PRD 03, with @perchjs/nest
 #   concurrency: 100 parallel requests        → PRD 02, once builders exist
 #   attack tests: forged state, unknown path  → PRD 03, pipeline stage 5
 #   DMMF contract test                        → PRD 01
