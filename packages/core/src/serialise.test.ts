@@ -120,3 +120,18 @@ describe("per-type props", () => {
     expect(payload.schema.children?.[0]?.props).not.toHaveProperty("description");
   });
 });
+
+describe("the client cannot invent the debounce", () => {
+  it("carries live when the field declares it, per field type", async () => {
+    const payload = serialise(await resolveSchema(form(), { countryId: "fr" }, CREATE));
+    const country = payload.schema.children?.[0]?.children?.[0];
+    // ARCH 13 §5: a select commits at 0 ms, a text field waits 400.
+    expect(country?.live).toEqual({ debounce: 0, onBlur: false });
+  });
+
+  it("omits it on a field that triggers nothing", async () => {
+    const payload = serialise(await resolveSchema(form(), { countryId: "fr" }, CREATE));
+    const email = payload.schema.children?.[0]?.children?.[2];
+    expect(email?.live).toBeUndefined();
+  });
+});

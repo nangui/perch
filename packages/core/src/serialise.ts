@@ -11,6 +11,7 @@
  * receives cannot leak its options, its label or its value.
  */
 import type { ColumnSpan } from "./component.js";
+import type { LiveConfig } from "./field.js";
 import { Field } from "./field.js";
 import type { Option } from "./fields/select.js";
 import type { FieldErrors, ResolvedNode, ResolveResult } from "./resolve.js";
@@ -27,6 +28,11 @@ export interface SchemaNode {
   readonly disabled?: boolean;
   readonly readOnly?: boolean;
   readonly required?: boolean;
+  /**
+   * Absent means the field never triggers a round trip. Present, it carries the
+   * debounce ARCH 13 §5 sets per field type — the client cannot invent it.
+   */
+  readonly live?: LiveConfig;
   readonly columnSpan?: ColumnSpan;
   readonly options?: readonly Option[];
   /** Per-type extras: flavour, maxLength, columns, and whatever a plugin adds. */
@@ -105,6 +111,9 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     ...(resolved.disabled ? { disabled: true } : {}),
     ...(resolved.readOnly ? { readOnly: true } : {}),
     ...(resolved.required === true ? { required: true } : {}),
+    ...(component instanceof Field && component.state.live !== undefined
+      ? { live: component.state.live }
+      : {}),
     ...(resolved.placeholder === undefined
       ? {}
       : { placeholder: resolved.placeholder }),
