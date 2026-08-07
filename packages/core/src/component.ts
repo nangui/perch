@@ -46,6 +46,13 @@ const CONFIGURATORS = new Map<unknown, ((component: never) => void)[]>();
 export abstract class Component {
   readonly state: ComponentState;
 
+  /**
+   * The discriminator the wire format and the renderer registry key on.
+   * Declared rather than read from `constructor.name`, which a minifier
+   * rewrites, and which a plugin could not choose (PRD 11 §2, E3).
+   */
+  abstract get type(): string;
+
   /** Public because `configureUsing` needs the class constructible. */
   constructor(state: ComponentState) {
     this.state = state;

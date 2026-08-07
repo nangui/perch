@@ -20,6 +20,10 @@ export interface TextInputState extends FieldState {
 export class TextInput extends Field {
   declare readonly state: TextInputState;
 
+  override get type(): string {
+    return "TextInput";
+  }
+
   protected override with(patch: Partial<TextInputState>): this {
     return super.with(patch);
   }

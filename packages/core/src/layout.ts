@@ -29,12 +29,20 @@ abstract class Layout extends Component {
 
 /** The root of a tree, per PRD 02 §2. */
 export class Schema extends Layout {
+  override get type(): string {
+    return "Schema";
+  }
+
   static make(children: readonly Component[] = []): Schema {
     return configured(new Schema({ children: [...children] }));
   }
 }
 
 export class Section extends Layout {
+  override get type(): string {
+    return "Section";
+  }
+
   static make(title?: string): Section {
     // Spread rather than assign: `exactOptionalPropertyTypes` distinguishes an
     // absent property from one set to `undefined`.
@@ -65,6 +73,10 @@ export class Section extends Layout {
 }
 
 export class Grid extends Layout {
+  override get type(): string {
+    return "Grid";
+  }
+
   static make(columns?: Columns): Grid {
     const grid = new Grid({ children: [] });
     return configured(columns === undefined ? grid : grid.columns(columns));

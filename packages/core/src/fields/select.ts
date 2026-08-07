@@ -30,6 +30,10 @@ const DEFAULT_OPTIONS_LIMIT = 50;
 export class Select extends Field {
   declare readonly state: SelectState;
 
+  override get type(): string {
+    return "Select";
+  }
+
   protected override with(patch: Partial<SelectState>): this {
     return super.with(patch);
   }

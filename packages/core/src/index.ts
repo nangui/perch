@@ -106,3 +106,7 @@ export { dehydrate, ResolutionCycleError, resolveSchema } from "./resolve.js";
 // Stage 5, the trust boundary (ARCH 12 §2).
 export type { RejectedPath, RejectionReason, SanitizeResult } from "./sanitize.js";
 export { sanitize } from "./sanitize.js";
+
+// The wire format (PRD 03 §3).
+export type { SchemaNode, SchemaPayload } from "./serialise.js";
+export { serialise } from "./serialise.js";

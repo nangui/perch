@@ -40,6 +40,8 @@ export interface ResolvedNode {
   readonly readOnly: boolean;
   readonly label?: string;
   readonly helperText?: string;
+  readonly placeholder?: string;
+  readonly required?: boolean;
   readonly options?: readonly Option[];
   readonly children: readonly ResolvedNode[];
 }
@@ -261,6 +263,18 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
   const label = await value(component.state.label, rc, undefined, count);
   const helperText = await value(component.state.helperText, rc, undefined, count);
 
+  // Resolved here rather than copied from the state: both accept a resolver,
+  // and a `required` the server enforces but never sends is an error the user
+  // could not have seen coming.
+  const placeholder =
+    component instanceof Field
+      ? await value(component.state.placeholder, rc, undefined, count)
+      : undefined;
+  const required =
+    component instanceof Field
+      ? await value(component.state.required, rc, false, count)
+      : false;
+
   let options: readonly Option[] | undefined;
   if (component instanceof Select && component.state.options !== undefined) {
     const raw = await value<OptionsInput | undefined>(
@@ -282,6 +296,8 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     readOnly,
     ...(label === undefined ? {} : { label }),
     ...(helperText === undefined ? {} : { helperText }),
+    ...(placeholder === undefined ? {} : { placeholder }),
+    ...(required ? { required: true } : {}),
     ...(options === undefined ? {} : { options }),
     children,
   };
@@ -300,8 +316,7 @@ async function validate(
     const current = state[path];
     const ctx = context(state, options, new Set());
 
-    const required = await read(field.state.required ?? false, ctx);
-    if (required && isBlank(current)) {
+    if (node.required === true && isBlank(current)) {
       errors[path] = "This field is required.";
       continue;
     }
