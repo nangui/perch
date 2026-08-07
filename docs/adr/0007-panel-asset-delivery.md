@@ -1,6 +1,6 @@
 # ADR 0007 — Panel asset delivery: `@perchjs/nest` depends on `@perchjs/ui`
 
-**Status:** proposed · **Scope:** Perch
+**Status:** accepted · **Scope:** Perch
 
 ## Context
 

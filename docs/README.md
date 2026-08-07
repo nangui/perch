@@ -12,8 +12,8 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0004](adr/0004-naming.md) | Perch — and the naming principle |
 | [0005](adr/0005-npm-scope.md) | npm scope `@perchjs` rather than `@perch` |
 | [0006](adr/0006-target-market-reading.md) | Reading "target market" in the name's reopening rule |
-| [0007](adr/0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets — *proposed* |
-| [0008](adr/0008-versioning-policy.md) | Lockstep versioning across the five packages — *proposed* |
+| [0007](adr/0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets |
+| [0008](adr/0008-versioning-policy.md) | Lockstep versioning across the five packages |
 
 ## Perch — a UI framework for NestJS
 

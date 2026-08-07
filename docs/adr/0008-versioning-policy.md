@@ -1,6 +1,6 @@
 # ADR 0008 — Versioning policy: the five packages move together
 
-**Status:** proposed · **Scope:** Perch
+**Status:** accepted · **Scope:** Perch
 
 ## Context
 

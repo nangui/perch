@@ -18,8 +18,8 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0004](0004-naming.md) | Perch — and the naming principle | accepted |
 | [0005](0005-npm-scope.md) | npm scope `@perchjs` rather than `@perch` | accepted |
 | [0006](0006-target-market-reading.md) | Reading "target market" in the name's reopening rule | accepted |
-| [0007](0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets | **proposed** |
-| [0008](0008-versioning-policy.md) | Lockstep versioning across the five packages | **proposed** |
+| [0007](0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets | accepted |
+| [0008](0008-versioning-policy.md) | Lockstep versioning across the five packages | accepted |
 
 ## Format
 
