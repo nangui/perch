@@ -91,3 +91,14 @@ export { TextInput } from "./fields/text-input.js";
 
 export type { Option, OptionsInput, SelectState } from "./fields/select.js";
 export { normaliseOptions, Select } from "./fields/select.js";
+
+// The resolution cycle (PRD 02 §4).
+export type {
+  DependencyTrace,
+  FieldErrors,
+  FormState,
+  ResolvedNode,
+  ResolveOptions,
+  ResolveResult,
+} from "./resolve.js";
+export { dehydrate, ResolutionCycleError, resolveSchema } from "./resolve.js";
