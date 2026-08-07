@@ -45,3 +45,10 @@ export type { CodeDiagnostic, CodeEditorProps } from "./fields/CodeEditor.js";
 export { CodeEditor, parseJsonDocument } from "./fields/CodeEditor.js";
 export type { RepeaterItem, RepeaterProps } from "./fields/Repeater.js";
 export { Repeater, REPEATER_SHORTCUTS } from "./fields/Repeater.js";
+
+// The renderer: walks the tree the server resolved (ARCH 13 §6, §7).
+export type { NodeProps } from "./node-props.js";
+export type { SchemaRendererProps } from "./SchemaRenderer.js";
+export { SchemaRenderer } from "./SchemaRenderer.js";
+export { lookupComponent, registerComponent, resetRegistry } from "./registry.js";
+export { registerBuiltInComponents } from "./renderers.js";

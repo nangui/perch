@@ -1171,3 +1171,28 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* ------------------------------------------------------------------ renderer */
+
+.perch-layout__body {
+  display: grid;
+  grid-template-columns: repeat(var(--perch-columns, 1), minmax(0, 1fr));
+  gap: var(--perch-space-7);
+}
+
+.perch-layout__title {
+  margin-bottom: var(--perch-space-5);
+  font-size: var(--perch-text-control);
+  font-weight: 500;
+  color: var(--perch-content);
+}
+
+/* Development only: a node whose type has no registered renderer. */
+.perch-unknown {
+  padding: var(--perch-space-5);
+  border: 1px dashed var(--perch-danger-border);
+  border-radius: var(--perch-radius);
+  color: var(--perch-danger-content);
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-base);
+}
