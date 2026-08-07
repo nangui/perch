@@ -52,3 +52,17 @@ export type { SchemaRendererProps } from "./SchemaRenderer.js";
 export { SchemaRenderer } from "./SchemaRenderer.js";
 export { lookupComponent, registerComponent, resetRegistry } from "./registry.js";
 export { registerBuiltInComponents } from "./renderers.js";
+
+// The transport client: reconciliation and ordering (ARCH 13 §4, §5).
+export type {
+  Snapshot,
+  StateRequest,
+  StateResponse,
+  TransportFailure,
+  TransportOptions,
+} from "./transport.js";
+export { TransportClient } from "./transport.js";
+
+// The form: transport plus renderer, which is A1 on the client.
+export type { PanelFormProps } from "./PanelForm.js";
+export { PanelForm } from "./PanelForm.js";
