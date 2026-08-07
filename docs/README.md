@@ -14,6 +14,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0006](adr/0006-target-market-reading.md) | Reading "target market" in the name's reopening rule |
 | [0007](adr/0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets |
 | [0008](adr/0008-versioning-policy.md) | Lockstep versioning across the five packages |
+| [0009](adr/0009-panel-bundle.md) | The panel is served as a second, self-contained bundle |
 
 ## Perch — a UI framework for NestJS
 

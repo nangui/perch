@@ -20,6 +20,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0006](0006-target-market-reading.md) | Reading "target market" in the name's reopening rule | accepted |
 | [0007](0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets | accepted |
 | [0008](0008-versioning-policy.md) | Lockstep versioning across the five packages | accepted |
+| [0009](0009-panel-bundle.md) | The panel is served as a second, self-contained bundle | accepted |
 
 ## Format
 
