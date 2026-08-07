@@ -9,8 +9,10 @@ d'agir, à chaque session.
 obtient un panneau d'administration complet, on n'écrit jamais de front. C'est l'équivalent de
 Laravel Filament pour l'écosystème Node.
 
-Statut : **pré-implémentation**. La documentation est complète et figée, le code n'existe pas
-encore. Le premier objectif est le jalon A1 (voir plus bas).
+Statut : **en implémentation**. La documentation est complète et figée. `packages/prisma`
+lit le DMMF, `packages/core` porte l'arbre de composants, le cycle de résolution, la frontière
+de confiance et le format de transport, et `packages/ui` rend cet arbre. Le jalon A1 passe en
+test ; il n'est pas livré tant que le protocole HTTP et le budget p95 n'existent pas.
 
 ## À lire avant d'agir
 
