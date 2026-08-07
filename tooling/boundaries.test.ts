@@ -165,6 +165,15 @@ describe("architecture boundaries (ARCH 12 §1)", () => {
     expect(exitCode()).not.toBe(0);
   });
 
+  it("rejects the nest adapter importing the renderer it now declares", () => {
+    // ADR 0007 §2. Before the dependency existed this was caught by resolution,
+    // which is a weaker guarantee than it looked: declaring the package removes
+    // that accident, and only the architecture rule is left standing.
+    plant("nest", `export { PanelForm } from "@perchjs/ui";\n`);
+    expect(violatedRules()).toContain("no-adapter-to-adapter");
+    expect(exitCode()).not.toBe(0);
+  });
+
   it("rejects a Node builtin in the browser renderer", () => {
     plant("ui", `import { join } from "node:path";\nexport const x = join;\n`);
     expect(violatedRules()).toContain("ui-no-node-builtins");

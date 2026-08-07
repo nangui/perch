@@ -11,7 +11,13 @@
  * that rule would mean owning a copy of it that can drift.
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -22,11 +28,27 @@ All notable changes to Perch. The five \`@perchjs/*\` packages share this file a
 this version number — they are released together ([ADR 0008](docs/adr/0008-versioning-policy.md)).
 `;
 
+/**
+ * `changeset status` exits 1 when packages changed with no changeset to cover
+ * them, which is the ordinary "nothing to release yet" case rather than a
+ * failure. Counting the pending files first keeps that case out of the error
+ * path — and stops a Node stack trace standing in for a sentence.
+ */
+function pending() {
+  return readdirSync(".changeset").filter(
+    (name) => name.endsWith(".md") && name !== "README.md",
+  );
+}
+
 function status() {
   const file = join(mkdtempSync(join(tmpdir(), "perch-release-")), "status.json");
-  execFileSync("pnpm", ["exec", "changeset", "status", `--output=${file}`], {
-    stdio: ["ignore", "ignore", "inherit"],
-  });
+  try {
+    execFileSync("pnpm", ["exec", "changeset", "status", `--output=${file}`], {
+      stdio: ["ignore", "ignore", "inherit"],
+    });
+  } catch {
+    process.exit(1); // changeset has already said why on stderr.
+  }
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
@@ -37,9 +59,16 @@ function heading(type, version) {
   return version.startsWith("0.") ? "Breaking" : "Added";
 }
 
+if (pending().length === 0) {
+  console.log("No pending changesets — the changelog is unchanged.");
+  process.exit(0);
+}
+
 const { changesets, releases } = status();
 if (releases.length === 0) {
-  console.log("No pending changesets — the changelog is unchanged.");
+  // `changeset add --empty` records that a change needs no release. There is a
+  // file pending and still nothing to write.
+  console.log("Only empty changesets — the changelog is unchanged.");
   process.exit(0);
 }
 

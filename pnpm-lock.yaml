@@ -70,6 +70,9 @@ importers:
       '@perchjs/core':
         specifier: workspace:*
         version: link:../core
+      '@perchjs/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       '@nestjs/common':
         specifier: ^11.1.28

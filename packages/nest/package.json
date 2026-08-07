@@ -37,7 +37,8 @@
     "package:check": "publint && attw --pack ."
   },
   "dependencies": {
-    "@perchjs/core": "workspace:*"
+    "@perchjs/core": "workspace:*",
+    "@perchjs/ui": "workspace:*"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
