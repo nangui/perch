@@ -1,0 +1,63 @@
+/**
+ * Stage 5 of ARCH 12 §2 — the trust boundary.
+ *
+ * Incoming state is replayed against the tree the server last resolved: an
+ * unknown path, or one belonging to a field that is invisible, disabled or
+ * read-only, is dropped. Silently. A message naming the reason tells an attacker
+ * which fields exist and which are protected (PRD 03 §3.2).
+ *
+ * It runs before the resolution cycle, against the *previous* result, because
+ * that is the last thing the server itself asserted about the form. Deciding
+ * from the incoming state would be asking the attacker to mark their own work.
+ */
+import { acceptsClientState, Field } from "./field.js";
+import type { FormState, ResolveResult } from "./resolve.js";
+
+export type RejectionReason = "unknown-path" | "invisible" | "disabled" | "read-only";
+
+export interface RejectedPath {
+  readonly path: string;
+  readonly reason: RejectionReason;
+}
+
+export interface SanitizeResult {
+  readonly state: FormState;
+  /** For the server log only. Never reaches the response. */
+  readonly rejected: readonly RejectedPath[];
+}
+
+export function sanitize(previous: ResolveResult, incoming: FormState): SanitizeResult {
+  const fields = new Map(
+    previous.nodes
+      .filter((node) => node.component instanceof Field)
+      .map((node) => [(node.component as Field).name, node]),
+  );
+
+  const state: Record<string, unknown> = {};
+  const rejected: RejectedPath[] = [];
+
+  for (const [path, value] of Object.entries(incoming)) {
+    const node = fields.get(path);
+    if (node === undefined) {
+      rejected.push({ path, reason: "unknown-path" });
+      continue;
+    }
+    if (!acceptsClientState(node)) {
+      rejected.push({ path, reason: reasonFor(node) });
+      continue;
+    }
+    state[path] = value;
+  }
+
+  return { state, rejected };
+}
+
+function reasonFor(node: {
+  visible: boolean;
+  disabled: boolean;
+  readOnly: boolean;
+}): RejectionReason {
+  if (!node.visible) return "invisible";
+  if (node.disabled) return "disabled";
+  return "read-only";
+}

@@ -102,3 +102,7 @@ export type {
   ResolveResult,
 } from "./resolve.js";
 export { dehydrate, ResolutionCycleError, resolveSchema } from "./resolve.js";
+
+// Stage 5, the trust boundary (ARCH 12 §2).
+export type { RejectedPath, RejectionReason, SanitizeResult } from "./sanitize.js";
+export { sanitize } from "./sanitize.js";
