@@ -59,3 +59,35 @@ export {
   inferRelation,
   tokenize,
 } from "./inference.js";
+
+// The declarative component tree: what a resource declares (PRD 02).
+export type {
+  ColumnSpan,
+  ComponentState,
+  Operation,
+  Resolvable,
+  Resolver,
+  ResolverContext,
+} from "./component.js";
+export { Component, configured, isResolver } from "./component.js";
+
+// Layout components, shared by forms and infolists.
+export type { Columns } from "./layout.js";
+export { Grid, Schema, Section } from "./layout.js";
+
+// Fields: components that hold state and are validated (PRD 06).
+export type {
+  FieldState,
+  LiveConfig,
+  StateHook,
+  StateHookContext,
+  StateTransform,
+  ValidationRule,
+} from "./field.js";
+export { baseFieldState, Field, isDehydrated } from "./field.js";
+
+export type { TextInputState } from "./fields/text-input.js";
+export { TextInput } from "./fields/text-input.js";
+
+export type { Option, OptionsInput, SelectState } from "./fields/select.js";
+export { normaliseOptions, Select } from "./fields/select.js";

@@ -1,0 +1,144 @@
+/**
+ * The declarative component tree — PRD 02 §3. One root class for forms,
+ * infolists and layout, so the DSL cannot split into four dialects.
+ *
+ * Everything conditional is a `Resolver` evaluated on the server (ADR 0003).
+ */
+
+export type Operation = "create" | "edit" | "view";
+
+export interface ResolverContext {
+  /**
+   * Properties, not methods: the DSL destructures them —
+   * `.options(({ get }) => …)` — and a destructured method loses its receiver.
+   */
+  readonly get: (path: string) => unknown;
+  readonly set: (path: string, value: unknown) => void;
+  readonly record?: Readonly<Record<string, unknown>>;
+  readonly operation: Operation;
+  readonly user: unknown;
+}
+
+export type Resolver<T> = (context: ResolverContext) => T | Promise<T>;
+
+export type Resolvable<T> = T | Resolver<T>;
+
+export function isResolver<T>(value: Resolvable<T>): value is Resolver<T> {
+  return typeof value === "function";
+}
+
+export type ColumnSpan = number | "full";
+
+/** All of it in one object, so cloning cannot forget a property. */
+export interface ComponentState {
+  readonly name?: string;
+  readonly children: readonly Component[];
+  readonly visible?: Resolvable<boolean>;
+  readonly disabled?: Resolvable<boolean>;
+  readonly label?: Resolvable<string>;
+  readonly helperText?: Resolvable<string>;
+  readonly columnSpan?: ColumnSpan;
+  readonly key?: string;
+}
+
+const CONFIGURATORS = new Map<unknown, ((component: never) => void)[]>();
+
+export abstract class Component {
+  readonly state: ComponentState;
+
+  /** Public because `configureUsing` needs the class constructible. */
+  constructor(state: ComponentState) {
+    this.state = state;
+  }
+
+  /**
+   * PRD 02 §3.4 and ARCH 12 §6: components are built once at bootstrap and
+   * reused across concurrent requests, so a builder that mutates in place leaks
+   * one user's state into another's response. Nothing here assigns to `this`.
+   */
+  protected with(patch: Partial<ComponentState>): this {
+    const Ctor = this.constructor as new (state: ComponentState) => this;
+    return new Ctor({ ...this.state, ...patch });
+  }
+
+  get name(): string | undefined {
+    return this.state.name;
+  }
+
+  get children(): readonly Component[] {
+    return this.state.children;
+  }
+
+  schema(children: readonly Component[]): this {
+    return this.with({ children: [...children] });
+  }
+
+  columnSpan(span: ColumnSpan): this {
+    return this.with({ columnSpan: span });
+  }
+
+  /** Stable identity for the client diff, independent of position. */
+  key(value: string): this {
+    return this.with({ key: value });
+  }
+
+  visible(value: Resolvable<boolean> = true): this {
+    return this.with({ visible: value });
+  }
+
+  /** Negated here, so only one flag is ever stored. */
+  hidden(value: Resolvable<boolean> = true): this {
+    if (!isResolver(value)) return this.with({ visible: !value });
+    return this.with({ visible: async (context) => !(await value(context)) });
+  }
+
+  disabled(value: Resolvable<boolean> = true): this {
+    return this.with({ disabled: value });
+  }
+
+  label(value: Resolvable<string>): this {
+    return this.with({ label: value });
+  }
+
+  helperText(value: Resolvable<string>): this {
+    return this.with({ helperText: value });
+  }
+
+  extend(fn: (component: this) => this): this {
+    return fn(this);
+  }
+
+  /** Extension point E1 (PRD 11 §2). Bootstrap-time only. */
+  static configureUsing<C extends typeof Component>(
+    this: C,
+    fn: (component: InstanceType<C>) => InstanceType<C>,
+  ): void {
+    const existing = CONFIGURATORS.get(this) ?? [];
+    CONFIGURATORS.set(this, [...existing, fn]);
+  }
+
+  /** Test seam: otherwise configuration leaks between suites. */
+  static resetConfigurators(): void {
+    CONFIGURATORS.clear();
+  }
+}
+
+/** Applies configurators base class first, so the most specific one wins. */
+export function configured<T extends Component>(component: T): T {
+  const chain: unknown[] = [];
+  for (
+    let ctor: unknown = component.constructor;
+    typeof ctor === "function" && ctor !== Object;
+    ctor = Object.getPrototypeOf(ctor)
+  ) {
+    chain.unshift(ctor);
+  }
+
+  let result = component;
+  for (const ctor of chain) {
+    for (const fn of CONFIGURATORS.get(ctor) ?? []) {
+      result = (fn as unknown as (c: T) => T)(result);
+    }
+  }
+  return result;
+}

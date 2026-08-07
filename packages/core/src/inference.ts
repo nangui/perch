@@ -22,7 +22,11 @@ export type ComponentKind =
   | "KeyValue"
   | "CodeEditor";
 
-export type TextFlavour = "text" | "email" | "password" | "url" | "numeric";
+/**
+ * `tel` is never inferred — no metadata says "this column holds a phone number"
+ * — but PRD 06 §3.1 lets a field be told, so the flavour has to admit it.
+ */
+export type TextFlavour = "text" | "email" | "password" | "url" | "numeric" | "tel";
 
 export interface InferredField {
   readonly name: string;
