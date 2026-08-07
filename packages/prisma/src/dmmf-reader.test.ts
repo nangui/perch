@@ -8,24 +8,24 @@ import { findField, findModel, findRelation } from "@perchjs/core";
 import { DmmfContractError, readDmmf } from "./dmmf-reader.js";
 import { FIXTURE_DMMF, FIXTURE_MODEL_COUNT } from "./__fixtures__/dmmf.js";
 
-const schema = readDmmf(FIXTURE_DMMF);
+const ir = readDmmf(FIXTURE_DMMF);
 
 describe("readDmmf — acceptance criterion 1", () => {
   it("reads a twelve-model schema with 1-1, 1-n and n-n relations", () => {
     expect(FIXTURE_MODEL_COUNT).toBeGreaterThanOrEqual(12);
-    expect(schema.models).toHaveLength(FIXTURE_MODEL_COUNT);
-    for (const model of schema.models) {
+    expect(ir.models).toHaveLength(FIXTURE_MODEL_COUNT);
+    for (const model of ir.models) {
       expect(model.primaryKey.isId, `${model.name} has a primary key`).toBe(true);
     }
   });
 
   it("keeps the database name distinct from the model name", () => {
-    expect(findModel(schema, "User")?.dbName).toBe("users");
-    expect(findModel(schema, "OrderLine")?.dbName).toBe("order_lines");
+    expect(findModel(ir, "User")?.dbName).toBe("users");
+    expect(findModel(ir, "OrderLine")?.dbName).toBe("order_lines");
   });
 
   it("splits scalars from relations", () => {
-    const post = findModel(schema, "Post");
+    const post = findModel(ir, "Post");
     expect(post?.fields.map((f) => f.name)).not.toContain("author");
     expect(post?.relations.map((r) => r.name)).toContain("author");
   });
@@ -33,49 +33,49 @@ describe("readDmmf — acceptance criterion 1", () => {
 
 describe("readDmmf — field metadata", () => {
   it("reads maxLength from @db.VarChar", () => {
-    expect(findField(findModel(schema, "User")!, "email")?.maxLength).toBe(255);
-    expect(findField(findModel(schema, "User")!, "name")?.maxLength).toBe(120);
+    expect(findField(findModel(ir, "User")!, "email")?.maxLength).toBe(255);
+    expect(findField(findModel(ir, "User")!, "name")?.maxLength).toBe(120);
   });
 
   it("reads precision and scale from @db.Decimal", () => {
-    const price = findField(findModel(schema, "Product")!, "price");
+    const price = findField(findModel(ir, "Product")!, "price");
     expect(price?.precision).toBe(10);
     expect(price?.scale).toBe(2);
   });
 
   it("flags @db.Text as long text", () => {
-    expect(findField(findModel(schema, "User")!, "bio")?.isLongText).toBe(true);
-    expect(findField(findModel(schema, "User")!, "email")?.isLongText).toBe(false);
+    expect(findField(findModel(ir, "User")!, "bio")?.isLongText).toBe(true);
+    expect(findField(findModel(ir, "User")!, "email")?.isLongText).toBe(false);
   });
 
   it("treats @updatedAt as read-only even though the DMMF does not", () => {
     // The trap this guards: isReadOnly is false on @updatedAt, yet the database
     // owns the value and a form must never send it.
-    const updatedAt = findField(findModel(schema, "User")!, "updatedAt");
+    const updatedAt = findField(findModel(ir, "User")!, "updatedAt");
     expect(updatedAt?.isReadOnly).toBe(true);
   });
 
   it("resolves enum values through datamodel.enums", () => {
-    const role = findField(findModel(schema, "User")!, "role");
+    const role = findField(findModel(ir, "User")!, "role");
     expect(role?.kind).toBe("enum");
     expect(role?.enumValues).toEqual(["ADMIN", "EDITOR", "VIEWER"]);
   });
 
   it("carries /// documentation", () => {
-    expect(findField(findModel(schema, "User")!, "email")?.documentation).toBe(
+    expect(findField(findModel(ir, "User")!, "email")?.documentation).toBe(
       "Used to sign in. Must be unique.",
     );
-    expect(findModel(schema, "User")?.documentation).toBe("Someone who can sign in.");
+    expect(findModel(ir, "User")?.documentation).toBe("Someone who can sign in.");
   });
 
   it("marks a Json field as json rather than scalar", () => {
-    expect(findField(findModel(schema, "User")!, "preferences")?.kind).toBe("json");
+    expect(findField(findModel(ir, "User")!, "preferences")?.kind).toBe("json");
   });
 });
 
 describe("readDmmf — relations", () => {
   it("reads a to-one relation with its foreign key and onDelete", () => {
-    const author = findRelation(findModel(schema, "Post")!, "author");
+    const author = findRelation(findModel(ir, "Post")!, "author");
     expect(author).toMatchObject({
       type: "one",
       targetModel: "User",
@@ -87,22 +87,20 @@ describe("readDmmf — relations", () => {
   });
 
   it("reads a to-many relation as never required", () => {
-    const posts = findRelation(findModel(schema, "User")!, "posts");
+    const posts = findRelation(findModel(ir, "User")!, "posts");
     expect(posts?.type).toBe("many");
     expect(posts?.isRequired).toBe(false);
   });
 
   it("reads an optional to-one relation", () => {
-    expect(findRelation(findModel(schema, "Post")!, "category")?.isRequired).toBe(
-      false,
-    );
+    expect(findRelation(findModel(ir, "Post")!, "category")?.isRequired).toBe(false);
   });
 });
 
 describe("readDmmf — model-level metadata", () => {
   it("detects soft delete from the deletedAt convention", () => {
-    expect(findModel(schema, "User")?.hasSoftDelete).toBe(true);
-    expect(findModel(schema, "Post")?.hasSoftDelete).toBe(false);
+    expect(findModel(ir, "User")?.hasSoftDelete).toBe(true);
+    expect(findModel(ir, "Post")?.hasSoftDelete).toBe(false);
   });
 
   it("lets configuration override the convention", () => {
@@ -111,19 +109,19 @@ describe("readDmmf — model-level metadata", () => {
   });
 
   it("collects composite unique constraints alongside single-field ones", () => {
-    const post = findModel(schema, "Post");
+    const post = findModel(ir, "Post");
     expect(post?.uniqueConstraints).toContainEqual(["authorId", "slug"]);
     expect(post?.uniqueConstraints).toContainEqual(["slug"]);
     expect(post?.uniqueConstraints).toContainEqual(["id"]);
   });
 
   it("resolves the label field by the documented priority order", () => {
-    expect(findModel(schema, "User")?.labelField).toBe("name");
-    expect(findModel(schema, "Tag")?.labelField).toBe("label");
+    expect(findModel(ir, "User")?.labelField).toBe("name");
+    expect(findModel(ir, "Tag")?.labelField).toBe("label");
     // No name, title, label, email or slug: falls back to the first unique String.
-    expect(findModel(schema, "Order")?.labelField).toBe("reference");
+    expect(findModel(ir, "Order")?.labelField).toBe("reference");
     // Nothing at all: the primary key.
-    expect(findModel(schema, "PostTag")?.labelField).toBe("id");
+    expect(findModel(ir, "PostTag")?.labelField).toBe("id");
   });
 });
 

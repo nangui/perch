@@ -17,10 +17,10 @@ import {
 import { readDmmf } from "./dmmf-reader.js";
 import { FIXTURE_DMMF } from "./__fixtures__/dmmf.js";
 
-const schema = readDmmf(FIXTURE_DMMF);
-const User = findModel(schema, "User")!;
-const Post = findModel(schema, "Post")!;
-const Product = findModel(schema, "Product")!;
+const ir = readDmmf(FIXTURE_DMMF);
+const User = findModel(ir, "User")!;
+const Post = findModel(ir, "Post")!;
+const Product = findModel(ir, "Product")!;
 
 function infer(model: typeof User, name: string): InferredField {
   return inferField(findField(model, name)!);
@@ -134,7 +134,7 @@ describe("inferField — what is kept out of a form", () => {
 
 describe("inferRelation", () => {
   it("infers a select on the target's label field for a to-one relation", () => {
-    expect(inferRelation(findRelation(Post, "author")!, schema)).toMatchObject({
+    expect(inferRelation(findRelation(Post, "author")!, ir)).toMatchObject({
       component: "Select",
       required: true,
       relationship: { model: "User", labelField: "name" },
@@ -142,18 +142,18 @@ describe("inferRelation", () => {
   });
 
   it("keeps a to-many relation out of the form", () => {
-    expect(inferRelation(findRelation(Post, "comments")!, schema)).toMatchObject({
+    expect(inferRelation(findRelation(Post, "comments")!, ir)).toMatchObject({
       excludedFromForm: "to-many-relation",
     });
   });
 
   it("does not require an optional to-one relation", () => {
-    expect(inferRelation(findRelation(Post, "category")!, schema).required).toBe(false);
+    expect(inferRelation(findRelation(Post, "category")!, ir).required).toBe(false);
   });
 });
 
 describe("inferModel", () => {
-  const inferred = inferModel(Post, schema);
+  const inferred = inferModel(Post, ir);
   const names = inferred.map((f) => f.name);
 
   it("represents a foreign key by its relation and never twice", () => {
@@ -171,8 +171,8 @@ describe("inferModel", () => {
   });
 
   it("covers every model of the fixture without throwing", () => {
-    for (const model of schema.models) {
-      expect(inferModel(model, schema).length, model.name).toBeGreaterThan(0);
+    for (const model of ir.models) {
+      expect(inferModel(model, ir).length, model.name).toBeGreaterThan(0);
     }
   });
 });

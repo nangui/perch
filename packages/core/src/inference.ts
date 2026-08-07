@@ -10,7 +10,7 @@
  * Name-based inference is the part that surprises people, so it is switchable:
  * `strict: true` keeps only what the database actually declares.
  */
-import type { FieldMeta, ModelMeta, RelationMeta, Schema } from "./ir.js";
+import type { FieldMeta, ModelMeta, RelationMeta, Ir } from "./ir.js";
 import { findModel } from "./ir.js";
 
 export type ComponentKind =
@@ -167,7 +167,7 @@ export function inferField(
   }
 }
 
-export function inferRelation(relation: RelationMeta, schema: Schema): InferredField {
+export function inferRelation(relation: RelationMeta, ir: Ir): InferredField {
   if (relation.type === "many") {
     return {
       name: relation.name,
@@ -179,7 +179,7 @@ export function inferRelation(relation: RelationMeta, schema: Schema): InferredF
     };
   }
 
-  const target = findModel(schema, relation.targetModel);
+  const target = findModel(ir, relation.targetModel);
   return {
     name: relation.name,
     component: "Select",
@@ -200,7 +200,7 @@ export function inferRelation(relation: RelationMeta, schema: Schema): InferredF
  */
 export function inferModel(
   model: ModelMeta,
-  schema: Schema,
+  ir: Ir,
   options: InferenceOptions = {},
 ): readonly InferredField[] {
   // A foreign key is represented by its relation, never twice.
@@ -209,7 +209,7 @@ export function inferModel(
     ...model.fields
       .filter((f) => !foreignKeys.has(f.name))
       .map((f) => inferField(f, options)),
-    ...model.relations.map((r) => inferRelation(r, schema)),
+    ...model.relations.map((r) => inferRelation(r, ir)),
   ];
 }
 

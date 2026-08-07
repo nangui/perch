@@ -6,7 +6,7 @@
  * Drizzle or a Mongoose adapter possible later without touching the engine, and
  * what lets the domain be tested without a database.
  */
-import type { ModelMeta, Schema } from "./ir.js";
+import type { ModelMeta, Ir } from "./ir.js";
 
 /** An opaque row. The engine addresses it through paths, never by shape. */
 export type Row = Readonly<Record<string, unknown>>;
@@ -85,7 +85,7 @@ export interface RelationWrite {
 
 export interface DataAdapter {
   /** Resolved once at bootstrap and cached; never called on a hot path. */
-  schema(): Schema;
+  ir(): Ir;
   meta(model: string): ModelMeta;
   findMany(query: Query): Promise<Page>;
   findOne(model: string, id: Id, include?: IncludePlan): Promise<Row | null>;

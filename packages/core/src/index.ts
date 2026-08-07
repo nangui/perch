@@ -15,7 +15,7 @@ export type {
   RelationMeta,
   ReferentialAction,
   ScalarType,
-  Schema,
+  Ir,
 } from "./ir.js";
 export { findField, findModel, findRelation } from "./ir.js";
 

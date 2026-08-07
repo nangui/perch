@@ -10,7 +10,7 @@
  * Depth is capped at three segments in v0.1. Past that the query planner starts
  * producing joins nobody predicted, so it fails loudly instead (PRD 01 §3.3).
  */
-import type { FieldMeta, ModelMeta, RelationMeta, Schema } from "./ir.js";
+import type { FieldMeta, ModelMeta, RelationMeta, Ir } from "./ir.js";
 import { findField, findModel, findRelation } from "./ir.js";
 import type { IncludePlan } from "./data-adapter.js";
 
@@ -53,11 +53,7 @@ export interface ResolvedPath {
   readonly model: ModelMeta;
 }
 
-export function resolvePath(
-  schema: Schema,
-  modelName: string,
-  path: string,
-): ResolvedPath {
+export function resolvePath(ir: Ir, modelName: string, path: string): ResolvedPath {
   const segments = path.split(".");
   if (path === "" || segments.some((s) => s === "")) {
     throw new PathError("empty", path, `Path "${path}" has an empty segment.`);
@@ -72,12 +68,12 @@ export function resolvePath(
     );
   }
 
-  let model = findModel(schema, modelName);
+  let model = findModel(ir, modelName);
   if (!model) {
     throw new PathError(
       "unknown-model",
       path,
-      `Unknown model "${modelName}". Known models: ${schema.models
+      `Unknown model "${modelName}". Known models: ${ir.models
         .map((m) => m.name)
         .join(", ")}.`,
     );
@@ -123,7 +119,7 @@ export function resolvePath(
         path,
         `"${path}" ends on the relation "${segment}"; it must end on a scalar ` +
           `field, for example "${segment}.${
-            findModel(schema, relation.targetModel)?.labelField ?? "id"
+            findModel(ir, relation.targetModel)?.labelField ?? "id"
           }".`,
         segment,
       );
@@ -141,7 +137,7 @@ export function resolvePath(
     }
 
     relations.push(relation);
-    const next = findModel(schema, relation.targetModel);
+    const next = findModel(ir, relation.targetModel);
     if (!next) {
       throw new PathError(
         "unknown-model",
@@ -163,7 +159,7 @@ export function resolvePath(
  * path a table or infolist needs, which is what keeps the query count at one.
  */
 export function buildIncludePlan(
-  schema: Schema,
+  ir: Ir,
   modelName: string,
   paths: readonly string[],
 ): IncludePlan | undefined {
@@ -171,7 +167,7 @@ export function buildIncludePlan(
   let touched = false;
 
   for (const path of paths) {
-    const { relations } = resolvePath(schema, modelName, path);
+    const { relations } = resolvePath(ir, modelName, path);
     if (relations.length === 0) continue;
     touched = true;
 

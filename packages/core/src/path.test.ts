@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FieldMeta, ModelMeta, RelationMeta, Schema } from "./ir.js";
+import type { FieldMeta, ModelMeta, RelationMeta, Ir } from "./ir.js";
 import { buildIncludePlan, PathError, readPath, resolvePath } from "./path.js";
 
 function field(name: string, over: Partial<FieldMeta> = {}): FieldMeta {
@@ -53,7 +53,7 @@ function model(
   };
 }
 
-const schema: Schema = {
+const ir: Ir = {
   models: [
     model(
       "Post",
@@ -81,28 +81,28 @@ const schema: Schema = {
 
 describe("resolvePath", () => {
   it("resolves a scalar on the root model", () => {
-    const resolved = resolvePath(schema, "Post", "title");
+    const resolved = resolvePath(ir, "Post", "title");
     expect(resolved.field.name).toBe("title");
     expect(resolved.relations).toEqual([]);
     expect(resolved.model.name).toBe("Post");
   });
 
   it("resolves a path across three levels", () => {
-    const resolved = resolvePath(schema, "Post", "author.country.name");
+    const resolved = resolvePath(ir, "Post", "author.country.name");
     expect(resolved.relations.map((r) => r.name)).toEqual(["author", "country"]);
     expect(resolved.field.name).toBe("name");
     expect(resolved.model.name).toBe("Country");
   });
 
   it("rejects a fourth level, naming the limit", () => {
-    expect(() => resolvePath(schema, "Post", "author.country.region.name")).toThrow(
+    expect(() => resolvePath(ir, "Post", "author.country.region.name")).toThrow(
       /4 levels deep; the limit is 3/,
     );
   });
 
   it("rejects an unknown segment and lists what exists", () => {
     try {
-      resolvePath(schema, "Post", "titel");
+      resolvePath(ir, "Post", "titel");
       expect.unreachable("should have thrown");
     } catch (error) {
       expect(error).toBeInstanceOf(PathError);
@@ -114,20 +114,20 @@ describe("resolvePath", () => {
   });
 
   it("rejects traversing a scalar", () => {
-    expect(() => resolvePath(schema, "Post", "title.length")).toThrow(
+    expect(() => resolvePath(ir, "Post", "title.length")).toThrow(
       /"title" is a scalar field on Post/,
     );
   });
 
   it("rejects a path that ends on a relation, and suggests the label field", () => {
-    expect(() => resolvePath(schema, "Post", "author")).toThrow(
+    expect(() => resolvePath(ir, "Post", "author")).toThrow(
       /must end on a scalar field, for example "author.name"/,
     );
   });
 
   it("rejects traversing a to-many relation, explaining why", () => {
     try {
-      resolvePath(schema, "Post", "comments.body");
+      resolvePath(ir, "Post", "comments.body");
       expect.unreachable("should have thrown");
     } catch (error) {
       const e = error as PathError;
@@ -137,30 +137,28 @@ describe("resolvePath", () => {
   });
 
   it("rejects an unknown model and lists the known ones", () => {
-    expect(() => resolvePath(schema, "Nope", "title")).toThrow(
-      /Known models: Post, User/,
-    );
+    expect(() => resolvePath(ir, "Nope", "title")).toThrow(/Known models: Post, User/);
   });
 
   it("rejects an empty segment", () => {
-    expect(() => resolvePath(schema, "Post", "author..name")).toThrow(PathError);
-    expect(() => resolvePath(schema, "Post", "")).toThrow(PathError);
+    expect(() => resolvePath(ir, "Post", "author..name")).toThrow(PathError);
+    expect(() => resolvePath(ir, "Post", "")).toThrow(PathError);
   });
 });
 
 describe("buildIncludePlan — acceptance criterion 3", () => {
   it("returns undefined when nothing needs joining", () => {
-    expect(buildIncludePlan(schema, "Post", ["title", "id"])).toBeUndefined();
+    expect(buildIncludePlan(ir, "Post", ["title", "id"])).toBeUndefined();
   });
 
   it("builds one branch per relation level", () => {
-    expect(buildIncludePlan(schema, "Post", ["author.country.name"])).toEqual({
+    expect(buildIncludePlan(ir, "Post", ["author.country.name"])).toEqual({
       author: { country: true },
     });
   });
 
   it("merges several paths into a single plan, which is what keeps it to one query", () => {
-    const plan = buildIncludePlan(schema, "Post", [
+    const plan = buildIncludePlan(ir, "Post", [
       "title",
       "author.name",
       "author.country.name",
@@ -173,11 +171,11 @@ describe("buildIncludePlan — acceptance criterion 3", () => {
   it("does not let a shallow path erase a deeper one already planned", () => {
     // Order matters here: `author.name` alone would be `{author: true}`, and a
     // naive merge would drop the nested include added before it.
-    const deepFirst = buildIncludePlan(schema, "Post", [
+    const deepFirst = buildIncludePlan(ir, "Post", [
       "author.country.name",
       "author.name",
     ]);
-    const shallowFirst = buildIncludePlan(schema, "Post", [
+    const shallowFirst = buildIncludePlan(ir, "Post", [
       "author.name",
       "author.country.name",
     ]);

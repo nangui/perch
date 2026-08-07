@@ -15,7 +15,7 @@ import type {
   RelationMeta,
   ReferentialAction,
   ScalarType,
-  Schema,
+  Ir,
 } from "@perchjs/core";
 import { inferLabelField } from "@perchjs/core";
 
@@ -104,7 +104,7 @@ export interface ReadOptions {
 }
 
 /** Turns a DMMF into the IR. The only entry point of this module. */
-export function readDmmf(dmmf: unknown, options: ReadOptions = {}): Schema {
+export function readDmmf(dmmf: unknown, options: ReadOptions = {}): Ir {
   const datamodel = assertDatamodel(dmmf);
   const enums = new Map(
     datamodel.enums.map((e) => [e.name, e.values.map((v) => v.name)] as const),

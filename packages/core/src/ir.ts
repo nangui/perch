@@ -79,12 +79,12 @@ export interface ModelMeta {
 }
 
 /** Everything the domain knows about the data source, resolved once at bootstrap. */
-export interface Schema {
+export interface Ir {
   readonly models: readonly ModelMeta[];
 }
 
-export function findModel(schema: Schema, name: string): ModelMeta | undefined {
-  return schema.models.find((m) => m.name === name);
+export function findModel(ir: Ir, name: string): ModelMeta | undefined {
+  return ir.models.find((m) => m.name === name);
 }
 
 export function findField(model: ModelMeta, name: string): FieldMeta | undefined {
