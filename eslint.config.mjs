@@ -16,6 +16,13 @@ export default tseslint.config(
     },
   },
   {
+    // Release tooling: plain Node ESM, outside any tsconfig, so the type-aware
+    // rules have nothing to read and the parser must not look for a project.
+    files: ["scripts/**/*.mjs"],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { parserOptions: { projectService: false, project: false } },
+  },
+  {
     // Tests may assert on deliberately wrong shapes.
     files: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
     rules: {
