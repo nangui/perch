@@ -11,7 +11,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": "./dist/styles.css",
+    "./manifest.json": "./dist/manifest.json"
   },
   "files": [
     "dist",
@@ -27,7 +28,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsdown",
     "typecheck": "tsc --build",
     "lint": "eslint src",
     "package:check": "publint && attw --pack . --profile esm-only --exclude-entrypoints ./styles.css"

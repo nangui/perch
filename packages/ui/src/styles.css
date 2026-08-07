@@ -694,6 +694,22 @@
 
 /* --------------------------------------------------------------- empty state */
 
+/* A request that failed, announced rather than swallowed — ARCH 13 §5. */
+.perch-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--perch-space-4);
+  margin-bottom: var(--perch-space-5);
+  padding: var(--perch-space-4) var(--perch-space-5);
+  border: 1px solid var(--perch-danger-border);
+  border-radius: var(--perch-radius);
+  background: var(--perch-danger-surface);
+  color: var(--perch-danger-content);
+  font-size: var(--perch-text-base);
+  text-wrap: pretty;
+}
+
 .perch-empty {
   display: flex;
   flex: 1;
