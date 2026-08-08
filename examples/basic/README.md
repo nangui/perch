@@ -23,20 +23,23 @@ of it.
 
 ## Anyone can open it
 
-There is no authentication here, and `PanelModule.forRoot` does not yet take the
-`guards` option the design calls for. **Do not copy this module onto anything
-reachable.**
+This example passes no guards, because it has no authentication to plug in.
+**Do not copy this module onto anything reachable.**
 
-Nest's own mechanism does work in the meantime, and covers every panel route —
-the page, the assets and the API. Verified with a guard that refuses everything:
-all three answer 403.
+Perch provides no authentication of its own — every Node application already has
+its own, and a login page from us would fight it. What it provides is where to
+put yours, and it covers the page, the assets and the API alike:
 
 ```ts
-@Module({
-  imports: [PanelModule.forRoot({ … })],
-  providers: [{ provide: APP_GUARD, useClass: YourAuthGuard }],
+PanelModule.forRoot({
+  path: "/admin",
+  resources: [PersonResource],
+  guards: [YourAuthGuard],
 })
 ```
+
+The guard is built by the container, so it can inject whatever it needs — as
+long as the module providing that is in `imports`.
 
 ## What this example does not do
 
