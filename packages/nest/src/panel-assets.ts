@@ -1,23 +1,15 @@
 /**
  * What `PanelModule` is allowed to serve, and nothing else.
  *
- * ADR 0007 §3 lets `@perchjs/nest` resolve `@perchjs/ui` and read files from it,
- * while forbidding it to import a single module. ADR 0009 §3 adds the one
- * specifier this file uses: the manifest is named by the exports map rather than
- * found beside the entry, because resolving the package root works under ESM and
- * throws under CommonJS — and this package publishes both.
- *
- * The manifest is a versioned contract (ADR 0007 §4). A version this build does
- * not know means the renderer and the adapter disagree about what `dist` holds,
- * and serving files on that basis is how a panel ends up half broken in a
- * browser with nothing in the logs. So it throws, at startup, saying which
- * versions are involved.
+ * ADR 0007 §3 lets this package resolve `@perchjs/ui` and read files from it,
+ * never import a module of it. ADR 0009 §3 names the manifest in the exports map
+ * rather than beside the entry, because resolving the package root throws under
+ * CommonJS and this package publishes both formats.
  */
 import { createRequire } from "node:module";
 import { readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-/** The specifier ADR 0009 §3 adds to the permitted set. */
 const MANIFEST = "@perchjs/ui/manifest.json";
 
 /** Bumped by `@perchjs/ui` whenever an entry is renamed or removed. */
@@ -26,17 +18,17 @@ export const SUPPORTED_MANIFEST_VERSION = 1;
 /** The entries version 1 promises. Adding one here is a version bump. */
 const REQUIRED_ENTRIES = ["panel.js", "panel.css"] as const;
 
+export const PANEL_ASSETS = Symbol("PERCH_PANEL_ASSETS");
+
 export interface PanelAssets {
-  /** Absolute path of the directory holding the files below. */
   readonly directory: string;
   /** Logical name → filename on disk, content-hashed. */
   readonly entries: Readonly<Record<string, string>>;
 }
 
 /**
- * Under lockstep versioning (ADR 0008) the two packages are installed together,
- * so a mismatch here is a broken installation rather than a supported
- * combination. The message says so, because the fix is `pnpm install`, not code.
+ * Under lockstep versioning (ADR 0008) a version mismatch is a broken install
+ * rather than a supported combination, so the message says `pnpm install`.
  */
 export function loadPanelAssets(manifestPath = resolveManifest()): PanelAssets {
   const directory = dirname(manifestPath);
@@ -50,8 +42,7 @@ export function loadPanelAssets(manifestPath = resolveManifest()): PanelAssets {
     );
   }
 
-  // What version 1 means. Without this an empty `entries` starts a panel that
-  // serves nothing, which is the "at random" ADR 0007 §4 refuses.
+  // Without this an empty `entries` starts a panel that serves nothing.
   for (const required of REQUIRED_ENTRIES) {
     if (!(required in manifest.entries)) {
       throw new Error(
@@ -62,8 +53,7 @@ export function loadPanelAssets(manifestPath = resolveManifest()): PanelAssets {
   }
 
   for (const [name, file] of Object.entries(manifest.entries)) {
-    // `isFile`, not `existsSync`: an entry of "." passes every shape check above
-    // and then exists, because it is the directory.
+    // `isFile`, not `existsSync`: "." passes every check above and then exists.
     if (!isFile(join(directory, file))) {
       throw new Error(
         `the asset manifest names ${file} for "${name}", and that is not a file in ${directory}. ` +
@@ -75,7 +65,6 @@ export function loadPanelAssets(manifestPath = resolveManifest()): PanelAssets {
   return { directory, entries: manifest.entries };
 }
 
-/** A name that is not a regular file — a directory, a socket, or absent. */
 function isFile(path: string): boolean {
   try {
     return statSync(path).isFile();
@@ -101,11 +90,7 @@ interface Manifest {
   readonly entries: Readonly<Record<string, string>>;
 }
 
-/**
- * Shape-checked rather than trusted. Not because the file is hostile — it comes
- * from `node_modules` — but because a malformed one otherwise surfaces as
- * `undefined` in a URL, several layers away from the cause.
- */
+/** Shape-checked so a malformed manifest fails here, not as `undefined` in a URL. */
 function parse(path: string): Manifest {
   let value: unknown;
   try {
@@ -129,9 +114,8 @@ function parse(path: string): Manifest {
         `the asset manifest at ${path} maps "${name}" to something that is not a filename.`,
       );
     }
-    // A manifest is a name-to-name map. A separator or a climb means somebody is
-    // describing a path, and a path is how the static route starts serving what
-    // it should not.
+    // A separator or a climb is a path, and a path is what the static route
+    // must never be handed.
     if (/[/\\]|\.\./.test(file)) {
       throw new Error(
         `the asset manifest at ${path} maps "${name}" to a path, not a filename: ${file}`,

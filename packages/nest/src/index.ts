@@ -8,6 +8,13 @@
  */
 
 export type { PanelAssets } from "./panel-assets.js";
-export { loadPanelAssets, SUPPORTED_MANIFEST_VERSION } from "./panel-assets.js";
+export {
+  loadPanelAssets,
+  PANEL_ASSETS,
+  SUPPORTED_MANIFEST_VERSION,
+} from "./panel-assets.js";
+export { PanelAssetsController } from "./panel-assets.controller.js";
+export type { PanelModuleOptions } from "./panel.module.js";
+export { PanelModule } from "./panel.module.js";
 
 export const PERCH_NEST_STATUS = "pre-implementation" as const;

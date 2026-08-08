@@ -16,6 +16,13 @@ export default tseslint.config(
     },
   },
   {
+    // A Nest module is a class with no instance members by construction: the
+    // class *is* the injection token, and `forRoot` returns a description rather
+    // than an object. The rule is right in general and wrong for this shape.
+    files: ["**/*.module.ts"],
+    rules: { "@typescript-eslint/no-extraneous-class": "off" },
+  },
+  {
     // Release tooling: plain Node ESM, outside any tsconfig, so the type-aware
     // rules have nothing to read and the parser must not look for a project.
     files: ["scripts/**/*.mjs"],

@@ -1,14 +1,9 @@
 /**
  * That `@perchjs/nest` can actually reach the manifest — ADR 0009 §3.
  *
- * The whole reason the manifest is named by the exports map rather than found
- * beside the entry is that resolving the package root throws under CommonJS,
- * and this package publishes both formats. That argument is only worth what the
- * artefacts do, so both are loaded here and asked for the real file.
- *
  * `tooling/resolution.test.ts` reads the source and says what nest is *allowed*
- * to resolve. This runs the build and says it *works*. Neither implies the
- * other: the guard passes happily on a specifier that resolves nowhere.
+ * to resolve; this loads both published builds and says it *works*. Neither
+ * implies the other: the guard passes on a specifier that resolves nowhere.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -52,8 +47,7 @@ describe("the published @perchjs/nest resolves the manifest", () => {
   });
 
   it("from the CommonJS build, where import.meta.url does not exist", async () => {
-    // tsdown rewrites it to __filename. Asserted rather than assumed, because
-    // the decision in ADR 0009 §3 rests entirely on this working.
+    // tsdown rewrites it to __filename, and ADR 0009 §3 rests on that.
     const { createRequire } = await import("node:module");
     const module = createRequire(import.meta.url)(join(NEST_DIST, "index.cjs")) as {
       loadPanelAssets: Loader;
@@ -63,10 +57,23 @@ describe("the published @perchjs/nest resolves the manifest", () => {
     expect(assets.entries["panel.js"]).toMatch(/^panel-[\w-]+\.js$/);
   });
 
+  it("keeps its decorator metadata through the build", async () => {
+    // Drop this and the classes still export while the routes never exist.
+    // packages/nest/tsconfig.build.json turns the two decorator flags on against
+    // the repository default; this notices if that changes.
+    const module = (await import(pathToFileURL(join(NEST_DIST, "index.js")).href)) as {
+      PanelAssetsController: new (...args: never[]) => { read: unknown };
+    };
+    const controller = module.PanelAssetsController;
+
+    expect(Reflect.getMetadata("path", controller)).toBe("assets");
+    expect(Reflect.getMetadata("path", controller.prototype.read)).toBe(":file");
+    expect(Reflect.getMetadata("method", controller.prototype.read)).toBe(0); // GET
+  });
+
   it("agrees with the version @perchjs/ui ships", async () => {
-    // Two constants that must move together — one in ui's tsdown config, one in
-    // nest's reader — with nothing else linking them. A bump on one side alone
-    // makes `loadPanelAssets` throw, which is what this notices.
+    // Two constants that must move together — ui's tsdown config and nest's
+    // reader — with nothing else linking them.
     const module = (await import(pathToFileURL(join(NEST_DIST, "index.js")).href)) as {
       loadPanelAssets: Loader;
     };
