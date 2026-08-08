@@ -16,5 +16,9 @@ export {
 export { PanelAssetsController } from "./panel-assets.controller.js";
 export type { PanelModuleOptions } from "./panel.module.js";
 export { PanelModule } from "./panel.module.js";
+export type { PanelResourceOptions, ResourceMetadata } from "./resource.js";
+export { PANEL_RESOURCE, PanelResource, resourceMetadata } from "./resource.js";
+export type { RegisteredResource, ResourceClass } from "./resource-registry.js";
+export { PANEL_RESOURCE_TYPES, ResourceRegistry } from "./resource-registry.js";
 
 export const PERCH_NEST_STATUS = "pre-implementation" as const;
