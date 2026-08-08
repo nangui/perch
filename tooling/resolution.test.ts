@@ -9,9 +9,10 @@
  * measured that: `require.resolve()` of a declared dependency produces no edge.
  *
  * So the permission gets its own guard. Every module specifier `nest` resolves
- * at runtime must be exactly the root of `@perchjs/ui`. A subpath would pin the
- * internal layout of a package that is free to change it, and any other name is
- * a boundary crossing with nothing to report it.
+ * at runtime must be one of the two the exports map of `@perchjs/ui` declares
+ * for this purpose. An undeclared subpath would pin an internal layout the
+ * renderer is free to change, and any other name is a boundary crossing with
+ * nothing to report it.
  *
  * Both checks read string literals, and neither evaluates an expression. What
  * escapes them: a specifier built at run time, and an absolute path — which
@@ -33,7 +34,13 @@ import { describe, expect, it } from "vitest";
 import ts from "typescript";
 
 const NEST_SRC = fileURLToPath(new URL("../packages/nest/src", import.meta.url));
-const ALLOWED = "@perchjs/ui";
+
+/**
+ * ADR 0007 §3 permitted the package root alone; ADR 0009 §3 adds the manifest,
+ * because resolving the root throws under CommonJS and this package publishes
+ * both formats. Two entries, and every other specifier still refused.
+ */
+const ALLOWED = new Set(["@perchjs/ui", "@perchjs/ui/manifest.json"]);
 
 interface ResolveCall {
   readonly file: string;
@@ -41,15 +48,37 @@ interface ResolveCall {
   readonly text: string;
 }
 
+/**
+ * Tests are excluded, and found their way in here by failing: a test naming a
+ * path it refuses to accept is data, not a boundary crossing. What ships is
+ * what this guards, and tests are not in the build entry nor in `files`.
+ */
 function sources(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) return sources(path);
+    if (/\.test\.tsx?$/.test(name)) return [];
     return name.endsWith(".ts") || name.endsWith(".tsx") ? [path] : [];
   });
 }
 
-/** `null` specifier means the argument was not a string literal. */
+/**
+ * The specifier a call names, or `null` when it cannot be read — which counts
+ * as an offence, since an unverifiable call is not a permitted one. A `const`
+ * bound to a literal in the same file is read through: naming a specifier is
+ * documentation, not concealment.
+ */
+function specifierOf(
+  argument: ts.Expression | undefined,
+  constants: ReadonlyMap<string, string>,
+): string | null {
+  if (argument === undefined) return null;
+  if (ts.isStringLiteralLike(argument)) return argument.text;
+  if (ts.isIdentifier(argument)) return constants.get(argument.text) ?? null;
+  return null;
+}
+
+/** `null` specifier means the argument could not be read. */
 function resolveCalls(file: string): ResolveCall[] {
   const source = ts.createSourceFile(
     file,
@@ -62,6 +91,8 @@ function resolveCalls(file: string): ResolveCall[] {
   const requireLike = new Set<string>();
   /** Names holding the resolver itself, callable bare. */
   const bare = new Set<string>();
+  /** `const MANIFEST = "…"` — naming a specifier is not hiding it. */
+  const constants = new Map<string, string>();
 
   const isCreateRequire = (node: ts.Expression): boolean =>
     ts.isCallExpression(node) &&
@@ -72,7 +103,9 @@ function resolveCalls(file: string): ResolveCall[] {
     if (ts.isVariableDeclaration(node) && node.initializer !== undefined) {
       const { name, initializer } = node;
       if (ts.isIdentifier(name)) {
-        if (isCreateRequire(initializer)) requireLike.add(name.text);
+        if (ts.isStringLiteralLike(initializer))
+          constants.set(name.text, initializer.text);
+        else if (isCreateRequire(initializer)) requireLike.add(name.text);
         // `const r = require.resolve` — the resolver without its receiver.
         else if (
           ts.isPropertyAccessExpression(initializer) &&
@@ -107,19 +140,19 @@ function resolveCalls(file: string): ResolveCall[] {
     if (expression.name.text !== "resolve") return false;
     const target = expression.expression;
     if (ts.isMetaProperty(target)) return true; // import.meta.resolve
+    // `createRequire(url).resolve(…)` — never bound to a name. This is the form
+    // the production code uses, and the first version of this guard was blind
+    // to it, which made the guard vacuous against the only call it polices.
+    if (isCreateRequire(target)) return true;
     if (!ts.isIdentifier(target)) return false;
     return target.text === "require" || requireLike.has(target.text);
   };
 
   const visit = (node: ts.Node): void => {
     if (ts.isCallExpression(node) && isResolver(node.expression)) {
-      const argument = node.arguments[0];
       found.push({
         file,
-        specifier:
-          argument !== undefined && ts.isStringLiteralLike(argument)
-            ? argument.text
-            : null,
+        specifier: specifierOf(node.arguments[0], constants),
         text: node.getText(source),
       });
     }
@@ -132,7 +165,7 @@ function resolveCalls(file: string): ResolveCall[] {
 function offences(root: string = NEST_SRC): string[] {
   return sources(root)
     .flatMap(resolveCalls)
-    .filter((call) => call.specifier !== ALLOWED)
+    .filter((call) => call.specifier === null || !ALLOWED.has(call.specifier))
     .map((call) => `${call.file.replace(root, "nest/src")}: ${call.text}`);
 }
 
@@ -200,13 +233,51 @@ describe("what @perchjs/nest may resolve — ADR 0007 §5", () => {
     expect(offences(dir)).toEqual([]);
   });
 
-  it("rejects a subpath of @perchjs/ui", () => {
+  it("allows the manifest, which the exports map declares", () => {
+    // ADR 0009 §3. Widened by exactly one specifier, and only because resolving
+    // the package root throws under CommonJS.
+    const dir = planted(
+      `export const p = require.resolve("@perchjs/ui/manifest.json");\n`,
+    );
+    expect(offences(dir)).toEqual([]);
+  });
+
+  it("rejects a subpath the exports map does not declare", () => {
     // The renderer's internal layout is its own business; pinning it here is how
     // a "just this once" turns into a contract nobody wrote down.
     const dir = planted(
       `export const p = require.resolve("@perchjs/ui/dist/index.js");\n`,
     );
     expect(offences(dir)).toHaveLength(1);
+  });
+
+  it("sees a resolver called straight off createRequire", () => {
+    // The form the production code uses, and the one the first version of this
+    // guard was blind to — which made it vacuous against the only call it
+    // exists to police.
+    const dir = planted(
+      `import { createRequire } from "node:module";\n` +
+        `export const p = createRequire(import.meta.url).resolve("@perchjs/prisma");\n`,
+    );
+    expect(offences(dir)).toHaveLength(1);
+  });
+
+  it("reads through a constant naming the specifier", () => {
+    // Naming it is documentation, not concealment. Refusing it would push the
+    // code to inline strings, which is worse to read and no safer.
+    const named = planted(
+      `import { createRequire } from "node:module";\n` +
+        `const UI = "@perchjs/ui";\n` +
+        `export const p = createRequire(import.meta.url).resolve(UI);\n`,
+    );
+    expect(offences(named)).toEqual([]);
+
+    const other = planted(
+      `import { createRequire } from "node:module";\n` +
+        `const OTHER = "@perchjs/prisma";\n` +
+        `export const p = createRequire(import.meta.url).resolve(OTHER);\n`,
+    );
+    expect(offences(other)).toHaveLength(1);
   });
 
   it("rejects any other package", () => {

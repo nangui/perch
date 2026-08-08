@@ -7,4 +7,7 @@
  * To be built here: PRD 04, and stages 1, 2 and 9 of the nine-stage pipeline.
  */
 
+export type { PanelAssets } from "./panel-assets.js";
+export { loadPanelAssets, SUPPORTED_MANIFEST_VERSION } from "./panel-assets.js";
+
 export const PERCH_NEST_STATUS = "pre-implementation" as const;
