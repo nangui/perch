@@ -34,13 +34,37 @@ class MemoryAdapter implements DataAdapter {
     return { models: [] };
   }
   meta(): ModelMeta {
-    throw new Error("not needed here");
+    // Strictly what the panel asks of it: the type of the key it looks rows up
+    // by.
+    return {
+      name: "Post",
+      dbName: "Post",
+      primaryKey: {
+        name: "id",
+        kind: "scalar",
+        type: "Int",
+        isRequired: true,
+        isList: false,
+        isId: true,
+        isUnique: true,
+        isReadOnly: true,
+        hasDefault: true,
+        isLongText: false,
+      },
+      fields: [],
+      relations: [],
+      uniqueConstraints: [],
+      hasSoftDelete: false,
+      labelField: "title",
+    };
   }
   findMany(): Promise<{ rows: readonly Row[]; total: number }> {
     return Promise.resolve({ rows: ROWS, total: ROWS.length });
   }
   findOne(_model: string, id: Id): Promise<Row | null> {
-    return Promise.resolve(ROWS.find((row) => row["id"] === Number(id)) ?? null);
+    // Strict, the way a typed client is. Coercing here would hide whether the
+    // panel hands over the type the model declares.
+    return Promise.resolve(ROWS.find((row) => row["id"] === id) ?? null);
   }
   create(): Promise<Row> {
     throw new Error("not needed here");

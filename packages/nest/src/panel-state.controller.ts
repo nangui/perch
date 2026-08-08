@@ -33,6 +33,7 @@ import type {
 import { resolveSchema, sanitize, serialise } from "@perchjs/core";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
+import { recordId } from "./record-id.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
@@ -114,7 +115,7 @@ async function loadRecord(
   if (request.operation === "create") return null;
   if (data === null || request.id === undefined) throw new NotFoundException();
 
-  const row = await data.findOne(model, request.id);
+  const row = await data.findOne(model, recordId(data, model, request.id));
   if (row === null) throw new NotFoundException();
   return row;
 }
