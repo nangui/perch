@@ -62,9 +62,9 @@ jobs:
 # (CLAUDE.md, "Garde-fous CI"):
 #
 #   SQL query counter per page (anti N+1)     → PRD 01, with the DataAdapter
-#   p95 over HTTP, and /records               → PRD 03, with @perchjs/nest
+#   p95 on /records                           → PRD 03, once that route exists
 #   concurrency: 100 parallel requests        → PRD 02, once builders exist
-#   attack tests: forged state, unknown path  → PRD 03, pipeline stage 5
+#   attack test: an unauthorised action       → PRD 04, with `can`
 #   DMMF contract test                        → PRD 01
 #
 # They are listed here rather than in a backlog so that adding one is a visible
