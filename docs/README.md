@@ -15,6 +15,8 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0007](adr/0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets |
 | [0008](adr/0008-versioning-policy.md) | Lockstep versioning across the five packages |
 | [0009](adr/0009-panel-bundle.md) | The panel is served as a second, self-contained bundle |
+| [0010](adr/0010-state-response-shape.md) | `/state` answers with the whole tree, not a schema patch — *proposed* |
+| [0011](adr/0011-admission-in-waves.md) | Client state is admitted in waves, not in one pass — *proposed* |
 
 ## Perch — a UI framework for NestJS
 

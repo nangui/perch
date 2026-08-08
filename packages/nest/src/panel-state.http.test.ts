@@ -22,6 +22,16 @@ const CITIES: Record<string, { value: number; label: string }[]> = {
   be: [{ value: 3, label: "Brussels" }],
 };
 
+@PanelResource({ model: "Either", slug: "either" })
+class EitherResource {
+  form(): Schema {
+    return Schema.make([
+      TextInput.make("a").visible(({ get }) => get("b") === undefined),
+      TextInput.make("b").visible(({ get }) => get("a") === undefined),
+    ]);
+  }
+}
+
 @PanelResource({ model: "Person", slug: "people" })
 class PersonResource {
   form(): Schema {
@@ -55,7 +65,7 @@ beforeEach(async () => {
     imports: [
       PanelModule.forRoot({
         path: "/admin",
-        resources: [PersonResource],
+        resources: [PersonResource, EitherResource],
         assets: assets(),
       }),
     ],
@@ -160,6 +170,19 @@ describe("the trust boundary", () => {
     });
 
     expect(payload.state["isAdmin"]).toBeUndefined();
+  });
+
+  it("refuses to answer when gates contradict each other", async () => {
+    // Two fields each visible only while the other is empty: admitting in waves
+    // gives both, then neither, then both again. Answering with whichever the
+    // last pass produced would be arbitrary, so it fails.
+    const { status } = await post("either", {
+      state: { a: "one", b: "two" },
+      dirtyPath: "a",
+      operation: "create",
+    });
+
+    expect(status).toBe(500);
   });
 
   it("answers the same 404 for an unknown resource as for a forbidden one", async () => {

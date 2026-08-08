@@ -21,6 +21,8 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0007](0007-panel-asset-delivery.md) | `@perchjs/nest` depends on `@perchjs/ui` to serve its assets | accepted |
 | [0008](0008-versioning-policy.md) | Lockstep versioning across the five packages | accepted |
 | [0009](0009-panel-bundle.md) | The panel is served as a second, self-contained bundle | accepted |
+| [0010](0010-state-response-shape.md) | `/state` answers with the whole tree, not a schema patch | **proposed** |
+| [0011](0011-admission-in-waves.md) | Client state is admitted in waves, not in one pass | **proposed** |
 
 ## Format
 

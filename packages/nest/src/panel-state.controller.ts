@@ -72,8 +72,28 @@ export class PanelStateController {
   }
 }
 
-/** Same bound as the resolution cycle: a form that will not settle is a bug. */
+/** Same bound as the resolution cycle, and the same posture past it. */
 const MAX_ADMISSION_PASSES = 5;
+
+/**
+ * Gates that contradict each other never settle: two fields each visible only
+ * while the other is empty admit both, then neither, then both again. Stopping
+ * at the bound would answer with whichever set the last pass happened to
+ * produce, so it fails instead. The message stays server-side — Nest answers a
+ * plain 500 — because it names fields.
+ */
+export class AdmissionCycleError extends Error {
+  readonly paths: readonly string[];
+
+  constructor(paths: readonly string[]) {
+    super(
+      `Client state did not settle after ${String(MAX_ADMISSION_PASSES)} passes. ` +
+        `Fields still changing: ${paths.join(", ")}.`,
+    );
+    this.name = "AdmissionCycleError";
+    this.paths = paths;
+  }
+}
 
 /**
  * A field is admitted only if the tree resolved from the values already admitted
@@ -94,13 +114,21 @@ async function admit(
 
   for (let pass = 0; pass < MAX_ADMISSION_PASSES; pass += 1) {
     const clean = sanitize(tree, request.state);
-    if (sameKeys(clean.state, accepted)) break;
+    if (sameKeys(clean.state, accepted)) return { accepted, tree };
 
     accepted = clean.state;
     tree = await resolveSchema(schema, accepted, { operation: request.operation });
   }
 
-  return { accepted, tree };
+  throw new AdmissionCycleError(
+    unsettled(sanitize(tree, request.state).state, accepted),
+  );
+}
+
+/** The paths one more pass would have changed its mind about. */
+function unsettled(next: FormState, accepted: FormState): string[] {
+  const keys = new Set([...Object.keys(next), ...Object.keys(accepted)]);
+  return [...keys].filter((key) => key in next !== key in accepted);
 }
 
 function sameKeys(a: FormState, b: FormState): boolean {
