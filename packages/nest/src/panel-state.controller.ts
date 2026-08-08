@@ -22,14 +22,17 @@ import {
   Req,
 } from "@nestjs/common";
 import type {
+  DataAdapter,
   FormState,
   Operation,
   ResolveResult,
+  Row,
   Schema,
   SchemaPayload,
 } from "@perchjs/core";
 import { resolveSchema, sanitize, serialise } from "@perchjs/core";
 import { authorize } from "./authorization.js";
+import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
@@ -47,13 +50,16 @@ export interface StateRequest {
 export class PanelStateController {
   readonly #registry: ResourceRegistry;
   readonly #users: UserResolver;
+  readonly #data: DataAdapter | null;
 
   constructor(
     registry: ResourceRegistry,
     @Inject(PANEL_USER_RESOLVER) users: UserResolver,
+    @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
   ) {
     this.#registry = registry;
     this.#users = users;
+    this.#data = data;
   }
 
   @Post("state")
@@ -71,24 +77,46 @@ export class PanelStateController {
 
     const decoded = decode(body);
     const user = this.#users.resolve(request);
-    if (
-      (await authorize(resource.instance.can, decoded.operation, user)) !== "allowed"
-    ) {
-      throw new NotFoundException();
-    }
+    const record = await loadRecord(this.#data, resource.metadata.model, decoded);
+    const verdict = await authorize(
+      resource.instance.can,
+      decoded.operation,
+      user,
+      record ?? undefined,
+    );
+    if (verdict !== "allowed") throw new NotFoundException();
 
     const schema = resource.instance.form();
 
-    const { accepted, tree } = await admit(schema, decoded, user);
+    const { accepted, tree } = await admit(schema, decoded, user, record);
     const next = await resolveSchema(schema, accepted, {
       operation: decoded.operation,
       dirtyPath: decoded.dirtyPath,
       user,
+      ...(record === null ? {} : { record }),
       previous: tree,
     });
 
     return serialise(next);
   }
+}
+
+/**
+ * An edit is about a row. Without an adapter there is none to be about, and
+ * without an id the request has not said which — both refuse rather than
+ * quietly editing nothing.
+ */
+async function loadRecord(
+  data: DataAdapter | null,
+  model: string,
+  request: StateRequest,
+): Promise<Row | null> {
+  if (request.operation === "create") return null;
+  if (data === null || request.id === undefined) throw new NotFoundException();
+
+  const row = await data.findOne(model, request.id);
+  if (row === null) throw new NotFoundException();
+  return row;
 }
 
 /** Same bound as the resolution cycle, and the same posture past it. */
@@ -128,10 +156,16 @@ async function admit(
   schema: Schema,
   request: StateRequest,
   user: unknown,
+  record: Row | null,
 ): Promise<{ accepted: FormState; tree: ResolveResult }> {
-  // Every pass carries the same principal. A tree resolved without it would
-  // decide visibility for nobody, and admit a field reserved for somebody.
-  const options = { operation: request.operation, user };
+  // Every pass carries the same principal and the same record. A tree resolved
+  // without them decides visibility for nobody, about nothing, and admits a
+  // field reserved for somebody.
+  const options = {
+    operation: request.operation,
+    user,
+    ...(record === null ? {} : { record }),
+  };
   let accepted: FormState = {};
   let tree = await resolveSchema(schema, accepted, options);
 

@@ -6,7 +6,7 @@
  * a declared one because the record is not loaded yet would be authorising at
  * render time, which is the one thing authorisation may not do.
  */
-import type { Operation } from "@perchjs/core";
+import type { Operation, Row } from "@perchjs/core";
 
 export interface Authorization<TUser = unknown, TRecord = unknown> {
   /** Gates the resource itself: its routes and its navigation entry alike. */
@@ -31,6 +31,7 @@ export async function authorize(
   can: Authorization | undefined,
   operation: Operation,
   user: unknown,
+  record?: Row,
 ): Promise<Verdict> {
   if (can === undefined) return "allowed";
 
@@ -41,10 +42,20 @@ export async function authorize(
       if (can.create === undefined) return "allowed";
       return (await can.create(user)) ? "allowed" : "denied";
     case "edit":
-      return can.update === undefined ? "allowed" : "needs-record";
+      return await scoped(can.update, user, record);
     case "view":
-      return can.view === undefined ? "allowed" : "needs-record";
+      return await scoped(can.view, user, record);
   }
+}
+
+async function scoped(
+  check: ((user: unknown, record: unknown) => boolean | Promise<boolean>) | undefined,
+  user: unknown,
+  record: Row | undefined,
+): Promise<Verdict> {
+  if (check === undefined) return "allowed";
+  if (record === undefined) return "needs-record";
+  return (await check(user, record)) ? "allowed" : "denied";
 }
 
 /** The gate on the resource as a whole, with no operation in hand. */

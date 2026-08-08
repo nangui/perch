@@ -159,10 +159,11 @@ describe("create is checked per operation", () => {
   });
 });
 
-describe("a check that cannot be evaluated is a refusal", () => {
-  it("refuses an edit while no record is loaded", async () => {
-    // `update` takes a record and nothing loads one yet. Letting the request
-    // through would be skipping a check the resource declared.
+describe("an edit with no adapter behind it", () => {
+  it("is refused", async () => {
+    // Refused before authorisation is even asked: this panel has no adapter, so
+    // there is no row for the edit to be about. That `authorize` also refuses a
+    // record-scoped check with no record is its own test.
     const url = await serve();
 
     expect((await state(url, "owned", "admin", "edit")).status).toBe(404);

@@ -7,8 +7,10 @@
  * and versioning to Nest.
  */
 import type { CanActivate, DynamicModule, Type } from "@nestjs/common";
+import type { DataAdapter } from "@perchjs/core";
 import { Module, UseGuards } from "@nestjs/common";
 import { RouterModule } from "@nestjs/core";
+import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import { PanelAssetsController } from "./panel-assets.controller.js";
 import { PanelPageController } from "./panel-page.controller.js";
 import { PanelStateController } from "./panel-state.controller.js";
@@ -41,6 +43,12 @@ export interface PanelModuleOptions {
    * leave it. Built by the container, so it may inject.
    */
   readonly userResolver?: Type<UserResolver>;
+  /**
+   * Where records come from. Without one the panel serves create forms and
+   * nothing else: an edit has no record to authorise against, and a save has
+   * nowhere to go.
+   */
+  readonly dataAdapter?: Type<DataAdapter>;
   /** Resolved from `@perchjs/ui` when absent; passing it is for tests. */
   readonly assets?: PanelAssets;
 }
@@ -72,6 +80,9 @@ export class PanelModule {
           provide: PANEL_USER_RESOLVER,
           useClass: options.userResolver ?? RequestUserResolver,
         },
+        options.dataAdapter === undefined
+          ? { provide: PANEL_DATA_ADAPTER, useValue: null }
+          : { provide: PANEL_DATA_ADAPTER, useClass: options.dataAdapter },
         ...(options.resources ?? []),
         ...guards,
         ResourceRegistry,
