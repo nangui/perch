@@ -62,8 +62,13 @@ class MemoryAdapter implements DataAdapter {
     return Promise.resolve({ rows: ROWS, total: ROWS.length });
   }
   findOne(_model: string, id: Id): Promise<Row | null> {
-    // Strict, the way a typed client is. Coercing here would hide whether the
-    // panel hands over the type the model declares.
+    // As unforgiving as a typed client: the key is an Int, so anything else
+    // raises rather than politely finding nothing. Coercing here, or shrugging,
+    // would hide whether the panel hands over the type the model declares.
+    if (!Number.isInteger(id)) {
+      // NaN is a number to `typeof`, and an Int column refuses it all the same.
+      throw new TypeError(`id must be an Int, received ${String(id)}`);
+    }
     return Promise.resolve(ROWS.find((row) => row["id"] === id) ?? null);
   }
   create(): Promise<Row> {
@@ -265,6 +270,42 @@ describe("the id it hands the adapter", () => {
     });
 
     expect(state.status).toBe(200);
+  });
+});
+
+describe("a key no row can carry", () => {
+  it.each(["abc", "1.5", "%20"])("answers 404 for /posts/%s/edit", async (id) => {
+    // Not 500. A stack trace here would tell a caller its key was the wrong
+    // shape rather than the wrong value, which is a distinction worth nothing
+    // to them and something to somebody mapping the panel.
+    const url = await serve();
+
+    expect((await get(url, `/admin/posts/${id}/edit`)).status).toBe(404);
+  });
+
+  it("answers 404 on the API too", async () => {
+    const url = await serve();
+    const response = await fetch(`${url}/admin/api/posts/state`, {
+      method: "POST",
+      headers: { "x-user": "ada", "content-type": "application/json" },
+      body: JSON.stringify({
+        state: {},
+        dirtyPath: "title",
+        operation: "edit",
+        id: "abc",
+      }),
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it("is the same answer a row that is not there gives", async () => {
+    const url = await serve();
+    const malformed = await get(url, "/admin/posts/abc/edit");
+    const absent = await get(url, "/admin/posts/99/edit");
+
+    expect(malformed.status).toBe(absent.status);
+    expect(await malformed.text()).toBe(await absent.text());
   });
 });
 

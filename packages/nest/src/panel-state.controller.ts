@@ -115,7 +115,10 @@ async function loadRecord(
   if (request.operation === "create") return null;
   if (data === null || request.id === undefined) throw new NotFoundException();
 
-  const row = await data.findOne(model, recordId(data, model, request.id));
+  const key = recordId(data, model, request.id);
+  if (key === null) throw new NotFoundException();
+
+  const row = await data.findOne(model, key);
   if (row === null) throw new NotFoundException();
   return row;
 }

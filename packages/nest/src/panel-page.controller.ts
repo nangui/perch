@@ -93,7 +93,10 @@ export class PanelPageController {
     if (this.#data === null) throw new NotFoundException();
 
     const model = resource.metadata.model;
-    const record = await this.#data.findOne(model, recordId(this.#data, model, id));
+    const key = recordId(this.#data, model, id);
+    if (key === null) throw new NotFoundException();
+
+    const record = await this.#data.findOne(model, key);
     if (record === null) throw new NotFoundException();
 
     const user = this.#users.resolve(request);

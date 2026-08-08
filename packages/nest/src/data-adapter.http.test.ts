@@ -62,8 +62,13 @@ class MemoryAdapter implements DataAdapter {
     return Promise.resolve({ rows: ROWS, total: ROWS.length });
   }
   findOne(_model: string, id: Id): Promise<Row | null> {
-    // Strict, the way a typed client is. Coercing here would hide whether the
-    // panel hands over the type the model declares.
+    // As unforgiving as a typed client: the key is an Int, so anything else
+    // raises rather than politely finding nothing. Coercing here, or shrugging,
+    // would hide whether the panel hands over the type the model declares.
+    if (!Number.isInteger(id)) {
+      // NaN is a number to `typeof`, and an Int column refuses it all the same.
+      throw new TypeError(`id must be an Int, received ${String(id)}`);
+    }
     return Promise.resolve(ROWS.find((row) => row["id"] === id) ?? null);
   }
   create(): Promise<Row> {
