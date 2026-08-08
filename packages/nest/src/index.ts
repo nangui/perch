@@ -16,6 +16,9 @@ export {
 export { PanelAssetsController } from "./panel-assets.controller.js";
 export type { StateRequest } from "./panel-state.controller.js";
 export { PanelStateController } from "./panel-state.controller.js";
+export { PanelPageController } from "./panel-page.controller.js";
+export type { ShellOptions } from "./panel-shell.js";
+export { renderShell } from "./panel-shell.js";
 export type { PanelModuleOptions } from "./panel.module.js";
 export { PanelModule } from "./panel.module.js";
 export type { PanelResourceOptions, ResourceMetadata } from "./resource.js";

@@ -10,6 +10,7 @@ import type { DynamicModule } from "@nestjs/common";
 import { Module } from "@nestjs/common";
 import { RouterModule } from "@nestjs/core";
 import { PanelAssetsController } from "./panel-assets.controller.js";
+import { PanelPageController } from "./panel-page.controller.js";
 import { PanelStateController } from "./panel-state.controller.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { loadPanelAssets, PANEL_ASSETS } from "./panel-assets.js";
@@ -42,7 +43,9 @@ export class PanelModule {
         ...(options.imports ?? []),
         RouterModule.register([{ path: normalise(options.path), module: PanelModule }]),
       ],
-      controllers: [PanelAssetsController, PanelStateController],
+      // The page route is last: its `:resource/create` would otherwise swallow
+      // `assets/:file` and `api/:resource/state`.
+      controllers: [PanelAssetsController, PanelStateController, PanelPageController],
       providers: [
         { provide: PANEL_ASSETS, useValue: assets },
         { provide: PANEL_RESOURCE_TYPES, useValue: options.resources ?? [] },
