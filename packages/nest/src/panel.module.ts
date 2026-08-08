@@ -16,6 +16,8 @@ import type { PanelAssets } from "./panel-assets.js";
 import { loadPanelAssets, PANEL_ASSETS } from "./panel-assets.js";
 import type { ResourceClass } from "./resource-registry.js";
 import { PANEL_RESOURCE_TYPES, ResourceRegistry } from "./resource-registry.js";
+import type { UserResolver } from "./user-resolver.js";
+import { PANEL_USER_RESOLVER, RequestUserResolver } from "./user-resolver.js";
 
 export interface PanelModuleOptions {
   /** Where the panel lives, e.g. `/admin`. */
@@ -33,6 +35,12 @@ export interface PanelModuleOptions {
    * guards, and they are what stands between the panel and the internet.
    */
   readonly guards?: readonly Type<CanActivate>[];
+  /**
+   * Turns the request the guards let through into the `user` a resolver reads.
+   * Defaults to `request.user`, which is where Passport and most Nest guards
+   * leave it. Built by the container, so it may inject.
+   */
+  readonly userResolver?: Type<UserResolver>;
   /** Resolved from `@perchjs/ui` when absent; passing it is for tests. */
   readonly assets?: PanelAssets;
 }
@@ -60,6 +68,10 @@ export class PanelModule {
       providers: [
         { provide: PANEL_ASSETS, useValue: assets },
         { provide: PANEL_RESOURCE_TYPES, useValue: options.resources ?? [] },
+        {
+          provide: PANEL_USER_RESOLVER,
+          useClass: options.userResolver ?? RequestUserResolver,
+        },
         ...(options.resources ?? []),
         ...guards,
         ResourceRegistry,

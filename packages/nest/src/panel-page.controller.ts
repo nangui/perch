@@ -20,6 +20,8 @@ import type { PanelAssets } from "./panel-assets.js";
 import { PANEL_ASSETS } from "./panel-assets.js";
 import { renderShell } from "./panel-shell.js";
 import { ResourceRegistry } from "./resource-registry.js";
+import type { UserResolver } from "./user-resolver.js";
+import { PANEL_USER_RESOLVER } from "./user-resolver.js";
 
 /** Both platforms Nest supports name it, and neither shares a type. */
 interface IncomingUrl {
@@ -31,10 +33,16 @@ interface IncomingUrl {
 export class PanelPageController {
   readonly #registry: ResourceRegistry;
   readonly #assets: PanelAssets;
+  readonly #users: UserResolver;
 
-  constructor(registry: ResourceRegistry, @Inject(PANEL_ASSETS) assets: PanelAssets) {
+  constructor(
+    registry: ResourceRegistry,
+    @Inject(PANEL_ASSETS) assets: PanelAssets,
+    @Inject(PANEL_USER_RESOLVER) users: UserResolver,
+  ) {
     this.#registry = registry;
     this.#assets = assets;
+    this.#users = users;
   }
 
   @Get(":resource/create")
@@ -53,9 +61,7 @@ export class PanelPageController {
     const resolved = await resolveSchema(
       resource.instance.form(),
       {},
-      {
-        operation: "create",
-      },
+      { operation: "create", user: this.#users.resolve(request) },
     );
 
     return renderShell({

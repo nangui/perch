@@ -15,9 +15,11 @@ import {
   Body,
   Controller,
   HttpCode,
+  Inject,
   NotFoundException,
   Param,
   Post,
+  Req,
 } from "@nestjs/common";
 import type {
   FormState,
@@ -28,6 +30,8 @@ import type {
 } from "@perchjs/core";
 import { resolveSchema, sanitize, serialise } from "@perchjs/core";
 import { ResourceRegistry } from "./resource-registry.js";
+import type { UserResolver } from "./user-resolver.js";
+import { PANEL_USER_RESOLVER } from "./user-resolver.js";
 
 const OPERATIONS = new Set<Operation>(["create", "edit", "view"]);
 
@@ -41,9 +45,14 @@ export interface StateRequest {
 @Controller("api/:resource")
 export class PanelStateController {
   readonly #registry: ResourceRegistry;
+  readonly #users: UserResolver;
 
-  constructor(registry: ResourceRegistry) {
+  constructor(
+    registry: ResourceRegistry,
+    @Inject(PANEL_USER_RESOLVER) users: UserResolver,
+  ) {
     this.#registry = registry;
+    this.#users = users;
   }
 
   @Post("state")
@@ -52,19 +61,22 @@ export class PanelStateController {
   async state(
     @Param("resource") slug: string,
     @Body() body: unknown,
+    @Req() request: unknown,
   ): Promise<SchemaPayload> {
     const resource = this.#registry.get(slug);
     // Same answer whether the resource is absent or forbidden, so enumerating
     // them tells a caller nothing.
     if (resource === undefined) throw new NotFoundException();
 
-    const request = decode(body);
+    const decoded = decode(body);
     const schema = resource.instance.form();
+    const user = this.#users.resolve(request);
 
-    const { accepted, tree } = await admit(schema, request);
+    const { accepted, tree } = await admit(schema, decoded, user);
     const next = await resolveSchema(schema, accepted, {
-      operation: request.operation,
-      dirtyPath: request.dirtyPath,
+      operation: decoded.operation,
+      dirtyPath: decoded.dirtyPath,
+      user,
       previous: tree,
     });
 
@@ -108,16 +120,20 @@ export class AdmissionCycleError extends Error {
 async function admit(
   schema: Schema,
   request: StateRequest,
+  user: unknown,
 ): Promise<{ accepted: FormState; tree: ResolveResult }> {
+  // Every pass carries the same principal. A tree resolved without it would
+  // decide visibility for nobody, and admit a field reserved for somebody.
+  const options = { operation: request.operation, user };
   let accepted: FormState = {};
-  let tree = await resolveSchema(schema, accepted, { operation: request.operation });
+  let tree = await resolveSchema(schema, accepted, options);
 
   for (let pass = 0; pass < MAX_ADMISSION_PASSES; pass += 1) {
     const clean = sanitize(tree, request.state);
     if (sameKeys(clean.state, accepted)) return { accepted, tree };
 
     accepted = clean.state;
-    tree = await resolveSchema(schema, accepted, { operation: request.operation });
+    tree = await resolveSchema(schema, accepted, options);
   }
 
   throw new AdmissionCycleError(
