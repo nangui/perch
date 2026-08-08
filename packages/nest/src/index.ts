@@ -14,6 +14,8 @@ export {
   SUPPORTED_MANIFEST_VERSION,
 } from "./panel-assets.js";
 export { PanelAssetsController } from "./panel-assets.controller.js";
+export type { StateRequest } from "./panel-state.controller.js";
+export { PanelStateController } from "./panel-state.controller.js";
 export type { PanelModuleOptions } from "./panel.module.js";
 export { PanelModule } from "./panel.module.js";
 export type { PanelResourceOptions, ResourceMetadata } from "./resource.js";

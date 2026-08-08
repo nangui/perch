@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { PanelAssetsController } from "./panel-assets.controller.js";
+import { PanelStateController } from "./panel-state.controller.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PANEL_ASSETS } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
@@ -39,7 +40,8 @@ describe("PanelModule.forRoot", () => {
   it("registers the assets controller under the configured path", () => {
     const module = PanelModule.forRoot({ path: "/admin", assets: assets() });
 
-    expect(module.controllers).toEqual([PanelAssetsController]);
+    expect(module.controllers).toContain(PanelAssetsController);
+    expect(module.controllers).toContain(PanelStateController);
     expect(routedPaths(module)).toEqual(["admin"]);
   });
 

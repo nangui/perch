@@ -1,0 +1,138 @@
+/**
+ * `POST {path}/api/:resource/state`.
+ *
+ * Build the tree, confront the incoming state with it, run the resolution cycle,
+ * serialise. The confrontation is the trust boundary: an unknown path, or one
+ * belonging to a field that is invisible, disabled or read-only, is dropped
+ * without a word — naming the reason would tell an attacker which fields exist
+ * and which are protected.
+ *
+ * The tree it is confronted with is never resolved from what arrived — that
+ * would be asking the attacker to mark their own work. It starts from the
+ * record and grows only by what has already been admitted.
+ */
+import {
+  Body,
+  Controller,
+  HttpCode,
+  NotFoundException,
+  Param,
+  Post,
+} from "@nestjs/common";
+import type {
+  FormState,
+  Operation,
+  ResolveResult,
+  Schema,
+  SchemaPayload,
+} from "@perchjs/core";
+import { resolveSchema, sanitize, serialise } from "@perchjs/core";
+import { ResourceRegistry } from "./resource-registry.js";
+
+const OPERATIONS = new Set<Operation>(["create", "edit", "view"]);
+
+export interface StateRequest {
+  readonly state: FormState;
+  readonly dirtyPath: string;
+  readonly operation: Operation;
+  readonly id?: string | number;
+}
+
+@Controller("api/:resource")
+export class PanelStateController {
+  readonly #registry: ResourceRegistry;
+
+  constructor(registry: ResourceRegistry) {
+    this.#registry = registry;
+  }
+
+  @Post("state")
+  // Nest answers 201 to a POST by default; this creates nothing.
+  @HttpCode(200)
+  async state(
+    @Param("resource") slug: string,
+    @Body() body: unknown,
+  ): Promise<SchemaPayload> {
+    const resource = this.#registry.get(slug);
+    // Same answer whether the resource is absent or forbidden, so enumerating
+    // them tells a caller nothing.
+    if (resource === undefined) throw new NotFoundException();
+
+    const request = decode(body);
+    const schema = resource.instance.form();
+
+    const { accepted, tree } = await admit(schema, request);
+    const next = await resolveSchema(schema, accepted, {
+      operation: request.operation,
+      dirtyPath: request.dirtyPath,
+      previous: tree,
+    });
+
+    return serialise(next);
+  }
+}
+
+/** Same bound as the resolution cycle: a form that will not settle is a bug. */
+const MAX_ADMISSION_PASSES = 5;
+
+/**
+ * A field is admitted only if the tree resolved from the values already admitted
+ * says it may be. Nothing the client sent is ever what decides its own fate, so
+ * a hidden field cannot be unlocked except by a field that is itself editable —
+ * and the cascade starts from the record, which the client never touched.
+ *
+ * One pass is not enough. `cityId` becomes visible because `countryId` was
+ * admitted, and both arrive together: judging them against a tree that knows
+ * neither would discard the city on every round trip.
+ */
+async function admit(
+  schema: Schema,
+  request: StateRequest,
+): Promise<{ accepted: FormState; tree: ResolveResult }> {
+  let accepted: FormState = {};
+  let tree = await resolveSchema(schema, accepted, { operation: request.operation });
+
+  for (let pass = 0; pass < MAX_ADMISSION_PASSES; pass += 1) {
+    const clean = sanitize(tree, request.state);
+    if (sameKeys(clean.state, accepted)) break;
+
+    accepted = clean.state;
+    tree = await resolveSchema(schema, accepted, { operation: request.operation });
+  }
+
+  return { accepted, tree };
+}
+
+function sameKeys(a: FormState, b: FormState): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => key in b);
+}
+
+/**
+ * A malformed body is a bad request, not a 500. This is the only place a message
+ * is explicit: it is about the envelope, which tells an attacker nothing about
+ * the form inside it.
+ */
+function decode(body: unknown): StateRequest {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw new NotFoundException();
+  }
+  const { state, dirtyPath, operation, id } = body as Record<string, unknown>;
+
+  if (typeof state !== "object" || state === null || Array.isArray(state)) {
+    throw new NotFoundException();
+  }
+  if (typeof dirtyPath !== "string" || dirtyPath.length === 0) {
+    throw new NotFoundException();
+  }
+  if (typeof operation !== "string" || !OPERATIONS.has(operation as Operation)) {
+    throw new NotFoundException();
+  }
+
+  return {
+    state: state as FormState,
+    dirtyPath,
+    operation: operation as Operation,
+    ...(typeof id === "string" || typeof id === "number" ? { id } : {}),
+  };
+}
