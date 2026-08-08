@@ -4,6 +4,7 @@
  * inject a business service and call `this.cities.byCountry(…)`.
  */
 import type { Schema } from "@perchjs/core";
+import type { Authorization } from "./authorization.js";
 import { Injectable, SetMetadata } from "@nestjs/common";
 
 export const PANEL_RESOURCE = Symbol("PERCH_PANEL_RESOURCE");
@@ -34,6 +35,8 @@ export interface ResourceMetadata {
 /** One `form()` serves Create and Edit, told apart by `operation`. */
 export interface PanelResource {
   form: () => Schema;
+  /** Absent means allowed: the panel already sits behind the guards. */
+  can?: Authorization;
 }
 
 export function PanelResource(options: PanelResourceOptions): ClassDecorator {

@@ -29,6 +29,7 @@ import type {
   SchemaPayload,
 } from "@perchjs/core";
 import { resolveSchema, sanitize, serialise } from "@perchjs/core";
+import { authorize } from "./authorization.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
@@ -69,8 +70,14 @@ export class PanelStateController {
     if (resource === undefined) throw new NotFoundException();
 
     const decoded = decode(body);
-    const schema = resource.instance.form();
     const user = this.#users.resolve(request);
+    if (
+      (await authorize(resource.instance.can, decoded.operation, user)) !== "allowed"
+    ) {
+      throw new NotFoundException();
+    }
+
+    const schema = resource.instance.form();
 
     const { accepted, tree } = await admit(schema, decoded, user);
     const next = await resolveSchema(schema, accepted, {

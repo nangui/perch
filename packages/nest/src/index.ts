@@ -19,6 +19,8 @@ export { PanelStateController } from "./panel-state.controller.js";
 export { PanelPageController } from "./panel-page.controller.js";
 export type { ShellOptions } from "./panel-shell.js";
 export { renderShell } from "./panel-shell.js";
+export type { Authorization, Verdict } from "./authorization.js";
+export { authorize, mayReach } from "./authorization.js";
 export type { UserResolver } from "./user-resolver.js";
 export { PANEL_USER_RESOLVER, RequestUserResolver } from "./user-resolver.js";
 export type { PanelModuleOptions } from "./panel.module.js";

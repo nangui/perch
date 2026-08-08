@@ -19,6 +19,7 @@ import { resolveSchema, serialise } from "@perchjs/core";
 import type { PanelAssets } from "./panel-assets.js";
 import { PANEL_ASSETS } from "./panel-assets.js";
 import { renderShell } from "./panel-shell.js";
+import { authorize } from "./authorization.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
@@ -57,11 +58,16 @@ export class PanelPageController {
     const resource = this.#registry.get(slug);
     if (resource === undefined) throw new NotFoundException();
 
+    const user = this.#users.resolve(request);
+    if ((await authorize(resource.instance.can, "create", user)) !== "allowed") {
+      throw new NotFoundException();
+    }
+
     const root = rootOf(request, `${slug}/create`);
     const resolved = await resolveSchema(
       resource.instance.form(),
       {},
-      { operation: "create", user: this.#users.resolve(request) },
+      { operation: "create", user },
     );
 
     return renderShell({
