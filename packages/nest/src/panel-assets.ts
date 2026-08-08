@@ -78,8 +78,8 @@ function resolveManifest(): string {
     return createRequire(import.meta.url).resolve(MANIFEST);
   } catch (cause) {
     throw new Error(
-      `cannot resolve ${MANIFEST}. @perchjs/nest depends on @perchjs/ui to serve the ` +
-        `panel (ADR 0007) — reinstall dependencies.`,
+      `cannot resolve ${MANIFEST}. Either @perchjs/ui is not installed, or it is ` +
+        `installed and never built — run the build before starting the panel.`,
       { cause },
     );
   }

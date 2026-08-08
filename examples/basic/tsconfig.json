@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": ".tsbuild",
+    "tsBuildInfoFile": ".tsbuild/.tsbuildinfo",
+
+    // Nest reads constructor parameter types at run time, which needs the legacy
+    // decorators and the metadata they emit.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "erasableSyntaxOnly": false
+  },
+  "include": ["src/**/*"],
+  "references": [{ "path": "../../packages/core" }, { "path": "../../packages/nest" }]
+}

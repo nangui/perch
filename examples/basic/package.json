@@ -1,0 +1,20 @@
+{
+  "name": "@perchjs/example-basic",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The smallest application that shows a Perch panel in a browser.",
+  "type": "module",
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --build",
+    "lint": "eslint src",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.28",
+    "@nestjs/core": "^11.1.28",
+    "@nestjs/platform-express": "^11.1.28",
+    "@perchjs/core": "workspace:*",
+    "@perchjs/nest": "workspace:*"
+  }
+}

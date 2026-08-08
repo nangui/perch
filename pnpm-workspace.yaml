@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
+  - "examples/*"
 
 # Install scripts run only for what is listed here. esbuild is pulled by vite,
 # itself pulled by vitest, and its postinstall is what puts the platform binary
