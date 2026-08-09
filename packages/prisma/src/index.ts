@@ -14,3 +14,9 @@ export type {
   ReadOptions,
 } from "./dmmf-reader.js";
 export { DmmfContractError, readDmmf, SUPPORTED_PRISMA_RANGE } from "./dmmf-reader.js";
+export type {
+  PrismaClientLike,
+  PrismaDataAdapterOptions,
+  PrismaDelegate,
+} from "./prisma-data-adapter.js";
+export { delegateName, PrismaDataAdapter } from "./prisma-data-adapter.js";
