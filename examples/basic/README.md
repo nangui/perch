@@ -41,8 +41,16 @@ PanelModule.forRoot({
 The guard is built by the container, so it can inject whatever it needs — as
 long as the module providing that is in `imports`.
 
+## Where the rows live
+
+In a variable — `src/memory.adapter.ts`, forty lines behind the same port a real
+adapter implements. Restarting the process forgets everything, which is the
+point: the panel never learns which one it got, and a real one passes
+`@perchjs/prisma` instead.
+
+Save the form and open <http://localhost:3000/admin/people/2/edit> to read it
+back.
+
 ## What this example does not do
 
-Nothing is persisted. There is no `DataAdapter` behind the form yet, so the
-Create page renders and answers but saves nothing. Listing, editing and deleting
-come with it.
+No list page yet, and no delete: those arrive with the table.

@@ -14,7 +14,13 @@ import { createRoot } from "react-dom/client";
 import type { SchemaPayload } from "@perchjs/core";
 import { PanelForm } from "./PanelForm.js";
 import { registerBuiltInComponents } from "./renderers.js";
-import type { Snapshot, StateRequest, StateResponse } from "./transport.js";
+import type {
+  SaveRequest,
+  SaveResponse,
+  Snapshot,
+  StateRequest,
+  StateResponse,
+} from "./transport.js";
 import "./styles.css";
 
 /** The contract with the HTML shell. Changing it is a manifest version bump. */
@@ -23,20 +29,46 @@ const MOUNT_ID = "perch-panel";
 export function mount(element: HTMLElement): void {
   const api = element.dataset["api"];
   const payload = element.dataset["payload"];
-  if (api === undefined || payload === undefined) {
+  const operation = element.dataset["operation"];
+  if (api === undefined || payload === undefined || operation === undefined) {
     throw new Error(
-      `#${MOUNT_ID} needs data-api and data-payload. The shell rendered by PanelModule sets both.`,
+      `#${MOUNT_ID} needs data-api, data-operation and data-payload. ` +
+        `The shell rendered by PanelModule sets all three.`,
     );
   }
+  const id = element.dataset["id"];
 
   registerBuiltInComponents();
   createRoot(element).render(
     <PanelForm
       initial={JSON.parse(payload) as SchemaPayload}
       send={(request) => send(api, request)}
+      save={(request) => save(api, operation, id, request)}
       renderFailure={renderFailure}
     />,
   );
+}
+
+/**
+ * A create posts to the collection; an edit patches the row it names. The shell
+ * says which, because only the server knows what the page was opened for.
+ */
+async function save(
+  api: string,
+  operation: string,
+  id: string | undefined,
+  request: SaveRequest,
+): Promise<SaveResponse> {
+  const editing = operation === "edit" && id !== undefined;
+  const response = await fetch(editing ? `${api}/${encodeURIComponent(id)}` : api, {
+    method: editing ? "PATCH" : "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(request),
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) throw new Error(`save answered ${String(response.status)}`);
+  return (await response.json()) as SaveResponse;
 }
 
 /**

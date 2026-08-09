@@ -9,6 +9,7 @@ function shell(payload: unknown, title = "New Person"): string {
   return renderShell({
     root: "/admin",
     api: "/admin/api/people",
+    operation: "create",
     title,
     payload,
     scriptFile: "panel-a1b2c3d4.js",
@@ -61,6 +62,46 @@ describe("the payload survives the attribute", () => {
     expect(payloadOf(html)).toEqual({ state: { title: value } });
     // And no tag the shell did not write itself.
     expect(html.match(/<script/g)).toHaveLength(1);
+  });
+});
+
+describe("what the form will do when submitted", () => {
+  it("says create, and names no row", () => {
+    const html = shell({});
+
+    expect(html).toContain('data-operation="create"');
+    expect(html).not.toContain("data-id=");
+  });
+
+  it("says edit, and names the row", () => {
+    const html = renderShell({
+      root: "/admin",
+      api: "/admin/api/people",
+      operation: "edit",
+      id: "42",
+      title: "Edit",
+      payload: {},
+      scriptFile: "panel-a1b2c3d4.js",
+      styleFile: "panel-e5f6a7b8.css",
+    });
+
+    expect(html).toContain('data-operation="edit"');
+    expect(html).toContain('data-id="42"');
+  });
+
+  it("escapes the row, which arrives from a URL", () => {
+    const html = renderShell({
+      root: "/admin",
+      api: "/admin/api/people",
+      operation: "edit",
+      id: '" onmouseover="alert(1)',
+      title: "Edit",
+      payload: {},
+      scriptFile: "panel-a1b2c3d4.js",
+      styleFile: "panel-e5f6a7b8.css",
+    });
+
+    expect(/data-id="([^"]*)"/.exec(html)?.[1]).not.toMatch(/["<>]/);
   });
 });
 

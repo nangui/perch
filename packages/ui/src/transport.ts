@@ -166,6 +166,9 @@ export class TransportClient {
    */
   submit(): void {
     if (this.#disposed || this.#submitting || this.#save === undefined) return;
+    // Already written, and nothing typed since. On a create that second write
+    // is a second row; any edit clears `saved` and unblocks it again.
+    if (this.#saved && this.#draft.size === 0) return;
 
     const save = this.#save;
     const sent = new Map(this.#draft);

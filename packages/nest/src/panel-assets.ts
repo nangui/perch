@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 const MANIFEST = "@perchjs/ui/manifest.json";
 
 /** Bumped by `@perchjs/ui` whenever an entry is renamed or removed. */
-export const SUPPORTED_MANIFEST_VERSION = 1;
+export const SUPPORTED_MANIFEST_VERSION = 2;
 
 /** The entries version 1 promises. Adding one here is a version bump. */
 const REQUIRED_ENTRIES = ["panel.js", "panel.css"] as const;

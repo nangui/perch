@@ -24,7 +24,7 @@ function hash(path: string): string {
  * (ADR 0007 §4). Bump it whenever an entry is renamed, removed, or when the
  * shell contract in `src/panel.tsx` changes.
  */
-const MANIFEST_VERSION = 1;
+const MANIFEST_VERSION = 2;
 
 export default defineConfig([
   {

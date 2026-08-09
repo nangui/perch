@@ -122,6 +122,39 @@ describe("when the server writes it", () => {
     });
   });
 
+  it("does not write the same thing twice", async () => {
+    // On a create that second write is a second row. Nothing redirects after a
+    // create yet, so the page is still sitting there offering to do it again.
+    const save = vi.fn(() => Promise.resolve({ record: { id: 1 } }));
+    render(<PanelForm initial={payload()} send={never} save={save} />);
+
+    fireEvent.change(field("Title"), { target: { value: "Hello" } });
+    fireEvent.click(saveButton());
+    await waitFor(() => {
+      expect(screen.getByText("Saved")).toBeDefined();
+    });
+
+    fireEvent.click(saveButton());
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes again once something else is typed", async () => {
+    const save = vi.fn(() => Promise.resolve({ record: { id: 1 } }));
+    render(<PanelForm initial={payload()} send={never} save={save} />);
+
+    fireEvent.click(saveButton());
+    await waitFor(() => {
+      expect(screen.getByText("Saved")).toBeDefined();
+    });
+
+    fireEvent.change(field("Title"), { target: { value: "Changed" } });
+    fireEvent.click(saveButton());
+
+    await waitFor(() => {
+      expect(save).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it("hands the record back to the caller", async () => {
     const onSaved = vi.fn();
     render(

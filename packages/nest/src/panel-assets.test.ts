@@ -67,22 +67,26 @@ describe("refusing to start", () => {
   });
 
   it("rejects a manifest with no entries", () => {
-    expect(() => loadPanelAssets(fixture({ manifestVersion: 1 }))).toThrow(
-      /no entries/,
-    );
+    expect(() =>
+      loadPanelAssets(fixture({ manifestVersion: SUPPORTED_MANIFEST_VERSION })),
+    ).toThrow(/no entries/);
   });
 
   it("rejects an entries object that names nothing", () => {
     // Otherwise the panel starts and serves nothing.
-    expect(() => loadPanelAssets(fixture({ manifestVersion: 1, entries: {} }))).toThrow(
-      /names no "panel\.js"/,
-    );
+    expect(() =>
+      loadPanelAssets(
+        fixture({ manifestVersion: SUPPORTED_MANIFEST_VERSION, entries: {} }),
+      ),
+    ).toThrow(/names no "panel\.js"/);
   });
 
   it("rejects an entries array, which is an object to typeof", () => {
-    expect(() => loadPanelAssets(fixture({ manifestVersion: 1, entries: [] }))).toThrow(
-      /no entries/,
-    );
+    expect(() =>
+      loadPanelAssets(
+        fixture({ manifestVersion: SUPPORTED_MANIFEST_VERSION, entries: [] }),
+      ),
+    ).toThrow(/no entries/);
   });
 
   it("rejects an entry that names the directory itself", () => {
@@ -93,7 +97,10 @@ describe("refusing to start", () => {
   });
 
   it("rejects an entry that is not a filename", () => {
-    const path = fixture({ manifestVersion: 1, entries: { "panel.js": 42 } });
+    const path = fixture({
+      manifestVersion: SUPPORTED_MANIFEST_VERSION,
+      entries: { "panel.js": 42 },
+    });
 
     expect(() => loadPanelAssets(path)).toThrow(/not a filename/);
   });
@@ -105,7 +112,10 @@ describe("an entry may not describe a path", () => {
   it.each(["../secret.js", "nested/panel.js", "..\\windows.js", ".."])(
     "rejects %s",
     (file) => {
-      const path = fixture({ manifestVersion: 1, entries: { "panel.js": file } });
+      const path = fixture({
+        manifestVersion: SUPPORTED_MANIFEST_VERSION,
+        entries: { "panel.js": file },
+      });
 
       expect(() => loadPanelAssets(path)).toThrow(/a path, not a filename/);
     },

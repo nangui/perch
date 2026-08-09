@@ -15,7 +15,7 @@ import {
   Param,
   Req,
 } from "@nestjs/common";
-import type { DataAdapter, FormState, Operation, Row } from "@perchjs/core";
+import type { DataAdapter, FormState, Row } from "@perchjs/core";
 import { resolveSchema, serialise } from "@perchjs/core";
 import type { PanelAssets } from "./panel-assets.js";
 import { PANEL_ASSETS } from "./panel-assets.js";
@@ -109,6 +109,7 @@ export class PanelPageController {
       request,
       suffix: `${slug}/${id}/edit`,
       operation: "edit",
+      id,
       title: `Edit ${resource.metadata.label}`,
       // The whole row. `serialise` keeps only the paths the tree makes visible,
       // so a column the form does not carry never reaches the browser.
@@ -121,7 +122,8 @@ export class PanelPageController {
     resource: RegisteredResource;
     request: IncomingUrl;
     suffix: string;
-    operation: Operation;
+    operation: "create" | "edit";
+    id?: string;
     title: string;
     state: FormState;
     record?: Row;
@@ -137,6 +139,8 @@ export class PanelPageController {
       root,
       api: `${root}/api/${page.resource.metadata.slug}`,
       title: page.title,
+      operation: page.operation,
+      ...(page.id === undefined ? {} : { id: page.id }),
       payload: serialise(resolved),
       scriptFile: entry(this.#assets, "panel.js"),
       styleFile: entry(this.#assets, "panel.css"),

@@ -12,6 +12,10 @@ export interface ShellOptions {
   /** Where `/state` and its siblings live, e.g. `/admin/api/people`. */
   readonly api: string;
   readonly title: string;
+  /** What the form will do when submitted. */
+  readonly operation: "create" | "edit";
+  /** The row being edited. Absent on a create. */
+  readonly id?: string;
   readonly payload: unknown;
   readonly scriptFile: string;
   readonly styleFile: string;
@@ -29,7 +33,9 @@ export function renderShell(options: ShellOptions): string {
 <link rel="stylesheet" href="${attribute(`${options.root}/assets/${options.styleFile}`)}">
 </head>
 <body class="perch-root">
-<div id="perch-panel" data-api="${attribute(options.api)}" data-payload="${payload}"></div>
+<div id="perch-panel" data-api="${attribute(options.api)}" data-operation="${attribute(options.operation)}"${
+    options.id === undefined ? "" : ` data-id="${attribute(options.id)}"`
+  } data-payload="${payload}"></div>
 <script type="module" src="${attribute(`${options.root}/assets/${options.scriptFile}`)}"></script>
 </body>
 </html>
