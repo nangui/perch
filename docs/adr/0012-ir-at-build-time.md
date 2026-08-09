@@ -1,6 +1,6 @@
 # ADR 0012 — The IR is produced at build time, by a Prisma generator
 
-**Status:** proposed · **Scope:** Perch (`@perchjs/prisma`, and a new `@perchjs/prisma-generator`)
+**Status:** accepted · **Scope:** Perch (`@perchjs/prisma`, and a new `@perchjs/prisma-generator`)
 
 ## Context
 
