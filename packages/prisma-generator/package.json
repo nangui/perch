@@ -1,0 +1,42 @@
+{
+  "name": "@perchjs/prisma-generator",
+  "version": "0.0.0",
+  "description": "Perch Prisma generator: emits the intermediate representation at build time.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "perch-prisma-generator": "./dist/generator.js"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --build",
+    "lint": "eslint src",
+    "package:check": "publint && attw --pack . --profile esm-only"
+  },
+  "dependencies": {
+    "@perchjs/core": "workspace:*",
+    "@prisma/generator-helper": "^7.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^7.9.1"
+  }
+}

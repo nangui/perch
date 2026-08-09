@@ -26,3 +26,6 @@ coverage
 
 # Sortie de tsc --build (typecheck), distincte de dist/ produit par tsup
 .tsbuild/
+
+# Output of the DMMF contract test.
+.contract/

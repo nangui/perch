@@ -7,3 +7,5 @@ packages:
 # in place. Anything else added to this list is a knowing decision.
 onlyBuiltDependencies:
   - esbuild
+  - prisma
+  - "@prisma/engines"

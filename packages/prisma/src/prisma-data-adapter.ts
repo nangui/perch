@@ -21,8 +21,6 @@ import type {
   WriteTree,
 } from "@perchjs/core";
 import { findModel } from "@perchjs/core";
-import type { ReadOptions } from "./dmmf-reader.js";
-import { readDmmf } from "./dmmf-reader.js";
 
 export interface PrismaDelegate {
   findMany: (args: Record<string, unknown>) => Promise<unknown[]>;
@@ -40,29 +38,20 @@ export interface PrismaClientLike {
 
 export interface PrismaDataAdapterOptions {
   readonly client: PrismaClientLike;
-  /** `Prisma.dmmf` from the generated client. Read once, at construction. */
-  readonly dmmf: unknown;
-  readonly readOptions?: ReadOptions;
+  /** Written by `@perchjs/prisma-generator` at `prisma generate` (ADR 0012). */
+  readonly ir: Ir;
 }
 
 export class PrismaDataAdapter implements DataAdapter {
   readonly #client: PrismaClientLike;
   readonly #ir: Ir;
 
-  readonly #nested: boolean;
+  /** Set only by `transaction`, on the adapter it hands to the callback. */
+  #nested = false;
 
-  constructor(options: PrismaDataAdapterOptions);
-  constructor(client: PrismaClientLike, ir: Ir, nested?: boolean);
-  constructor(a: PrismaDataAdapterOptions | PrismaClientLike, b?: Ir, nested = false) {
-    this.#nested = nested;
-    if (b !== undefined) {
-      this.#client = a as PrismaClientLike;
-      this.#ir = b;
-      return;
-    }
-    const options = a as PrismaDataAdapterOptions;
+  constructor(options: PrismaDataAdapterOptions) {
     this.#client = options.client;
-    this.#ir = readDmmf(options.dmmf, options.readOptions ?? {});
+    this.#ir = options.ir;
   }
 
   ir(): Ir {
@@ -131,9 +120,11 @@ export class PrismaDataAdapter implements DataAdapter {
     if (this.#nested) {
       throw new Error("already inside a transaction; Prisma does not nest them.");
     }
-    return await this.#client.$transaction(async (tx) =>
-      fn(new PrismaDataAdapter(tx, this.#ir, true)),
-    );
+    return await this.#client.$transaction(async (tx) => {
+      const inside = new PrismaDataAdapter({ client: tx, ir: this.#ir });
+      inside.#nested = true;
+      return await fn(inside);
+    });
   }
 
   /**

@@ -1,0 +1,218 @@
+// The schema behind the hand-written DMMF in src/__fixtures__/dmmf.ts.
+//
+// It exists so that fixture can be checked against what Prisma really emits.
+// The contract test runs `prisma generate` over it and compares the two, which
+// is the only way to notice that a Prisma upgrade moved the ground (ADR 0012).
+
+// `provider` is resolved against the working directory, `output` against this
+// file. The contract test runs the CLI from the package root, so both land
+// inside it.
+generator perch {
+  provider = "node ./dist/generator.js"
+  output   = "../.contract"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum PostStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  CANCELLED
+}
+
+/// Someone who can sign in.
+model User {
+  id Int @id @default(autoincrement())
+
+  /// Used to sign in. Must be unique.
+  email        String    @unique @db.VarChar(255)
+  name         String?   @db.VarChar(120)
+  passwordHash String    @db.VarChar(255)
+  websiteUrl   String?
+  bio          String?   @db.Text
+  isActive     Boolean   @default(true)
+  birthDate    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  role         Role      @default(VIEWER)
+  preferences  Json?
+
+  profile  Profile?
+  posts    Post[]
+  comments Comment[]
+  orders   Order[]
+
+  @@map("users")
+}
+
+// One-to-one: the owning side carries the foreign key and is unique.
+model Profile {
+  id Int @id @default(autoincrement())
+
+  headline  String? @db.VarChar(200)
+  avatarUrl String?
+  userId    Int     @unique
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+/// An article.
+model Post {
+  id Int @id @default(autoincrement())
+
+  title       String     @db.VarChar(200)
+  slug        String     @unique @db.VarChar(200)
+  body        String     @db.Text
+  publishedOn DateTime?
+  viewCount   Int        @default(0)
+  status      PostStatus @default(DRAFT)
+  authorId    Int
+  categoryId  Int?
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  // Many-to-many, explicit join model.
+  tags     PostTag[]
+
+  @@unique([authorId, slug])
+  @@map("posts")
+}
+
+model Comment {
+  id Int @id @default(autoincrement())
+
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  postId    Int
+  authorId  Int
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model Category {
+  id Int @id @default(autoincrement())
+
+  name        String  @unique @db.VarChar(80)
+  description String? @db.Text
+
+  posts Post[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id Int @id @default(autoincrement())
+
+  label String @unique @db.VarChar(60)
+
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+// The join model of the many-to-many.
+model PostTag {
+  id Int @id @default(autoincrement())
+
+  postId Int
+  tagId  Int
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tagId])
+  @@map("post_tags")
+}
+
+model Country {
+  id Int @id @default(autoincrement())
+
+  name    String @unique @db.VarChar(100)
+  isoCode String @unique @db.Char(2)
+
+  addresses Address[]
+
+  @@map("countries")
+}
+
+model Address {
+  id Int @id @default(autoincrement())
+
+  line1     String @db.VarChar(200)
+  city      String @db.VarChar(120)
+  countryId Int
+
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  orders  Order[]
+
+  @@map("addresses")
+}
+
+model Product {
+  id Int @id @default(autoincrement())
+
+  name        String  @db.VarChar(150)
+  sku         String  @unique @db.VarChar(40)
+  price       Decimal @db.Decimal(10, 2)
+  weightKg    Float?
+  stock       Int     @default(0)
+  isPublished Boolean @default(false)
+
+  lines OrderLine[]
+
+  @@map("products")
+}
+
+model Order {
+  id Int @id @default(autoincrement())
+
+  reference         String      @unique @db.VarChar(30)
+  total             Decimal     @db.Decimal(12, 2)
+  placedOn          DateTime    @default(now())
+  status            OrderStatus @default(PENDING)
+  customerId        Int
+  shippingAddressId Int?
+
+  customer        User        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  shippingAddress Address?    @relation(fields: [shippingAddressId], references: [id], onDelete: Cascade)
+  lines           OrderLine[]
+
+  @@map("orders")
+}
+
+model OrderLine {
+  id Int @id @default(autoincrement())
+
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  orderId   Int
+  productId Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, productId])
+  @@map("order_lines")
+}

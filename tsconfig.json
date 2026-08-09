@@ -4,6 +4,7 @@
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/prisma" },
+    { "path": "./packages/prisma-generator" },
     { "path": "./packages/nest" },
     { "path": "./packages/ui" },
     { "path": "./packages/cli" }

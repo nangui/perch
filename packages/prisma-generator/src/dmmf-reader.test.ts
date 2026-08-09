@@ -55,6 +55,14 @@ describe("readDmmf — field metadata", () => {
     expect(updatedAt?.isReadOnly).toBe(true);
   });
 
+  it("carries Prisma's meaning of read-only, which is not the IR's", () => {
+    // Prisma marks the column a relation owns, not the one the database
+    // generates. Pinned because the contract test compares against it, and
+    // because an `id` reaching a form would then depend on `isId` alone.
+    expect(findField(findModel(ir, "Post")!, "authorId")?.isReadOnly).toBe(true);
+    expect(findField(findModel(ir, "Post")!, "id")?.isReadOnly).toBe(false);
+  });
+
   it("resolves enum values through datamodel.enums", () => {
     const role = findField(findModel(ir, "User")!, "role");
     expect(role?.kind).toBe("enum");

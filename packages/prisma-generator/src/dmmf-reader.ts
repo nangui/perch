@@ -6,8 +6,8 @@
  * upgrade is therefore in one file, covered by a contract test that fails loudly
  * rather than producing a subtly wrong IR.
  *
- * Supported Prisma range: see SUPPORTED_PRISMA_RANGE below. Read once at
- * bootstrap and cached by the caller; never touched on a hot path (PRD 01 §4).
+ * Supported Prisma range: see SUPPORTED_PRISMA_RANGE below. Read once, while
+ * `prisma generate` runs — never at boot, and never on a hot path.
  */
 import type {
   FieldMeta,
@@ -19,8 +19,13 @@ import type {
 } from "@perchjs/core";
 import { inferLabelField } from "@perchjs/core";
 
-/** Documented in PRD 01 §4. Widen only with a passing contract test. */
-export const SUPPORTED_PRISMA_RANGE = ">=5.0.0 <7.0.0";
+/**
+ * Prisma 7 is the first version whose runtime DMMF no longer carries this shape,
+ * which is why the IR is generated rather than read (ADR 0012). The generator
+ * receives it, and the contract test is what proves the range: widen it only
+ * with that test passing against the wider version.
+ */
+export const SUPPORTED_PRISMA_RANGE = ">=7.0.0 <8.0.0";
 
 const SCALARS = new Set<string>([
   "String",
@@ -42,9 +47,9 @@ const REFERENTIAL_ACTIONS = new Set<string>([
 ]);
 
 /**
- * The subset of the DMMF this reader depends on. Declared structurally so the
- * adapter needs no dependency on a generated client, and so the contract test
- * has something concrete to assert against.
+ * The subset of the DMMF this reader depends on. Declared structurally rather
+ * than imported, so what a Prisma release can break shows up here as a diff and
+ * the contract test has something concrete to assert against.
  */
 export interface DmmfField {
   readonly name: string;
@@ -92,7 +97,7 @@ export class DmmfContractError extends Error {
     super(
       `${message}\n\nThis usually means the installed Prisma version changed the ` +
         `shape of its DMMF. Supported range: ${SUPPORTED_PRISMA_RANGE}. Only ` +
-        `packages/prisma/src/dmmf-reader.ts needs updating.`,
+        `packages/prisma-generator/src/dmmf-reader.ts needs updating.`,
     );
     this.name = "DmmfContractError";
   }
@@ -218,7 +223,11 @@ function readField(
     isList: field.isList,
     isId: field.isId,
     isUnique: field.isUnique || field.isId,
-    // `@updatedAt` is not flagged read-only by the DMMF, but the database owns it.
+    // Two meanings meet here, and they are not the same one. Prisma's
+    // `isReadOnly` marks a column a relation owns — a foreign key — and leaves
+    // an autoincrement `id` alone. `@updatedAt` it does not mark at all, though
+    // the database owns that outright. Both end up excluded from a form, which
+    // is the outcome either meaning wants; an `id` gets there through `isId`.
     isReadOnly: field.isReadOnly || field.isUpdatedAt === true,
     hasDefault: field.hasDefaultValue,
     ...(field.default !== undefined ? { default: field.default } : {}),

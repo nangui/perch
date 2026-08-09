@@ -61,11 +61,16 @@ jobs:
 # Guardrails still to come, each with the lot that makes it measurable
 # (CLAUDE.md, "Garde-fous CI"):
 #
-#   SQL query counter per page (anti N+1)     → PRD 01, with the DataAdapter
-#   p95 on /records                           → PRD 03, once that route exists
+#   SQL query counter per page (anti N+1)     → needs a database in CI
+#   p95 on /records                           → needs a database in CI
 #   concurrency: 100 parallel requests        → PRD 02, once builders exist
 #   attack test: an unauthorised action       → PRD 04, with `can`
-#   DMMF contract test                        → PRD 01
+#
+# The DMMF contract test is no longer on this list: it runs inside `pnpm test`,
+# against the DMMF a real `prisma generate` hands the generator (ADR 0012). It
+# needs no database, which is why it can. The two above still do — proving that
+# Prisma *accepts* the adapter's arguments is the same lot of work as counting
+# the queries they cost.
 #
 # They are listed here rather than in a backlog so that adding one is a visible
 # edit to this file, and so that their absence is legible today.

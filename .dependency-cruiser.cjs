@@ -67,6 +67,20 @@ module.exports = {
       },
     },
 
+    // ----------------------------------------------------- the generator
+    {
+      name: "generator-imports-core-only",
+      comment:
+        "ADR 0012: @perchjs/prisma-generator runs at build time and nothing at " +
+        "runtime depends on it. It reads the DMMF and writes the IR, so it " +
+        "needs the domain's types and nothing else. Reaching an adapter — " +
+        "@perchjs/prisma above all — would point an arrow outward from a tool " +
+        "into the thing it produces input for.",
+      severity: "error",
+      from: { path: "^packages/prisma-generator/src" },
+      to: { path: "^packages/(?!(core|prisma-generator)/)" },
+    },
+
     // ------------------------------------------------------------------ ui
     {
       name: "ui-has-no-server-dependency",
@@ -183,7 +197,10 @@ module.exports = {
     // source. Excluding it outright made that rule unreachable — a dead rule
     // reads like a guard and protects nothing.
     doNotFollow: { path: "(^|/)(node_modules|dist|\\.tsbuild)(/|$)" },
-    exclude: { path: "(^|/)coverage/" },
+    // `.contract/` is what the contract test generates. It imports
+    // @perchjs/prisma, which resolves for a consumer and not here — the
+    // generator does not depend on the adapter, and must not start to.
+    exclude: { path: "(^|/)(coverage|\\.contract)/" },
     moduleSystems: ["es6", "cjs"],
 
     // Makes `import type` visible. Without this the domain rules are theatre.

@@ -31,10 +31,18 @@ function id(name = "id"): DmmfField {
   return scalar(name, "Int", {
     isId: true,
     isUnique: true,
-    isReadOnly: true,
     hasDefaultValue: true,
     default: { name: "autoincrement", args: [] },
   });
+}
+
+/**
+ * A foreign key. Prisma flags these `isReadOnly` — the flag means "a relation
+ * owns this column", not "the database generates it", which is why an
+ * autoincrement `id` above does not carry it.
+ */
+function fk(name: string, over: Partial<DmmfField> = {}): DmmfField {
+  return scalar(name, "Int", { isReadOnly: true, ...over });
 }
 
 function enumField(
@@ -124,7 +132,7 @@ const models: DmmfModel[] = [
         nativeType: ["VarChar", ["200"]],
       }),
       scalar("avatarUrl", "String", { isRequired: false }),
-      scalar("userId", "Int", { isUnique: true }),
+      fk("userId", { isUnique: true }),
       toOne("user", "User", "userId"),
     ],
     uniqueFields: [],
@@ -141,8 +149,8 @@ const models: DmmfModel[] = [
       scalar("publishedOn", "DateTime", { isRequired: false }),
       scalar("viewCount", "Int", { hasDefaultValue: true, default: 0 }),
       enumField("status", "PostStatus", { hasDefaultValue: true, default: "DRAFT" }),
-      scalar("authorId", "Int"),
-      scalar("categoryId", "Int", { isRequired: false }),
+      fk("authorId"),
+      fk("categoryId", { isRequired: false }),
       toOne("author", "User", "authorId"),
       toOne("category", "Category", "categoryId", { isRequired: false }),
       toMany("comments", "Comment"),
@@ -161,8 +169,8 @@ const models: DmmfModel[] = [
         hasDefaultValue: true,
         default: { name: "now", args: [] },
       }),
-      scalar("postId", "Int"),
-      scalar("authorId", "Int"),
+      fk("postId"),
+      fk("authorId"),
       toOne("post", "Post", "postId"),
       toOne("author", "User", "authorId"),
     ],
@@ -195,8 +203,8 @@ const models: DmmfModel[] = [
     dbName: "post_tags",
     fields: [
       id(),
-      scalar("postId", "Int"),
-      scalar("tagId", "Int"),
+      fk("postId"),
+      fk("tagId"),
       toOne("post", "Post", "postId"),
       toOne("tag", "Tag", "tagId"),
     ],
@@ -220,7 +228,7 @@ const models: DmmfModel[] = [
       id(),
       scalar("line1", "String", { nativeType: ["VarChar", ["200"]] }),
       scalar("city", "String", { nativeType: ["VarChar", ["120"]] }),
-      scalar("countryId", "Int"),
+      fk("countryId"),
       toOne("country", "Country", "countryId"),
       toMany("orders", "Order"),
     ],
@@ -256,8 +264,8 @@ const models: DmmfModel[] = [
         default: { name: "now", args: [] },
       }),
       enumField("status", "OrderStatus", { hasDefaultValue: true, default: "PENDING" }),
-      scalar("customerId", "Int"),
-      scalar("shippingAddressId", "Int", { isRequired: false }),
+      fk("customerId"),
+      fk("shippingAddressId", { isRequired: false }),
       toOne("customer", "User", "customerId"),
       toOne("shippingAddress", "Address", "shippingAddressId", { isRequired: false }),
       toMany("lines", "OrderLine"),
@@ -271,8 +279,8 @@ const models: DmmfModel[] = [
       id(),
       scalar("quantity", "Int"),
       scalar("unitPrice", "Decimal", { nativeType: ["Decimal", ["10", "2"]] }),
-      scalar("orderId", "Int"),
-      scalar("productId", "Int"),
+      fk("orderId"),
+      fk("productId"),
       toOne("order", "Order", "orderId"),
       toOne("product", "Product", "productId"),
     ],

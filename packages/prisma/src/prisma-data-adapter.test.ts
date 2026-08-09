@@ -10,10 +10,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Ir } from "@perchjs/core";
 import type { PrismaClientLike, PrismaDelegate } from "./prisma-data-adapter.js";
 import { delegateName, PrismaDataAdapter } from "./prisma-data-adapter.js";
-import { FIXTURE_DMMF } from "./__fixtures__/dmmf.js";
-import { readDmmf } from "./dmmf-reader.js";
-
-const IR: Ir = readDmmf(FIXTURE_DMMF);
+import { FIXTURE_IR } from "./__fixtures__/ir.js";
 
 interface Recorder {
   readonly adapter: PrismaDataAdapter;
@@ -38,7 +35,7 @@ function recorder(rows: unknown[] = [], total = 0): Recorder {
   } as unknown as PrismaClientLike;
 
   return {
-    adapter: new PrismaDataAdapter(client, IR),
+    adapter: new PrismaDataAdapter({ client, ir: FIXTURE_IR }),
     calls,
     client,
   };
@@ -139,19 +136,19 @@ describe("reading a page", () => {
   });
 
   it("searches nothing when the label is not a string", async () => {
-    const { adapter, calls } = recorder();
-    const ir = adapter.ir();
-    const odd = {
-      models: ir.models.map((model) =>
+    const { client, calls } = recorder();
+    const odd: Ir = {
+      models: FIXTURE_IR.models.map((model) =>
         model.name === "User" ? { ...model, labelField: "id" } : model,
       ),
     };
-    await new PrismaDataAdapter(recorder().client, odd).findMany({
+    await new PrismaDataAdapter({ client, ir: odd }).findMany({
       model: "User",
       search: "7",
     });
 
-    expect(calls.findMany).not.toHaveBeenCalled();
+    // The page still comes back; it is the `where` that has nothing to say.
+    expect(argsOf(calls.findMany)).toEqual({});
   });
 
   it("sorts, through a relation as well", async () => {
@@ -248,16 +245,15 @@ describe("writing", () => {
     // Assuming `id` works until somebody has a `uuid`, and then it fails at the
     // database rather than here.
     const { client, calls } = recorder();
-    const ir = readDmmf(FIXTURE_DMMF);
     const renamed: Ir = {
-      models: ir.models.map((model) =>
+      models: FIXTURE_IR.models.map((model) =>
         model.name === "Post"
           ? { ...model, primaryKey: { ...model.primaryKey, name: "uuid" } }
           : model,
       ),
     };
 
-    await new PrismaDataAdapter(client, renamed).create("User", {
+    await new PrismaDataAdapter({ client, ir: renamed }).create("User", {
       set: { email: "a@b.c" },
       relations: { posts: { connect: ["abc"], delete: ["def"] } },
     });
@@ -309,11 +305,11 @@ describe("a transaction", () => {
   });
 });
 
-describe("the schema it was built from", () => {
-  it("reads the DMMF once and answers from it", () => {
+describe("the IR it was built from", () => {
+  it("answers from the IR it was given", () => {
     const { adapter } = recorder();
 
-    expect(adapter.ir()).toBe(adapter.ir());
+    expect(adapter.ir()).toBe(FIXTURE_IR);
     expect(adapter.meta("User").primaryKey.name).toBe("id");
   });
 
