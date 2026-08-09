@@ -26,7 +26,7 @@ Recommended reading order: **ADR → REF → 00 → 12 → 13 → 01 → 02 → 
 | Doc | Title | Tier | Role |
 |---|---|---|---|
 | [00](00-PRD-MASTER.md) | **Master** | — | vision, Filament inventory, roadmap, name and trademark |
-| [01](01-PRD-metadata-layer.md) | Metadata layer (Prisma → IR) | v0.1 | the first batch to build |
+| [01](01-PRD-metadata-layer.md) | Metadata layer (Prisma → IR, at build time) | v0.1 | the first batch to build |
 | [02](02-PRD-schema-engine.md) | Schema engine | v0.1 | the core |
 | [03](03-PRD-protocol-renderer.md) | State protocol & renderer | v0.1 | replaces Livewire |
 | [04](04-PRD-panel-nest.md) | Nest PanelModule | v0.1 | routing, auth, navigation |

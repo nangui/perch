@@ -1,4 +1,4 @@
-# PRD 01 — Metadata layer (`@perchjs/prisma`)
+# PRD 01 — Metadata layer (`@perchjs/prisma-generator`, `@perchjs/prisma`)
 
 **Tier:** v0.1 · **Depends on:** nothing · **Unblocks:** PRD 02, 05, 06, 07, 10
 
@@ -6,7 +6,7 @@
 
 Turn the Prisma schema into an **intermediate representation (IR)** that the schema engine consumes, without `@perchjs/core` ever knowing about Prisma.
 
-This is the equivalent of what Eloquent gives Filament for free: knowing, at runtime, which fields exist, of what type, with which relations and which constraints. Prisma allows it through its **DMMF** (Data Model Meta Format), introspectable at runtime.
+This is the equivalent of what Eloquent gives Filament for free: knowing which fields exist, of what type, with which relations and which constraints. Prisma allows it through its **DMMF** (Data Model Meta Format), which a generator receives while `prisma generate` runs.
 
 ## 2. Why this is the first batch
 
@@ -110,9 +110,9 @@ interface DataAdapter {
 
 ## 4. Technical constraints
 
-- **Loading the DMMF**: through `prisma.$dmmf` on the generated client. No reading of the `.prisma` file (fragile), no SQL parsing.
-- **Cost**: the DMMF is read **once at bootstrap** and cached. Zero access on the hot path.
-- **Version resilience**: the DMMF is not a stable public API of Prisma. → access is isolated in **a single file**, `dmmf-reader.ts`, with a contract test that fails loudly if the shape changes. Document the supported range of Prisma versions.
+- **Loading the DMMF**: a Prisma generator receives it as `options.dmmf` ([ADR 0012](adr/0012-ir-at-build-time.md)). Not `Prisma.dmmf` from the generated client, which since Prisma 7 carries only names and types; no reading of the `.prisma` file (fragile), no SQL parsing.
+- **Cost**: the DMMF is read **once, at `prisma generate`**. The IR is a checked-in module, so bootstrap imports it and the hot path never sees it.
+- **Version resilience**: the DMMF is not a stable public API of Prisma. → access is isolated in **a single file**, `dmmf-reader.ts` in `@perchjs/prisma-generator`, with a contract test that drives a real `prisma generate` and fails loudly if the shape changes. Document the supported range of Prisma versions.
 - **N+1**: every relation column must produce an `include`, never one query per row. A regression test counting SQL queries.
 
 ## 5. Acceptance criteria
@@ -136,6 +136,6 @@ interface DataAdapter {
 
 | Risk | Mitigation |
 |---|---|
-| The DMMF changes between Prisma versions | isolation in one file + contract test + documented version range |
+| The DMMF changes between Prisma versions | isolation in one file + a contract test run against a real `prisma generate` + documented version range. Prisma 7 is what proved this necessary: the earlier test compared the fixture with nothing, and the break went unnoticed for a whole major version |
 | Inference too "magic", surprises the user | every inference is overridable; a `strict` mode disables name-based inference |
 | Prisma nested writes too limited for A3 | prototype A3 **during** this batch, not after |

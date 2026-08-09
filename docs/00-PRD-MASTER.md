@@ -195,12 +195,13 @@ Detail of the cross-cutting behaviors (`->required()`, `->live()`, `->visible()`
 | Docs + upgrade guide | v0.2 | | — |
 | Use outside a panel (standalone components) | **Out of scope for v1** | v2+ | — |
 
-## 7. Architecture — monorepo, 5 packages
+## 7. Architecture — monorepo, 6 packages
 
 | Package | Responsibility | Depends on |
 |---|---|---|
 | `@perchjs/core` | schema engine: `Component`, `Field`, `Column`, `Action`, state resolution, validation. **No Nest or Prisma dependency.** | — |
-| `@perchjs/prisma` | metadata adapter (DMMF → IR) + query execution | core |
+| `@perchjs/prisma-generator` | build-time: DMMF → IR, emitted as a module ([ADR 0012](adr/0012-ir-at-build-time.md)) | core |
+| `@perchjs/prisma` | query execution, from that IR | core |
 | `@perchjs/nest` | `PanelModule`: resource discovery, routing, guards, tenancy | core |
 | `@perchjs/ui` | React renderer + field registry (shipped compiled) | core (types only) |
 | `@perchjs/cli` | code generation | core |

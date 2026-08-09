@@ -1,7 +1,7 @@
 {
   "name": "@perchjs/prisma",
   "version": "0.0.0",
-  "description": "Perch Prisma adapter: DMMF to intermediate representation, query execution.",
+  "description": "Perch Prisma adapter: query execution from the intermediate representation.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",

@@ -79,7 +79,7 @@ interface RequestContext {
 
 | Level | Lifetime | Contents | Forbidden |
 |---|---|---|---|
-| **Bootstrap** | the process's life | the DMMF's IR, resource metadata, the navigation tree, component prototypes, base Zod schemas | anything that depends on a user |
+| **Bootstrap** | the process's life | the IR (imported, not derived — it is a build output), resource metadata, the navigation tree, component prototypes, base Zod schemas | anything that depends on a user |
 | **Request** | one request | relation labels, authorization results, badges | — |
 | **None** | — | — | **never** cache a value derived from user input across requests |
 
