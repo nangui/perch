@@ -103,6 +103,7 @@ class PostResource {
   form(): Schema {
     return Schema.make([
       TextInput.make("title").required(),
+      TextInput.make("body"),
       TextInput.make("password").password(),
       TextInput.make("internalNote").visible(() => false),
       TextInput.make("computed").readOnly(),
@@ -267,6 +268,22 @@ describe("updating", () => {
 
     expect(created()?.["updatedBy"]).toBe("hook");
     expect(created()?.["password"]).toBeUndefined();
+  });
+
+  it("leaves a field the form did not carry out of the write", async () => {
+    // Otherwise the key travels with no value, and every adapter decides for
+    // itself whether that means "leave it" or "clear it".
+    const url = await serve();
+    await send(url, "/admin/api/posts/1", "PATCH", { title: "Edited" });
+
+    expect(Object.keys(created() ?? {})).toEqual(["title", "updatedBy"]);
+  });
+
+  it("still writes a value the form cleared on purpose", async () => {
+    const url = await serve();
+    await send(url, "/admin/api/posts/1", "PATCH", { title: "Edited", body: null });
+
+    expect(created()).toHaveProperty("body", null);
   });
 
   it("refuses somebody who does not own the row, before writing", async () => {

@@ -193,6 +193,10 @@ export function dehydrate(
       value = transform(value, context(result.state, options, new Set()));
     }
     if (!isDehydrated(field, flagsOf(node), value)) continue;
+    // A field the form never carried a value for is absent from the write, not
+    // present and empty. `null` is how a column is cleared; `undefined` would
+    // leave every adapter to guess which of the two was meant.
+    if (value === undefined) continue;
     out[path] = value;
   }
   return out;

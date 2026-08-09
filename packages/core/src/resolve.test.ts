@@ -201,6 +201,23 @@ describe("dehydrate — what reaches the database", () => {
     expect(dehydrate(hidden, CREATE)).toEqual({});
   });
 
+  it("leaves a field nobody filled out of the write entirely", async () => {
+    // Not present and empty — absent. `toEqual` reads `{ a: undefined }` as
+    // `{}`, so only the keys can say which of the two this is, and the
+    // difference is whether an adapter clears a column or leaves it alone.
+    const form = Schema.make([TextInput.make("title"), TextInput.make("body")]);
+    const result = await resolveSchema(form, { title: "b" }, CREATE);
+
+    expect(Object.keys(dehydrate(result, CREATE))).toEqual(["title"]);
+  });
+
+  it("keeps a value that was cleared on purpose", async () => {
+    const form = Schema.make([TextInput.make("title"), TextInput.make("body")]);
+    const result = await resolveSchema(form, { title: "b", body: null }, CREATE);
+
+    expect(dehydrate(result, CREATE)).toHaveProperty("body", null);
+  });
+
   it("skips a readOnly field, which PRD 06 §2 says is not persisted", async () => {
     const form = Schema.make([
       TextInput.make("slug").readOnly(),
