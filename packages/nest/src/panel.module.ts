@@ -13,6 +13,7 @@ import { RouterModule } from "@nestjs/core";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import { PanelAssetsController } from "./panel-assets.controller.js";
 import { PanelPageController } from "./panel-page.controller.js";
+import { PanelSaveController } from "./panel-save.controller.js";
 import { PanelStateController } from "./panel-state.controller.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { loadPanelAssets, PANEL_ASSETS } from "./panel-assets.js";
@@ -71,6 +72,7 @@ export class PanelModule {
       controllers: [
         guarded(PanelAssetsController, guards),
         guarded(PanelStateController, guards),
+        guarded(PanelSaveController, guards),
         guarded(PanelPageController, guards),
       ],
       providers: [

@@ -37,6 +37,13 @@ export interface PanelResource {
   form: () => Schema;
   /** Absent means allowed: the panel already sits behind the guards. */
   can?: Authorization;
+  /** Last chance to shape what is written — hashing a password, say. */
+  mutateFormDataBeforeCreate?: (
+    data: Record<string, unknown>,
+  ) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  mutateFormDataBeforeSave?: (
+    data: Record<string, unknown>,
+  ) => Record<string, unknown> | Promise<Record<string, unknown>>;
 }
 
 export function PanelResource(options: PanelResourceOptions): ClassDecorator {
