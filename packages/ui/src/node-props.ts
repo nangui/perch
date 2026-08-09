@@ -15,6 +15,8 @@ export interface NodeProps {
   readonly error?: string | undefined;
   /** True while a patch triggered by this field is in flight. */
   readonly pending?: boolean | undefined;
+  /** A request is carrying this value right now, as opposed to merely holding it. */
+  readonly inFlight?: boolean | undefined;
   readonly onChange: (path: string, value: unknown) => void;
   /** Renders a child node. Passed down so no component imports the renderer. */
   readonly renderChild: (child: SchemaNode) => React.ReactNode;

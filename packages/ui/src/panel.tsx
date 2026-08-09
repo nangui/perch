@@ -42,7 +42,7 @@ export function mount(element: HTMLElement): void {
   createRoot(element).render(
     <PanelForm
       initial={JSON.parse(payload) as SchemaPayload}
-      send={(request) => send(api, request)}
+      send={(request) => send(api, operation, id, request)}
       save={(request) => save(api, operation, id, request)}
       renderFailure={renderFailure}
     />,
@@ -87,18 +87,36 @@ function renderFailure(_: Snapshot, retry: () => void): ReactNode {
   );
 }
 
-async function send(api: string, request: StateRequest): Promise<StateResponse> {
+/**
+ * The round trip carries what the page was opened for. The transport knows
+ * about ordering, not about the protocol, so the operation is merged in here
+ * rather than threaded through it.
+ */
+async function send(
+  api: string,
+  operation: string,
+  id: string | undefined,
+  request: StateRequest,
+): Promise<StateResponse> {
   const response = await fetch(`${api}/state`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(request),
+    body: JSON.stringify({
+      ...request,
+      operation,
+      ...(id === undefined ? {} : { id }),
+    }),
     credentials: "same-origin",
   });
   // A failure has to reach the user rather than resolve to nothing: PanelForm
   // renders whatever `renderFailure` is given, and cannot show what it is
   // not told (ARCH 13 §5).
   if (!response.ok) throw new Error(`/state answered ${String(response.status)}`);
-  return (await response.json()) as StateResponse;
+
+  // The route answers with the tree itself (ADR 0010); the client's envelope
+  // has room for more than that, so the wrapping happens here rather than on
+  // the wire.
+  return { payload: (await response.json()) as SchemaPayload };
 }
 
 const element = document.getElementById(MOUNT_ID);

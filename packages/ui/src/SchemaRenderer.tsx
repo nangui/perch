@@ -17,12 +17,14 @@ export interface SchemaRendererProps {
   readonly onChange: (path: string, value: unknown) => void;
   /** Paths with a patch in flight, so a field can show it (ARCH 13 §5). */
   readonly pending?: ReadonlySet<string>;
+  readonly inFlight?: ReadonlySet<string>;
 }
 
 export function SchemaRenderer({
   payload,
   onChange,
   pending,
+  inFlight,
 }: SchemaRendererProps): ReactNode {
   /**
    * Stable while its inputs are, or `memo` below compares a fresh closure every
@@ -39,12 +41,13 @@ export function SchemaRenderer({
           value={node.path === undefined ? undefined : payload.state[node.path]}
           error={node.path === undefined ? undefined : payload.errors[node.path]}
           pending={node.path !== undefined && pending?.has(node.path) === true}
+          inFlight={node.path !== undefined && inFlight?.has(node.path) === true}
           onChange={onChange}
           renderChild={renderNode}
         />
       );
     },
-    [payload, onChange, pending],
+    [payload, onChange, pending, inFlight],
   );
 
   return render(payload.schema);
@@ -60,6 +63,7 @@ const RenderedNode = memo(function RenderedNode({
   value,
   error,
   pending,
+  inFlight,
   onChange,
   renderChild,
 }: {
@@ -67,6 +71,7 @@ const RenderedNode = memo(function RenderedNode({
   readonly value: unknown;
   readonly error?: string | undefined;
   readonly pending?: boolean | undefined;
+  readonly inFlight?: boolean | undefined;
   readonly onChange: (path: string, value: unknown) => void;
   readonly renderChild: (child: SchemaNode) => ReactNode;
 }): ReactNode {
@@ -78,6 +83,7 @@ const RenderedNode = memo(function RenderedNode({
       value={value}
       error={error}
       pending={pending}
+      inFlight={inFlight}
       onChange={onChange}
       renderChild={renderChild}
     />

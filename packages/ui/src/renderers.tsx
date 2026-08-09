@@ -15,9 +15,14 @@ import type { TextFlavour } from "./fields/TextInput.js";
 import type { NodeProps } from "./node-props.js";
 import { registerComponent } from "./registry.js";
 
-function statusOf(node: SchemaNode, error?: string, pending?: boolean): FieldStatus {
+function statusOf(
+  node: SchemaNode,
+  error?: string,
+  pending?: boolean,
+  inFlight?: boolean,
+): FieldStatus {
   return {
-    lifecycle: pending === true ? "inFlight" : "rest",
+    lifecycle: inFlight === true ? "inFlight" : pending === true ? "draft" : "rest",
     error,
     disabled: node.disabled,
     readOnly: node.readOnly,
@@ -56,9 +61,10 @@ function TextInputRenderer({
   value,
   error,
   pending,
+  inFlight,
   onChange,
 }: NodeProps): ReactNode {
-  const status = statusOf(node, error, pending);
+  const status = statusOf(node, error, pending, inFlight);
   return (
     <FieldShell
       label={node.label ?? node.path ?? ""}
@@ -90,9 +96,10 @@ function SelectRenderer({
   value,
   error,
   pending,
+  inFlight,
   onChange,
 }: NodeProps): ReactNode {
-  const status = statusOf(node, error, pending);
+  const status = statusOf(node, error, pending, inFlight);
   const options = (node.options ?? [])
     .map((option) => ({ value: scalar(option.value), label: option.label }))
     .filter(

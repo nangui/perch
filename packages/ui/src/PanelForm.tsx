@@ -91,6 +91,7 @@ export function PanelForm({
   );
 
   const pending = useMemo(() => new Set(snapshot.pending), [snapshot.pending]);
+  const inFlight = useMemo(() => new Set(snapshot.inFlight), [snapshot.inFlight]);
 
   return (
     <form onSubmit={onSubmit} noValidate>
@@ -99,6 +100,7 @@ export function PanelForm({
         payload={snapshot.payload}
         onChange={onChange}
         pending={pending}
+        inFlight={inFlight}
       />
       {save === undefined ? null : (
         <div className="perch-form-actions">

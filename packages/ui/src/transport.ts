@@ -50,6 +50,8 @@ export interface Snapshot {
   readonly payload: SchemaPayload;
   /** Paths with an edit the server has not confirmed. */
   readonly pending: ReadonlySet<string>;
+  /** Of those, the ones a request is carrying right now. */
+  readonly inFlight: ReadonlySet<string>;
   /** Paths the server overrode while the user was editing them. */
   readonly overridden: ReadonlySet<string>;
   readonly failure?: TransportFailure;
@@ -102,6 +104,11 @@ export class TransportClient {
   #failure: TransportFailure | undefined;
   #submitting = false;
   #saved = false;
+  /** Paths the user has touched, and whether a submission was ever refused. */
+  #touched = new Set<string>();
+  #submitted = false;
+  /** Paths whose value on screen is one the server has actually judged. */
+  #seen = new Set<string>();
   #disposed = false;
 
   readonly #send: TransportOptions["send"];
@@ -133,6 +140,9 @@ export class TransportClient {
   change(path: string, value: unknown, live?: { readonly debounce: number }): void {
     if (this.#disposed) return;
     this.#draft.set(path, value);
+    this.#touched.add(path);
+    // Whatever the server said about this field was about the old value.
+    this.#seen.delete(path);
     this.#overridden.delete(path);
     this.#saved = false;
     this.#emit();
@@ -173,6 +183,7 @@ export class TransportClient {
     const save = this.#save;
     const sent = new Map(this.#draft);
     this.#submitting = true;
+    this.#submitted = true;
     this.#saved = false;
     this.#failure = undefined;
     this.#emit();
@@ -187,6 +198,9 @@ export class TransportClient {
             // Nothing was written, so the edits stay exactly where they are.
             // Only the tree is replaced, which is what carries the errors.
             if (response.payload !== undefined) this.#canonical = response.payload;
+            // The server judged exactly what was on screen, so every error it
+            // reports is about a value the user can still see.
+            this.#markSeen(new Map(this.#draft));
             return;
           }
           // Written. What the user typed is canonical now — promoted rather
@@ -238,13 +252,43 @@ export class TransportClient {
       payload: {
         ...this.#canonical,
         state: { ...this.#canonical.state, ...Object.fromEntries(this.#draft) },
+        errors: this.#visibleErrors(),
       },
       pending: new Set(this.#draft.keys()),
+      inFlight: new Set(this.#inFlight?.sent.keys() ?? []),
       overridden: new Set(this.#overridden),
       submitting: this.#submitting,
       saved: this.#saved,
       ...(this.#failure === undefined ? {} : { failure: this.#failure }),
     };
+  }
+
+  /**
+   * A form that has never been filled in is not wrong yet. The server sends
+   * every error it finds — an empty required field is one from the first render
+   * — and showing them before the user has said anything is scolding somebody
+   * for what they have not done. So a field's error waits until it is touched,
+   * and a refused submission shows all of them at once.
+   */
+  #visibleErrors(): Readonly<Record<string, string>> {
+    return Object.fromEntries(
+      Object.entries(this.#canonical.errors).filter(
+        ([path]) =>
+          this.#seen.has(path) && (this.#submitted || this.#touched.has(path)),
+      ),
+    );
+  }
+
+  /**
+   * The server judged the state it was sent. A path still holds that value
+   * unless the user has typed since, which `change` records by forgetting it.
+   */
+  #markSeen(sent: ReadonlyMap<string, unknown>): void {
+    for (const path of Object.keys(this.#canonical.state)) {
+      if (!this.#draft.has(path) || this.#draft.get(path) === sent.get(path)) {
+        this.#seen.add(path);
+      }
+    }
   }
 
   #emit(): void {
@@ -317,6 +361,7 @@ export class TransportClient {
   #reconcile(response: StateResponse, sent: ReadonlyMap<string, unknown>): void {
     this.#failure = undefined;
     this.#canonical = response.payload;
+    this.#markSeen(sent);
     const authoritative = new Set(response.authoritative ?? []);
 
     for (const [path, value] of sent) {

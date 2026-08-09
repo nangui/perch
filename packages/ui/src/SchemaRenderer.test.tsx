@@ -139,9 +139,9 @@ describe("errors and pending come from the payload", () => {
     expect(screen.getByRole("status").textContent).toBe("Not a valid email.");
   });
 
-  it("marks a field whose patch is in flight", () => {
-    // On a field with no error: the lifecycle is one value, and an error wins
-    // over "Saving…" by design.
+  it("says a held edit is unsaved, not saving", () => {
+    // A field with no `live` sends nothing until the form is submitted. Calling
+    // that "Saving…" describes a request that will never happen.
     render(
       <SchemaRenderer
         payload={{ ...payload, errors: {} }}
@@ -149,6 +149,23 @@ describe("errors and pending come from the payload", () => {
         pending={new Set(["email"])}
       />,
     );
+
+    expect(screen.getByText("Unsaved")).toBeDefined();
+    expect(screen.queryByText("Saving…")).toBeNull();
+  });
+
+  it("says saving once a request is carrying it", () => {
+    // On a field with no error: the lifecycle is one value, and an error wins
+    // over "Saving…" by design.
+    render(
+      <SchemaRenderer
+        payload={{ ...payload, errors: {} }}
+        onChange={() => undefined}
+        pending={new Set(["email"])}
+        inFlight={new Set(["email"])}
+      />,
+    );
+
     expect(screen.getByText("Saving…")).toBeDefined();
   });
 });
