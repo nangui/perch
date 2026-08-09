@@ -1,6 +1,6 @@
 # ADR 0011 — Client state is admitted in waves, not in one pass
 
-**Status:** proposed · **Scope:** Perch (`@perchjs/nest`) · **Amends stage 5 of ARCH 12 §2**
+**Status:** accepted · **Scope:** Perch (`@perchjs/nest`) · **Amends stage 5 of ARCH 12 §2**
 
 ## Context
 

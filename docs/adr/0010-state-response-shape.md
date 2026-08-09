@@ -1,6 +1,6 @@
 # ADR 0010 — `/state` answers with the whole tree, not a schema patch
 
-**Status:** proposed · **Scope:** Perch (`@perchjs/core`, `@perchjs/nest`, `@perchjs/ui`) · **Supersedes one line of [ADR 0003](0003-state-protocol.md)**
+**Status:** accepted · **Scope:** Perch (`@perchjs/core`, `@perchjs/nest`, `@perchjs/ui`) · **Supersedes one line of [ADR 0003](0003-state-protocol.md)**
 
 ## Context
 
