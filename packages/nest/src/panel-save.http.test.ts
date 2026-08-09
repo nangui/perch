@@ -144,12 +144,17 @@ afterEach(async () => {
   app = undefined;
 });
 
-async function serve(withAdapter = true): Promise<string> {
+async function serve(
+  withAdapter = true,
+  globalPrefix?: string,
+  redirectAfterCreate?: "edit" | "none",
+): Promise<string> {
   const base = {
     path: "/admin",
     resources: [PostResource],
     guards: [HeaderGuard],
     assets: assets(),
+    ...(redirectAfterCreate === undefined ? {} : { redirectAfterCreate }),
   };
   const moduleRef = await Test.createTestingModule({
     imports: [
@@ -158,6 +163,7 @@ async function serve(withAdapter = true): Promise<string> {
   }).compile();
 
   app = moduleRef.createNestApplication();
+  if (globalPrefix !== undefined) app.setGlobalPrefix(globalPrefix);
   await app.listen(0);
   return await app.getUrl();
 }
@@ -200,6 +206,45 @@ describe("creating", () => {
     await send(url, "/admin/api/posts", "POST", { title: "New", password: "secret" });
 
     expect(created()?.["password"]).toBe("hashed:secret");
+  });
+});
+
+describe("where a create lands", () => {
+  it("names the edit page of the row it just wrote", async () => {
+    const url = await serve();
+    const { body } = await send(url, "/admin/api/posts", "POST", { title: "New" });
+
+    expect(body.redirect).toBe(`/admin/posts/${String(body.record?.["id"])}/edit`);
+  });
+
+  it("keeps the panel root it was reached through", async () => {
+    // The host may add a prefix, and the redirect has to survive it.
+    const url = await serve(true, "api/v1");
+    const response = await fetch(`${url}/api/v1/admin/api/posts`, {
+      method: "POST",
+      headers: { "x-user": "ada", "content-type": "application/json" },
+      body: JSON.stringify({ state: { title: "New" } }),
+    });
+    const body = (await response.json()) as SaveResponse;
+
+    expect(body.redirect).toContain("/api/v1/admin/posts/");
+  });
+
+  it("says nothing when the panel asks it not to", async () => {
+    const url = await serve(true, undefined, "none");
+    const { body } = await send(url, "/admin/api/posts", "POST", { title: "New" });
+
+    expect(body.record).toBeDefined();
+    expect(body.redirect).toBeUndefined();
+  });
+
+  it("sends nowhere after an update, which is already where it belongs", async () => {
+    const url = await serve();
+    const { body } = await send(url, "/admin/api/posts/1", "PATCH", {
+      title: "Edited",
+    });
+
+    expect(body.redirect).toBeUndefined();
   });
 });
 

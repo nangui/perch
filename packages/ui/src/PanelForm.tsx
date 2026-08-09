@@ -28,7 +28,7 @@ export interface PanelFormProps {
   readonly send: (request: StateRequest) => Promise<StateResponse>;
   /** Absent means the form has no submit button: nowhere to write. */
   readonly save?: (request: SaveRequest) => Promise<SaveResponse>;
-  readonly onSaved?: (record: unknown) => void;
+  readonly onSaved?: (response: SaveResponse) => void;
   readonly submitLabel?: string;
   /** Rendered above the form when a request failed. ARCH 13 §5: never silent. */
   readonly renderFailure?: (snapshot: Snapshot, retry: () => void) => ReactNode;

@@ -155,7 +155,7 @@ describe("when the server writes it", () => {
     });
   });
 
-  it("hands the record back to the caller", async () => {
+  it("hands the whole answer back to the caller", async () => {
     const onSaved = vi.fn();
     render(
       <PanelForm
@@ -168,8 +168,9 @@ describe("when the server writes it", () => {
 
     fireEvent.click(saveButton());
 
+    // The record and whatever else the server said — a redirect, in practice.
     await waitFor(() => {
-      expect(onSaved).toHaveBeenCalledWith({ id: 7 });
+      expect(onSaved).toHaveBeenCalledWith({ record: { id: 7 } });
     });
   });
 

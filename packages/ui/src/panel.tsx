@@ -44,9 +44,18 @@ export function mount(element: HTMLElement): void {
       initial={JSON.parse(payload) as SchemaPayload}
       send={(request) => send(api, operation, id, request)}
       save={(request) => save(api, operation, id, request)}
+      onSaved={goWhereTheServerSays}
       renderFailure={renderFailure}
     />,
   );
+}
+
+/**
+ * A create leaves the page it was made on, and the server says where to. The
+ * transport does not know about the browser, so the navigation happens here.
+ */
+function goWhereTheServerSays(response: SaveResponse): void {
+  if (response.redirect !== undefined) globalThis.location.assign(response.redirect);
 }
 
 /**

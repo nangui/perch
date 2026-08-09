@@ -22,17 +22,13 @@ import { PANEL_ASSETS } from "./panel-assets.js";
 import { renderShell } from "./panel-shell.js";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
+import type { IncomingUrl } from "./panel-root.js";
+import { rootOf } from "./panel-root.js";
 import { recordId } from "./record-id.js";
 import type { RegisteredResource } from "./resource-registry.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
-
-/** Both platforms Nest supports name it, and neither shares a type. */
-interface IncomingUrl {
-  readonly originalUrl?: string;
-  readonly url?: string;
-}
 
 @Controller()
 export class PanelPageController {
@@ -154,26 +150,4 @@ function entry(assets: PanelAssets, name: string): string {
   // reaching a browser as a broken tag.
   if (file === undefined) throw new Error(`the asset manifest names no "${name}".`);
   return file;
-}
-
-/**
- * The URL is decoded first: a request for `/%70eople/create` routes here with a
- * slug of `people`, and matching against the raw form would miss. Not finding
- * the suffix at all leaves no root that is right, so it fails rather than
- * serving a page whose every link points at the wrong place.
- */
-function rootOf(request: IncomingUrl, suffix: string): string {
-  const raw = (request.originalUrl ?? request.url ?? "").split("?")[0] ?? "";
-  const end = decodePath(raw).replace(/\/+$/, "");
-  const cut = end.lastIndexOf(`/${suffix}`);
-  if (cut === -1) throw new NotFoundException();
-  return end.slice(0, cut);
-}
-
-function decodePath(path: string): string {
-  try {
-    return decodeURIComponent(path);
-  } catch {
-    return path;
-  }
 }

@@ -38,6 +38,8 @@ export interface SaveResponse {
   /** The tree the errors belong to, so they land on the right fields. */
   readonly payload?: SchemaPayload;
   readonly record?: unknown;
+  /** Where the server says to go now. It owns the routes; the client does not. */
+  readonly redirect?: string;
 }
 
 export type TransportFailure =
@@ -67,8 +69,8 @@ export interface TransportOptions {
   /** Absent means the form cannot be submitted — a view, or a page still wiring. */
   readonly save?: (request: SaveRequest) => Promise<SaveResponse>;
   readonly onSnapshot: (snapshot: Snapshot) => void;
-  /** Called once the server confirms a write, with whatever it returned. */
-  readonly onSaved?: (record: unknown) => void;
+  /** Called once the server confirms a write, with everything it returned. */
+  readonly onSaved?: (response: SaveResponse) => void;
   /** Injected so tests do not wait in real time. */
   readonly schedule?: (fn: () => void, ms: number) => () => void;
   /**
@@ -213,7 +215,7 @@ export class TransportClient {
           };
           for (const path of sent.keys()) this.#draft.delete(path);
           this.#saved = true;
-          this.#onSaved?.(response.record);
+          this.#onSaved?.(response);
         });
       },
       (error: unknown) => {

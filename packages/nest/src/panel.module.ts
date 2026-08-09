@@ -11,6 +11,8 @@ import type { DataAdapter } from "@perchjs/core";
 import { Module, UseGuards } from "@nestjs/common";
 import { RouterModule } from "@nestjs/core";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
+import type { RedirectAfterCreate } from "./redirect.js";
+import { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
 import { PanelAssetsController } from "./panel-assets.controller.js";
 import { PanelPageController } from "./panel-page.controller.js";
 import { PanelSaveController } from "./panel-save.controller.js";
@@ -50,6 +52,11 @@ export interface PanelModuleOptions {
    * nowhere to go.
    */
   readonly dataAdapter?: Type<DataAdapter>;
+  /**
+   * Where a create lands. `index` and `view` are named by the design and have
+   * no route yet, so `edit` is what there is; `none` stays put.
+   */
+  readonly redirectAfterCreate?: RedirectAfterCreate;
   /** Resolved from `@perchjs/ui` when absent; passing it is for tests. */
   readonly assets?: PanelAssets;
 }
@@ -85,6 +92,10 @@ export class PanelModule {
         options.dataAdapter === undefined
           ? { provide: PANEL_DATA_ADAPTER, useValue: null }
           : { provide: PANEL_DATA_ADAPTER, useClass: options.dataAdapter },
+        {
+          provide: PANEL_REDIRECT_AFTER_CREATE,
+          useValue: options.redirectAfterCreate ?? "edit",
+        },
         ...(options.resources ?? []),
         ...guards,
         ResourceRegistry,

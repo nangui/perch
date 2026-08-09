@@ -26,7 +26,11 @@ import { dehydrate, serialise } from "@perchjs/core";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import { admit } from "./admission.js";
+import type { IncomingUrl } from "./panel-root.js";
+import { rootOf, sameOrigin } from "./panel-root.js";
 import { recordId } from "./record-id.js";
+import type { RedirectAfterCreate } from "./redirect.js";
+import { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
 import type { RegisteredResource } from "./resource-registry.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
@@ -38,6 +42,11 @@ export interface SaveResponse {
   readonly record?: Row;
   /** Returned with the errors, so the form can show them where they belong. */
   readonly payload?: SchemaPayload;
+  /**
+   * Where to go now. The server names it because the server owns the routes —
+   * a client guessing them would have to know the panel's own layout.
+   */
+  readonly redirect?: string;
 }
 
 @Controller("api/:resource")
@@ -45,15 +54,18 @@ export class PanelSaveController {
   readonly #registry: ResourceRegistry;
   readonly #users: UserResolver;
   readonly #data: DataAdapter | null;
+  readonly #redirect: RedirectAfterCreate;
 
   constructor(
     registry: ResourceRegistry,
     @Inject(PANEL_USER_RESOLVER) users: UserResolver,
     @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
+    @Inject(PANEL_REDIRECT_AFTER_CREATE) redirect: RedirectAfterCreate,
   ) {
     this.#registry = registry;
     this.#users = users;
     this.#data = data;
+    this.#redirect = redirect;
   }
 
   @Post()
@@ -61,7 +73,7 @@ export class PanelSaveController {
   async create(
     @Param("resource") slug: string,
     @Body() body: unknown,
-    @Req() request: unknown,
+    @Req() request: IncomingUrl,
   ): Promise<SaveResponse> {
     const { resource, data, user } = this.#context(slug, request);
     if ((await authorize(resource.instance.can, "create", user)) !== "allowed") {
@@ -75,7 +87,10 @@ export class PanelSaveController {
       resource.instance,
     );
     const values = (await mutate?.(written.values)) ?? written.values;
-    return { record: await data.create(resource.metadata.model, { set: values }) };
+    const record = await data.create(resource.metadata.model, { set: values });
+
+    const where = this.#where(resource, request, slug, data, record);
+    return where === undefined ? { record } : { record, redirect: where };
   }
 
   @Patch(":id")
@@ -103,6 +118,32 @@ export class PanelSaveController {
     const mutate = resource.instance.mutateFormDataBeforeSave?.bind(resource.instance);
     const values = (await mutate?.(written.values)) ?? written.values;
     return { record: await data.update(model, key, { set: values }) };
+  }
+
+  /**
+   * A create leaves the page it was made on. Staying there shows a form that
+   * has already been used, offering to do it again, which is how the same row
+   * gets written twice.
+   */
+  #where(
+    resource: RegisteredResource,
+    request: IncomingUrl,
+    slug: string,
+    data: DataAdapter,
+    record: Row,
+  ): string | undefined {
+    const target = resource.instance.redirectAfterCreate ?? this.#redirect;
+    if (target === "none") return undefined;
+
+    const key = record[data.meta(resource.metadata.model).primaryKey.name];
+    // Anything else is not a key this panel can put in a URL, so it stays put
+    // rather than sending the browser somewhere invented.
+    if (typeof key !== "string" && typeof key !== "number") return undefined;
+
+    const root = rootOf(request, `api/${slug}`);
+    const where = `${root}/${slug}/${encodeURIComponent(String(key))}/edit`;
+
+    return sameOrigin(where);
   }
 
   #context(

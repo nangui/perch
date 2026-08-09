@@ -5,6 +5,7 @@
  */
 import type { Schema } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
+import type { RedirectAfterCreate } from "./redirect.js";
 import { Injectable, SetMetadata } from "@nestjs/common";
 
 export const PANEL_RESOURCE = Symbol("PERCH_PANEL_RESOURCE");
@@ -37,6 +38,8 @@ export interface PanelResource {
   form: () => Schema;
   /** Absent means allowed: the panel already sits behind the guards. */
   can?: Authorization;
+  /** Overrides the panel's own choice for this resource alone. */
+  redirectAfterCreate?: RedirectAfterCreate;
   /** Last chance to shape what is written — hashing a password, say. */
   mutateFormDataBeforeCreate?: (
     data: Record<string, unknown>,
