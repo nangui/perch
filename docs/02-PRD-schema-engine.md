@@ -116,7 +116,7 @@ The most delicate batch. Sequence for a state change:
               ONLY for components whose dependencies changed
 5. PRUNE      drop fields that became invisible from the state
 6. VALIDATE   validate visible fields only
-7. DEHYDRATE  produce { state, schemaPatch, errors }
+7. DEHYDRATE  produce { schema, state, errors }
 ```
 
 **Dependency graph.** At step 4, re-evaluating the whole tree is unacceptable for performance. Each `Resolver` declares its dependencies, either explicitly (`.dependsOn(['countryId'])`) or by **tracing**: on the first call, `get()` is instrumented to record the paths read. Decision: **automatic tracing**, with `.dependsOn()` available as an escape hatch.

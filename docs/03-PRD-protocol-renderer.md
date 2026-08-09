@@ -26,7 +26,7 @@ GET  /panel/api/:resource/schema?operation=create|edit&id=…
 
 POST /panel/api/:resource/state
      ← { state: State, dirtyPath: string, operation, id? }
-     → { state: State, schemaPatch: Patch[], errors: FieldErrors }
+     → { schema: SchemaTree, state: State, errors: FieldErrors }
 
 GET  /panel/api/:resource/records?page&perPage&sort&search&filters
      → { rows: Row[], total: number, columns: ColumnTree }
@@ -42,7 +42,7 @@ When a `live()` field changes:
 
 1. the client POSTs the complete state plus the changed path;
 2. the server runs the resolution cycle (PRD 02 §4);
-3. the server returns the canonical state, a **schema patch** (visibility, options, labels, disabled) and the errors.
+3. the server returns the canonical state, the **resolved schema** — options, labels, `disabled`, and visibility expressed by omitting the invisible node entirely — and the errors ([ADR 0010](adr/0010-state-response-shape.md)).
 
 **The client invents nothing.** It evaluates no condition, computes no option, decides no visibility.
 

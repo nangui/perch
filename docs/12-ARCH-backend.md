@@ -38,15 +38,17 @@ The core of the product. Each stage is an isolated function, testable on its own
 | 2 | **Authenticate** | Nest guards → `principal` | Adapter in |
 | 3 | **Locate** | resolve resource + operation + authorization (`can`) | Application |
 | 4 | **Build** | build the schema tree for this request | Application |
-| 5 | **Sanitize** | filter incoming state against the tree | Application |
+| 5 | **Sanitize** | filter incoming state against the tree, in waves | Application |
 | 6 | **Reduce** | state machine: apply → hooks → resolve → prune | Application |
 | 7 | **Validate** | Zod compiled from the tree, visible fields only | Application |
-| 8 | **Dehydrate** | produce `{ state, schemaPatch, errors }` | Application |
+| 8 | **Dehydrate** | produce `{ schema, state, errors }` ([ADR 0010](adr/0010-state-response-shape.md)) | Application |
 | 9 | **Encode** | serialize, headers, status | Adapter in |
 
 **Stage 5 is the trust boundary.** Everything arriving from the client is confronted with the tree there: an unknown path, an invisible field, a `disabled` or `readOnly` field → **discarded silently**. No explicit error: a message saying "this field is read-only" informs the attacker.
 
-**Stage 6 is the only loop in the system.** Bounded to 5 passes. If two consecutive passes produce the same state, we exit. Beyond 5, an exception naming the fields involved — never a silent stack overflow.
+**Stages 5 and 6 are the loops in the system**, and both are bounded to 5 passes. Stage 6 exits when a pass changes nothing; stage 5 exits when a pass admits nothing new. Beyond 5, either raises an exception naming the fields involved — never a silent stack overflow.
+
+Stage 5 loops because a field and the field that reveals it arrive together: judging both against a tree that knows neither discards the second every time. Each pass resolves the tree from the values already admitted and confronts the payload again, so nothing the client sent ever decides its own fate ([ADR 0011](adr/0011-admission-in-waves.md)).
 
 ## 3. Where the state machine lives
 
