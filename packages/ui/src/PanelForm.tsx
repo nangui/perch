@@ -9,16 +9,27 @@
  * per field type, and a field with no `live` triggers nothing at all — it is
  * submitted with the form instead.
  */
-import type { ReactNode } from "react";
+import type { ReactNode, SyntheticEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { SchemaNode, SchemaPayload } from "@perchjs/core";
 import { SchemaRenderer } from "./SchemaRenderer.js";
-import type { Snapshot, StateRequest, StateResponse } from "./transport.js";
+import type {
+  SaveRequest,
+  SaveResponse,
+  Snapshot,
+  StateRequest,
+  StateResponse,
+  TransportOptions,
+} from "./transport.js";
 import { TransportClient } from "./transport.js";
 
 export interface PanelFormProps {
   readonly initial: SchemaPayload;
   readonly send: (request: StateRequest) => Promise<StateResponse>;
+  /** Absent means the form has no submit button: nowhere to write. */
+  readonly save?: (request: SaveRequest) => Promise<SaveResponse>;
+  readonly onSaved?: (record: unknown) => void;
+  readonly submitLabel?: string;
   /** Rendered above the form when a request failed. ARCH 13 §5: never silent. */
   readonly renderFailure?: (snapshot: Snapshot, retry: () => void) => ReactNode;
   readonly timeout?: number;
@@ -27,6 +38,9 @@ export interface PanelFormProps {
 export function PanelForm({
   initial,
   send,
+  save,
+  onSaved,
+  submitLabel = "Save",
   renderFailure,
   timeout,
 }: PanelFormProps): ReactNode {
@@ -40,6 +54,8 @@ export function PanelForm({
   store.current ??= createStore({
     initial,
     send,
+    ...(save === undefined ? {} : { save }),
+    ...(onSaved === undefined ? {} : { onSaved }),
     ...(timeout === undefined ? {} : { timeout }),
   });
   const { client, subscribe, getSnapshot } = store.current;
@@ -65,17 +81,45 @@ export function PanelForm({
     client.retry();
   }, [client]);
 
+  const onSubmit = useCallback(
+    (event: SyntheticEvent<HTMLFormElement>) => {
+      // A real form, so Enter submits the way it does everywhere else.
+      event.preventDefault();
+      client.submit();
+    },
+    [client],
+  );
+
   const pending = useMemo(() => new Set(snapshot.pending), [snapshot.pending]);
 
   return (
-    <>
+    <form onSubmit={onSubmit} noValidate>
       {snapshot.failure === undefined ? null : renderFailure?.(snapshot, retry)}
       <SchemaRenderer
         payload={snapshot.payload}
         onChange={onChange}
         pending={pending}
       />
-    </>
+      {save === undefined ? null : (
+        <div className="perch-form-actions">
+          {/* The label does not change while it is busy: a button that renames
+              itself mid-flight is a different button to a screen reader. */}
+          <button
+            type="submit"
+            className="perch-button perch-button--primary"
+            disabled={snapshot.submitting}
+            aria-busy={snapshot.submitting}
+          >
+            {submitLabel}
+          </button>
+          {/* Announced rather than only coloured: a confirmation nobody hears
+              is a confirmation only some people get. */}
+          <span role="status" className="perch-form-actions__status">
+            {snapshot.saved ? "Saved" : ""}
+          </span>
+        </div>
+      )}
+    </form>
   );
 }
 
@@ -90,11 +134,7 @@ interface Store {
  * notifications, so the client's latest is cached rather than rebuilt on every
  * read — returning a fresh object each time makes React loop forever.
  */
-function createStore(options: {
-  initial: SchemaPayload;
-  send: PanelFormProps["send"];
-  timeout?: number;
-}): Store {
+function createStore(options: Omit<TransportOptions, "onSnapshot">): Store {
   const listeners = new Set<() => void>();
   let current: Snapshot;
 

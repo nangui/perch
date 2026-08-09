@@ -10,7 +10,7 @@
  * No React, no fetch. Time and I/O are injected, so the ordering rules can be
  * tested without waiting and without a server.
  */
-import type { SchemaPayload } from "@perchjs/core";
+import type { FieldErrors, SchemaPayload } from "@perchjs/core";
 
 export interface StateRequest {
   readonly state: Readonly<Record<string, unknown>>;
@@ -28,6 +28,18 @@ export interface StateResponse {
   readonly authoritative?: readonly string[];
 }
 
+export interface SaveRequest {
+  readonly state: Readonly<Record<string, unknown>>;
+}
+
+export interface SaveResponse {
+  /** Present when nothing was written. */
+  readonly errors?: FieldErrors;
+  /** The tree the errors belong to, so they land on the right fields. */
+  readonly payload?: SchemaPayload;
+  readonly record?: unknown;
+}
+
 export type TransportFailure =
   | { readonly kind: "network"; readonly error: unknown }
   | { readonly kind: "timeout"; readonly after: number }
@@ -41,12 +53,20 @@ export interface Snapshot {
   /** Paths the server overrode while the user was editing them. */
   readonly overridden: ReadonlySet<string>;
   readonly failure?: TransportFailure;
+  /** A submission is in flight; the form should not accept a second one. */
+  readonly submitting: boolean;
+  /** The last submission was written. Cleared by the next edit. */
+  readonly saved: boolean;
 }
 
 export interface TransportOptions {
   readonly initial: SchemaPayload;
   readonly send: (request: StateRequest) => Promise<StateResponse>;
+  /** Absent means the form cannot be submitted — a view, or a page still wiring. */
+  readonly save?: (request: SaveRequest) => Promise<SaveResponse>;
   readonly onSnapshot: (snapshot: Snapshot) => void;
+  /** Called once the server confirms a write, with whatever it returned. */
+  readonly onSaved?: (record: unknown) => void;
   /** Injected so tests do not wait in real time. */
   readonly schedule?: (fn: () => void, ms: number) => () => void;
   /**
@@ -80,9 +100,13 @@ export class TransportClient {
   #abandoned = new Set<number>();
   #cancelTimeout: (() => void) | null = null;
   #failure: TransportFailure | undefined;
+  #submitting = false;
+  #saved = false;
   #disposed = false;
 
   readonly #send: TransportOptions["send"];
+  readonly #save: TransportOptions["save"];
+  readonly #onSaved: TransportOptions["onSaved"];
   readonly #onSnapshot: TransportOptions["onSnapshot"];
   readonly #schedule: NonNullable<TransportOptions["schedule"]>;
   readonly #timeout: number;
@@ -90,6 +114,8 @@ export class TransportClient {
   constructor(options: TransportOptions) {
     this.#canonical = options.initial;
     this.#send = options.send;
+    this.#save = options.save;
+    this.#onSaved = options.onSaved;
     this.#onSnapshot = options.onSnapshot;
     this.#schedule = options.schedule ?? defaultSchedule;
     this.#timeout = options.timeout ?? DEFAULT_TIMEOUT;
@@ -108,6 +134,7 @@ export class TransportClient {
     if (this.#disposed) return;
     this.#draft.set(path, value);
     this.#overridden.delete(path);
+    this.#saved = false;
     this.#emit();
 
     if (live === undefined) return;
@@ -129,6 +156,64 @@ export class TransportClient {
    * debounce outlives the form it belonged to and fires a request nobody is
    * waiting for.
    */
+  /**
+   * Submit the form. The whole state goes, canonical and draft together: the
+   * server decides what may be written, and a client that sent only what it
+   * thought had changed would be deciding for it.
+   *
+   * One at a time. A second click while the first is in flight would write
+   * twice, and the second write would be the one that lands.
+   */
+  submit(): void {
+    if (this.#disposed || this.#submitting || this.#save === undefined) return;
+
+    const save = this.#save;
+    const sent = new Map(this.#draft);
+    this.#submitting = true;
+    this.#saved = false;
+    this.#failure = undefined;
+    this.#emit();
+
+    void save({ state: this.snapshot().payload.state }).then(
+      (response) => {
+        this.#finish(() => {
+          if (
+            response.errors !== undefined &&
+            Object.keys(response.errors).length > 0
+          ) {
+            // Nothing was written, so the edits stay exactly where they are.
+            // Only the tree is replaced, which is what carries the errors.
+            if (response.payload !== undefined) this.#canonical = response.payload;
+            return;
+          }
+          // Written. What the user typed is canonical now — promoted rather
+          // than dropped, or the fields would snap back to what the server last
+          // said while the row on disk says otherwise.
+          this.#canonical = {
+            ...this.#canonical,
+            state: { ...this.#canonical.state, ...Object.fromEntries(sent) },
+            errors: {},
+          };
+          for (const path of sent.keys()) this.#draft.delete(path);
+          this.#saved = true;
+          this.#onSaved?.(response.record);
+        });
+      },
+      (error: unknown) => {
+        this.#finish(() => {
+          this.#failure = { kind: "network", error };
+        });
+      },
+    );
+  }
+
+  #finish(apply: () => void): void {
+    if (this.#disposed) return;
+    this.#submitting = false;
+    apply();
+    this.#emit();
+  }
+
   dispose(): void {
     this.#disposed = true;
     this.#cancelTimer?.();
@@ -153,6 +238,8 @@ export class TransportClient {
       },
       pending: new Set(this.#draft.keys()),
       overridden: new Set(this.#overridden),
+      submitting: this.#submitting,
+      saved: this.#saved,
       ...(this.#failure === undefined ? {} : { failure: this.#failure }),
     };
   }

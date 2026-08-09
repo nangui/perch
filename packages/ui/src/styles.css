@@ -694,6 +694,18 @@
 
 /* --------------------------------------------------------------- empty state */
 
+.perch-form-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-5);
+  margin-top: var(--perch-space-6);
+}
+
+.perch-form-actions__status {
+  font-size: var(--perch-text-base);
+  color: var(--perch-content-muted);
+}
+
 /* A request that failed, announced rather than swallowed — ARCH 13 §5. */
 .perch-notice {
   display: flex;
