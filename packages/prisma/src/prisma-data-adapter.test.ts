@@ -2,9 +2,9 @@
  * The adapter's job is translation: a `Query` in, Prisma arguments out. These
  * assert the arguments, against a client that records them.
  *
- * What they cannot say is whether Prisma accepts those arguments. That needs a
- * database, and until there is one in CI the arguments below are checked
- * against the documented shape and nothing stronger.
+ * What they cannot say is whether Prisma accepts those arguments — a recorder
+ * accepts anything. `tooling/database.test.ts` runs them against a real
+ * PostgreSQL and is what caught the to-one relation shape below.
  */
 import { describe, expect, it, vi } from "vitest";
 import type { Ir } from "@perchjs/core";
@@ -239,6 +239,32 @@ describe("writing", () => {
         delete: [{ id: 10 }],
       },
     });
+  });
+
+  it("sends a single value on a to-one relation, not a list", async () => {
+    // Prisma refuses a list where it expects one row — `Expected
+    // UserWhereUniqueInput, provided (Object)` — and a recorder does not.
+    const { adapter, calls } = recorder();
+    await adapter.create("Post", {
+      set: { title: "One" },
+      relations: { author: { connect: [7], update: [{ id: 7, data: { set: {} } }] } },
+    });
+
+    expect(argsOf(calls.create)["data"]).toEqual({
+      title: "One",
+      author: { connect: { id: 7 }, update: { where: { id: 7 }, data: {} } },
+    });
+  });
+
+  it("refuses more than one row on a to-one relation", async () => {
+    const { adapter } = recorder();
+
+    await expect(
+      adapter.create("Post", {
+        set: {},
+        relations: { author: { connect: [7, 8] } },
+      }),
+    ).rejects.toThrow(/to-one relation: connect takes exactly one row, got 2/);
   });
 
   it("names a nested row by the target model's own key", async () => {

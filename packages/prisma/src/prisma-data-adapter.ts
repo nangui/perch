@@ -15,6 +15,7 @@ import type {
   ModelMeta,
   Page,
   Query,
+  RelationMeta,
   RelationWrite,
   Row,
   Sort,
@@ -136,31 +137,61 @@ export class PrismaDataAdapter implements DataAdapter {
     const relations = this.meta(model).relations;
 
     for (const [name, write] of Object.entries(tree.relations ?? {})) {
-      const target = relations.find((relation) => relation.name === name)?.targetModel;
-      if (target === undefined)
+      const relation = relations.find((candidate) => candidate.name === name);
+      if (relation === undefined)
         throw new Error(`${model} has no relation named ${name}.`);
-      data[name] = this.#relationOf(target, write);
+      data[name] = this.#relationOf(relation, write);
     }
     return data;
   }
 
-  #relationOf(model: string, write: RelationWrite): Record<string, unknown> {
+  /**
+   * Cardinality decides the shape. Prisma takes a list on a to-many and a
+   * single value on a to-one, and refuses a list where it wants one row —
+   * `Expected AuthorWhereUniqueInput, provided (Object)`, which is what a
+   * mock-based test will never say.
+   */
+  #relationOf(relation: RelationMeta, write: RelationWrite): Record<string, unknown> {
+    const model = relation.targetModel;
     const key = this.meta(model).primaryKey.name;
     const byKey = (id: Id): Record<string, unknown> => ({ [key]: id });
 
+    const shape = (rows: readonly unknown[], operation: string): unknown => {
+      if (relation.isList) return rows;
+      if (rows.length !== 1) {
+        throw new Error(
+          `${relation.name} is a to-one relation: ${operation} takes exactly ` +
+            `one row, got ${String(rows.length)}.`,
+        );
+      }
+      return rows[0];
+    };
+
     const out: Record<string, unknown> = {};
     if (write.create !== undefined) {
-      out["create"] = write.create.map((nested) => this.#dataOf(model, nested));
+      out["create"] = shape(
+        write.create.map((nested) => this.#dataOf(model, nested)),
+        "create",
+      );
     }
-    if (write.connect !== undefined) out["connect"] = write.connect.map(byKey);
-    if (write.disconnect !== undefined) out["disconnect"] = write.disconnect.map(byKey);
+    if (write.connect !== undefined) {
+      out["connect"] = shape(write.connect.map(byKey), "connect");
+    }
+    if (write.disconnect !== undefined) {
+      out["disconnect"] = shape(write.disconnect.map(byKey), "disconnect");
+    }
     if (write.update !== undefined) {
-      out["update"] = write.update.map(({ id, data }) => ({
-        where: byKey(id),
-        data: this.#dataOf(model, data),
-      }));
+      out["update"] = shape(
+        write.update.map(({ id, data }) => ({
+          where: byKey(id),
+          data: this.#dataOf(model, data),
+        })),
+        "update",
+      );
     }
-    if (write.delete !== undefined) out["delete"] = write.delete.map(byKey);
+    if (write.delete !== undefined) {
+      out["delete"] = shape(write.delete.map(byKey), "delete");
+    }
     return out;
   }
 
