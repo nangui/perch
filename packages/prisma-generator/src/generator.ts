@@ -10,7 +10,7 @@
 import helper from "@prisma/generator-helper";
 import type { GeneratorOptions } from "@prisma/generator-helper";
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { emitIr } from "./emit.js";
 import { readDmmf } from "./dmmf-reader.js";
 import { readOptionsOf } from "./options.js";
@@ -25,10 +25,18 @@ generatorHandler({
   }),
   onGenerate: async (options: GeneratorOptions): Promise<void> => {
     const ir = readDmmf(options.dmmf, readOptionsOf(options.generator.config));
-    const target = join(outputOf(options), "ir.ts");
+    const directory = outputOf(options);
 
-    await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, emitIr(ir), "utf8");
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "ir.ts"), emitIr(ir), "utf8");
+    // The same IR, for a reader that is not TypeScript. `@perchjs/cli` runs as
+    // a plain Node binary and cannot import the module above; parsing it back
+    // out of the source would be string surgery on a file we already have.
+    await writeFile(
+      join(directory, "ir.json"),
+      `${JSON.stringify(ir, null, 2)}\n`,
+      "utf8",
+    );
   },
 });
 

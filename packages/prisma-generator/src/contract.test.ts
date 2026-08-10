@@ -64,6 +64,16 @@ describe("the DMMF Prisma really emits", () => {
     ]);
   });
 
+  it("emits the same IR as JSON, for a reader that is not TypeScript", async () => {
+    // `@perchjs/cli` is a plain Node binary: it cannot import the module above,
+    // and parsing the literal back out of it would be string surgery.
+    const beside = JSON.parse(
+      await readFile(join(PACKAGE, ".contract", "ir.json"), "utf8"),
+    ) as Ir;
+
+    expect(beside).toEqual(generated);
+  });
+
   it("emits a file that names its own type", async () => {
     // Unannotated, a malformed IR would only surface at the consumer's first
     // query. The annotation cannot be exercised here — @perchjs/prisma is not a
