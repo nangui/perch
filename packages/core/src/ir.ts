@@ -74,7 +74,14 @@ export interface ModelMeta {
   readonly fields: readonly FieldMeta[];
   readonly relations: readonly RelationMeta[];
   readonly uniqueConstraints: readonly (readonly string[])[];
-  /** Detected by the `deletedAt` convention, or declared in configuration. */
+  /**
+   * The model carries a deletion column, detected by the `deletedAt` convention
+   * or declared in configuration.
+   *
+   * It says nothing about what the framework does with it. In v0.1 it keeps the
+   * tombstone out of an inferred form and nothing else — reads do not filter
+   * and `DataAdapter.delete` destroys the row (ADR 0014).
+   */
   readonly hasSoftDelete: boolean;
   /**
    * The field a human reads to recognise a row, resolved by PRD 01 §3.2:

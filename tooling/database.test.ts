@@ -215,6 +215,18 @@ withDatabase("writing, against a real database", () => {
     expect(after.rows[0]).toMatchObject({ title: "Kept", published: true });
   });
 
+  it("destroys the row of a soft-deleting model, rather than marking it", async () => {
+    // Pinned, not endorsed (ADR 0014). Soft delete is v0.2, and until the
+    // restore and force-delete that make it usable exist, `delete()` means one
+    // thing on every model. A test is what makes v0.2 changing that visible.
+    const country = await adapter.create("Country", { set: { name: "Atlantis" } });
+    const id = country["id"] as Id;
+
+    expect(adapter.meta("Country").hasSoftDelete).toBe(true);
+    expect(await adapter.delete("Country", [id])).toBe(1);
+    expect(await adapter.findOne("Country", id)).toBeNull();
+  });
+
   it("rolls the whole tree back when a nested write fails", async () => {
     // The guarantee A3 rests on: a half-written repeater must not survive.
     const before = await adapter.findMany({ model: "Country" });

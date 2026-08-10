@@ -30,6 +30,7 @@ function recorder(rows: unknown[] = [], total = 0): Recorder {
   const client = {
     user: calls,
     post: calls,
+    note: calls,
     $transaction: <T>(fn: (tx: PrismaClientLike) => Promise<T>): Promise<T> =>
       fn(client),
   } as unknown as PrismaClientLike;
@@ -296,6 +297,33 @@ describe("writing", () => {
     await expect(
       adapter.create("User", { set: {}, relations: { nope: { connect: [1] } } }),
     ).rejects.toThrow(/no relation named nope/);
+  });
+
+  it("deletes a soft-deleting model exactly like any other", async () => {
+    // Pinned, not endorsed. `hasSoftDelete` describes the schema in v0.1 and
+    // promises nothing about deletion; v0.2 changes that, and this test is what
+    // makes the change show up in a diff rather than start quietly.
+    const { adapter, calls } = recorder();
+
+    expect(adapter.meta("Note").hasSoftDelete).toBe(true);
+    await adapter.delete("Note", [4]);
+
+    expect(calls.deleteMany).toHaveBeenCalledTimes(1);
+    expect(argsOf(calls.deleteMany)).toEqual({ where: { id: { in: [4] } } });
+    expect(calls.update).not.toHaveBeenCalled();
+  });
+
+  it("deletes a soft-deleting child of a nested write just as plainly", async () => {
+    // The other half of the same promise. ADR 0014 names both `delete()` and
+    // `WriteTree.relations.*.delete`, and a v0.2 that changed only one of them
+    // would slip past a pin that watched the other.
+    const { adapter, calls } = recorder();
+    await adapter.update("User", 1, {
+      set: {},
+      relations: { notes: { delete: [4] } },
+    });
+
+    expect(argsOf(calls.update)["data"]).toEqual({ notes: { delete: [{ id: 4 }] } });
   });
 
   it("deletes by key and answers how many went", async () => {

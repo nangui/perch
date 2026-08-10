@@ -71,7 +71,11 @@ export const FIXTURE_IR: Ir = {
     model({
       name: "User",
       fields: [id(), field("email", { isUnique: true }), field("name")],
-      relations: [toMany("posts", "Post"), toMany("orders", "Order")],
+      relations: [
+        toMany("posts", "Post"),
+        toMany("orders", "Order"),
+        toMany("notes", "Note"),
+      ],
       labelField: "name",
     }),
     model({
@@ -83,6 +87,13 @@ export const FIXTURE_IR: Ir = {
     model({
       name: "Comment",
       fields: [id(), field("body")],
+      labelField: "body",
+    }),
+    // A soft-deleting model, so the adapter can be asked what it does with one.
+    model({
+      name: "Note",
+      fields: [id(), field("body"), field("deletedAt", { type: "DateTime" })],
+      hasSoftDelete: true,
       labelField: "body",
     }),
   ],

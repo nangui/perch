@@ -24,9 +24,12 @@ datasource db {
   provider = "postgresql"
 }
 
+// `deletedAt` makes this a soft-deleting model by convention, which is what
+// lets the tests ask what `delete()` does with one (ADR 0014).
 model Country {
-  id   Int    @id @default(autoincrement())
-  name String @unique @db.VarChar(80)
+  id        Int       @id @default(autoincrement())
+  name      String    @unique @db.VarChar(80)
+  deletedAt DateTime?
 
   authors Author[]
 }

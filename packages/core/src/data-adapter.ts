@@ -91,6 +91,12 @@ export interface DataAdapter {
   findOne(model: string, id: Id, include?: IncludePlan): Promise<Row | null>;
   create(model: string, data: WriteTree): Promise<Row>;
   update(model: string, id: Id, data: WriteTree): Promise<Row>;
+  /**
+   * Destroys the rows. Unconditional in v0.1, on every model — a model whose
+   * `hasSoftDelete` is true is deleted exactly like any other (ADR 0014). Soft
+   * delete arrives in v0.2 with the restore and force-delete it needs to be
+   * usable, and it changes what this method means.
+   */
   delete(model: string, ids: readonly Id[]): Promise<number>;
   /** Must roll back entirely if any nested write fails (milestone A3). */
   transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T>;
