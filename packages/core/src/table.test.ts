@@ -72,6 +72,7 @@ describe("what crosses the wire", () => {
         { type: "IconColumn", path: "published", boolean: true },
       ],
       actions: [],
+      headerActions: [],
       defaultSort: { path: "title", direction: "desc" },
     });
   });
@@ -84,7 +85,11 @@ describe("what crosses the wire", () => {
   });
 
   it("says nothing at all about a table with no columns", () => {
-    expect(serialiseTable(Table.make())).toEqual({ columns: [], actions: [] });
+    expect(serialiseTable(Table.make())).toEqual({
+      columns: [],
+      actions: [],
+      headerActions: [],
+    });
   });
 
   it("carries the actions a row offers, with the label they were given", () => {

@@ -31,15 +31,16 @@ export interface RecordsResponse {
   readonly sort?: Sort;
   /**
    * What the model calls its primary key, and where its pages live. Together
-   * they are how a row action addresses one row: `${editPath}/${row[recordKey]}`.
+   * they are how a row action addresses one row: `${resourcePath}/${row[recordKey]}`.
    * Sent rather than assumed — a model keyed on `uuid` had the client falling
    * back to a positional index.
    *
-   * `editPath` is absent when the root it was built from is not one this origin
-   * owns, and then a row offers no action rather than a link off the site.
+   * `resourcePath` is absent when the root it was built from is not one this
+   * origin owns, and then an action offers nothing rather than a link off the
+   * site.
    */
   readonly recordKey: string;
-  readonly editPath?: string;
+  readonly resourcePath?: string;
 }
 
 /**
@@ -83,15 +84,18 @@ export async function listRecords(
   return {
     rows: project(page.rows, visibleKeys(model, ir, table)),
     total: page.total,
-    columns: table === undefined ? { columns: [], actions: [] } : serialiseTable(table),
+    columns:
+      table === undefined
+        ? { columns: [], actions: [], headerActions: [] }
+        : serialiseTable(table),
     recordKey: data.meta(model).primaryKey.name,
-    ...editPathOf(root, resource.metadata.slug),
+    ...pathOrNothing(resourcePath(root, resource.metadata.slug)),
     ...(applied === undefined ? {} : { sort: applied }),
   };
 }
 
 /**
- * The path a row action points at, or nothing.
+ * The path the resource's pages live under, or nothing.
  *
  * The root comes from the request, so it is attacker-shaped: a URL beginning
  * `//evil.com` makes `rootOf` return `//evil.com/admin`, and a link built from
@@ -99,7 +103,10 @@ export async function listRecords(
  * redirect after a create already uses, and this is the same hole one route to
  * the left.
  */
-function editPathOf(root: string, slug: string): { editPath?: string } {
-  const path = sameOrigin(`${root}/${slug}`);
-  return path === undefined ? {} : { editPath: path };
+export function resourcePath(root: string, slug: string): string | undefined {
+  return sameOrigin(`${root}/${slug}`);
+}
+
+function pathOrNothing(path: string | undefined): { resourcePath?: string } {
+  return path === undefined ? {} : { resourcePath: path };
 }

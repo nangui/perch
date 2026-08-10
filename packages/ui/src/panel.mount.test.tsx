@@ -214,6 +214,44 @@ describe("a shell that says too little", () => {
     expect(lookupColumn("IconColumn")).toBeDefined();
   });
 
+  it("puts the trail back on a form page, from the element", () => {
+    // Removing the breadcrumb from `mount` failed no test at all, which is the
+    // same gap the column registration had: a component nobody asserts is
+    // mounted is a component that can quietly stop being.
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "create",
+          title: "Create Person",
+          listPath: "/admin/people",
+          listLabel: "People",
+          payload: JSON.stringify(payload),
+        }),
+      );
+    });
+
+    expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "People" }).getAttribute("href")).toBe(
+      "/admin/people",
+    );
+  });
+
+  it("shows no trail when the server sent no path for one", () => {
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "create",
+          title: "Create Person",
+          payload: JSON.stringify(payload),
+        }),
+      );
+    });
+
+    expect(screen.queryByRole("navigation")).toBeNull();
+  });
+
   it("takes the list's title from the element, not from the document", () => {
     // `panel-shell.ts` states the contract: everything the bundle needs travels
     // on the mount element. Reading `document.title` worked and was a coupling

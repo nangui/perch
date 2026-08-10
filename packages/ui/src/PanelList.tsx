@@ -26,7 +26,7 @@ export interface RecordsPage {
   readonly sort?: DataTableSort;
   readonly recordKey: string;
   /** Absent when the server would not vouch for the address. */
-  readonly editPath?: string;
+  readonly resourcePath?: string;
 }
 
 export interface PanelListProps {
@@ -62,7 +62,10 @@ export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactN
 
   return (
     <main className="perch-list">
-      <h1 className="perch-list__title">{title}</h1>
+      <div className="perch-list__header">
+        <h1 className="perch-list__title">{title}</h1>
+        {headerActions(page)}
+      </div>
       {failed ? (
         <p className="perch-list__failure" role="alert">
           Could not reorder. Showing the previous order.
@@ -91,8 +94,30 @@ export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactN
  * by `uuid`, and a panel behind a prefix keeps it.
  */
 function href(page: RecordsPage, row: Row): string | undefined {
-  if (page.editPath === undefined) return undefined;
+  if (page.resourcePath === undefined) return undefined;
   const key = row[page.recordKey];
   if (typeof key !== "string" && typeof key !== "number") return undefined;
-  return `${page.editPath}/${encodeURIComponent(String(key))}/edit`;
+  return `${page.resourcePath}/${encodeURIComponent(String(key))}/edit`;
+}
+
+/**
+ * What the table offers as a whole. `CreateAction` is a link to the create page
+ * (PRD 08 §4, navigation), and an action the renderer has no meaning for is
+ * skipped rather than drawn — the same rule the row actions follow.
+ */
+function headerActions(page: RecordsPage): ReactNode {
+  const path = page.resourcePath;
+  if (path === undefined) return null;
+
+  // Built before it is wrapped: a table whose only header action is one the
+  // renderer skips would otherwise leave an empty element in the header.
+  const links = page.columns.headerActions
+    .filter((action) => action.type === "CreateAction")
+    .map((action) => (
+      <a key={action.type} className="perch-button" href={`${path}/create`}>
+        {action.label ?? "Create"}
+      </a>
+    ));
+
+  return links.length === 0 ? null : <div className="perch-list__actions">{links}</div>;
 }

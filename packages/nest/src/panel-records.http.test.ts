@@ -12,6 +12,7 @@ import { Injectable } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { DataAdapter, Id, Ir, ModelMeta, Query, Row } from "@perchjs/core";
 import {
+  CreateAction,
   EditAction,
   IconColumn,
   Schema,
@@ -132,6 +133,7 @@ class ListedResource {
         IconColumn.make("published").boolean(),
       ])
       .actions([EditAction.make()])
+      .headerActions([CreateAction.make()])
       .defaultSort("title", "desc");
   }
 }
@@ -193,10 +195,10 @@ describe("listing records", () => {
       // is the same narrow pair the sort allowlist falls back to.
       rows: SHOWN,
       total: 3,
-      columns: { columns: [], actions: [] },
+      columns: { columns: [], actions: [], headerActions: [] },
       // How a row action addresses one row, said rather than assumed.
       recordKey: "id",
-      editPath: "/admin/posts",
+      resourcePath: "/admin/posts",
     });
   });
 
@@ -245,6 +247,7 @@ describe("the columns a resource declares", () => {
         { type: "IconColumn", path: "published", boolean: true },
       ],
       actions: [{ type: "EditAction" }],
+      headerActions: [{ type: "CreateAction" }],
       defaultSort: { path: "title", direction: "desc" },
     });
   });
@@ -306,9 +309,9 @@ describe("the list page", () => {
     const response = await fetch(`${url}/admin/api/listed/records`, {
       headers: { "x-user": "ada" },
     });
-    const body = (await response.json()) as { editPath: string; recordKey: string };
+    const body = (await response.json()) as { resourcePath: string; recordKey: string };
 
-    expect(body.editPath).toBe("/admin/listed");
+    expect(body.resourcePath).toBe("/admin/listed");
     expect(body.recordKey).toBe("id");
   });
 
@@ -318,6 +321,16 @@ describe("the list page", () => {
     expect((await get(`${url}/admin/ghost`)).status).toBe(404);
     expect((await get(`${url}/admin/gated`, "grace")).status).toBe(404);
     expect((await get(`${url}/admin/per-row`)).status).toBe(404);
+  });
+
+  it("gives a form page the trail back to its list", async () => {
+    // PRD 03 §4.2 puts breadcrumbs in the v0.1 chrome. Everything the bundle
+    // needs travels on the mount element, this included.
+    const url = await serve();
+    const html = await (await get(`${url}/admin/listed/create`)).text();
+
+    expect(html).toContain('data-list-path="/admin/listed"');
+    expect(html).toContain('data-list-label="Posts"');
   });
 
   it("does not shadow the two-segment pages", async () => {

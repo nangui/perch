@@ -13,6 +13,7 @@ import type { SortDirection } from "./data-adapter.js";
 export interface TableState {
   readonly columns: readonly Column[];
   readonly actions: readonly Action[];
+  readonly headerActions: readonly Action[];
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
 }
 
@@ -35,6 +36,8 @@ export interface ActionNode {
 export interface ColumnTree {
   readonly columns: readonly ColumnNode[];
   readonly actions: readonly ActionNode[];
+  /** What the table offers above itself, rather than on a row. */
+  readonly headerActions: readonly ActionNode[];
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
 }
 
@@ -46,7 +49,7 @@ export class Table {
   }
 
   static make(): Table {
-    return new Table({ columns: [], actions: [] });
+    return new Table({ columns: [], actions: [], headerActions: [] });
   }
 
   columns(list: readonly Column[]): Table {
@@ -56,6 +59,11 @@ export class Table {
   /** What a row offers. Rendered after the last column. */
   actions(list: readonly Action[]): Table {
     return new Table({ ...this.state, actions: [...list] });
+  }
+
+  /** What the table offers as a whole — creating a row, above all. */
+  headerActions(list: readonly Action[]): Table {
+    return new Table({ ...this.state, headerActions: [...list] });
   }
 
   /**
@@ -84,13 +92,18 @@ export function serialiseTable(table: Table): ColumnTree {
       ...(column.state.sortable ? { sortable: true as const } : {}),
       ...(column.state.boolean === undefined ? {} : { boolean: true as const }),
     })),
-    actions: table.state.actions.map((action) => ({
-      type: action.type,
-      ...(action.state.label === undefined ? {} : { label: action.state.label }),
-    })),
+    actions: table.state.actions.map(node),
+    headerActions: table.state.headerActions.map(node),
     ...(table.state.defaultSort === undefined
       ? {}
       : { defaultSort: table.state.defaultSort }),
+  };
+}
+
+function node(action: Action): ActionNode {
+  return {
+    type: action.type,
+    ...(action.state.label === undefined ? {} : { label: action.state.label }),
   };
 }
 

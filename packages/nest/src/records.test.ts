@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import type { DataAdapter, FieldMeta, Ir, ModelMeta, Row } from "@perchjs/core";
 import { EditAction, Schema, Table, TextColumn, TextInput } from "@perchjs/core";
 import type { RegisteredResource } from "./resource-registry.js";
-import { listRecords } from "./records.js";
+import { listRecords, resourcePath } from "./records.js";
 
 const key: FieldMeta = {
   name: "id",
@@ -66,17 +66,31 @@ const resource: RegisteredResource = {
 
 const list = (root: string) => listRecords(adapter, resource, {}, undefined, root);
 
+describe("the path a resource's pages live under", () => {
+  it("is the root and the slug", () => {
+    expect(resourcePath("/admin", "posts")).toBe("/admin/posts");
+  });
+
+  it("is nothing when it would not point at this origin", () => {
+    // Used by the row action, the create link and the breadcrumb alike. One
+    // function, so the guard cannot be right in one place and missing in
+    // another.
+    expect(resourcePath("//evil.com/admin", "posts")).toBeUndefined();
+    expect(resourcePath("https://evil.com", "posts")).toBeUndefined();
+  });
+});
+
 describe("where a row action points", () => {
   it("is under the root the request came through", async () => {
-    expect((await list("/admin")).editPath).toBe("/admin/posts");
-    expect((await list("/api/v1/admin")).editPath).toBe("/api/v1/admin/posts");
+    expect((await list("/admin")).resourcePath).toBe("/admin/posts");
+    expect((await list("/api/v1/admin")).resourcePath).toBe("/api/v1/admin/posts");
   });
 
   it("says nothing when the root is not one this origin owns", async () => {
     // `//evil.com/admin` builds a protocol-relative link: clicking Edit leaves
     // the site. The same guard the redirect after a create already uses.
-    expect((await list("//evil.com/admin")).editPath).toBeUndefined();
-    expect((await list("https://evil.com/admin")).editPath).toBeUndefined();
+    expect((await list("//evil.com/admin")).resourcePath).toBeUndefined();
+    expect((await list("https://evil.com/admin")).resourcePath).toBeUndefined();
   });
 
   it("names the model's own key rather than assuming one", async () => {

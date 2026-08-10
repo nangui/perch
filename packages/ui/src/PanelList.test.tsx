@@ -16,10 +16,11 @@ const PAGE: RecordsPage = {
   columns: {
     columns: [{ type: "TextColumn", path: "title", label: "Headline", sortable: true }],
     actions: [{ type: "EditAction" }],
+    headerActions: [{ type: "CreateAction" }],
     defaultSort: { path: "title", direction: "asc" },
   },
   recordKey: "id",
-  editPath: "/admin/posts",
+  resourcePath: "/admin/posts",
 };
 
 beforeEach(() => {
@@ -74,7 +75,7 @@ describe("the list page", () => {
       // No `sort` in the answer: the request was refused.
       Promise.resolve({
         ...PAGE,
-        columns: { columns: PAGE.columns.columns, actions: [] },
+        columns: { columns: PAGE.columns.columns, actions: [], headerActions: [] },
       }),
     );
     render(<PanelList initial={PAGE} title="Posts" fetchPage={fetchPage} />);
@@ -130,12 +131,12 @@ describe("the list page", () => {
   it("keeps the panel's own prefix", () => {
     render(
       <PanelList
-        initial={{ ...PAGE, editPath: "/api/v1/admin/posts" }}
+        initial={{ ...PAGE, resourcePath: "/api/v1/admin/posts" }}
         title="Posts"
       />,
     );
 
-    expect(screen.getAllByRole("link")[0]?.getAttribute("href")).toBe(
+    expect(screen.getAllByRole("link", { name: "Edit" })[0]?.getAttribute("href")).toBe(
       "/api/v1/admin/posts/1/edit",
     );
   });
@@ -152,16 +153,16 @@ describe("the list page", () => {
       />,
     );
 
-    expect(screen.getByRole("link").getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "Edit" }).getAttribute("href")).toBe(
       "/admin/posts/a-b-c/edit",
     );
   });
 
   it("offers nothing when the server would not vouch for the address", () => {
-    // The server withholds `editPath` when the root it was built from is not
+    // The server withholds `resourcePath` when the root it was built from is not
     // one this origin owns. A client that filled the gap in would undo it.
     const withoutPath: RecordsPage = { ...PAGE };
-    delete (withoutPath as { editPath?: string }).editPath;
+    delete (withoutPath as { resourcePath?: string }).resourcePath;
     render(<PanelList initial={withoutPath} title="Posts" />);
 
     expect(screen.queryByRole("link")).toBeNull();
@@ -171,7 +172,43 @@ describe("the list page", () => {
     // A dead link is worse than no link.
     render(<PanelList initial={{ ...PAGE, rows: [{ title: "Ada" }] }} title="Posts" />);
 
-    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Edit" })).toBeNull();
+  });
+
+  it("offers a create link above the table, from the same path", () => {
+    render(<PanelList initial={PAGE} title="Posts" />);
+
+    expect(screen.getByRole("link", { name: "Create" }).getAttribute("href")).toBe(
+      "/admin/posts/create",
+    );
+  });
+
+  it("leaves no empty header when every action is skipped", () => {
+    render(
+      <PanelList
+        initial={{
+          ...PAGE,
+          columns: { ...PAGE.columns, headerActions: [{ type: "ImportAction" }] },
+        }}
+        title="Posts"
+      />,
+    );
+
+    expect(document.querySelector(".perch-list__actions")).toBeNull();
+  });
+
+  it("skips a header action the renderer has no meaning for", () => {
+    render(
+      <PanelList
+        initial={{
+          ...PAGE,
+          columns: { ...PAGE.columns, headerActions: [{ type: "ImportAction" }] },
+        }}
+        title="Posts"
+      />,
+    );
+
+    expect(screen.queryByRole("link", { name: /Import/ })).toBeNull();
   });
 
   it("offers no reordering when nothing can answer it", () => {

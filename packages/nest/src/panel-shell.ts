@@ -21,6 +21,13 @@ export interface ShellOptions {
   readonly operation: "create" | "edit" | "list";
   /** The row being edited. Absent on a create and on a list. */
   readonly id?: string;
+  /**
+   * The resource's list page and its name, for the trail back. Absent when the
+   * root it was built from is not one this origin owns — a breadcrumb off the
+   * site is the same hole as a row action off the site.
+   */
+  readonly listPath?: string;
+  readonly listLabel?: string;
   readonly payload: unknown;
   readonly scriptFile: string;
   readonly styleFile: string;
@@ -40,6 +47,10 @@ export function renderShell(options: ShellOptions): string {
 <body class="perch-root">
 <div id="perch-panel" data-api="${attribute(options.api)}" data-operation="${attribute(options.operation)}"${
     options.id === undefined ? "" : ` data-id="${attribute(options.id)}"`
+  }${options.listPath === undefined ? "" : ` data-list-path="${attribute(options.listPath)}"`}${
+    options.listLabel === undefined
+      ? ""
+      : ` data-list-label="${attribute(options.listLabel)}"`
   } data-title="${attribute(options.title)}" data-payload="${payload}"></div>
 <script type="module" src="${attribute(`${options.root}/assets/${options.scriptFile}`)}"></script>
 </body>

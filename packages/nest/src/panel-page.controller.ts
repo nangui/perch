@@ -18,7 +18,7 @@ import {
   Req,
 } from "@nestjs/common";
 import type { DataAdapter, FormState, Row } from "@perchjs/core";
-import { listRecords } from "./records.js";
+import { listRecords, resourcePath } from "./records.js";
 import { resolveSchema, serialise } from "@perchjs/core";
 import type { PanelAssets } from "./panel-assets.js";
 import { PANEL_ASSETS } from "./panel-assets.js";
@@ -174,11 +174,17 @@ export class PanelPageController {
       ...(page.record === undefined ? {} : { record: page.record }),
     });
 
+    // The same guard, and the same function, the row actions go through.
+    const list = resourcePath(root, page.resource.metadata.slug);
+
     return renderShell({
       root,
       api: `${root}/api/${page.resource.metadata.slug}`,
       title: page.title,
       operation: page.operation,
+      ...(list === undefined
+        ? {}
+        : { listPath: list, listLabel: page.resource.metadata.pluralLabel }),
       ...(page.id === undefined ? {} : { id: page.id }),
       payload: serialise(resolved),
       scriptFile: entry(this.#assets, "panel.js"),

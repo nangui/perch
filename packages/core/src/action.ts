@@ -1,14 +1,15 @@
 /**
- * Row actions — PRD 08 §4.
+ * Actions — PRD 08 §4.
  *
- * `EditAction` is the one of them this file carries. It is v0.1 and it is
- * navigation: a link to the page that already exists. The rest of §4 —
- * `CreateAction`, `DeleteAction`, modals, confirmations, bulk — needs a route
- * or a dialog that does not, and an action that renders and does nothing would
- * be worse than one that is absent.
+ * The two of §4 that are v0.1 *and* navigation: `EditAction` on a row and
+ * `CreateAction` above the table. Both are links to pages that already exist.
+ * The rest — `DeleteAction`, modals, confirmations, bulk — needs a route or a
+ * dialog that does not, and an action that renders and does nothing would be
+ * worse than one that is absent.
  *
  * Not a `Component` and not a `Column`, for the reason a column is not a
- * component: this is met once per row and carries no state.
+ * component: an action carries no state and is met once per row, or once per
+ * table.
  */
 
 export interface ActionState {
@@ -33,7 +34,22 @@ export abstract class Action {
   }
 }
 
-/** Navigates to the row's edit page. */
+/** Navigates to the resource's create page. Declared as a header action. */
+export class CreateAction extends Action {
+  static make(): CreateAction {
+    return new CreateAction({});
+  }
+
+  override get type(): string {
+    return "CreateAction";
+  }
+
+  protected override with(state: ActionState): this {
+    return new CreateAction(state) as this;
+  }
+}
+
+/** Navigates to the row's edit page. Declared as a row action. */
 export class EditAction extends Action {
   static make(): EditAction {
     return new EditAction({});

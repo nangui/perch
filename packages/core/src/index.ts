@@ -47,7 +47,7 @@ export {
 
 // Row actions: PRD 08 §4, the v0.1 slice of it.
 export type { ActionState } from "./action.js";
-export { Action, EditAction } from "./action.js";
+export { Action, CreateAction, EditAction } from "./action.js";
 
 // Tables: the column layer PRD 07 §4 opens with.
 export type { ColumnState } from "./column.js";

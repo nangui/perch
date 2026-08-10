@@ -12,6 +12,7 @@
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import type { SchemaPayload } from "@perchjs/core";
+import { Breadcrumb } from "./Breadcrumb.js";
 import { PanelForm } from "./PanelForm.js";
 import type { RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
@@ -41,6 +42,8 @@ export function mount(element: HTMLElement): void {
   }
   const id = element.dataset["id"];
   const title = element.dataset["title"] ?? "";
+  const listPath = element.dataset["listPath"];
+  const listLabel = element.dataset["listLabel"];
 
   registerBuiltInComponents();
   registerBuiltInColumns();
@@ -57,13 +60,20 @@ export function mount(element: HTMLElement): void {
   }
 
   createRoot(element).render(
-    <PanelForm
-      initial={JSON.parse(payload) as SchemaPayload}
-      send={(request) => send(api, operation, id, request)}
-      save={(request) => save(api, operation, id, request)}
-      onSaved={goWhereTheServerSays}
-      renderFailure={renderFailure}
-    />,
+    <>
+      <Breadcrumb
+        {...(listPath === undefined ? {} : { listPath })}
+        {...(listLabel === undefined ? {} : { listLabel })}
+        current={title}
+      />
+      <PanelForm
+        initial={JSON.parse(payload) as SchemaPayload}
+        send={(request) => send(api, operation, id, request)}
+        save={(request) => save(api, operation, id, request)}
+        onSaved={goWhereTheServerSays}
+        renderFailure={renderFailure}
+      />
+    </>,
   );
 }
 
