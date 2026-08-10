@@ -178,6 +178,31 @@ describe("inferModel", () => {
     expect(excluded.map((f) => f.name)).toContain("comments");
   });
 
+  it("keeps the soft-delete tombstone out of the form", () => {
+    // A date picker on `deletedAt` deletes the row. It is not read-only —
+    // nothing generates the value — so it needs a reason of its own.
+    const user = inferModel(User, ir);
+    const deletedAt = user.find((f) => f.name === "deletedAt");
+
+    expect(User.hasSoftDelete).toBe(true);
+    expect(deletedAt?.excludedFromForm).toBe("soft-delete");
+    // And nothing else. A condition that tested `hasSoftDelete` and forgot the
+    // name would empty the form of a soft-deleting model, silently.
+    expect(
+      user.filter((f) => f.excludedFromForm === "soft-delete").map((f) => f.name),
+    ).toEqual(["deletedAt"]);
+  });
+
+  it("leaves the same column editable when the model does not soft-delete", () => {
+    // Configuration says this is an ordinary date on this model, so it is one.
+    const plain = readDmmf(FIXTURE_DMMF, { softDelete: { User: false } });
+    const model = findModel(plain, "User")!;
+    const deletedAt = inferModel(model, plain).find((f) => f.name === "deletedAt");
+
+    expect(deletedAt?.excludedFromForm).toBeUndefined();
+    expect(deletedAt?.component).toBe("DateTimePicker");
+  });
+
   it("covers every model of the fixture without throwing", () => {
     for (const model of ir.models) {
       expect(inferModel(model, ir).length, model.name).toBeGreaterThan(0);

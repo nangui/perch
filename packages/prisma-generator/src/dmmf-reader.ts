@@ -17,7 +17,7 @@ import type {
   ScalarType,
   Ir,
 } from "@perchjs/core";
-import { inferLabelField } from "@perchjs/core";
+import { inferLabelField, SOFT_DELETE_FIELD } from "@perchjs/core";
 
 /**
  * Prisma 7 is the first version whose runtime DMMF no longer carries this shape,
@@ -171,7 +171,8 @@ function readModel(
 
   const declared = options.softDelete?.[model.name];
   const hasSoftDelete =
-    declared ?? fields.some((f) => f.name === "deletedAt" && f.type === "DateTime");
+    declared ??
+    fields.some((f) => f.name === SOFT_DELETE_FIELD && f.type === "DateTime");
 
   return {
     name: model.name,

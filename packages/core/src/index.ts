@@ -57,6 +57,7 @@ export {
   inferLabelField,
   inferModel,
   inferRelation,
+  SOFT_DELETE_FIELD,
   tokenize,
 } from "./inference.js";
 

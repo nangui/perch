@@ -46,13 +46,17 @@ export interface InferredField {
   /** A password left blank must not overwrite the stored hash with "". */
   readonly dehydrateWhenEmpty?: false;
   /** Why this field is not offered in a form. */
-  readonly excludedFromForm?: "read-only" | "identifier" | "to-many-relation";
+  readonly excludedFromForm?:
+    "read-only" | "identifier" | "to-many-relation" | "soft-delete";
 }
 
 export interface InferenceOptions {
   /** Disables inference from field names, keeping only declared metadata. */
   readonly strict?: boolean;
 }
+
+/** The soft-delete convention, named once so the reader and the form agree. */
+export const SOFT_DELETE_FIELD = "deletedAt";
 
 const NUMERIC_TYPES = new Set(["Int", "Float", "Decimal", "BigInt"]);
 
@@ -212,9 +216,31 @@ export function inferModel(
   return [
     ...model.fields
       .filter((f) => !foreignKeys.has(f.name))
-      .map((f) => inferField(f, options)),
+      .map((f) => inferField(f, options))
+      .map((f) => (isTombstone(model, f.name) ? tombstone(f) : f)),
     ...model.relations.map((r) => inferRelation(r, ir)),
   ];
+}
+
+/**
+ * The column that records the deletion, on a model that deletes softly.
+ *
+ * Offering it is offering a date picker that deletes the row, which is the one
+ * thing a form must not do by accident. A model whose configuration says it
+ * does not soft-delete keeps the column editable: it is then an ordinary date.
+ *
+ * Not `isReadOnly` — nothing generates this value, the framework claims it.
+ *
+ * The name alone, where the DMMF reader also requires `DateTime`. That
+ * asymmetry is deliberate: the convention has to be sure before it infers, and
+ * configuration that declares the flag has already been sure.
+ */
+function isTombstone(model: ModelMeta, name: string): boolean {
+  return model.hasSoftDelete && name === SOFT_DELETE_FIELD;
+}
+
+function tombstone(field: InferredField): InferredField {
+  return { ...field, excludedFromForm: "soft-delete" };
 }
 
 function base(
