@@ -1,6 +1,10 @@
 packages:
   - "packages/*"
   - "examples/*"
+  # Cross-package proofs. Its dependencies live here rather than at the root,
+  # where they would resolve from every package and undo pnpm's isolation —
+  # which is the first thing that stops one adapter importing another.
+  - "tooling"
 
 # Install scripts run only for what is listed here. esbuild is pulled by vite,
 # itself pulled by vitest, and its postinstall is what puts the platform binary

@@ -18,6 +18,28 @@ jobs:
     name: verify
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # The adapter's unit tests assert translation against a recorder; they would
+    # pass on arguments Prisma rejects. tooling/database.test.ts is what says
+    # otherwise, and it needs a real one.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: perch
+          POSTGRES_PASSWORD: perch
+          POSTGRES_DB: perch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://perch:perch@localhost:5432/perch
+
     steps:
       - uses: actions/checkout@v7
 
@@ -47,6 +69,14 @@ jobs:
       - name: Architecture boundaries
         run: pnpm boundaries
 
+      # After the build: the Perch generator runs from dist, and `db push` needs
+      # no destructive flag because the service starts empty.
+      - name: Prepare the integration database
+        working-directory: tooling
+        run: |
+          ./node_modules/.bin/prisma generate
+          ./node_modules/.bin/prisma db push
+
       - name: Test
         run: pnpm test
 
@@ -61,16 +91,15 @@ jobs:
 # Guardrails still to come, each with the lot that makes it measurable
 # (CLAUDE.md, "Garde-fous CI"):
 #
-#   SQL query counter per page (anti N+1)     → needs a database in CI
-#   p95 on /records                           → needs a database in CI
+#   p95 on /records                           → PRD 03, once that route exists
 #   concurrency: 100 parallel requests        → PRD 02, once builders exist
 #   attack test: an unauthorised action       → PRD 04, with `can`
 #
-# The DMMF contract test is no longer on this list: it runs inside `pnpm test`,
-# against the DMMF a real `prisma generate` hands the generator (ADR 0012). It
-# needs no database, which is why it can. The two above still do — proving that
-# Prisma *accepts* the adapter's arguments is the same lot of work as counting
-# the queries they cost.
+# Two have come off this list. The DMMF contract test runs inside `pnpm test`
+# against what a real `prisma generate` hands the generator (ADR 0012), and the
+# SQL query counter runs in tooling/database.test.ts, counting the statements
+# the driver actually sends. The p95 budget stays: there is no /records route to
+# measure yet, and a budget on a route that does not exist measures nothing.
 #
 # They are listed here rather than in a backlog so that adding one is a visible
 # edit to this file, and so that their absence is legible today.

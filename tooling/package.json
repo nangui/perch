@@ -1,0 +1,17 @@
+{
+  "name": "@perchjs/tooling",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross-package proofs. Never published; not a package of the framework.",
+  "devDependencies": {
+    "@perchjs/core": "workspace:*",
+    "@perchjs/prisma": "workspace:*",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "@prisma/client-runtime-utils": "^7.9.1",
+    "@types/pg": "^8.21.0",
+    "pg": "^8.23.0",
+    "prisma": "^7.9.1"
+  }
+}

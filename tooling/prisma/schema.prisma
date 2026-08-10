@@ -1,0 +1,61 @@
+// The schema the integration tests run against.
+//
+// Small on purpose, and separate from the twelve-model fixture in
+// packages/prisma-generator: that one exists to pin the *shape* of the DMMF and
+// never touches a database. This one has to be created, written to and queried,
+// so it carries only what the adapter's translations need to be exercised —
+// a relation to filter through, one to sort through, one to include, and a
+// one-to-many to write nested.
+//
+// Both generators run over it, which is what makes these tests cover the whole
+// chain: schema → IR → adapter → PostgreSQL.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../.generated/client"
+}
+
+generator perch {
+  provider = "node ../packages/prisma-generator/dist/generator.js"
+  output   = "../.generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Country {
+  id   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(80)
+
+  authors Author[]
+}
+
+model Author {
+  id        Int     @id @default(autoincrement())
+  email     String  @unique @db.VarChar(255)
+  name      String  @db.VarChar(120)
+  countryId Int?
+
+  country Country? @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  posts   Post[]
+}
+
+model Post {
+  id        Int     @id @default(autoincrement())
+  title     String  @db.VarChar(200)
+  body      String? @db.Text
+  published Boolean @default(false)
+  authorId  Int
+
+  author   Author    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments Comment[]
+}
+
+model Comment {
+  id     Int    @id @default(autoincrement())
+  body   String @db.Text
+  postId Int
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}

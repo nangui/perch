@@ -29,3 +29,6 @@ coverage
 
 # Output of the DMMF contract test.
 .contract/
+
+# Output of the integration tests.
+tooling/.generated/
