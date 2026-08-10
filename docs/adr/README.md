@@ -24,6 +24,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0010](0010-state-response-shape.md) | `/state` answers with the whole tree, not a schema patch | accepted |
 | [0011](0011-admission-in-waves.md) | Client state is admitted in waves, not in one pass | accepted |
 | [0012](0012-ir-at-build-time.md) | The IR is produced at build time, by a Prisma generator | accepted |
+| [0013](0013-what-read-only-names.md) | `isReadOnly` names the database owning a value, not a relation | accepted |
 
 ## Format
 
