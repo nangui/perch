@@ -9,10 +9,12 @@ every session.
 get a complete admin panel; you never write any front end. It is the equivalent of Laravel
 Filament for the Node ecosystem.
 
-Status: **in implementation**. The documentation is complete and settled. `packages/prisma`
-reads the DMMF, `packages/core` carries the component tree, the resolution cycle, the trust
-boundary and the transport format, and `packages/ui` renders that tree. Milestone A1 passes in
-test; it is not shipped until the HTTP protocol and the p95 budget exist.
+Status: **in implementation**. The documentation is complete and settled.
+`packages/prisma-generator` turns the Prisma schema into the intermediate representation while
+`prisma generate` runs (ADR 0012), `packages/prisma` executes queries from it, `packages/core`
+carries the component tree, the resolution cycle, the trust boundary and the transport format,
+and `packages/ui` renders that tree. Milestone A1 passes over HTTP, within the 150 ms p95
+budget measured on `/state` across 100 round trips.
 
 ## Read before acting
 
@@ -66,8 +68,8 @@ The critical path is **milestone A1**:
 
 **Build in a vertical slice, not layer by layer.** The order is fixed:
 
-1. `packages/prisma` — DMMF → intermediate representation (PRD 01). Mechanical, unblocks
-   everything.
+1. `packages/prisma-generator` — DMMF → intermediate representation (PRD 01). Mechanical,
+   unblocks everything.
 2. `packages/core` — `Field`, `Schema`, state resolution, with A1 as the single test.
 3. `packages/ui` — minimal renderer, 3 fields, and A1 running end to end.
 
@@ -82,7 +84,8 @@ transaction), A4 (third-party module injecting a field). Detailed in `docs/00-PR
 | Package | Responsibility | May import |
 |---|---|---|
 | `@perchjs/core` | schema engine, state resolution, validation | nothing |
-| `@perchjs/prisma` | DMMF → IR, query execution | core |
+| `@perchjs/prisma-generator` | DMMF → IR, at build time | core |
+| `@perchjs/prisma` | query execution, from that IR | core |
 | `@perchjs/nest` | `PanelModule`, routing, guards, navigation | core |
 | `@perchjs/ui` | React renderer, component registry | core (types only) |
 | `@perchjs/cli` | code generation | core |
@@ -116,7 +119,7 @@ and wait for my confirmation.
 
 **Commits:** Conventional Commits, in English, imperative, subject ≤ 72 characters.
 Types: `feat` `fix` `docs` `chore` `refactor` `test` `build` `ci`.
-Scopes: `core` `prisma` `nest` `ui` `cli` `docs` `repo`.
+Scopes: `core` `prisma` `prisma-generator` `nest` `ui` `cli` `docs` `repo`.
 One commit = one logical change. The body explains the *why*, not the *how*.
 
 **Everything in English** — documentation, code, comments, symbol names, commit messages. The
@@ -135,9 +138,8 @@ included. Keep it that way.
 | **Schema** | the declarative component tree (forms, infolists, layouts) |
 | **Field** | a component carrying state and subject to validation |
 | **Resolver** | a function evaluated **on the server** producing a dynamic value |
-| **IR** | the intermediate representation produced from the DMMF |
+| **IR** | the intermediate representation, generated from the DMMF at build time |
 | **WriteTree** | the write tree, nested writes included |
-| **schemaPatch** | the schema diff returned after a state change |
 | **Stage 5** | the trust boundary of the backend pipeline |
 | **A1…A4** | the four acceptance milestones |
 
