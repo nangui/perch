@@ -9,10 +9,10 @@ An open-source UI framework for **NestJS**. Define a resource in TypeScript, get
 |---|---|
 | Stack | NestJS · Prisma · PostgreSQL · React |
 | License | MIT (core) |
-| Status | pre-implementation — 14 documents frozen |
+| Status | in implementation — documentation settled, six packages building |
 | npm scope | `@perchjs/*` — npm organization created |
-| Critical path | milestone **A1**: reactive dependent select, zero user JavaScript |
-| Decisions | ADR [0001](docs/adr/0001-nestjs-ecosystem.md) · [0002](docs/adr/0002-prisma-orm.md) · [0003](docs/adr/0003-state-protocol.md) · [0004](docs/adr/0004-naming.md) · [0005](docs/adr/0005-npm-scope.md) · [0006](docs/adr/0006-target-market-reading.md) · [0007](docs/adr/0007-panel-asset-delivery.md) · [0008](docs/adr/0008-versioning-policy.md) · [0009](docs/adr/0009-panel-bundle.md) · [0010](docs/adr/0010-state-response-shape.md) · [0011](docs/adr/0011-admission-in-waves.md) |
+| Milestone **A1** | reactive dependent select, zero user JavaScript — passing over HTTP, inside its p95 budget |
+| Decisions | 14 records in [`docs/adr/`](docs/adr/README.md), each with the rule that would reopen it |
 
 ## Documentation
 
@@ -36,7 +36,7 @@ The name is a closed decision, recorded in [ADR 0004](docs/adr/0004-naming.md).
 
 ## Contributing
 
-The project is pre-implementation: the most useful contribution today is to the documentation — a contradiction spotted, a case left uncovered. [`CONTRIBUTING.md`](CONTRIBUTING.md) sets out how, and what is not up for discussion.
+The documentation is settled and the code has started, so both are open: a contradiction spotted in a document, a case left uncovered by a test. [`CONTRIBUTING.md`](CONTRIBUTING.md) sets out how, and what is not up for discussion.
 
 This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
 
