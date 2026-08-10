@@ -87,8 +87,12 @@ describe.each(PACKAGES)("@perchjs/%s", (pkg) => {
   });
 
   it("backs every peer dependency with a dev dependency", () => {
-    // Without it the package cannot compile in this repository, and CI would be
-    // testing against a library that is not installed.
+    // Two reasons, and only the first is obvious. A package that imports its
+    // peer cannot compile here without it. The second holds even for a peer
+    // nothing imports — @perchjs/prisma describes the Prisma client
+    // structurally and never names it — because the assertion below reads the
+    // dev version to check the peer range admits it. Drop the dev dependency
+    // as "unused" and that check silently has nothing to compare.
     const peers = Object.keys(m.peerDependencies ?? {});
     const dev = Object.keys(m.devDependencies ?? {});
     expect(peers.filter((p) => !dev.includes(p))).toEqual([]);
