@@ -29,7 +29,7 @@ import { admit } from "./admission.js";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf, sameOrigin } from "./panel-root.js";
 import { recordId } from "./record-id.js";
-import { projectOne } from "./records-query.js";
+import { projectOne } from "./row-projection.js";
 import type { RedirectAfterCreate } from "./redirect.js";
 import { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
 import type { RegisteredResource } from "./resource-registry.js";

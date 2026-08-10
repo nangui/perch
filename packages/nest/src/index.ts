@@ -36,7 +36,13 @@ export type { PanelModuleOptions } from "./panel.module.js";
 export type { RecordsResponse } from "./panel-records.controller.js";
 export { PanelRecordsController } from "./panel-records.controller.js";
 export type { RawQuery } from "./records-query.js";
-export { DEFAULT_PER_PAGE, MAX_PER_PAGE, readQuery } from "./records-query.js";
+export {
+  DEFAULT_PER_PAGE,
+  MAX_PER_PAGE,
+  MAX_SKIP,
+  readQuery,
+} from "./records-query.js";
+export { project, projectOne, visibleKeys } from "./row-projection.js";
 export { PanelModule } from "./panel.module.js";
 export type { PanelResourceOptions, ResourceMetadata } from "./resource.js";
 export { PANEL_RESOURCE, PanelResource, resourceMetadata } from "./resource.js";

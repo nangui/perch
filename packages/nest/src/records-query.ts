@@ -1,18 +1,15 @@
 /**
- * The trust boundary of a read, in both directions.
+ * The trust boundary of a read, on the way in.
  *
- * On the way in, `/records` takes its paging, sorting, searching and filtering
- * from the query string, which is to say from an attacker. Stage 5 does this
- * for writes; this is the same job on the other side, and the rule is the same
- * one: what was not declared is dropped without a word.
+ * `/records` takes its paging, sorting, searching and filtering from the query
+ * string, which is to say from an attacker. Stage 5 does this for writes; this
+ * is the same job on the other side, and the rule is the same one: what was not
+ * declared is dropped without a word, because naming the reason would say which
+ * fields exist.
  *
- * On the way out, the rows are cut down to what the table declared. Every other
- * file in this repository already knows why — `serialise.ts` omits an invisible
- * node rather than flagging it, because "a node the client never receives
- * cannot leak its value". A row is no different, and a table that names three
- * columns while the model has thirty was sending all thirty.
+ * What goes back out is `row-projection.ts`, which serves the writes too.
  */
-import type { Ir, Query, Row, Sort, SortDirection, Table } from "@perchjs/core";
+import type { Ir, Query, Sort, SortDirection, Table } from "@perchjs/core";
 import { findModel, sortablePaths } from "@perchjs/core";
 
 export const DEFAULT_PER_PAGE = 25;
@@ -126,50 +123,4 @@ function clamp(value: number, low: number, high: number): number {
 function text(raw: unknown): string | undefined {
   if (typeof raw !== "string" || raw === "") return undefined;
   return raw;
-}
-
-/**
- * The row keys a client may receive: the ones its columns name, and the key it
- * addresses rows by.
- *
- * Top-level segments, so `author.name` keeps `author`. Relations are not loaded
- * at all yet — `include` waits on the same declaration — so today that segment
- * is simply absent from the row; when it arrives, the whole related object goes
- * with it and cutting *that* down is its own piece of work.
- *
- * Without a table the default is the pair the sort allowlist already uses: the
- * key, and the label a human reads the row by. Declaring a table widens both,
- * and nothing else does.
- */
-export function visibleKeys(
-  model: string,
-  ir: Ir,
-  table: Table | undefined,
-): ReadonlySet<string> {
-  const meta = findModel(ir, model);
-  const key = meta?.primaryKey.name;
-
-  if (table === undefined) {
-    return new Set([key, meta?.labelField].filter((n): n is string => n !== undefined));
-  }
-  const declared = table.state.columns.map((c) => head(c.state.path));
-  return new Set([...declared, key].filter((n): n is string => n !== undefined));
-}
-
-/** Nothing else crosses. A row is rebuilt, never merely hidden. */
-export function project(
-  rows: readonly Row[],
-  keys: ReadonlySet<string>,
-): readonly Row[] {
-  return rows.map((row) => projectOne(row, keys));
-}
-
-export function projectOne(row: Row, keys: ReadonlySet<string>): Row {
-  const out: Record<string, unknown> = {};
-  for (const key of keys) if (key in row) out[key] = row[key];
-  return out;
-}
-
-function head(path: string): string {
-  return path.split(".")[0] ?? path;
 }
