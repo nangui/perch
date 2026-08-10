@@ -197,8 +197,24 @@ describe("creating", () => {
     });
 
     expect(status).toBe(200);
-    expect(body.record?.["title"]).toBe("New");
+    // The answer carries the key and nothing else; what was written is read
+    // from the store, which is where it matters.
+    expect(Object.keys(body.record ?? {})).toEqual(["id"]);
     expect(created()?.["title"]).toBe("New");
+  });
+
+  it("never hands the hashed password back to the browser", async () => {
+    // The hook writes it under the field's own name, so "answer with what the
+    // form declared" is not narrow enough — the answer is the key alone.
+    const url = await serve();
+    const { body } = await send(url, "/admin/api/posts", "POST", {
+      title: "New",
+      password: "secret",
+    });
+
+    expect(created()?.["password"]).toBe("hashed:secret");
+    expect(JSON.stringify(body.record)).not.toContain("hashed");
+    expect(body.record).not.toHaveProperty("password");
   });
 
   it("runs mutateFormDataBeforeCreate on the way out", async () => {

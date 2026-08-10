@@ -29,6 +29,7 @@ import { admit } from "./admission.js";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf, sameOrigin } from "./panel-root.js";
 import { recordId } from "./record-id.js";
+import { projectOne } from "./records-query.js";
 import type { RedirectAfterCreate } from "./redirect.js";
 import { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
 import type { RegisteredResource } from "./resource-registry.js";
@@ -90,7 +91,8 @@ export class PanelSaveController {
     const record = await data.create(resource.metadata.model, { set: values });
 
     const where = this.#where(resource, request, slug, data, record);
-    return where === undefined ? { record } : { record, redirect: where };
+    const shown = identity(data, resource.metadata.model, record);
+    return where === undefined ? { record: shown } : { record: shown, redirect: where };
   }
 
   @Patch(":id")
@@ -117,7 +119,8 @@ export class PanelSaveController {
 
     const mutate = resource.instance.mutateFormDataBeforeSave?.bind(resource.instance);
     const values = (await mutate?.(written.values)) ?? written.values;
-    return { record: await data.update(model, key, { set: values }) };
+    const updated = await data.update(model, key, { set: values });
+    return { record: identity(data, model, updated) };
   }
 
   /**
@@ -198,4 +201,21 @@ function readState(body: unknown): Record<string, unknown> {
     throw new NotFoundException();
   }
   return state as Record<string, unknown>;
+}
+
+/**
+ * What a save answers with: the key of the row it wrote, and nothing else.
+ *
+ * It used to be the whole row, which carries every column the model has, and
+ * nothing on the client reads any of them. `/records` learned this for a table;
+ * a save is the same wire and the same rule.
+ *
+ * The key alone, rather than the fields the form declared. That narrower rule
+ * was tried first and does not hold: `mutateFormDataBeforeCreate` hashes a
+ * password *under the field's own name*, so "what the form declared" hands the
+ * hash back to the browser that supplied the plaintext. The key is what the
+ * redirect already contains, so it says nothing new.
+ */
+function identity(data: DataAdapter, model: string, row: Row): Row {
+  return projectOne(row, new Set([data.meta(model).primaryKey.name]));
 }

@@ -161,11 +161,13 @@ export function project(
   rows: readonly Row[],
   keys: ReadonlySet<string>,
 ): readonly Row[] {
-  return rows.map((row) => {
-    const out: Record<string, unknown> = {};
-    for (const key of keys) if (key in row) out[key] = row[key];
-    return out;
-  });
+  return rows.map((row) => projectOne(row, keys));
+}
+
+export function projectOne(row: Row, keys: ReadonlySet<string>): Row {
+  const out: Record<string, unknown> = {};
+  for (const key of keys) if (key in row) out[key] = row[key];
+  return out;
 }
 
 function head(path: string): string {
