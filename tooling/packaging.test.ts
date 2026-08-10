@@ -16,10 +16,23 @@
  * dependency is a perfectly valid manifest. So it is checked here, before the
  * code that would suffer from it exists.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const PACKAGES = ["core", "prisma", "nest", "ui", "cli"] as const;
+/**
+ * Every workspace package, read from disk rather than listed. A sixth package
+ * was added and both hardcoded lists silently stopped covering the workspace;
+ * deriving it is what makes that impossible rather than merely unlikely.
+ */
+const PACKAGES = readdirSync(new URL("../packages", import.meta.url), {
+  withFileTypes: true,
+})
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .filter((name) =>
+    existsSync(new URL(`../packages/${name}/package.json`, import.meta.url)),
+  )
+  .sort();
 
 /** Libraries the host application owns. Never bundled, never depended upon. */
 const HOST_OWNED = [

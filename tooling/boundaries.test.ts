@@ -13,7 +13,7 @@
  * checked here.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -21,7 +21,20 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const DEPCRUISE = join(ROOT, "node_modules", ".bin", "depcruise");
 const ARGS = ["packages", "--config", ".dependency-cruiser.cjs"];
-const PACKAGES = ["core", "prisma", "nest", "ui", "cli"] as const;
+/**
+ * Every workspace package, read from disk rather than listed. A sixth package
+ * was added and both hardcoded lists silently stopped covering the workspace;
+ * deriving it is what makes that impossible rather than merely unlikely.
+ */
+const PACKAGES = readdirSync(new URL("../packages", import.meta.url), {
+  withFileTypes: true,
+})
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .filter((name) =>
+    existsSync(new URL(`../packages/${name}/package.json`, import.meta.url)),
+  )
+  .sort();
 
 /**
  * `@perchjs/*` resolves through its exports map, which points into `dist`. On a
