@@ -27,7 +27,8 @@ import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import { admit } from "./admission.js";
 import type { IncomingUrl } from "./panel-root.js";
-import { rootOf, sameOrigin } from "./panel-root.js";
+import { rootOf } from "./panel-root.js";
+import { resourcePath } from "./records.js";
 import { recordId } from "./record-id.js";
 import { projectOne } from "./row-projection.js";
 import type { RedirectAfterCreate } from "./redirect.js";
@@ -138,15 +139,19 @@ export class PanelSaveController {
     const target = resource.instance.redirectAfterCreate ?? this.#redirect;
     if (target === "none") return undefined;
 
+    const root = rootOf(request, `api/${slug}`);
+    // The same guard, and the same function, every other link in the panel
+    // goes through.
+    const list = resourcePath(root, slug);
+    if (list === undefined) return undefined;
+    if (target === "index") return list;
+
     const key = record[data.meta(resource.metadata.model).primaryKey.name];
     // Anything else is not a key this panel can put in a URL, so it stays put
     // rather than sending the browser somewhere invented.
     if (typeof key !== "string" && typeof key !== "number") return undefined;
 
-    const root = rootOf(request, `api/${slug}`);
-    const where = `${root}/${slug}/${encodeURIComponent(String(key))}/edit`;
-
-    return sameOrigin(where);
+    return `${list}/${encodeURIComponent(String(key))}/edit`;
   }
 
   #context(

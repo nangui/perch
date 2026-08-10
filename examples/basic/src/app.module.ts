@@ -11,6 +11,9 @@ export class AppServices {}
     PanelModule.forRoot({
       path: "/admin",
       resources: [PersonResource],
+      // Where a create lands (PRD 05 §3.2). "edit" is the default; "index"
+      // sends you back to the table you came from.
+      redirectAfterCreate: "index",
       // A real panel passes @perchjs/prisma here.
       dataAdapter: MemoryAdapter,
       // Resources are built by the container, so what they inject has to be

@@ -147,7 +147,7 @@ afterEach(async () => {
 async function serve(
   withAdapter = true,
   globalPrefix?: string,
-  redirectAfterCreate?: "edit" | "none",
+  redirectAfterCreate?: "edit" | "index" | "none",
 ): Promise<string> {
   const base = {
     path: "/admin",
@@ -244,6 +244,27 @@ describe("where a create lands", () => {
     const body = (await response.json()) as SaveResponse;
 
     expect(body.redirect).toContain("/api/v1/admin/posts/");
+  });
+
+  it("lands on the list when the panel asks for the index", async () => {
+    // PRD 05 §3.2 names three targets; `index` is the one the list page made
+    // buildable, and it is what a developer declares.
+    const url = await serve(true, undefined, "index");
+    const { body } = await send(url, "/admin/api/posts", "POST", { title: "New" });
+
+    expect(body.redirect).toBe("/admin/posts");
+  });
+
+  it("keeps the host's prefix on the way to the list", async () => {
+    const url = await serve(true, "api/v1", "index");
+    const response = await fetch(`${url}/api/v1/admin/api/posts`, {
+      method: "POST",
+      headers: { "x-user": "ada", "content-type": "application/json" },
+      body: JSON.stringify({ state: { title: "New" } }),
+    });
+    const body = (await response.json()) as SaveResponse;
+
+    expect(body.redirect).toBe("/api/v1/admin/posts");
   });
 
   it("says nothing when the panel asks it not to", async () => {
