@@ -59,16 +59,18 @@ interface RelationMeta {
 
 Mapping table from IR to default field. This is what makes generation useful rather than dumb.
 
+**A name is matched word by word, not by substring.** `websiteUrl` is split into `website` and `url` before any rule is consulted. A substring test both misses `websiteUrl`, where `url` sits at a camelCase boundary, and fires on `season` for a rule about `on`. Both happened.
+
 | Metadata | Inferred field | Automatic options |
 |---|---|---|
 | `String` | `TextInput` | `maxLength` from `@db.VarChar` |
-| `String` + name contains `email` | `TextInput` | `.email()` |
-| `String` + name contains `password` | `TextInput` | `.password()`, `.dehydrated(false if empty)` |
-| `String` + name contains `url`/`link` | `TextInput` | `.url()` |
+| `String` + a word in `email`, `mail` | `TextInput` | `.email()` |
+| `String` + a word in `password`, `passwd`, `pwd` | `TextInput` | `.password()`, `.dehydrated(false if empty)` |
+| `String` + a word in `url`, `uri`, `link`, `href`, `website`, `homepage` | `TextInput` | `.url()` |
 | `String` + `@db.Text` | `Textarea` | — |
-| `Int` / `Float` / `Decimal` | `TextInput` | `.numeric()`, precision from `@db.Decimal` |
+| `Int` / `Float` / `Decimal` / `BigInt` | `TextInput` | `.numeric()`, precision from `@db.Decimal` |
 | `Boolean` | `Toggle` | — |
-| `DateTime` | `DateTimePicker` | `.date()` alone if the name ends in `Date`/`On` |
+| `DateTime` | `DateTimePicker` | `.date()` alone if a word is `date`, `on`, `day` or `birthday` |
 | `enum` | `Select` | `.options()` from `enumValues` |
 | `Json` | `KeyValue` (v0.2) | falls back to `CodeEditor` |
 | `one` relation | `Select` | `.relationship(name, labelField)` |
@@ -76,7 +78,11 @@ Mapping table from IR to default field. This is what makes generation useful rat
 | `isRequired && !hasDefault` | — | `.required()` |
 | `isUnique` | — | `.unique(ignoreRecord: true)` |
 | `isReadOnly` or `isId` | *excluded from the form* | visible in the table and the infolist |
+| a relation's foreign key | *not offered at all* | the relation above already writes that column, and offering both is two controls for one column |
+| `deletedAt` on a model with `hasSoftDelete` | *excluded from the form* | a date picker on it would delete the row (ADR 0014) |
 | non-empty `documentation` | — | `.helperText(documentation)` |
+
+Every exclusion but one carries its reason, so the generated resource can show the field commented out — more useful than pretending the column does not exist. The exception is the foreign key, which is not returned at all: it is not an excluded field but a column the relation above already represents.
 
 **Label field detection** on a target model, in priority order: `name` → `title` → `label` → `email` → `slug` → first unique `String` → primary key.
 
