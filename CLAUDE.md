@@ -1,156 +1,155 @@
 # CLAUDE.md — Perch
 
-Contexte permanent pour tout agent travaillant sur ce dépôt. Lis ce fichier en entier avant
-d'agir, à chaque session.
+Standing context for any agent working on this repository. Read it in full before acting,
+every session.
 
-## Ce qu'est ce projet
+## What this project is
 
-**Perch** — un framework UI open source pour NestJS. On définit une resource en TypeScript, on
-obtient un panneau d'administration complet, on n'écrit jamais de front. C'est l'équivalent de
-Laravel Filament pour l'écosystème Node.
+**Perch** — an open-source UI framework for NestJS. You declare a resource in TypeScript and
+get a complete admin panel; you never write any front end. It is the equivalent of Laravel
+Filament for the Node ecosystem.
 
-Statut : **en implémentation**. La documentation est complète et figée. `packages/prisma`
-lit le DMMF, `packages/core` porte l'arbre de composants, le cycle de résolution, la frontière
-de confiance et le format de transport, et `packages/ui` rend cet arbre. Le jalon A1 passe en
-test ; il n'est pas livré tant que le protocole HTTP et le budget p95 n'existent pas.
+Status: **in implementation**. The documentation is complete and settled. `packages/prisma`
+reads the DMMF, `packages/core` carries the component tree, the resolution cycle, the trust
+boundary and the transport format, and `packages/ui` renders that tree. Milestone A1 passes in
+test; it is not shipped until the HTTP protocol and the p95 budget exist.
 
-## À lire avant d'agir
+## Read before acting
 
-Ne commence aucune tâche sans avoir lu les documents concernés. Ils font autorité sur ce fichier.
+Start no task without having read the documents it touches. They have authority over this file.
 
-| Tu vas… | Lis d'abord |
+| You are about to… | Read first |
 |---|---|
-| n'importe quoi | `docs/adr/` — les décisions structurantes |
-| comprendre la cible | `docs/REF-filament.md` |
-| toucher au backend | `docs/12-ARCH-backend.md` |
-| toucher au frontend | `docs/13-ARCH-frontend.md` |
-| écrire la couche métadonnées | `docs/01-PRD-metadata-layer.md` |
-| écrire le moteur de schémas | `docs/02-PRD-schema-engine.md` |
-| écrire le protocole ou le renderer | `docs/03-PRD-protocol-renderer.md` |
-| ajouter un champ, une colonne, une action | le PRD correspondant (06, 07, 08) |
+| anything | `docs/adr/` — the structural decisions |
+| understand the target | `docs/REF-filament.md` |
+| touch the backend | `docs/12-ARCH-backend.md` |
+| touch the frontend | `docs/13-ARCH-frontend.md` |
+| write the metadata layer | `docs/01-PRD-metadata-layer.md` |
+| write the schema engine | `docs/02-PRD-schema-engine.md` |
+| write the protocol or the renderer | `docs/03-PRD-protocol-renderer.md` |
+| add a field, a column, an action | the matching PRD (06, 07, 08) |
 
-`docs/README.md` donne l'ordre de lecture complet.
+`docs/README.md` gives the full reading order.
 
-## Invariants — ne jamais enfreindre
+## Invariants — never break these
 
-Ces huit règles sont violées par défaut si on ne les a pas en tête. Chacune est justifiée dans
-la documentation ; ne les rediscute pas, applique-les.
+These eight rules are broken by default unless you hold them in mind. Each is justified in the
+documentation; do not relitigate them, apply them.
 
-1. **L'état est autoritatif côté serveur.** Le client est un interpréteur, pas une application :
-   zéro logique métier, zéro évaluation de condition, zéro calcul d'options côté client. Si tu es
-   tenté d'y déroger « juste pour la réactivité », la réponse est : le serveur, avec un debounce.
-2. **`@perchjs/core` n'importe ni `@nestjs/*`, ni `@prisma/client`, ni `react`.** Les flèches de
-   dépendance ne pointent que vers l'intérieur. Un test `dependency-cruiser` doit le garantir.
-3. **Les builders sont immutables.** Chaque méthode fluide retourne un clone. Un builder mutable
-   partagé entre requêtes fait fuiter l'état d'un utilisateur vers un autre — c'est une faille de
-   sécurité, pas un choix de style.
-4. **Tout état entrant du client est rejoué contre l'arbre de schéma** (étage 5 du pipeline).
-   Chemin inconnu, champ invisible, `disabled` ou `readOnly` → écarté **silencieusement**, jamais
-   avec un message qui renseignerait un attaquant.
-5. **Un champ invisible n'est jamais validé ni persisté.** Idem pour `.dehydrated(false)`.
-6. **Le rendu des cellules de table est plat.** Pas de composant React par cellule avec hooks et
-   contexte : une fonction de rendu mémoïsée par *type de colonne*. Filament a dû réécrire tout
-   son rendu de tables pour cette raison — on ne repasse pas par son erreur.
-7. **Aucune requête N+1.** Toute colonne de relation produit un `include`. Le compteur de requêtes
-   SQL est un test bloquant, pas une intention.
-8. **L'autorisation est vérifiée côté serveur à l'exécution**, jamais seulement au rendu du
-   bouton. Un bouton masqué n'est pas une protection.
+1. **State is authoritative on the server.** The client is an interpreter, not an application:
+   no business logic, no condition evaluation, no option computation on the client. If you are
+   tempted to bend this "just for responsiveness", the answer is: the server, with a debounce.
+2. **`@perchjs/core` imports neither `@nestjs/*`, nor `@prisma/client`, nor `react`.** Dependency
+   arrows only ever point inward. A `dependency-cruiser` test must guarantee it.
+3. **Builders are immutable.** Every fluent method returns a clone. A mutable builder shared
+   between requests leaks one user's state into another's — that is a security hole, not a
+   matter of style.
+4. **Every piece of client state is replayed against the schema tree** (stage 5 of the pipeline).
+   Unknown path, invisible field, `disabled` or `readOnly` → discarded **silently**, never with
+   a message that would inform an attacker.
+5. **An invisible field is never validated nor persisted.** The same holds for
+   `.dehydrated(false)`.
+6. **Table cell rendering is flat.** No React component per cell with hooks and context: one
+   memoised render function per *column type*. Filament had to rewrite its whole table rendering
+   for this reason — we do not repeat its mistake.
+7. **No N+1 queries.** Every relation column produces an `include`. The SQL query counter is a
+   blocking test, not an intention.
+8. **Authorization is checked on the server at execution time**, never only when the button is
+   rendered. A hidden button is not a protection.
 
-## Où on en est, et par quoi commencer
+## Where we are, and where to start
 
-Le chemin critique est **le jalon A1** :
+The critical path is **milestone A1**:
 
-> Un `Select` « ville » dont les options dépendent d'un `Select` « pays », qui se met à jour en un
-> seul aller-retour, avec zéro ligne de JavaScript écrite par l'utilisateur.
+> A "city" `Select` whose options depend on a "country" `Select`, updating in a single round
+> trip, with zero lines of JavaScript written by the user.
 
-**Construire en tranche verticale, pas couche par couche.** Ordre imposé :
+**Build in a vertical slice, not layer by layer.** The order is fixed:
 
-1. `packages/prisma` — DMMF → représentation intermédiaire (PRD 01). Mécanique, débloque tout.
-2. `packages/core` — `Field`, `Schema`, résolution d'état, avec A1 comme unique test.
-3. `packages/ui` — renderer minimal, 3 champs, et A1 qui tourne de bout en bout.
+1. `packages/prisma` — DMMF → intermediate representation (PRD 01). Mechanical, unblocks
+   everything.
+2. `packages/core` — `Field`, `Schema`, state resolution, with A1 as the single test.
+3. `packages/ui` — minimal renderer, 3 fields, and A1 running end to end.
 
-**Si A1 n'est pas élégant ou dépasse 150 ms en p95, on s'arrête et on redessine le protocole.**
-Ne construis pas A2, A3 ou A4 sur un A1 bancal.
+**If A1 is not elegant, or exceeds 150 ms at p95, we stop and redesign the protocol.** Do not
+build A2, A3 or A4 on a shaky A1.
 
-Les jalons suivants : A2 (table + relation + filtre + bulk + modale), A3 (repeater imbriqué en
-transaction), A4 (module tiers injectant un champ). Détaillés dans `docs/00-PRD-MASTER.md` §9.
+The later milestones: A2 (table + relation + filter + bulk + modal), A3 (nested repeater in a
+transaction), A4 (third-party module injecting a field). Detailed in `docs/00-PRD-MASTER.md` §9.
 
-## Structure des paquets
+## Package layout
 
-| Paquet | Responsabilité | Peut importer |
+| Package | Responsibility | May import |
 |---|---|---|
-| `@perchjs/core` | moteur de schémas, résolution d'état, validation | rien |
-| `@perchjs/prisma` | DMMF → IR, exécution des requêtes | core |
+| `@perchjs/core` | schema engine, state resolution, validation | nothing |
+| `@perchjs/prisma` | DMMF → IR, query execution | core |
 | `@perchjs/nest` | `PanelModule`, routing, guards, navigation | core |
-| `@perchjs/ui` | renderer React, registre de composants | core (types seulement) |
-| `@perchjs/cli` | génération de code | core |
+| `@perchjs/ui` | React renderer, component registry | core (types only) |
+| `@perchjs/cli` | code generation | core |
 
 ## Stack
 
-NestJS · Prisma · PostgreSQL · React 19 · Tailwind v4 · Radix · Zod · TypeScript strict.
+NestJS · Prisma · PostgreSQL · React 19 · Tailwind v4 · Radix · Zod · strict TypeScript.
 
-Prisma seulement, PostgreSQL seulement, Express seulement en v0.1. L'interface `DataAdapter`
-existe pour rendre d'autres adaptateurs possibles plus tard — **ne l'implémente pas maintenant,
-mais ne franchis jamais la frontière.**
+Prisma only, PostgreSQL only, Express only in v0.1. The `DataAdapter` interface exists to make
+other adapters possible later — **do not implement one now, and never cross the boundary.**
 
-## Garde-fous CI — dès le premier commit
+## CI guardrails — from the first commit
 
-Ce ne sont pas des tâches pour plus tard. Ils existent avant le code qu'ils protègent.
+These are not tasks for later. They exist before the code they protect.
 
-- test de dépendances : `core` reste pur
-- compteur de requêtes SQL par page (anti-N+1)
-- budget de latence p95 sur `/state` et `/records`
-- test de concurrence : 100 requêtes parallèles, aucun état partagé
-- tests d'attaque : état falsifié, chemin inconnu, action non autorisée
-- test de contrat DMMF
+- dependency test: `core` stays pure
+- SQL query counter per page (anti N+1)
+- p95 latency budget on `/state` and `/records`
+- concurrency test: 100 parallel requests, no shared state
+- attack tests: forged state, unknown path, unauthorised action
+- DMMF contract test
 
-## Façon de travailler
+## How we work
 
-**Tu n'exécutes aucune commande git.** Ni `init`, ni `add`, ni `commit`, ni `push`, ni `gh`. Tu
-me donnes les commandes dans des blocs copiables, au fur et à mesure de ton avancement, et
-j'exécute moi-même. Tu peux créer, modifier et supprimer des fichiers librement.
+**You run no git command.** Not `init`, not `add`, not `commit`, not `push`, not `gh`. You give
+me the commands in copyable blocks as you go, and I run them myself. You may create, modify and
+delete files freely.
 
-**Une étape à la fois.** Tu t'arrêtes après chaque étape, tu montres ce que tu as fait, tu donnes
-le commit correspondant, et tu attends ma confirmation.
+**One step at a time.** You stop after each step, show what you did, give the matching commit,
+and wait for my confirmation.
 
-**Commits :** Conventional Commits, en anglais, à l'impératif, sujet ≤ 72 caractères.
-Types : `feat` `fix` `docs` `chore` `refactor` `test` `build` `ci`.
-Scopes : `core` `prisma` `nest` `ui` `cli` `docs` `repo`.
-Un commit = un changement logique. Le corps explique le *pourquoi*, pas le *comment*.
+**Commits:** Conventional Commits, in English, imperative, subject ≤ 72 characters.
+Types: `feat` `fix` `docs` `chore` `refactor` `test` `build` `ci`.
+Scopes: `core` `prisma` `nest` `ui` `cli` `docs` `repo`.
+One commit = one logical change. The body explains the *why*, not the *how*.
 
-**Tout en anglais** — documentation, code, commentaires, noms de symboles, messages de commit.
-Le dépôt est la publication : un ADR répond à « pourquoi c'est comme ça », et cette réponse ne
-sert à rien à un contributeur qui ne peut pas la lire. Rédiger en français puis publier en
-anglais reste parfaitement légitime.
+**Everything in English** — documentation, code, comments, symbol names, commit messages. The
+repository is the publication: an ADR answers "why is it like this", and that answer is useless
+to a contributor who cannot read it. Drafting in French and publishing in English remains
+perfectly legitimate.
 
-**Migration terminée, à deux exceptions près.** Tout `docs/` et les fichiers racine sont en
-anglais. Restent en français : `docs/BRIEF-design.md`, qui porte un prompt destiné à un outil de
-design plutôt que de la spécification, et ce fichier. N'en traduis aucun de ta propre initiative.
+**The migration is complete.** No file in this repository is in French any more, this one
+included. Keep it that way.
 
-## Vocabulaire
+## Vocabulary
 
-| Terme | Sens précis dans ce projet |
+| Term | Precise meaning in this project |
 |---|---|
-| **Resource** | une classe décrivant le CRUD d'un modèle Prisma |
-| **Schema** | l'arbre de composants déclaratif (forms, infolists, layouts) |
-| **Field** | un composant porteur d'état et soumis à validation |
-| **Resolver** | une fonction évaluée **côté serveur** produisant une valeur dynamique |
-| **IR** | la représentation intermédiaire issue du DMMF |
-| **WriteTree** | l'arbre d'écriture, incluant les écritures imbriquées |
-| **schemaPatch** | le diff de schéma renvoyé après un changement d'état |
-| **Étage 5** | la frontière de confiance du pipeline backend |
-| **A1…A4** | les quatre jalons d'acceptation |
+| **Resource** | a class describing the CRUD of a Prisma model |
+| **Schema** | the declarative component tree (forms, infolists, layouts) |
+| **Field** | a component carrying state and subject to validation |
+| **Resolver** | a function evaluated **on the server** producing a dynamic value |
+| **IR** | the intermediate representation produced from the DMMF |
+| **WriteTree** | the write tree, nested writes included |
+| **schemaPatch** | the schema diff returned after a state change |
+| **Stage 5** | the trust boundary of the backend pipeline |
+| **A1…A4** | the four acceptance milestones |
 
-## Ce qu'il ne faut pas faire
+## What not to do
 
-- Rediscuter une décision documentée dans un ADR. Chacun contient sa **règle de réouverture** —
-  si elle n'est pas remplie, le dossier est clos. Le nom du projet en particulier n'est pas
-  rediscutable.
-- Modifier un ADR existant. Une décision qui change donne lieu à un **nouvel** ADR qui supersède
-  l'ancien.
-- Reformuler, résumer ou « améliorer » un document de `docs/`. Signale-moi ce qui te paraît faux,
-  ne le corrige pas de toi-même.
-- Ajouter une dépendance sans me le dire explicitement et me dire pourquoi.
-- Construire une fonctionnalité listée « hors périmètre » dans un PRD. Le hors-périmètre est
-  aussi contraignant que le périmètre : il empêche la dérive vers un CMS.
-- Livrer un champ « à moitié fini ». Dix champs complets valent mieux que vingt approximatifs.
+- Relitigate a decision recorded in an ADR. Each carries its **reopening rule** — if it is not
+  met, the matter is closed. The project name in particular is not up for discussion.
+- Modify an existing ADR. A decision that changes gives rise to a **new** ADR superseding the
+  old one.
+- Reword, summarise or "improve" a document in `docs/`. Tell me what looks wrong to you; do not
+  fix it on your own initiative.
+- Add a dependency without telling me explicitly and telling me why.
+- Build a feature listed as "out of scope" in a PRD. Out of scope constrains as tightly as
+  scope: it is what stops the drift towards a CMS.
+- Ship a "half-finished" field. Ten complete fields beat twenty approximate ones.
