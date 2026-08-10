@@ -29,7 +29,13 @@ export interface FieldMeta {
   readonly isList: boolean;
   readonly isId: boolean;
   readonly isUnique: boolean;
-  /** `@default(autoincrement())`, `@updatedAt`: the database owns this value. */
+  /**
+   * Produced when the row is written rather than chosen: `autoincrement()`,
+   * `now()`, `uuid()`, `dbgenerated()`, `@updatedAt`. Not "has a database
+   * default" — `@default(true)` is one and is a value a person can pick.
+   *
+   * Not the column a relation owns; that is `RelationMeta.foreignKeyFields`.
+   */
   readonly isReadOnly: boolean;
   readonly hasDefault: boolean;
   readonly default?: unknown;

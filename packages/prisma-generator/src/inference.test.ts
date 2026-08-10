@@ -106,8 +106,15 @@ describe("inferField — by name, and the switch that turns it off", () => {
   });
 
   it("keeps time when the name says nothing about it", () => {
-    const createdAt = inferField(findField(User, "createdAt")!);
-    expect(createdAt.dateOnly).toBeUndefined();
+    // The component is asserted too, and it is the point: `dateOnly` reads
+    // undefined both when a field reached the date inference and kept its time,
+    // and when it never got there at all. This test used `createdAt` until that
+    // became read-only and returned early, at which point it passed while
+    // testing nothing.
+    const deletedAt = inferField(findField(User, "deletedAt")!);
+
+    expect(deletedAt.component).toBe("DateTimePicker");
+    expect(deletedAt.dateOnly).toBeUndefined();
   });
 
   it("strict mode drops every name-based guess, keeping declared metadata", () => {
@@ -126,9 +133,10 @@ describe("inferField — what is kept out of a form", () => {
     expect(infer(User, "id").excludedFromForm).toBe("identifier");
   });
 
-  it("excludes read-only fields, @updatedAt included", () => {
+  it("excludes what the database owns, and offers what it merely defaults", () => {
     expect(infer(User, "updatedAt").excludedFromForm).toBe("read-only");
-    expect(infer(User, "createdAt").excludedFromForm).toBeUndefined();
+    expect(infer(User, "createdAt").excludedFromForm).toBe("read-only");
+    expect(infer(User, "isActive").excludedFromForm).toBeUndefined();
   });
 });
 

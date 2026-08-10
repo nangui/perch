@@ -10,6 +10,20 @@ import { FIXTURE_DMMF, FIXTURE_MODEL_COUNT } from "./__fixtures__/dmmf.js";
 
 const ir = readDmmf(FIXTURE_DMMF);
 
+/** A DMMF field with the flags this file's inline models do not care about. */
+function scalarField(over: Record<string, unknown>): Record<string, unknown> {
+  return {
+    kind: "scalar",
+    isRequired: true,
+    isList: false,
+    isId: false,
+    isUnique: false,
+    isReadOnly: false,
+    hasDefaultValue: false,
+    ...over,
+  };
+}
+
 describe("readDmmf — acceptance criterion 1", () => {
   it("reads a twelve-model schema with 1-1, 1-n and n-n relations", () => {
     expect(FIXTURE_MODEL_COUNT).toBeGreaterThanOrEqual(12);
@@ -55,12 +69,52 @@ describe("readDmmf — field metadata", () => {
     expect(updatedAt?.isReadOnly).toBe(true);
   });
 
-  it("carries Prisma's meaning of read-only, which is not the IR's", () => {
-    // Prisma marks the column a relation owns, not the one the database
-    // generates. Pinned because the contract test compares against it, and
-    // because an `id` reaching a form would then depend on `isId` alone.
-    expect(findField(findModel(ir, "Post")!, "authorId")?.isReadOnly).toBe(true);
-    expect(findField(findModel(ir, "Post")!, "id")?.isReadOnly).toBe(false);
+  it("disagrees with Prisma's read-only, and that is the decision", () => {
+    // Prisma marks the column a relation owns; the IR marks the value the
+    // database owns. They disagree on both of these, and the disagreement is
+    // deliberate — a foreign key is kept out of a form by its relation, not by
+    // this flag.
+    expect(findField(findModel(ir, "Post")!, "authorId")?.isReadOnly).toBe(false);
+    expect(findField(findModel(ir, "Post")!, "id")?.isReadOnly).toBe(true);
+  });
+
+  it("reads a generated default as owned, and a literal as offered", () => {
+    // `@default(now())` is the database supplying a value nobody types;
+    // `@default(true)` is a value the form may perfectly well send instead.
+    const User = findModel(ir, "User")!;
+
+    expect(findField(User, "createdAt")?.isReadOnly).toBe(true);
+    expect(findField(User, "isActive")?.isReadOnly).toBe(false);
+    expect(findField(User, "role")?.isReadOnly).toBe(false);
+    expect(findField(User, "email")?.isReadOnly).toBe(false);
+  });
+
+  it("offers a scalar list whose default is an empty list", () => {
+    // `@default([])` arrives as `[]` — an object, like a function default, and
+    // unlike one it carries no name. Without that distinction the field would
+    // read as database-owned and vanish from the form.
+    const listy = readDmmf({
+      datamodel: {
+        enums: [],
+        models: [
+          {
+            name: "Thing",
+            fields: [
+              scalarField({ name: "id", type: "Int", isId: true, isUnique: true }),
+              scalarField({
+                name: "tags",
+                type: "String",
+                isList: true,
+                hasDefaultValue: true,
+                default: [],
+              }),
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(findField(findModel(listy, "Thing")!, "tags")?.isReadOnly).toBe(false);
   });
 
   it("resolves enum values through datamodel.enums", () => {
