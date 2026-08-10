@@ -1224,3 +1224,83 @@
   font-family: var(--perch-font-mono);
   font-size: var(--perch-text-base);
 }
+
+/* Available to a screen reader, and to nothing else. Used by the table caption
+   and by the word an icon cell says out loud. */
+.perch-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.perch-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--perch-text-base);
+  color: var(--perch-content);
+}
+
+.perch-table__head {
+  padding: var(--perch-space-4) var(--perch-space-5);
+  text-align: left;
+  font-weight: 500;
+  color: var(--perch-content-muted);
+  border-bottom: 1px solid var(--perch-border-strong);
+  white-space: nowrap;
+}
+
+/* Dense on purpose: PRD 07 §1 puts the operator who reads 200 rows a day ahead
+   of the developer who reads one screenshot. */
+.perch-table__cell {
+  padding: var(--perch-space-4) var(--perch-space-5);
+  border-bottom: 1px solid var(--perch-border-subtle);
+  vertical-align: top;
+}
+
+/* A button rather than a click handler on the header, so the keyboard reaches
+   it (ARCH 13 §10). It carries no chrome of its own. */
+.perch-table__sort {
+  display: inline-flex;
+  gap: var(--perch-space-3);
+  align-items: center;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.perch-table__sort:hover {
+  color: var(--perch-content);
+}
+
+.perch-table__sort-mark {
+  color: var(--perch-accent);
+}
+
+.perch-table__empty {
+  padding: var(--perch-space-7);
+  text-align: center;
+  color: var(--perch-content-muted);
+}
+
+.perch-cell__icon[data-on="true"] {
+  color: var(--perch-accent);
+}
+
+.perch-cell__icon[data-on="false"] {
+  color: var(--perch-content-muted);
+}
+
+/* Development only: a column type with no registered renderer. */
+.perch-table__unknown {
+  color: var(--perch-danger-content);
+  font-family: var(--perch-font-mono);
+}

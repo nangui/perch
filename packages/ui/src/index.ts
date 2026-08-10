@@ -27,6 +27,15 @@ export {
 } from "./field-state.js";
 
 // The wrapper that reserves the help line.
+export type { ColumnRenderer } from "./column-registry.js";
+export {
+  lookupColumn,
+  registerColumn,
+  resetColumnRegistry,
+} from "./column-registry.js";
+export { registerBuiltInColumns } from "./columns.js";
+export type { DataTableProps, DataTableSort } from "./DataTable.js";
+export { DataTable } from "./DataTable.js";
 export type { ControlBinding, FieldShellProps } from "./FieldShell.js";
 export { FieldShell } from "./FieldShell.js";
 

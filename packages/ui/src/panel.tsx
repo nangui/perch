@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import type { SchemaPayload } from "@perchjs/core";
 import { PanelForm } from "./PanelForm.js";
+import { registerBuiltInColumns } from "./columns.js";
 import { registerBuiltInComponents } from "./renderers.js";
 import type {
   SaveRequest,
@@ -39,6 +40,7 @@ export function mount(element: HTMLElement): void {
   const id = element.dataset["id"];
 
   registerBuiltInComponents();
+  registerBuiltInColumns();
   createRoot(element).render(
     <PanelForm
       initial={JSON.parse(payload) as SchemaPayload}

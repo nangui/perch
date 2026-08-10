@@ -12,6 +12,7 @@ import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
 import type { SchemaPayload } from "@perchjs/core";
 import { mount } from "./panel.js";
+import { lookupColumn, resetColumnRegistry } from "./column-registry.js";
 import { resetRegistry } from "./registry.js";
 
 const payload: SchemaPayload = {
@@ -191,6 +192,28 @@ describe("absorbing the answer", () => {
 });
 
 describe("a shell that says too little", () => {
+  it("registers the column renderers too, not only the fields", () => {
+    // `columns.tsx` does not register on import — the package declares no
+    // JavaScript side effects, so a bundler may drop a module-scope call. Which
+    // makes this the only thing standing between a built panel and a table of
+    // question marks.
+    resetColumnRegistry();
+    expect(lookupColumn("TextColumn")).toBeUndefined();
+
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "create",
+          payload: JSON.stringify(payload),
+        }),
+      );
+    });
+
+    expect(lookupColumn("TextColumn")).toBeDefined();
+    expect(lookupColumn("IconColumn")).toBeDefined();
+  });
+
   it("refuses to mount rather than half working", () => {
     expect(() => {
       mount(element({ api: "/admin/api/people" }));
