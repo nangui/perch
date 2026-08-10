@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { emitIr } from "./emit.js";
 import { readDmmf } from "./dmmf-reader.js";
 import { readOptionsOf } from "./options.js";
+import { fingerprintOf } from "./schema-fingerprint.js";
 
 const { generatorHandler } = helper;
 
@@ -35,6 +36,14 @@ generatorHandler({
     await writeFile(
       join(directory, "ir.json"),
       `${JSON.stringify(ir, null, 2)}\n`,
+      "utf8",
+    );
+    // What `perch doctor` compares against to notice a stale IR. The
+    // fingerprint and nothing else: a path would differ between machines and a
+    // timestamp would change the file on every run, both noise in a diff.
+    await writeFile(
+      join(directory, "perch.meta.json"),
+      `${JSON.stringify({ schemaHash: await fingerprintOf(options.schemaPath) }, null, 2)}\n`,
       "utf8",
     );
   },

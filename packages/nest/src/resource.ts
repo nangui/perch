@@ -4,6 +4,7 @@
  * inject a business service and call `this.cities.byCountry(…)`.
  */
 import type { Schema, Table } from "@perchjs/core";
+import { defaultSlug, plural } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import type { RedirectAfterCreate } from "./redirect.js";
 import { Injectable, SetMetadata } from "@nestjs/common";
@@ -73,7 +74,7 @@ function withDefaults(options: PanelResourceOptions): ResourceMetadata {
   const label = options.label ?? spaced(options.model);
   return {
     model: options.model,
-    slug: options.slug ?? kebab(plural(options.model)),
+    slug: options.slug ?? defaultSlug(options.model),
     label,
     pluralLabel: options.pluralLabel ?? plural(label),
     ...(options.navigationGroup === undefined
@@ -86,24 +87,7 @@ function withDefaults(options: PanelResourceOptions): ResourceMetadata {
   };
 }
 
-/**
- * Deliberately naive — `y → ies`, `s/x/z/ch/sh → es`, otherwise `s`. It is a
- * default for a URL, not a linguistics engine: anything it gets wrong is fixed
- * by writing `slug` down, which is clearer than a rule nobody can predict.
- */
-function plural(word: string): string {
-  if (/[^aeiou]y$/i.test(word)) return `${word.slice(0, -1)}ies`;
-  if (/(s|x|z|ch|sh)$/i.test(word)) return `${word}es`;
-  return `${word}s`;
-}
-
-function kebab(word: string): string {
-  return word
-    .replace(/([a-z\d])([A-Z])/g, "$1-$2")
-    .replace(/\s+/g, "-")
-    .toLowerCase();
-}
-
+/** `OrderLine` → `Order Line`, which is what a human reads on a page. */
 function spaced(word: string): string {
   return word.replace(/([a-z\d])([A-Z])/g, "$1 $2");
 }

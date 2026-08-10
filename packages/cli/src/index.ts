@@ -10,25 +10,38 @@
  */
 import { parseArgs } from "node:util";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Ir } from "@perchjs/core";
+import type { Finding, Project } from "./doctor.js";
+import type { SchemaReading } from "./schema-fingerprint.js";
+import { diagnose } from "./doctor.js";
+import { readSchema } from "./schema-fingerprint.js";
 import { generateResource } from "./resource.js";
 
 export type { ResourceSource } from "./resource.js";
+export type { Finding, Level, Project } from "./doctor.js";
+export type { SchemaReading } from "./schema-fingerprint.js";
+export { readSchema } from "./schema-fingerprint.js";
+export { diagnose, SUPPORTED_PRISMA_MAJOR } from "./doctor.js";
 export { generateResource, slugOf } from "./resource.js";
 
 /** Where `@perchjs/prisma-generator` puts its output unless told otherwise. */
 export const DEFAULT_IR = "./perch/ir.json";
+export const DEFAULT_SCHEMA = "./prisma/schema.prisma";
+export const DEFAULT_SRC = "./src";
 
 const USAGE = `perch — code generation for a Perch panel
 
   perch resource <Model>   write src/admin/resources/<model>.resource.ts
+  perch doctor             check what this project is missing
 
 Options
-  --ir <path>   where the generated IR lives (default: ${DEFAULT_IR})
-  --force       overwrite a file that is already there
+  --ir <path>       where the generated IR lives (default: ${DEFAULT_IR})
+  --schema <path>   schema.prisma (default: ${DEFAULT_SCHEMA})
+  --src <path>      the application's source root (default: ${DEFAULT_SRC})
+  --force           overwrite a file that is already there
 `;
 
 export async function run(argv: readonly string[]): Promise<number> {
@@ -36,6 +49,8 @@ export async function run(argv: readonly string[]): Promise<number> {
     args: [...argv],
     options: {
       ir: { type: "string", default: DEFAULT_IR },
+      schema: { type: "string", default: DEFAULT_SCHEMA },
+      src: { type: "string", default: DEFAULT_SRC },
       force: { type: "boolean", default: false },
       help: { type: "boolean", default: false },
     },
@@ -46,6 +61,9 @@ export async function run(argv: readonly string[]): Promise<number> {
   if (values.help || command === undefined) {
     process.stdout.write(USAGE);
     return command === undefined && !values.help ? 1 : 0;
+  }
+  if (command === "doctor") {
+    return report(diagnose(await inspect(values.ir, values.schema, values.src)));
   }
   if (command !== "resource") {
     process.stderr.write(`perch: unknown command "${command}".\n\n${USAGE}`);
@@ -75,6 +93,118 @@ export async function run(argv: readonly string[]): Promise<number> {
   await writeFile(target, generated.contents, "utf8");
   process.stdout.write(`perch: wrote ${generated.path}\n`);
   return 0;
+}
+
+/** Every finding, worst first, and an exit code a script can read. */
+function report(findings: readonly Finding[]): number {
+  if (findings.length === 0) {
+    process.stdout.write("perch: nothing to report.\n");
+    return 0;
+  }
+
+  const ordered = [...findings].sort((a, b) =>
+    a.level === b.level ? 0 : a.level === "error" ? -1 : 1,
+  );
+  for (const finding of ordered) {
+    process.stdout.write(
+      `\n${finding.level === "error" ? "✗" : "!"} ${finding.title}\n  ${finding.fix}\n`,
+    );
+  }
+  process.stdout.write("\n");
+  return ordered.some((finding) => finding.level === "error") ? 1 : 0;
+}
+
+/**
+ * Reads the project. Everything that can be absent is, rather than throwing:
+ * a doctor that stops at the first missing file reports one problem per run.
+ */
+async function inspect(
+  irPath: string,
+  schemaPath: string,
+  srcPath: string,
+): Promise<Project> {
+  const manifest = await maybeJson<{
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  }>("./package.json");
+  const meta = await maybeJson<{ schemaHash?: string }>(
+    resolve(dirname(resolve(irPath)), "perch.meta.json"),
+  );
+  const schema = await maybeSchema(schemaPath);
+  const prismaVersion = (
+    await maybeJson<{ version?: string }>("./node_modules/prisma/package.json")
+  )?.version;
+
+  return {
+    inProject: manifest !== undefined,
+    dependencies: { ...manifest?.dependencies, ...manifest?.devDependencies },
+    ...(prismaVersion === undefined ? {} : { prismaVersion }),
+    ...(schema === undefined
+      ? {}
+      : { schema: schema.text, schemaFingerprint: schema.fingerprint }),
+    irPresent: existsSync(resolve(irPath)),
+    ...(meta?.schemaHash === undefined ? {} : { irSchemaHash: meta.schemaHash }),
+    sources: await sourcesUnder(resolve(srcPath)),
+  };
+}
+
+/**
+ * The schema, wherever Prisma 7 allows it to be: one file, or a directory of
+ * them. A project using the directory form has no `prisma/schema.prisma`, and
+ * reporting it missing would be a doctor that only knows one kind of project.
+ */
+async function maybeSchema(path: string): Promise<SchemaReading | undefined> {
+  const file = resolve(path);
+  if (existsSync(file)) return await readSchema(file);
+
+  const folder = file.replace(/\.prisma$/, "");
+  return existsSync(folder) ? await readSchema(folder) : undefined;
+}
+
+async function maybeText(path: string): Promise<string | undefined> {
+  const where = resolve(path);
+  return existsSync(where) ? await readFile(where, "utf8") : undefined;
+}
+
+async function maybeJson<T>(path: string): Promise<T | undefined> {
+  const text = await maybeText(path);
+  if (text === undefined) return undefined;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    // A malformed file is one this reading cannot use; the check that wanted it
+    // reports its own absence, which is a better message than a parse error.
+    return undefined;
+  }
+}
+
+/**
+ * Every `.ts` the application itself is written in. Text is all these checks
+ * need.
+ *
+ * Tests and declarations are left out, and so is anything under a
+ * `node_modules`. A test naming two resources is a test, not two resources
+ * fighting over one URL, and doctor reporting that would fail a build over
+ * nothing.
+ */
+async function sourcesUnder(root: string): Promise<readonly string[]> {
+  if (!existsSync(root)) return [];
+  const out: string[] = [];
+  for (const entry of await readdir(root, { withFileTypes: true, recursive: true })) {
+    if (!entry.isFile() || !written(entry.name)) continue;
+    if (entry.parentPath.split(sep).includes("node_modules")) continue;
+    out.push(await readFile(resolve(entry.parentPath, entry.name), "utf8"));
+  }
+  return out;
+}
+
+function written(name: string): boolean {
+  return (
+    name.endsWith(".ts") &&
+    !name.endsWith(".d.ts") &&
+    !name.endsWith(".test.ts") &&
+    !name.endsWith(".spec.ts")
+  );
 }
 
 /**

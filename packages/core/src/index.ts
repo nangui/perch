@@ -45,6 +45,9 @@ export {
   resolvePath,
 } from "./path.js";
 
+// The naming rules a panel derives from a model name.
+export { defaultSlug, kebab, plural } from "./naming.js";
+
 // Row actions: PRD 08 §4, the v0.1 slice of it.
 export type { ActionState } from "./action.js";
 export { Action, CreateAction, EditAction } from "./action.js";
