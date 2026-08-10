@@ -161,7 +161,7 @@ Take up Filament's organization, which is excellent: Introduction → Getting st
 1. Time-to-first-CRUD measured at < 15 min on 3 developers who have never seen the tool (a real, timed user test).
 2. `npx perch resource User` produces a file that compiles, passes the project's lint and works with no editing.
 3. Regenerating a modified resource destroys nothing without explicit confirmation.
-4. `npx perch doctor` detects: Prisma missing, client not generated, module not registered, route collision, unsupported Prisma version.
+4. `npx perch doctor` detects: Prisma missing, client not generated, the `perch-prisma-generator` block absent from `schema.prisma`, an IR that no longer matches the schema it was generated from ([ADR 0012](adr/0012-ir-at-build-time.md)), module not registered, route collision, unsupported Prisma version.
 5. The 7 CI guardrails from §3.2 are in place and blocking on the main branch from v0.1.
 6. Every code block in the documentation is extracted and compiled in CI.
 7. The public demo is deployed and its code is open-source.
