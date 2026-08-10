@@ -1,14 +1,14 @@
 /**
- * Stage 8 of ARCH 12 §2 — the resolved tree as plain JSON.
+ * Stage 8 — the resolved tree as plain JSON.
  *
  * `ResolvedNode` carries class instances, which cross neither the wire nor the
- * boundary: ARCH 12 §1 grants `@perchjs/ui` types from core and nothing else, so
- * the renderer cannot call `instanceof`. It gets a discriminated record instead,
- * which is also what PRD 03 §3 puts on the wire.
+ * boundary: `@perchjs/ui` gets types from core and nothing else, so the
+ * renderer cannot call `instanceof`. It gets a discriminated record instead,
+ * which is also what goes on the wire.
  *
- * Invisible nodes are omitted rather than sent with a flag. PRD 09 §2.3 is
- * explicit that hiding on the client is a data leak, and a node the client never
- * receives cannot leak its options, its label or its value.
+ * Invisible nodes are omitted rather than sent with a flag. Hiding on the
+ * client is a data leak, and a node the client never receives cannot leak its
+ * options, its label or its value.
  */
 import type { ColumnSpan } from "./component.js";
 import type { LiveConfig } from "./field.js";
@@ -30,7 +30,7 @@ export interface SchemaNode {
   readonly required?: boolean;
   /**
    * Absent means the field never triggers a round trip. Present, it carries the
-   * debounce ARCH 13 §5 sets per field type — the client cannot invent it.
+   * debounce set per field type — the client cannot invent it.
    */
   readonly live?: LiveConfig;
   readonly columnSpan?: ColumnSpan;

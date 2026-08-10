@@ -1,5 +1,5 @@
 /**
- * Resolution of relation paths such as `author.country.name` (PRD 01 §3.3).
+ * Resolution of relation paths such as `author.country.name`.
  *
  * Three jobs, and they are deliberately separate:
  *   - validate the path against the IR, with an error that names what went wrong
@@ -8,7 +8,7 @@
  *   - read the value without throwing on an intermediate null
  *
  * Depth is capped at three segments in v0.1. Past that the query planner starts
- * producing joins nobody predicted, so it fails loudly instead (PRD 01 §3.3).
+ * producing joins nobody predicted, so it fails loudly instead.
  */
 import type { FieldMeta, ModelMeta, RelationMeta, Ir } from "./ir.js";
 import { findField, findModel, findRelation } from "./ir.js";

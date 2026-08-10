@@ -129,7 +129,7 @@ describe("the peer contract each adapter declares", () => {
   });
 
   it("keeps @perchjs/core free of any peer dependency", () => {
-    // ARCH 12 §1: the domain imports nothing, so it asks nothing of the host.
+    // The domain imports nothing, so it asks nothing of the host.
     expect(manifest("core").peerDependencies ?? {}).toEqual({});
   });
 });

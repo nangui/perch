@@ -30,9 +30,9 @@ export interface PanelModuleOptions {
   /** Where the panel lives, e.g. `/admin`. */
   readonly path: string;
   /**
-   * The order navigation groups appear in (PRD 04 §6). A group a resource names
-   * and this does not still appears, after these and alphabetically — an order
-   * nobody stated should at least be stable.
+   * The order navigation groups appear in. A group a resource names and this
+   * does not still appears, after these and alphabetically — an order nobody
+   * stated should at least be stable.
    */
   readonly navigationGroups?: readonly string[];
   /** Registered explicitly; discovery by folder scan comes later. */

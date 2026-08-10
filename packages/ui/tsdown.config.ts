@@ -2,9 +2,9 @@
  * Two outputs from one package — ADR 0009.
  *
  * The library entry keeps stable names and external React, because the exports
- * map names it and PRD 11 §3 has third-party plugins compiling against it. The
- * panel entry inlines everything and carries a content hash, because it is
- * served to a browser that resolves no bare specifier and caches by filename.
+ * map names it and third-party plugins compile against it. The panel entry
+ * inlines everything and carries a content hash, because it is served to a
+ * browser that resolves no bare specifier and caches by filename.
  */
 import { createHash } from "node:crypto";
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -53,8 +53,8 @@ export default defineConfig([
     noExternal: [/.*/],
     minify: true,
     /**
-     * `hash: true` only names non-entry chunks, so the hashes ARCH 13 §8 asks
-     * for are spelled out here. Immutable caching is the whole point: the file
+     * `hash: true` only names non-entry chunks, so the hashes the budget rests
+     * on are spelled out here. Immutable caching is the whole point: the file
      * name changes when the bytes do, and never otherwise.
      */
     outputOptions: {

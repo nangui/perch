@@ -1,10 +1,10 @@
 /**
- * Stage 5 of ARCH 12 §2 — the trust boundary.
+ * Stage 5 — the trust boundary.
  *
  * Incoming state is replayed against the tree the server last resolved: an
  * unknown path, or one belonging to a field that is invisible, disabled or
- * read-only, is dropped. Silently. A message naming the reason tells an attacker
- * which fields exist and which are protected (PRD 03 §3.2).
+ * read-only, is dropped. Silently. A message naming the reason tells an
+ * attacker which fields exist and which are protected.
  *
  * It runs before the resolution cycle, against the *previous* result, because
  * that is the last thing the server itself asserted about the form. Deciding

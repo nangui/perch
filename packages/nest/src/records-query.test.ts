@@ -135,8 +135,8 @@ describe("searching and filtering", () => {
   });
 
   it("never builds an include from the query string", () => {
-    // PRD 03 §3.2: the loading plan comes from the server's schema. Until a
-    // column declares what it reaches, no relation is loaded at all.
+    // The loading plan comes from the server's schema. Until a column declares
+    // what it reaches, no relation is loaded at all.
     expect(read({ include: "author" }).include).toBeUndefined();
   });
 });

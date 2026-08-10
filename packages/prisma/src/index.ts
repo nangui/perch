@@ -4,8 +4,8 @@
  * It does not read the DMMF. Prisma 7 leaves nothing to read at runtime, so the
  * IR is produced at build time by `@perchjs/prisma-generator` (ADR 0012).
  *
- * May import `@perchjs/core`. May never import `@perchjs/nest` or `@perchjs/ui`:
- * an adapter never imports another adapter (ARCH 12 §1).
+ * May import `@perchjs/core`. May never import `@perchjs/nest` or
+ * `@perchjs/ui`: an adapter never imports another adapter.
  */
 
 // Re-exported so a generated IR file can name its own type without the consumer

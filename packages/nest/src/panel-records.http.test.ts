@@ -324,7 +324,7 @@ describe("the list page", () => {
   });
 
   it("carries the panel menu, filtered by what this user may reach", async () => {
-    // PRD 04 §5: a `viewAny` refusal removes the entry. `gated` is Ada's.
+    // A `viewAny` refusal removes the entry. `gated` is Ada's.
     const url = await serve();
     const asAda = await (await get(`${url}/admin/listed`, "ada")).text();
     const asGrace = await (await get(`${url}/admin/listed`, "grace")).text();
@@ -335,8 +335,8 @@ describe("the list page", () => {
   });
 
   it("gives a form page the trail back to its list", async () => {
-    // PRD 03 §4.2 puts breadcrumbs in the v0.1 chrome. Everything the bundle
-    // needs travels on the mount element, this included.
+    // Breadcrumbs are v0.1 chrome. Everything the bundle needs travels on the
+    // mount element, this included.
     const url = await serve();
     const html = await (await get(`${url}/admin/listed/create`)).text();
 

@@ -64,7 +64,7 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      # ARCH 12 §1 — the domain stays pure and no adapter reaches another.
+      # The domain stays pure and no adapter reaches another.
       # Blocking from the first commit, before the code it protects exists.
       - name: Architecture boundaries
         run: pnpm boundaries
@@ -88,11 +88,10 @@ jobs:
       - name: Formatting
         run: pnpm format:check
 
-# Guardrails still to come, each with the lot that makes it measurable
-# (CLAUDE.md, "Garde-fous CI"):
+# Guardrails still to come, each with what would make it measurable:
 #
-#   concurrency: 100 parallel requests        → PRD 02, once builders exist
-#   attack test: an unauthorised action       → PRD 04, with `can`
+#   concurrency: 100 parallel requests        → once builders exist
+#   attack test: an unauthorised action       → with `can`
 #
 # Three have come off this list. The DMMF contract test runs inside `pnpm test`
 # against what a real `prisma generate` hands the generator (ADR 0012); the SQL

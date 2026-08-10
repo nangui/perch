@@ -1,8 +1,8 @@
 /**
  * Atlas — component styles.
  *
- * Shipped precompiled and served as static assets by the PanelModule (ARCH 13
- * §8): the user of the framework configures no bundler and no CSS pipeline.
+ * Shipped precompiled and served as static assets by the PanelModule: the user
+ * of the framework configures no bundler and no CSS pipeline.
  *
  * Not one raw colour appears below. Every value is a token from tokens.css,
  * which is what makes the panel re-themable by replacing that one file.
@@ -706,7 +706,7 @@
   color: var(--perch-content-muted);
 }
 
-/* A request that failed, announced rather than swallowed — ARCH 13 §5. */
+/* A request that failed, announced rather than swallowed. */
 .perch-notice {
   display: flex;
   flex-wrap: wrap;
@@ -1255,8 +1255,8 @@
   white-space: nowrap;
 }
 
-/* Dense on purpose: PRD 07 §1 puts the operator who reads 200 rows a day ahead
-   of the developer who reads one screenshot. */
+/* Dense on purpose: the operator who reads 200 rows a day comes ahead of the
+   developer who reads one screenshot. */
 .perch-table__cell {
   padding: var(--perch-space-4) var(--perch-space-5);
   border-bottom: 1px solid var(--perch-border-subtle);
@@ -1264,7 +1264,7 @@
 }
 
 /* A button rather than a click handler on the header, so the keyboard reaches
-   it (ARCH 13 §10). It carries no chrome of its own. */
+   it. It carries no chrome of its own. */
 .perch-table__sort {
   display: inline-flex;
   gap: var(--perch-space-3);

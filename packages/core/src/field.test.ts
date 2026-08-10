@@ -13,7 +13,7 @@ afterEach(() => {
   Component.resetConfigurators();
 });
 
-describe("what reaches the database — PRD 06 §2, ARCH 12 §2", () => {
+describe("what reaches the database", () => {
   const flags = (patch: Partial<ResolvedFlags> = {}): ResolvedFlags => ({
     visible: true,
     disabled: false,
@@ -36,7 +36,7 @@ describe("what reaches the database — PRD 06 §2, ARCH 12 §2", () => {
     );
   });
 
-  it("refuses a readOnly field, which PRD 06 §2 says is not persisted", () => {
+  it("refuses a readOnly field, which is not persisted", () => {
     // The case the first version of this function let through.
     expect(isDehydrated(TextInput.make("name"), flags({ readOnly: true }), "x")).toBe(
       false,
@@ -44,7 +44,7 @@ describe("what reaches the database — PRD 06 §2, ARCH 12 §2", () => {
   });
 
   it("still writes a disabled field, because disabled only bars client state", () => {
-    // ARCH 12 §2 discards a disabled path coming *from* the client; a value the
+    // Stage 5 discards a disabled path coming *from* the client; a value the
     // server computed for it is still written.
     expect(isDehydrated(TextInput.make("name"), flags({ disabled: true }), "x")).toBe(
       true,
@@ -67,7 +67,7 @@ describe("what reaches the database — PRD 06 §2, ARCH 12 §2", () => {
   });
 });
 
-describe("what may be taken from the client — ARCH 12 §2 stage 5", () => {
+describe("what may be taken from the client — stage 5", () => {
   const flags = (patch: Partial<ResolvedFlags> = {}): ResolvedFlags => ({
     visible: true,
     disabled: false,
@@ -88,7 +88,7 @@ describe("what may be taken from the client — ARCH 12 §2 stage 5", () => {
   });
 });
 
-describe("live — ARCH 13 §5", () => {
+describe("live", () => {
   it("debounces text by 400 ms", () => {
     expect(TextInput.make("title").live().state.live).toEqual({
       debounce: 400,
@@ -172,7 +172,7 @@ describe("Select", () => {
   });
 
   it("holds a resolver for options rather than calling it", () => {
-    // The domain performs no I/O (ARCH 12 §3): it stores, it does not call.
+    // The domain performs no I/O: it stores, it does not call.
     let called = false;
     const select = Select.make("cityId").options(() => {
       called = true;
@@ -216,7 +216,7 @@ describe("immutability holds through the field API", () => {
 
 describe("the A1 shape compiles and holds what it was given", () => {
   it("describes a dependent select without evaluating anything", () => {
-    // PRD 00 §9, expressed in the DSL. Nothing here runs.
+    // Milestone A1, expressed in the DSL. Nothing here runs.
     const country = Select.make("countryId").relationship("country", "name").live();
     const city = Select.make("cityId")
       .options(({ get }) => [{ value: 1, label: String(get("countryId")) }])

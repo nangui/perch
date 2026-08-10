@@ -1,9 +1,9 @@
 /**
  * What every registered renderer receives.
  *
- * ARCH 13 §2: a component gets props and an `onChange`, and never reaches into
- * the kernel or calls the transport. That is exactly what makes it replaceable
- * by a plugin — a component that knows the transport is not substitutable.
+ * A component gets props and an `onChange`, and never reaches into the kernel
+ * or calls the transport. That is exactly what makes it replaceable by a plugin
+ * — a component that knows the transport is not substitutable.
  */
 import type { SchemaNode } from "@perchjs/core";
 

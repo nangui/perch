@@ -3,7 +3,7 @@
  *
  * Each one adapts a `SchemaNode` to a component that already existed and knows
  * nothing about the protocol. That direction matters: the components stay
- * substitutable, which is what ARCH 13 §7 needs for a plugin to replace one.
+ * substitutable, which is what a plugin needs to replace one.
  */
 import type { ReactNode } from "react";
 import type { SchemaNode } from "@perchjs/core";
@@ -131,7 +131,7 @@ function SelectRenderer({
 
 /**
  * Called once at module load. A plugin adds its own with the same function
- * (PRD 11 §2, E3) — there is no privileged path for the built-ins.
+ * (extension point E3) — there is no privileged path for the built-ins.
  */
 export function registerBuiltInComponents(): void {
   registerComponent("Schema", LayoutRenderer);

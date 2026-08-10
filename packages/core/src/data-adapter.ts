@@ -1,6 +1,6 @@
 /**
  * The outbound port. `@perchjs/prisma` implements it; the domain only ever sees
- * this shape (ARCH 12 §1, PRD 01 §3.4).
+ * this shape.
  *
  * Nothing here mentions Prisma. That is the whole point: it is what makes a
  * Drizzle or a Mongoose adapter possible later without touching the engine, and
@@ -43,7 +43,7 @@ export interface Filter {
 /**
  * A tree of relations to load eagerly. This is what makes the anti-N+1 rule
  * enforceable: a relation column contributes a branch here rather than a query
- * per row (PRD 01 §4, CLAUDE.md invariant 7).
+ * per row (CLAUDE.md invariant 7).
  */
 export interface IncludePlan {
   readonly [relation: string]: true | IncludePlan;

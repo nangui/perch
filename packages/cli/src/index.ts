@@ -78,8 +78,8 @@ export async function run(argv: readonly string[]): Promise<number> {
   const generated = generateResource(ir, model);
   const target = resolve(generated.path);
 
-  // PRD 10 §5.3: regenerating destroys nothing without explicit confirmation.
-  // No three-way merge and no markers — a merge that is quietly wrong inside an
+  // Regenerating destroys nothing without explicit confirmation. No three-way
+  // merge and no markers — a merge that is quietly wrong inside an
   // authorization rule is worse than ten seconds of reading a diff.
   if (existsSync(target) && !values.force) {
     process.stderr.write(

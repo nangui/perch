@@ -1,11 +1,11 @@
 /**
- * The panel's own menu — PRD 03 §4.2 chrome, PRD 04 §6.
+ * The panel's own menu.
  *
  * It renders what it was given and decides nothing. The server has already
- * removed every resource this user may not reach (PRD 04 §5), so an entry
- * missing here is an entry that does not exist for them — not one hidden from
- * them. Filtering on the client would be the second kind, and invariant 8 is
- * about exactly that difference.
+ * removed every resource this user may not reach, so an entry missing here is
+ * an entry that does not exist for them — not one hidden from them. Filtering
+ * on the client would be the second kind, and invariant 8 is about exactly that
+ * difference.
  */
 import type { ReactNode } from "react";
 

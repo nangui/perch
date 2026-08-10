@@ -1,5 +1,5 @@
 /**
- * `Field` — a component that holds state and is validated (PRD 06 §2).
+ * `Field` — a component that holds state and is validated.
  *
  * Rules are predicates rather than compiled schemas: the Zod pass belongs to the
  * resolution cycle, and the domain depends on nothing until then.
@@ -7,7 +7,7 @@
 import type { ComponentState, Resolvable, ResolverContext } from "./component.js";
 import { Component } from "./component.js";
 
-/** ARCH 13 §5: 400 ms on text, 0 on a select, a toggle or a date. */
+/** 400 ms on text, 0 on a select, a toggle or a date. */
 export interface LiveConfig {
   readonly debounce: number;
   readonly onBlur: boolean;
@@ -53,7 +53,7 @@ export abstract class Field extends Component {
     return super.with(patch);
   }
 
-  /** ARCH 13 §5. Overridden by field types that commit immediately. */
+  /** Overridden by field types that commit immediately. */
   protected get defaultDebounce(): number {
     return 400;
   }
@@ -120,9 +120,9 @@ export interface ResolvedFlags {
 }
 
 /**
- * ARCH 12 §2 stage 5: may this path be taken from the client at all? Silently
- * is the operative word — "this field is read-only" tells an attacker which
- * fields exist and which are protected.
+ * Stage 5: may this path be taken from the client at all? Silently is the
+ * operative word — "this field is read-only" tells an attacker which fields
+ * exist and which are protected.
  */
 export function acceptsClientState(flags: ResolvedFlags): boolean {
   return flags.visible && !flags.disabled && !flags.readOnly;
@@ -132,7 +132,7 @@ export function acceptsClientState(flags: ResolvedFlags): boolean {
  * Whether a resolved value reaches the database. Not the same predicate as
  * `acceptsClientState`: `disabled` only bars state coming *from* the client, so
  * a value the server computed for a disabled field is still written, while
- * `readOnly` is "not persisted" (PRD 06 §2) and bars the write too.
+ * `readOnly` is "not persisted" and bars the write too.
  */
 export function isDehydrated(
   field: Field,

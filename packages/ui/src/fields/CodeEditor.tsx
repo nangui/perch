@@ -1,8 +1,8 @@
 /**
  * `CodeEditor` — the fallback for a Json column until KeyValue lands in v0.2.
  *
- * A textarea overlaid on a numbered gutter, not a real editor. Deliberate: ARCH
- * 13 §11 forbids dragging a code-editor dependency into a bundle that must stay
+ * A textarea overlaid on a numbered gutter, not a real editor. Deliberate: a
+ * code-editor dependency must not be dragged into a bundle that has to stay
  * small, and a Json override field does not need folding or autocomplete.
  *
  * The rule the design states and this enforces: *"Nothing is sent while the

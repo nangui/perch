@@ -45,7 +45,7 @@ describe("the payload is transportable", () => {
   });
 });
 
-describe("a hidden node is absent, not flagged — PRD 09 §2.3", () => {
+describe("a hidden node is absent, not flagged", () => {
   it("omits the node entirely", async () => {
     const payload = serialise(await resolveSchema(form(), {}, CREATE));
     const ids = JSON.stringify(payload.schema);
@@ -125,7 +125,7 @@ describe("the client cannot invent the debounce", () => {
   it("carries live when the field declares it, per field type", async () => {
     const payload = serialise(await resolveSchema(form(), { countryId: "fr" }, CREATE));
     const country = payload.schema.children?.[0]?.children?.[0];
-    // ARCH 13 §5: a select commits at 0 ms, a text field waits 400.
+    // A select commits at 0 ms, a text field waits 400.
     expect(country?.live).toEqual({ debounce: 0, onBlur: false });
   });
 

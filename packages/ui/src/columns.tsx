@@ -2,8 +2,8 @@
  * The built-in column renderers, registered under the keys the server sends.
  *
  * Each is a plain function. None of them may call a hook, and none of them can:
- * `ColumnRenderer` is not a component type, so the rule PRD 07 §2 calls
- * non-negotiable is enforced by the signature rather than by a review.
+ * `ColumnRenderer` is not a component type, so the flat-rendering rule is
+ * enforced by the signature rather than by a review.
  */
 import type { ReactNode } from "react";
 import type { ColumnNode, Row } from "@perchjs/core";

@@ -146,7 +146,7 @@ describe("resolvePath", () => {
   });
 });
 
-describe("buildIncludePlan — acceptance criterion 3", () => {
+describe("buildIncludePlan — one query, never one per row", () => {
   it("returns undefined when nothing needs joining", () => {
     expect(buildIncludePlan(ir, "Post", ["title", "id"])).toBeUndefined();
   });

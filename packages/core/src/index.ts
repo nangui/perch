@@ -48,11 +48,11 @@ export {
 // The naming rules a panel derives from a model name.
 export { defaultSlug, kebab, plural } from "./naming.js";
 
-// Row actions: PRD 08 §4, the v0.1 slice of it.
+// Row actions: the v0.1 slice of them.
 export type { ActionState } from "./action.js";
 export { Action, CreateAction, EditAction } from "./action.js";
 
-// Tables: the column layer PRD 07 §4 opens with.
+// Tables, and the column layer.
 export type { ColumnState } from "./column.js";
 export { Column, IconColumn, TextColumn } from "./column.js";
 export type { ActionNode, ColumnNode, ColumnTree, TableState } from "./table.js";
@@ -74,7 +74,7 @@ export {
   tokenize,
 } from "./inference.js";
 
-// The declarative component tree: what a resource declares (PRD 02).
+// The declarative component tree: what a resource declares.
 export type {
   ColumnSpan,
   ComponentState,
@@ -89,7 +89,7 @@ export { Component, configured, isResolver } from "./component.js";
 export type { Columns } from "./layout.js";
 export { Grid, Schema, Section } from "./layout.js";
 
-// Fields: components that hold state and are validated (PRD 06).
+// Fields: components that hold state and are validated.
 export type {
   FieldState,
   LiveConfig,
@@ -106,7 +106,7 @@ export { TextInput } from "./fields/text-input.js";
 export type { Option, OptionsInput, SelectState } from "./fields/select.js";
 export { normaliseOptions, Select } from "./fields/select.js";
 
-// The resolution cycle (PRD 02 §4).
+// The resolution cycle.
 export type {
   DependencyTrace,
   FieldErrors,
@@ -117,10 +117,10 @@ export type {
 } from "./resolve.js";
 export { dehydrate, ResolutionCycleError, resolveSchema } from "./resolve.js";
 
-// Stage 5, the trust boundary (ARCH 12 §2).
+// Stage 5, the trust boundary.
 export type { RejectedPath, RejectionReason, SanitizeResult } from "./sanitize.js";
 export { sanitize } from "./sanitize.js";
 
-// The wire format (PRD 03 §3).
+// The wire format.
 export type { SchemaNode, SchemaPayload } from "./serialise.js";
 export { serialise } from "./serialise.js";

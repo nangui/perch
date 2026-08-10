@@ -1,5 +1,5 @@
 /**
- * Enforces the dependency rule of ARCH 12 §1: arrows only ever point inward.
+ * Enforces the dependency rule: arrows only ever point inward.
  *
  * This file is the executable form of that architecture decision. It blocks CI.
  * Without it, the boundary is a convention, and a convention is what a deadline
@@ -17,7 +17,7 @@ module.exports = {
     {
       name: "core-imports-no-npm-package",
       comment:
-        "ARCH 12 §1: the domain imports nothing. Not NestJS, not Prisma, not " +
+        "The domain imports nothing. Not NestJS, not Prisma, not " +
         "React, not Express. This is what makes a Drizzle or Fastify adapter " +
         "possible later without a rewrite, and the domain testable without a " +
         "database.",
@@ -31,9 +31,9 @@ module.exports = {
     {
       name: "core-imports-no-node-builtin",
       comment:
-        "ARCH 12 §1: 'imports nothing' includes the Node runtime. A domain that " +
+        "'Imports nothing' includes the Node runtime. A domain that " +
         "reaches for fs, path or crypto is no longer portable, and a Resolver " +
-        "that does its own I/O breaks the rule of ARCH 12 §3 — it receives a " +
+        "that does its own I/O breaks the rule — it receives a " +
         "ResolverContext instead.",
       severity: "error",
       from: { path: "^packages/core/src", pathNot: "\\.(spec|test)\\.tsx?$" },
@@ -42,7 +42,7 @@ module.exports = {
     {
       name: "core-imports-no-sibling-package",
       comment:
-        "ARCH 12 §1: the domain sits at the centre. It cannot depend on any " +
+        "The domain sits at the centre. It cannot depend on any " +
         "other workspace package, whatever the direction of the import looks " +
         "like at the file level.",
       severity: "error",
@@ -54,9 +54,9 @@ module.exports = {
     {
       name: "no-adapter-to-adapter",
       comment:
-        "ARCH 12 §1: an adapter never imports another adapter. In particular " +
+        "An adapter never imports another adapter. In particular " +
         "@perchjs/nest reaches data through the DataAdapter port, never " +
-        "through @perchjs/prisma (PRD 04 §7).",
+        "through @perchjs/prisma.",
       severity: "error",
       from: { path: "^packages/(prisma|nest|ui|cli)/src" },
       to: {
@@ -85,7 +85,7 @@ module.exports = {
     {
       name: "ui-has-no-server-dependency",
       comment:
-        "ARCH 13: the renderer ships precompiled to a browser. NestJS, Prisma " +
+        "The renderer ships precompiled to a browser. NestJS, Prisma " +
         "and Node built-ins have no business in that bundle.",
       severity: "error",
       from: { path: "^packages/ui/src" },
@@ -97,7 +97,7 @@ module.exports = {
     {
       name: "ui-imports-core-types-only",
       comment:
-        "ARCH 12 §1 lists @perchjs/ui as depending on 'core (types only)', which " +
+        "@perchjs/ui depends on core for types only, which " +
         "is why core sits in its devDependencies. A value import would compile " +
         "here and then fail for whoever installs @perchjs/ui, since core is not " +
         "a runtime dependency of it — and it would drag domain code into a " +
@@ -109,7 +109,7 @@ module.exports = {
     {
       name: "ui-no-node-builtins",
       comment:
-        "ARCH 13: the renderer runs in a browser. No Node core modules.\n\n" +
+        "The renderer runs in a browser. No Node core modules.\n\n" +
         "Tests are exempt because they do not ship: the contrast check reads " +
         "tokens.css off disk, which is right for a test and wrong for a bundle. " +
         "The exemption is on the file pattern rather than on the rule, so a Node " +

@@ -1,6 +1,6 @@
 /**
- * The declarative component tree — PRD 02 §3. One root class for forms,
- * infolists and layout, so the DSL cannot split into four dialects.
+ * The declarative component tree. One root class for forms, infolists and
+ * layout, so the DSL cannot split into four dialects.
  *
  * Everything conditional is a `Resolver` evaluated on the server (ADR 0003).
  */
@@ -49,7 +49,7 @@ export abstract class Component {
   /**
    * The discriminator the wire format and the renderer registry key on.
    * Declared rather than read from `constructor.name`, which a minifier
-   * rewrites, and which a plugin could not choose (PRD 11 §2, E3).
+   * rewrites, and which a plugin could not choose (extension point E3).
    */
   abstract get type(): string;
 
@@ -59,9 +59,9 @@ export abstract class Component {
   }
 
   /**
-   * PRD 02 §3.4 and ARCH 12 §6: components are built once at bootstrap and
-   * reused across concurrent requests, so a builder that mutates in place leaks
-   * one user's state into another's response. Nothing here assigns to `this`.
+   * Components are built once at bootstrap and reused across concurrent
+   * requests, so a builder that mutates in place leaks one user's state into
+   * another's response. Nothing here assigns to `this`.
    */
   protected with(patch: Partial<ComponentState>): this {
     const Ctor = this.constructor as new (state: ComponentState) => this;
@@ -115,7 +115,7 @@ export abstract class Component {
     return fn(this);
   }
 
-  /** Extension point E1 (PRD 11 §2). Bootstrap-time only. */
+  /** Extension point E1. Bootstrap-time only. */
   static configureUsing<C extends typeof Component>(
     this: C,
     fn: (component: InstanceType<C>) => InstanceType<C>,

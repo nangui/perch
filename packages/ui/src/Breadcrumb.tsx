@@ -1,9 +1,8 @@
 /**
- * The trail back — PRD 03 §4.2 lists breadcrumbs among the v0.1 chrome.
+ * The trail back: breadcrumbs are v0.1 chrome.
  *
  * One level, because there is one to show: a resource's list and the page you
- * are on. Nested resources, and the deeper trail they need, are v0.3 in
- * MASTER §6.
+ * are on. Nested resources, and the deeper trail they need, are v0.3.
  *
  * A `nav` with a name, because that is what lets a screen reader skip it or
  * find it. The current page is marked and is not a link: linking to where you

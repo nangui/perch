@@ -1,11 +1,11 @@
 /**
- * `SchemaRenderer` — ARCH 13 §6. Walks the tree the server resolved and hands
- * each node to whatever the registry holds for its `type`.
+ * `SchemaRenderer`. Walks the tree the server resolved and hands each node to
+ * whatever the registry holds for its `type`.
  *
- * An unknown type shows a marker rather than nothing: PRD 03 §4.1 and §6.7 both
- * ask that a component the client does not know must not wipe out the page. The
- * marker is loud in development and quiet in production, because in production
- * the panel still has to be usable around the gap.
+ * An unknown type shows a marker rather than nothing: a component the client
+ * does not know must not wipe out the page. The marker is loud in development
+ * and quiet in production, because in production the panel still has to be
+ * usable around the gap.
  */
 import type { ReactNode } from "react";
 import { memo, useCallback } from "react";
@@ -15,7 +15,7 @@ import { lookupComponent } from "./registry.js";
 export interface SchemaRendererProps {
   readonly payload: SchemaPayload;
   readonly onChange: (path: string, value: unknown) => void;
-  /** Paths with a patch in flight, so a field can show it (ARCH 13 §5). */
+  /** Paths with a patch in flight, so a field can show it. */
   readonly pending?: ReadonlySet<string>;
   readonly inFlight?: ReadonlySet<string>;
 }
@@ -54,9 +54,9 @@ export function SchemaRenderer({
 }
 
 /**
- * Memoised per node. ARCH 13 §6 keys on `(key, revision)`; the id is that key,
- * and the node object is the revision — the server sends a fresh object only
- * when something about the node changed.
+ * Memoised per node, keyed on `(key, revision)`; the id is that key, and the
+ * node object is the revision — the server sends a fresh object only when
+ * something about the node changed.
  */
 const RenderedNode = memo(function RenderedNode({
   node,

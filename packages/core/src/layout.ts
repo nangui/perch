@@ -1,6 +1,6 @@
 /**
- * Layout components — PRD 02 §3.1. No state, no validation: they group children
- * and decide the columns. The same three serve forms and infolists (PRD 09 §2.1).
+ * Layout components. No state, no validation: they group children and decide
+ * the columns. The same three serve forms and infolists.
  */
 import type { ComponentState, Resolvable } from "./component.js";
 import { Component, configured } from "./component.js";
@@ -27,7 +27,7 @@ abstract class Layout extends Component {
   }
 }
 
-/** The root of a tree, per PRD 02 §2. */
+/** The root of a tree. */
 export class Schema extends Layout {
   override get type(): string {
     return "Schema";

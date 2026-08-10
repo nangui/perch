@@ -43,7 +43,7 @@ function payload(overrides: Partial<SchemaPayload> = {}): SchemaPayload {
 const field = (label: string): HTMLInputElement =>
   screen.getByLabelText<HTMLInputElement>(label);
 
-describe("typing is optimistic on the draft zone — ARCH 13 §5", () => {
+describe("typing is optimistic on the draft zone", () => {
   it("shows the keystroke immediately, before any request", () => {
     const send = vi.fn(() => new Promise<StateResponse>(() => undefined));
     render(<PanelForm initial={payload()} send={send} />);
@@ -141,7 +141,7 @@ describe("the server's answer reaches the screen", () => {
   });
 });
 
-describe("a failure is shown, never swallowed — ARCH 13 §5", () => {
+describe("a failure is shown, never swallowed", () => {
   it("renders whatever the caller supplies, with a retry that works", async () => {
     vi.useFakeTimers();
     try {

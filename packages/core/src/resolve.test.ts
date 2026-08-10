@@ -1,5 +1,5 @@
 /**
- * The resolution cycle, and milestone A1 — PRD 02 §7 and PRD 00 §9.
+ * The resolution cycle, and milestone A1.
  */
 import { describe, expect, it } from "vitest";
 import { Schema, Section } from "./layout.js";
@@ -66,7 +66,7 @@ describe("A1 — dependent select, one round trip", () => {
   });
 });
 
-describe("pruning — PRD 02 §7.3", () => {
+describe("pruning", () => {
   it("drops the value of a field that became invisible", async () => {
     const result = await resolveSchema(a1(), { countryId: "", cityId: 2 }, CREATE);
     expect(node(result, "cityId")?.visible).toBe(false);
@@ -79,7 +79,7 @@ describe("pruning — PRD 02 §7.3", () => {
   });
 });
 
-describe("targeted re-evaluation — PRD 02 §7.2", () => {
+describe("targeted re-evaluation", () => {
   function wide() {
     const fields = Array.from({ length: 38 }, (_, i) =>
       TextInput.make(`f${String(i)}`).label(() => `Field ${String(i)}`),
@@ -108,7 +108,7 @@ describe("targeted re-evaluation — PRD 02 §7.2", () => {
   });
 });
 
-describe("hooks and the bounded loop — PRD 02 §7.6", () => {
+describe("hooks and the bounded loop", () => {
   it("lets a hook set another field, then settles", async () => {
     const form = Schema.make([
       TextInput.make("price").afterStateUpdated(({ value, set }) => {
@@ -171,7 +171,7 @@ describe("defaults", () => {
   });
 });
 
-describe("validation runs on visible fields only — PRD 02 §6", () => {
+describe("validation runs on visible fields only", () => {
   it("reports a blank required field", async () => {
     const form = Schema.make([TextInput.make("name").required()]);
     const result = await resolveSchema(form, {}, CREATE);
@@ -218,7 +218,7 @@ describe("dehydrate — what reaches the database", () => {
     expect(dehydrate(result, CREATE)).toHaveProperty("body", null);
   });
 
-  it("skips a readOnly field, which PRD 06 §2 says is not persisted", async () => {
+  it("skips a readOnly field, which is not persisted", async () => {
     const form = Schema.make([
       TextInput.make("slug").readOnly(),
       TextInput.make("title"),

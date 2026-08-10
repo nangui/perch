@@ -20,7 +20,7 @@ import { project, visibleKeys } from "./row-projection.js";
 export interface RecordsResponse {
   readonly rows: readonly Row[];
   readonly total: number;
-  /** PRD 03's `ColumnTree`. Empty for a resource that declares no table. */
+  /** Empty for a resource that declares no table. */
   readonly columns: ColumnTree;
   /**
    * The order actually applied, which is not always the one that was asked for
@@ -50,7 +50,7 @@ export interface RecordsResponse {
  * it after the fact would be worse than not asking: the page would come back
  * short, the total would lie, and rows the caller may not open would already
  * have crossed the wire. The scoping that answers this properly belongs to the
- * adapter (PRD 04 §9) and does not exist.
+ * adapter and does not exist.
  *
  * So it fails closed, and gains its list when scoping arrives.
  */

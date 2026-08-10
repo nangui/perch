@@ -1,7 +1,7 @@
 /**
  * What `forRoot` puts together, read off the description it returns. Whether
- * those routes land where they should, under `setGlobalPrefix` too, is
- * acceptance criterion 5 of PRD 04 and needs an HTTP test.
+ * those routes land where they should, under `setGlobalPrefix` too, needs an
+ * HTTP test.
  */
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -61,7 +61,7 @@ describe("PanelModule.forRoot", () => {
   });
 
   it("resolves the assets once, at bootstrap", () => {
-    // PRD 04 §3: resolved at bootstrap, so a bad manifest stops the boot.
+    // Resolved at bootstrap, so a bad manifest stops the boot.
     const given = assets();
     const module = PanelModule.forRoot({ path: "/admin", assets: given });
     const provider = module.providers?.find(

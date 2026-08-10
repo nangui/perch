@@ -1,10 +1,10 @@
 /**
  * The only file in the codebase that knows the shape of Prisma's DMMF.
  *
- * PRD 01 §4 requires this isolation, and the reason is stated there: the DMMF is
- * not a stable public API of Prisma. Everything that could break on a Prisma
- * upgrade is therefore in one file, covered by a contract test that fails loudly
- * rather than producing a subtly wrong IR.
+ * The isolation is deliberate: the DMMF is not a stable public API of Prisma.
+ * Everything that could break on a Prisma upgrade is therefore in one file,
+ * covered by a contract test that fails loudly rather than producing a subtly
+ * wrong IR.
  *
  * Supported Prisma range: see SUPPORTED_PRISMA_RANGE below. Read once, while
  * `prisma generate` runs — never at boot, and never on a hot path.
@@ -165,7 +165,7 @@ function readModel(
   if (!primaryKey) {
     throw new DmmfContractError(
       `Model ${model.name} has no single-field @id. Composite primary keys are ` +
-        `out of scope for v0.1 (PRD 01 §6).`,
+        `out of scope for v0.1.`,
     );
   }
 

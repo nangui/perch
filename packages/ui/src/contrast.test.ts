@@ -1,11 +1,11 @@
 /**
  * Contrast, computed from the tokens themselves.
  *
- * ARCH 13 §10 does not say "aim for AA" — it says *"Contraste AA minimum, vérifié
- * en CI"*. This is that check, and it runs on the token file rather than on
- * screenshots: the numbers are in `tokens.css`, so the assertion belongs there
- * too. A rendered-page audit would catch the same failures later, slower, and
- * only for the pages someone thought to visit.
+ * AA is a minimum verified in CI, not an aim. This is that check, and it runs
+ * on the token file rather than on screenshots: the numbers are in
+ * `tokens.css`, so the assertion belongs there too. A rendered-page audit would
+ * catch the same failures later, slower, and only for the pages someone thought
+ * to visit.
  *
  * Thresholds are WCAG 2.2: 4.5:1 for body text, 3:1 for large text and for the
  * non-text parts a user must be able to see — a control's border, a focus ring.

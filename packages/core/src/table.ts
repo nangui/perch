@@ -1,10 +1,10 @@
 /**
- * The table a resource declares — PRD 07 §3.
+ * The table a resource declares.
  *
  * The columns, which of them may be sorted by, and the actions a row offers.
- * Filters, bulk actions, pagination sizes and the empty state are in the same
- * PRD and are not here; each needs a route or a renderer that does not exist
- * yet, and an option that does nothing is worse than an absent one.
+ * Filters, bulk actions, pagination sizes and the empty state are not here;
+ * each needs a route or a renderer that does not exist yet, and an option that
+ * does nothing is worse than an absent one.
  */
 import type { Action } from "./action.js";
 import type { Column } from "./column.js";
@@ -17,7 +17,7 @@ export interface TableState {
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
 }
 
-/** What crosses the wire. `ColumnTree` is PRD 03's name for it. */
+/** What crosses the wire, as a `ColumnTree`. */
 export interface ColumnNode {
   /** Keys the renderer registry. */
   readonly type: string;

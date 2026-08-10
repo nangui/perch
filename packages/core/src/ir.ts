@@ -2,9 +2,9 @@
  * The intermediate representation: what the domain knows about a data model.
  *
  * These types live in the domain, not in the Prisma adapter, because the domain
- * defines the port and the adapter fills it (ARCH 12 §1, PRD 01 §3.4). A Drizzle
- * adapter would produce the same shapes from entirely different metadata, and
- * nothing in the schema engine would notice.
+ * defines the port and the adapter fills it. A Drizzle adapter would produce
+ * the same shapes from entirely different metadata, and nothing in the schema
+ * engine would notice.
  */
 
 /** Scalar types the IR carries. Named after Prisma's, but not owned by it. */
@@ -84,7 +84,7 @@ export interface ModelMeta {
    */
   readonly hasSoftDelete: boolean;
   /**
-   * The field a human reads to recognise a row, resolved by PRD 01 §3.2:
+   * The field a human reads to recognise a row, resolved in priority order:
    * name → title → label → email → slug → first unique String → primary key.
    */
   readonly labelField: string;

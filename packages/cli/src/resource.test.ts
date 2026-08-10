@@ -1,7 +1,7 @@
 /**
- * PRD 10 §5.2 is the bar: `perch resource User` produces a file that compiles,
- * passes the lint and works with no editing. These assert the shape; the
- * compiling half is `generated.test.ts`, which runs the real compiler over it.
+ * The bar: `perch resource User` produces a file that compiles, passes the lint
+ * and works with no editing. These assert the shape; the compiling half is
+ * `generated.test.ts`, which runs the real compiler over it.
  */
 import { describe, expect, it } from "vitest";
 import type { FieldMeta, Ir, ModelMeta, RelationMeta } from "@perchjs/core";
@@ -92,8 +92,8 @@ describe("what it writes", () => {
   });
 
   it("spells out what the schema already knows", () => {
-    // PRD 10 §2.2: immediately good, not an empty skeleton. None of this is a
-    // guess — every call answers a piece of metadata the IR carries.
+    // Immediately good, not an empty skeleton. None of this is a guess — every
+    // call answers a piece of metadata the IR carries.
     expect(generated.contents).toContain(
       'TextInput.make("email").email().maxLength(255).required().unique(),',
     );
@@ -141,7 +141,7 @@ describe("what it writes", () => {
     expect(imports).toContain("TextInput");
     expect(imports).toContain("Select");
     // Nothing it did not reach for: an unused import fails the project's lint,
-    // and §5.2 asks for a file that passes it.
+    // and what is generated has to pass it.
     expect(imports).not.toContain("Toggle");
     expect(imports).not.toContain("DateTimePicker");
   });

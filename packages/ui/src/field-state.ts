@@ -6,7 +6,7 @@
  * makes "rest + error + in flight" impossible to express by accident, and what
  * lets every field render the same status marks without repeating the logic.
  *
- * The lifecycle maps onto the three ownership zones of ARCH 13 §3:
+ * The lifecycle maps onto the three ownership zones:
  *   rest / invalid  →  canonical, owned by the server
  *   draft           →  draft, owned by the client and never overwritten
  *   inFlight        →  a patch is on the wire; still editable
@@ -61,9 +61,9 @@ export function isLocked(status: FieldStatus): boolean {
 }
 
 /**
- * The debounce a field type owes the transport, in milliseconds (ARCH 13 §5).
- * Text waits; anything discrete commits at once. A field never picks its own
- * timing — that is how a form ends up with four different feels.
+ * The debounce a field type owes the transport, in milliseconds. Text waits;
+ * anything discrete commits at once. A field never picks its own timing — that
+ * is how a form ends up with four different feels.
  */
 export const DEBOUNCE_MS = {
   text: 400,

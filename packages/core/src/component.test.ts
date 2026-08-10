@@ -1,6 +1,6 @@
 /**
- * Immutability, which PRD 02 §3.4 and ARCH 12 §6 call a vulnerability rather
- * than a style preference. The concurrency case is the one PRD 02 §7.5 requires.
+ * Immutability, which is a vulnerability rather than a style preference. The
+ * concurrency case is the one that says so.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { Component } from "./component.js";
@@ -76,7 +76,7 @@ describe("layout specifics", () => {
   });
 });
 
-describe("configureUsing — extension point E1 (PRD 11 §2)", () => {
+describe("configureUsing — extension point E1", () => {
   it("applies to every instance made afterwards", () => {
     Section.configureUsing((s) => s.columns(2));
     expect(Section.make("a").state.columns).toBe(2);
@@ -112,7 +112,7 @@ describe("extend", () => {
   });
 });
 
-describe("concurrency — PRD 02 §7.5", () => {
+describe("concurrency", () => {
   it("shares no state across 100 parallel derivations of one prototype", async () => {
     // The prototype stands in for a component built at bootstrap, each iteration
     // for a request configuring it differently.

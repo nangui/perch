@@ -162,7 +162,7 @@ export class PanelPageController {
     });
   }
 
-  /** Rebuilt per request: two users see two different panels (PRD 04 §5). */
+  /** Rebuilt per request: two users see two different panels. */
   async #navigation(
     request: IncomingUrl,
     root: string,

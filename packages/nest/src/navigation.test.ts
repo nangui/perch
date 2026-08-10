@@ -1,6 +1,6 @@
 /**
- * The menu, and the first security invariant of PRD 04 §5: a `viewAny` refusal
- * removes the entry *and* protects the routes. This file is the first half.
+ * The menu, and the security invariant it rests on: a `viewAny` refusal removes
+ * the entry *and* protects the routes. This file is the first half.
  */
 import { describe, expect, it } from "vitest";
 import { Schema, TextInput } from "@perchjs/core";
@@ -75,7 +75,7 @@ describe("what the menu shows", () => {
 
 describe("what the menu hides", () => {
   it("removes a resource this user may not reach", async () => {
-    // PRD 04 §5. The routes refuse it too; neither stands in for the other.
+    // The routes refuse it too; neither stands in for the other.
     const nav = await build([
       resource("posts", { can: { viewAny: () => false } }),
       resource("tags"),

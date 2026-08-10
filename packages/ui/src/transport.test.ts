@@ -1,5 +1,5 @@
 /**
- * The three mechanisms of ARCH 13 §4, and the ordering rules of §5.
+ * The three reconciliation mechanisms, and the ordering rules.
  */
 import { describe, expect, it, vi } from "vitest";
 import type { SchemaPayload } from "@perchjs/core";
@@ -55,7 +55,7 @@ function harness(send: (request: StateRequest) => Promise<StateResponse>): {
   };
 }
 
-describe("optimism is confined to the draft zone — ARCH 13 §5", () => {
+describe("optimism is confined to the draft zone", () => {
   it("shows the typed value at once, before any request", () => {
     const { client } = harness(() => Promise.resolve({ payload: INITIAL }));
     client.change("a", "typed", { debounce: 400 });
@@ -79,7 +79,7 @@ describe("optimism is confined to the draft zone — ARCH 13 §5", () => {
   });
 });
 
-describe("single flight and coalescing — ARCH 13 §4.3", () => {
+describe("single flight and coalescing", () => {
   it("keeps one request in flight and merges what arrives during it", async () => {
     const requests: StateRequest[] = [];
     let release!: (r: StateResponse) => void;
@@ -110,7 +110,7 @@ describe("single flight and coalescing — ARCH 13 §4.3", () => {
   });
 });
 
-describe("a request that never answers — ARCH 13 §5", () => {
+describe("a request that never answers", () => {
   it("is abandoned rather than blocking every later change", () => {
     // Without this the client waits forever: no failure to show, no retry to
     // offer, and every edit queues behind a request that will never settle.
@@ -124,7 +124,7 @@ describe("a request that never answers — ARCH 13 §5", () => {
     expect(client.snapshot().payload.state["a"]).toBe("typed");
   });
 
-  it("throws away the late answer once a newer request exists — §4.3", async () => {
+  it("throws away the late answer once a newer request exists", async () => {
     // The only way two responses can race under single flight, and therefore
     // the only case in which the sequence guard is reachable at all.
     const resolvers: ((r: StateResponse) => void)[] = [];
@@ -153,7 +153,7 @@ describe("a request that never answers — ARCH 13 §5", () => {
   });
 });
 
-describe("a patch never overwrites a dirty path — ARCH 13 §4.1", () => {
+describe("a patch never overwrites a dirty path", () => {
   it("keeps what the user typed in B while A's patch was in flight", async () => {
     let release!: (r: StateResponse) => void;
     const { client } = harness(
@@ -209,7 +209,7 @@ describe("a patch never overwrites a dirty path — ARCH 13 §4.1", () => {
   });
 });
 
-describe("the authoritative exception — ARCH 13 §4.2", () => {
+describe("the authoritative exception", () => {
   it("overwrites a dirty path and flags it for the renderer", async () => {
     let release!: (r: StateResponse) => void;
     const { client } = harness(
@@ -232,7 +232,7 @@ describe("the authoritative exception — ARCH 13 §4.2", () => {
   });
 });
 
-describe("failure is surfaced, never swallowed — ARCH 13 §5", () => {
+describe("failure is surfaced, never swallowed", () => {
   it("reports a network failure and keeps the local edit", async () => {
     let reject!: (e: unknown) => void;
     const { client } = harness(

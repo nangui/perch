@@ -1,7 +1,7 @@
 /**
- * Acceptance criterion 5 of PRD 04: the panel coexists with `setGlobalPrefix`
- * without route collisions. Nothing short of a real server proves that, so this
- * boots one on an ephemeral port and asks it over HTTP.
+ * The panel coexists with `setGlobalPrefix` without route collisions. Nothing
+ * short of a real server proves that, so this boots one on an ephemeral port
+ * and asks it over HTTP.
  */
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

@@ -1,6 +1,6 @@
 /**
- * PRD 10 §5.2, taken literally: `perch resource User` produces a file that
- * compiles and passes the project's lint, with no editing.
+ * The bar taken literally: `perch resource User` produces a file that compiles
+ * and passes the project's lint, with no editing.
  *
  * Asserting the strings it contains is not that. `resource.test.ts` does the
  * strings; this runs the real compiler and the real linter over the real
@@ -76,8 +76,8 @@ describe("every model of the fixture", () => {
       const { dir } = project(model);
 
       // `noUnusedLocals` is the half that matters as much as compiling: an
-      // import the file does not use fails this project's lint, and §5.2 asks
-      // for a file that passes it.
+      // import the file does not use fails this project's lint, and what is
+      // generated has to pass it.
       await expect(
         run(join(ROOT, "node_modules", ".bin", "tsc"), ["--project", dir]),
       ).resolves.toBeDefined();
@@ -88,9 +88,9 @@ describe("every model of the fixture", () => {
 
 describe("what it refuses to invent", () => {
   it("comments a field whose component core does not build", async () => {
-    // `Post.body` is `@db.Text`, so inference wants a Textarea. PRD 06 is where
-    // that gets built; until then a comment is a line to finish rather than a
-    // build to fix.
+    // `Post.body` is `@db.Text`, so inference wants a Textarea, which is not
+    // built yet. Until then a comment is a line to finish rather than a build
+    // to fix.
     const { file } = project("Post");
     const { readFileSync } = await import("node:fs");
     const contents = readFileSync(file, "utf8");

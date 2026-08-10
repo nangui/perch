@@ -1,5 +1,5 @@
 /**
- * Proves that the architecture boundaries of ARCH 12 §1 are actually enforced.
+ * Proves that the architecture boundaries are actually enforced.
  *
  * A guard nobody has watched fail is not a guard. Each case below writes a
  * deliberately illegal import, runs dependency-cruiser, and asserts both that
@@ -99,7 +99,7 @@ afterEach(() => {
   for (const path of written.splice(0)) rmSync(path, { force: true });
 });
 
-describe("architecture boundaries (ARCH 12 §1)", () => {
+describe("architecture boundaries", () => {
   it("passes on the workspace as committed", () => {
     expect(violatedRules()).toEqual([]);
     expect(exitCode()).toBe(0);

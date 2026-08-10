@@ -1,9 +1,9 @@
 /**
  * @vitest-environment jsdom
  *
- * WCAG 2.2, which ARCH 13 §10 makes a requirement. The criteria 2.2 added are
- * the ones a component written against 2.1 passes every older check and still
- * fails.
+ * WCAG 2.2, which is a requirement rather than an aim. The criteria 2.2 added
+ * are the ones a component written against 2.1 passes every older check and
+ * still fails.
  *
  * 2.5.8 Target Size is in `target-size.test.ts`: jsdom computes no layout.
  */
@@ -71,8 +71,8 @@ describe("4.1.2 Name, Role, Value — every control is named", () => {
   });
 
   it("describes the Toggle with its error, so a refusal is read with the field", () => {
-    // ARCH 13 §10. The switch is the one field outside FieldShell, so it is the
-    // one that can lose the wiring silently.
+    // The switch is the one field outside FieldShell, so it is the one that can
+    // lose the wiring silently.
     render(
       <Toggle
         checked

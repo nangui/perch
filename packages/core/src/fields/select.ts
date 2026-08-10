@@ -1,6 +1,6 @@
 /**
- * `Select` — PRD 06 §3.1 calls it the most important field in the catalogue,
- * and milestone A1 is built out of two of them.
+ * `Select` — the most important field in the catalogue, and milestone A1 is
+ * built out of two of them.
  */
 import type { Resolvable } from "../component.js";
 import { configured } from "../component.js";
@@ -38,7 +38,7 @@ export class Select extends Field {
     return super.with(patch);
   }
 
-  /** ARCH 13 §5: a discrete choice commits immediately. */
+  /** A discrete choice commits immediately. */
   protected override get defaultDebounce(): number {
     return 0;
   }

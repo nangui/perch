@@ -1,11 +1,10 @@
 /**
- * Table columns — PRD 07 §4.
+ * Table columns.
  *
  * A column is not a `Component`. A component carries state and is resolved per
- * request; a column describes a *slot* and is resolved per row, which is why
- * PRD 07 §2 forbids a React component per cell and asks for one memoised render
- * function per column type. Sharing a base class with `Field` would have
- * invited the opposite.
+ * request; a column describes a *slot* and is resolved per row. A React
+ * component per cell is forbidden: one memoised render function per column
+ * type. Sharing a base class with `Field` would have invited the opposite.
  *
  * `type` is declared rather than read from `constructor.name`, for the reason
  * `Component` gives: a minifier rewrites the second, and a plugin cannot choose

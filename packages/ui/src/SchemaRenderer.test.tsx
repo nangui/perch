@@ -89,7 +89,7 @@ describe("A1, rendered", () => {
   });
 });
 
-describe("an unknown type does not wipe out the page — PRD 03 §6.7", () => {
+describe("an unknown type does not wipe out the page", () => {
   const withUnknown: SchemaPayload = {
     schema: {
       id: "0",
@@ -170,7 +170,7 @@ describe("errors and pending come from the payload", () => {
   });
 });
 
-describe("memoisation — ARCH 13 §6", () => {
+describe("memoisation", () => {
   it("does not re-render a node nothing changed about", () => {
     // `memo` compares props by identity, so an unstable `renderChild` or
     // `onChange` makes it decorative. This is the assertion that catches that.

@@ -41,10 +41,10 @@ export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactN
   const [failed, setFailed] = useState(false);
 
   /**
-   * Read, never decided. ARCH 13 §3 puts the sort *indicator* in the pure-UI
-   * zone, and the order itself is canonical — so this comes from the answer.
-   * Setting it optimistically would show "sorted by X" after the server had
-   * silently refused X, which is the client inventing a state.
+   * Read, never decided. The sort *indicator* belongs to the pure-UI zone, and
+   * the order itself is canonical — so this comes from the answer. Setting it
+   * optimistically would show "sorted by X" after the server had silently
+   * refused X, which is the client inventing a state.
    */
   const sort = page.sort ?? page.columns.defaultSort;
 
@@ -102,8 +102,8 @@ function href(page: RecordsPage, row: Row): string | undefined {
 
 /**
  * What the table offers as a whole. `CreateAction` is a link to the create page
- * (PRD 08 §4, navigation), and an action the renderer has no meaning for is
- * skipped rather than drawn — the same rule the row actions follow.
+ * (navigation), and an action the renderer has no meaning for is skipped rather
+ * than drawn — the same rule the row actions follow.
  */
 function headerActions(page: RecordsPage): ReactNode {
   const path = page.resourcePath;

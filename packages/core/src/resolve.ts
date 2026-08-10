@@ -1,5 +1,5 @@
 /**
- * The resolution cycle — PRD 02 §4. Seven stages and exactly one loop.
+ * The resolution cycle. Seven stages and exactly one loop.
  *
  * The loop is bounded at five passes and exits early when a pass changes
  * nothing. Beyond that it throws naming the fields involved, rather than
@@ -55,7 +55,7 @@ export interface ResolveResult {
   readonly errors: FieldErrors;
   readonly trace: DependencyTrace;
   readonly passes: number;
-  /** Feeds the counter PRD 02 §7.2 asserts on. */
+  /** Feeds the counter targeted re-evaluation is asserted on. */
   readonly resolverCalls: number;
 }
 
@@ -153,7 +153,7 @@ export async function resolveSchema(
 
   const nodes = flattenResolved(resolved);
 
-  // PRUNE — an invisible field leaves no value behind (PRD 02 §7.3).
+  // PRUNE — an invisible field leaves no value behind.
   const pruned = new Set(
     nodes
       .filter((n) => n.component instanceof Field && !n.visible)

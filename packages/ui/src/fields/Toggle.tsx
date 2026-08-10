@@ -1,14 +1,14 @@
 /**
  * `Toggle` — Radix Switch, styled.
  *
- * Radix rather than a styled checkbox because ARCH 13 §10 says we do not rewrite
- * accessible primitives. It brings the role, the keyboard contract and the
- * disabled semantics; we bring the skin.
+ * Radix rather than a styled checkbox because we do not rewrite accessible
+ * primitives. It brings the role, the keyboard contract and the disabled
+ * semantics; we bring the skin.
  *
- * Commits at 0 ms (ARCH 13 §5), which produces the one place optimism is allowed
- * to touch something other than the draft zone: the knob moves at once. The
- * design is explicit about the contract that makes this safe — *"it never returns
- * to its old position unless the server refuses"*. So `checked` is what the caller
+ * Commits at 0 ms, which produces the one place optimism is allowed to touch
+ * something other than the draft zone: the knob moves at once. The design is
+ * explicit about the contract that makes this safe — *"it never returns to its
+ * old position unless the server refuses"*. So `checked` is what the caller
  * says, the caller flips it optimistically, and a refusal flips it back with an
  * error on the reserved line.
  *
@@ -75,7 +75,7 @@ export function Toggle({
         </label>
         {/* Reserved like every other help line: the error replaces the help so a
             refusal does not change the row's height. Pointed at by
-            `aria-describedby`, which is what ARCH 13 §10 asks of a form error —
+            `aria-describedby`, which is what a form error owes a reader —
             the live region announces it, the description makes it readable again
             on focus. */}
         <div

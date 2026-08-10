@@ -6,8 +6,8 @@
  * 03/04 meaning two different days on two desks. The segments are monospaced so
  * digits do not shift as they change.
  *
- * Commits at 0 ms, like every discrete field (ARCH 13 §5). The calendar's Apply
- * button exists for the time half only — picking a day commits immediately.
+ * Commits at 0 ms, like every discrete field. The calendar's Apply button
+ * exists for the time half only — picking a day commits immediately.
  */
 import type { ReactNode } from "react";
 import { useState } from "react";

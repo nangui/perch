@@ -1,11 +1,11 @@
 /**
- * The navigation tree — PRD 04 §6.
+ * The navigation tree.
  *
  * Built on the server, on every request, from the resources the registry holds
- * and the authorization each declares. The first security invariant of §5 is
- * what shapes it: *a `viewAny` refusal removes the navigation entry **and**
- * protects the routes*. This file is the first half; the routes already do the
- * second, and neither stands in for the other.
+ * and the authorization each declares. One security invariant shapes it: *a
+ * `viewAny` refusal removes the navigation entry **and** protects the routes*.
+ * This file is the first half; the routes already do the second, and neither
+ * stands in for the other.
  *
  * So it is rebuilt per request rather than once at boot. Two users see two
  * different panels, and a tree cached across them would be one user's menu

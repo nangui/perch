@@ -12,9 +12,9 @@
  * state is authoritative on the server": the server may add an error on any
  * round trip, and nothing below the field may move when it does.
  *
- * It also owns the accessibility wiring ARCH 13 §10 requires: the label is bound
- * to the control, and the help line is referenced by `aria-describedby` so a
- * screen reader reads the error with the field rather than in isolation.
+ * It also owns the accessibility wiring: the label is bound to the control, and
+ * the help line is referenced by `aria-describedby` so a screen reader reads
+ * the error with the field rather than in isolation.
  */
 import type { ReactNode } from "react";
 import { useId } from "react";
@@ -85,8 +85,8 @@ export function FieldShell({
 
       {/*
         The reserved line. `role="status"` with a polite live region so an error
-        arriving on a round trip is announced without stealing focus (ARCH 13
-        §10). Rendered even when empty — that is the whole point.
+        arriving on a round trip is announced without stealing focus.
+        Rendered even when empty — that is the whole point.
       */}
       <div
         className="perch-field__help"

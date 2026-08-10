@@ -1,5 +1,5 @@
 /**
- * ARCH 13 §8: "Budget: main bundle < 250 KB gzip. Measured in CI, blocking."
+ * The budget: main bundle under 250 KB gzip, measured in CI, blocking.
  *
  * The panel bundle carries React, ReactDOM, Radix and the renderer, because
  * ADR 0009 puts them there rather than asking a browser to resolve bare
@@ -21,7 +21,7 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const DIST = join(ROOT, "packages", "ui", "dist");
 const MANIFEST = join(DIST, "manifest.json");
 
-/** ARCH 13 §8. Gzip, since that is what crosses the wire. */
+/** Gzip, since that is what crosses the wire. */
 const BUDGET_BYTES = 250 * 1024;
 
 interface Manifest {
@@ -50,7 +50,7 @@ beforeAll(() => {
 const gzipped = (file: string): number =>
   gzipSync(readFileSync(join(DIST, file))).length;
 
-describe("the panel bundle — ARCH 13 §8", () => {
+describe("the panel bundle", () => {
   it("names files that exist", () => {
     for (const [logical, file] of Object.entries(manifest.entries)) {
       expect(

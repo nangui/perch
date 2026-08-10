@@ -1,7 +1,6 @@
 /**
- * `TextInput` — PRD 06 §3.1. The flavours are the union `inference.ts` produces
- * from the IR, so a hand-written field and an inferred one describe themselves
- * the same way.
+ * `TextInput`. The flavours are the union `inference.ts` produces from the IR,
+ * so a hand-written field and an inferred one describe themselves the same way.
  */
 import { configured } from "../component.js";
 import type { FieldState } from "../field.js";

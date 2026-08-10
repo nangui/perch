@@ -114,7 +114,7 @@ class PostResource {
       (record as Row)["authorId"] === (user as { id: string } | undefined)?.id,
   };
   mutateFormDataBeforeCreate(data: Record<string, unknown>): Record<string, unknown> {
-    // The use PRD 05 names for this hook.
+    // What this hook is for.
     return { ...data, password: `hashed:${String(data["password"])}` };
   }
   mutateFormDataBeforeSave(data: Record<string, unknown>): Record<string, unknown> {
@@ -247,8 +247,8 @@ describe("where a create lands", () => {
   });
 
   it("lands on the list when the panel asks for the index", async () => {
-    // PRD 05 §3.2 names three targets; `index` is the one the list page made
-    // buildable, and it is what a developer declares.
+    // Three targets are named; `index` is the one the list page made buildable,
+    // and it is what a developer declares.
     const url = await serve(true, undefined, "index");
     const { body } = await send(url, "/admin/api/posts", "POST", { title: "New" });
 

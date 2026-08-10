@@ -1,7 +1,7 @@
 /**
- * Reader tests, plus the contract test PRD 01 §4 requires: the DMMF is not a
- * stable public API of Prisma, so a change in its shape must fail loudly here
- * rather than quietly produce a wrong IR.
+ * Reader tests, plus the contract test: the DMMF is not a stable public API of
+ * Prisma, so a change in its shape must fail loudly here rather than quietly
+ * produce a wrong IR.
  */
 import { describe, expect, it } from "vitest";
 import { findField, findModel, findRelation } from "@perchjs/core";
@@ -24,7 +24,7 @@ function scalarField(over: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
-describe("readDmmf — acceptance criterion 1", () => {
+describe("readDmmf — a twelve-model schema, read whole", () => {
   it("reads a twelve-model schema with 1-1, 1-n and n-n relations", () => {
     expect(FIXTURE_MODEL_COUNT).toBeGreaterThanOrEqual(12);
     expect(ir.models).toHaveLength(FIXTURE_MODEL_COUNT);
@@ -187,7 +187,7 @@ describe("readDmmf — model-level metadata", () => {
   });
 });
 
-describe("readDmmf — contract test (PRD 01 §4)", () => {
+describe("readDmmf — contract test", () => {
   it("rejects a DMMF that is not an object", () => {
     expect(() => readDmmf(null)).toThrow(DmmfContractError);
     expect(() => readDmmf("nope")).toThrow(DmmfContractError);

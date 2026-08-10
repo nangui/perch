@@ -3,10 +3,9 @@
  * exceeds 150 ms p95, stop and redesign the protocol". Nothing measured it, so
  * nothing could trigger that stop.
  *
- * Measured here is the server half of a `/state` round trip — sanitize, resolve,
- * serialise. The HTTP that will wrap it is not, and the 150 ms of PRD 03 §3.3
- * covers the whole trip; that half is still owed, and arrives with
- * @perchjs/nest.
+ * Measured here is the server half of a `/state` round trip — sanitize,
+ * resolve, serialise. The HTTP that will wrap it is not, and the 150 ms covers
+ * the whole trip; that half is still owed, and arrives with @perchjs/nest.
  *
  * The clock and the counter divide the work. The clock holds the documented
  * number, with the headroom stated where it is asserted. The counter is what
@@ -23,7 +22,7 @@ import { resolveSchema } from "./resolve.js";
 import { sanitize } from "./sanitize.js";
 import { serialise } from "./serialise.js";
 
-/** PRD 03 §3.3 and PRD 00 §10, the v0.1 figure. */
+/** The documented v0.1 figure. */
 const BUDGET_MS = 150;
 const ITERATIONS = 200;
 const WARMUP = 20;
@@ -120,7 +119,7 @@ function percentile(samples: readonly number[], p: number): number {
   return sorted[index] ?? 0;
 }
 
-describe("`/state` round trip, server side — PRD 03 §3.3", () => {
+describe("`/state` round trip, server side", () => {
   it(`stays under the ${String(BUDGET_MS)} ms p95 budget`, async () => {
     let previous = await resolveSchema(form(), STATE, EDIT);
     for (let i = 0; i < WARMUP; i += 1) previous = await roundTrip(previous);
@@ -158,14 +157,14 @@ describe("`/state` round trip, server side — PRD 03 §3.3", () => {
 
   it("settles a patch in one pass", async () => {
     // A second pass means a hook fired. None here does, so more than one is the
-    // loop of PRD 02 §4 running when it should not.
+    // resolution loop running when it should not.
     const { targeted } = await afterPatch();
 
     expect(targeted.passes).toBe(1);
   });
 });
 
-describe("payload size — PRD 03 §3.3", () => {
+describe("payload size", () => {
   it("keeps a 40-field form under 30 KB", async () => {
     const payload = serialise(await resolveSchema(form(), STATE, EDIT));
     const bytes = new TextEncoder().encode(JSON.stringify(payload)).length;

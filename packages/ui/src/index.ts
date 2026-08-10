@@ -6,7 +6,7 @@
  * `ui-imports-core-types-only` rule.
  *
  * Shipped precompiled and served as static assets by the PanelModule. The user
- * configures neither Vite, Webpack nor Tailwind (ARCH 13 §8).
+ * configures neither Vite, Webpack nor Tailwind.
  *
  * Styles are a separate entry: `import "@perchjs/ui/styles.css"`.
  */
@@ -61,14 +61,14 @@ export { CodeEditor, parseJsonDocument } from "./fields/CodeEditor.js";
 export type { RepeaterItem, RepeaterProps } from "./fields/Repeater.js";
 export { Repeater, REPEATER_SHORTCUTS } from "./fields/Repeater.js";
 
-// The renderer: walks the tree the server resolved (ARCH 13 §6, §7).
+// The renderer: walks the tree the server resolved.
 export type { NodeProps } from "./node-props.js";
 export type { SchemaRendererProps } from "./SchemaRenderer.js";
 export { SchemaRenderer } from "./SchemaRenderer.js";
 export { lookupComponent, registerComponent, resetRegistry } from "./registry.js";
 export { registerBuiltInComponents } from "./renderers.js";
 
-// The transport client: reconciliation and ordering (ARCH 13 §4, §5).
+// The transport client: reconciliation and ordering.
 export type {
   Snapshot,
   StateRequest,

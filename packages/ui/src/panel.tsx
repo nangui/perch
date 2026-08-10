@@ -4,10 +4,10 @@
  * This file is never imported. It is the entry of the second, self-contained
  * bundle `PanelModule` serves: React, ReactDOM, Radix and the renderer are
  * inlined here, because a browser cannot resolve a bare specifier and the
- * product promise is that nobody configures a bundler (ARCH 13 §8).
+ * product promise is that nobody configures a bundler.
  *
  * Everything it needs comes off the mount element, so the bundle hardcodes no
- * path and the same file works under any `setGlobalPrefix` (PRD 04 §4).
+ * path and the same file works under any `setGlobalPrefix`.
  */
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
@@ -120,8 +120,9 @@ async function save(
 
 /**
  * Without this, `PanelForm` renders nothing on a failure and the form silently
- * stops answering — ARCH 13 §5 asks for the opposite. `role="alert"` because
- * the failure appears while focus is in the field the user is still typing in.
+ * stops answering, which is the opposite of what is asked. `role="alert"`
+ * because the failure appears while focus is in the field the user is still
+ * typing in.
  */
 function renderFailure(_: Snapshot, retry: () => void): ReactNode {
   return (
@@ -156,8 +157,8 @@ async function send(
     credentials: "same-origin",
   });
   // A failure has to reach the user rather than resolve to nothing: PanelForm
-  // renders whatever `renderFailure` is given, and cannot show what it is
-  // not told (ARCH 13 §5).
+  // renders whatever `renderFailure` is given, and cannot show what it is not
+  // told.
   if (!response.ok) throw new Error(`/state answered ${String(response.status)}`);
 
   // The route answers with the tree itself (ADR 0010); the client's envelope
@@ -176,9 +177,9 @@ if (element !== null) mount(element);
  * reads — and it is checked there against what the columns declared, so a
  * client that invents one is refused rather than obeyed.
  *
- * No page number, because there is nothing to turn one with: `.paginated()`
- * from PRD 07 §3 is not built, so the table is always the server's first page.
- * Sending one from here would be a control nobody can reach.
+ * No page number, because there is nothing to turn one with: `.paginated()` is
+ * not built, so the table is always the server's first page. Sending one from
+ * here would be a control nobody can reach.
  */
 async function records(api: string, sort: { path: string; direction: string }) {
   const url = `${api}/records?sort=${encodeURIComponent(`${sort.path}:${sort.direction}`)}`;

@@ -1,5 +1,5 @@
 /**
- * The attack tests PRD 03 §6 requires, run against the trust boundary itself.
+ * The attack tests, run against the trust boundary itself.
  */
 import { describe, expect, it } from "vitest";
 import { Schema, Section } from "./layout.js";
@@ -27,7 +27,7 @@ function form() {
 
 const resolved = () => resolveSchema(form(), { title: "Hello" }, EDIT);
 
-describe("PRD 03 §6.3 — an unknown path has no effect and no 500", () => {
+describe("an unknown path has no effect and no 500", () => {
   it("drops it", async () => {
     const { state, rejected } = sanitize(await resolved(), {
       title: "Hello",
@@ -58,7 +58,7 @@ describe("PRD 03 §6.3 — an unknown path has no effect and no 500", () => {
   });
 });
 
-describe("PRD 03 §6.2 — a forged state reaches neither the tree nor the write", () => {
+describe("a forged state reaches neither the tree nor the write", () => {
   it("drops a disabled field", async () => {
     const { state, rejected } = sanitize(await resolved(), { authorId: 99 });
     expect(state).toEqual({});

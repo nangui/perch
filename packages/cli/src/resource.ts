@@ -1,11 +1,11 @@
 /**
- * `perch resource <Model>` — PRD 10 §2.2.
+ * `perch resource <Model>`.
  *
- * The differentiating criterion, in that document's words: a generated resource
- * has to be *immediately good, not an empty skeleton*. So it is not a template
- * with holes. Every line below comes from `inferModel`, which is the same
- * inference the panel itself runs — one source, so a generated file and a
- * hand-written one cannot disagree about what a column means.
+ * The differentiating criterion: a generated resource has to be *immediately
+ * good, not an empty skeleton*. So it is not a template with holes. Every line
+ * below comes from `inferModel`, which is the same inference the panel itself
+ * runs — one source, so a generated file and a hand-written one cannot disagree
+ * about what a column means.
  *
  * A field the form does not offer is written out as a comment carrying its
  * reason. `inferModel` returns those deliberately: showing them commented is
@@ -19,11 +19,10 @@ import { findModel, inferModel } from "@perchjs/core";
  * The components `@perchjs/core` actually exports a builder for.
  *
  * `inferModel` names five more — `Textarea`, `Toggle`, `DateTimePicker`,
- * `KeyValue`, `CodeEditor` — and PRD 06 is where they get built. Emitting one
- * of them would import a name that does not exist, and PRD 10 §5.2 asks for a
- * file that compiles. So a field that needs one is written as a comment saying
- * which component it wants, which is a line to finish rather than a build to
- * fix.
+ * `KeyValue`, `CodeEditor` — which are not built yet. Emitting one of them
+ * would import a name that does not exist, and what is generated has to
+ * compile. So a field that needs one is written as a comment saying which
+ * component it wants, which is a line to finish rather than a build to fix.
  */
 const BUILDABLE = new Set<ComponentKind>(["TextInput", "Select"]);
 

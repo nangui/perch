@@ -1,5 +1,5 @@
 /**
- * The table — ARCH 13 §6.
+ * The table.
  *
  * The renderer is looked up **once per column**, not once per cell, and the row
  * loop calls it. That is the whole of "one render function memoized per column
@@ -112,9 +112,9 @@ export function DataTable({
 /**
  * A row action, as a link.
  *
- * `EditAction` is navigation (PRD 08 §4), so it is an anchor rather than a
- * button: it goes somewhere, and the browser's own affordances — open in a new
- * tab, copy the address — come with saying so honestly.
+ * `EditAction` is navigation, so it is an anchor rather than a button: it goes
+ * somewhere, and the browser's own affordances — open in a new tab, copy the
+ * address — come with saying so honestly.
  *
  * A row the server gave no address for offers nothing rather than a dead link.
  */
@@ -135,8 +135,8 @@ function rowAction(
 }
 
 /**
- * A sortable header is a button, because ARCH 13 §10 asks for headers
- * actionable from the keyboard and a click handler on a `<th>` is not.
+ * A sortable header is a button, because a header has to be actionable from the
+ * keyboard and a click handler on a `<th>` is not.
  */
 function header(
   column: ColumnNode,
@@ -183,9 +183,9 @@ function ariaSort(
 }
 
 /**
- * A type nobody registered. Visible rather than blank: ARCH 13 §6 asks an
- * unknown component to show a marker instead of disappearing, and a blank cell
- * reads as missing data rather than as a missing renderer.
+ * A type nobody registered. Visible rather than blank: an unknown component
+ * shows a marker instead of disappearing, and a blank cell reads as missing
+ * data rather than as a missing renderer.
  */
 function unknownColumn(column: ColumnNode): ReactNode {
   return (
@@ -198,10 +198,10 @@ function unknownColumn(column: ColumnNode): ReactNode {
 /**
  * Reads `author.name` out of a row.
  *
- * Core has this function and `@perchjs/ui` may not call it: ARCH 12 §1 grants
- * the renderer *types* from the domain and no values, because core is not a
- * runtime dependency of this package and an import that compiles here would
- * fail for whoever installs it. Eight lines is what that boundary costs, and
+ * Core has this function and `@perchjs/ui` may not call it: the renderer gets
+ * *types* from the domain and no values, because core is not a runtime
+ * dependency of this package and an import that compiles here would fail for
+ * whoever installs it. Eight lines is what that boundary costs, and
  * `boundaries.test.ts` is what noticed.
  */
 function readPath(row: Row, path: string): unknown {

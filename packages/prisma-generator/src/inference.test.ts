@@ -1,8 +1,8 @@
 /**
  * Inference over the real path: DMMF → IR → inferred field. The engine lives in
- * `@perchjs/core`, but the fixture lives here, and core cannot import an adapter
- * (ARCH 12 §1). Testing it from this side is what makes acceptance criterion 2
- * an end-to-end assertion rather than a unit test on hand-built metadata.
+ * `@perchjs/core`, but the fixture lives here, and core cannot import an
+ * adapter. Testing it from this side makes it an end-to-end assertion rather
+ * than a unit test on hand-built metadata.
  */
 import { describe, expect, it } from "vitest";
 import type { InferredField } from "@perchjs/core";
@@ -26,7 +26,7 @@ function infer(model: typeof User, name: string): InferredField {
   return inferField(findField(model, name)!);
 }
 
-describe("acceptance criterion 2 — email needs no configuration", () => {
+describe("email needs no configuration", () => {
   it("infers required, email and maxLength 255 from the schema alone", () => {
     expect(infer(User, "email")).toMatchObject({
       component: "TextInput",
@@ -210,7 +210,7 @@ describe("inferModel", () => {
   });
 });
 
-describe("acceptance criterion 6 — bootstrap budget", () => {
+describe("the bootstrap budget", () => {
   it("reads the schema and infers every model well under 200 ms", () => {
     const started = performance.now();
     for (let i = 0; i < 4; i += 1) {

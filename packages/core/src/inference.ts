@@ -1,11 +1,11 @@
 /**
- * Field inference (PRD 01 §3.2): what `TextInput.make('email')` should already
- * know without being told.
+ * Field inference: what `TextInput.make('email')` should already know without
+ * being told.
  *
- * This produces a *description* of the field to build, not a builder — builders
- * arrive with PRD 02. Keeping it as data means the CLI can print it, tests can
- * assert on it, and the schema engine can override any part of it. Every
- * inference here is a default, never a constraint (PRD 01 §7).
+ * This produces a *description* of the field to build, not a builder. Keeping
+ * it as data means the CLI can print it, tests can assert on it, and the schema
+ * engine can override any part of it. Every inference here is a default, never
+ * a constraint.
  *
  * Name-based inference is the part that surprises people, so it is switchable:
  * `strict: true` keeps only what the database actually declares.
@@ -24,7 +24,7 @@ export type ComponentKind =
 
 /**
  * `tel` is never inferred — no metadata says "this column holds a phone number"
- * — but PRD 06 §3.1 lets a field be told, so the flavour has to admit it.
+ * — but a field can be told, so the flavour has to admit it.
  */
 export type TextFlavour = "text" | "email" | "password" | "url" | "numeric" | "tel";
 
@@ -94,7 +94,7 @@ function endsWithWord(name: string, words: ReadonlySet<string>): boolean {
 }
 
 /**
- * Label field resolution, in the priority order of PRD 01 §3.2:
+ * Label field resolution, in priority order:
  * name → title → label → email → slug → first unique String → primary key.
  */
 export function inferLabelField(

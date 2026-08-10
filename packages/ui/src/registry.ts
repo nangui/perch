@@ -1,12 +1,12 @@
 /**
- * The component registry — ARCH 13 §7, PRD 03 §4.1.
+ * The component registry.
  *
  * A renderer is keyed by the `type` string the server put on the node, never by
- * a class: `@perchjs/ui` receives types from core and no values (ARCH 12 §1), so
+ * a class: `@perchjs/ui` receives types from core and no values, so
  * `instanceof` is not available and would not survive JSON anyway.
  *
- * This is also extension point E3 (PRD 11 §2): a plugin registers its own field
- * under its own key, through the same call the built-in fields use.
+ * This is also extension point E3: a plugin registers its own field under its
+ * own key, through the same call the built-in fields use.
  */
 import type { ComponentType } from "react";
 import type { NodeProps } from "./node-props.js";

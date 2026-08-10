@@ -9,9 +9,9 @@
  * are assertions, not screenshots, so they are tested here.
  *
  * Rendering is checked through roles and accessible names rather than class
- * names, because that is what a keyboard and a screen reader see. ARCH 13 §10
- * treats accessibility as a requirement, and a test that queries `.perch-control`
- * would pass on a div that no assistive technology can operate.
+ * names, because that is what a keyboard and a screen reader see. Accessibility
+ * is a requirement, and a test that queries `.perch-control` would pass on a
+ * div that no assistive technology can operate.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -404,7 +404,7 @@ describe("field-state", () => {
     expect(isLocked(REST)).toBe(false);
   });
 
-  it("gives text 400 ms and everything discrete 0 ms (ARCH 13 §5)", () => {
+  it("gives text 400 ms and everything discrete 0 ms", () => {
     expect(debounceFor("text")).toBe(400);
     expect(debounceFor("textarea")).toBe(400);
     expect(debounceFor("code")).toBe(400);

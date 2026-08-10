@@ -1,7 +1,7 @@
 /**
- * A hand-written DMMF standing in for a twelve-model Prisma schema, which is
- * what acceptance criterion 1 of PRD 01 asks for: one-to-one, one-to-many and
- * many-to-many relations, enums, native types, soft delete and documentation.
+ * A hand-written DMMF standing in for a twelve-model Prisma schema: one-to-one,
+ * one-to-many and many-to-many relations, enums, native types, soft delete and
+ * documentation.
  *
  * Hand-written on purpose. Generating it would require a Prisma client, a
  * database and a migration, which would make the fastest tests in the repo the

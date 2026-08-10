@@ -1,10 +1,10 @@
 /**
- * `GET {path}/assets/:file` — PRD 04 §4.
+ * `GET {path}/assets/:file`.
  *
  * The manifest is the allowlist, not a lookup table: only a name it carries is
  * served, so there is no path to traverse. `StreamableFile` rather than
- * `res.sendFile` keeps the package free of `@nestjs/platform-express`, which
- * PRD 04 §10 needs for Fastify later.
+ * `res.sendFile` keeps the package free of `@nestjs/platform-express`, which a
+ * Fastify adapter would need gone later.
  */
 import {
   Controller,
@@ -37,7 +37,7 @@ interface Asset {
 export class PanelAssetsController {
   readonly #assets: ReadonlyMap<string, Asset>;
 
-  /** Read once, at bootstrap: PRD 04 §3, and the handler stays free of I/O. */
+  /** Read once, at bootstrap, so the handler stays free of I/O. */
   constructor(@Inject(PANEL_ASSETS) assets: PanelAssets) {
     const loaded = new Map<string, Asset>();
     for (const file of Object.values(assets.entries)) {

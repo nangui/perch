@@ -5,8 +5,8 @@
  * `SchemaRenderer`. That is the whole of A1 on the client: a keystroke, the
  * debounce the field declared, one request, reconciliation, a re-render.
  *
- * The debounce is read off the node rather than chosen here. ARCH 13 §5 sets it
- * per field type, and a field with no `live` triggers nothing at all — it is
+ * The debounce is read off the node rather than chosen here. It is set per
+ * field type, and a field with no `live` triggers nothing at all — it is
  * submitted with the form instead.
  */
 import type { ReactNode, SyntheticEvent } from "react";
@@ -30,7 +30,7 @@ export interface PanelFormProps {
   readonly save?: (request: SaveRequest) => Promise<SaveResponse>;
   readonly onSaved?: (response: SaveResponse) => void;
   readonly submitLabel?: string;
-  /** Rendered above the form when a request failed. ARCH 13 §5: never silent. */
+  /** Rendered above the form when a request failed. Never silent. */
   readonly renderFailure?: (snapshot: Snapshot, retry: () => void) => ReactNode;
   readonly timeout?: number;
 }

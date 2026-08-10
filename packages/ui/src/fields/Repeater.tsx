@@ -5,7 +5,7 @@
  *
  *   - *"Reordering is a pure UI action until you release: one PATCH with the
  *     final order, not one per step."* Order therefore lives in the pure-UI zone
- *     (ARCH 13 §3) while dragging, and crosses into the canonical zone once.
+ *     while dragging, and crosses into the canonical zone once.
  *   - *"New item — nothing is sent until a name and an email are filled."* An
  *     item that has never been valid is `pending`, styled differently, and
  *     excluded from the patch.

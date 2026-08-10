@@ -2,10 +2,10 @@
  * Atlas — the token layer.
  *
  * Every value here is lifted from the `Perch Forms` design, which expressed them
- * as inline hex. They are re-expressed as semantic custom properties because
- * ARCH 13 §9 requires the panel to be re-themable by changing tokens, and a
- * screen that names `#21594a` cannot be re-themed. The rule that follows from
- * that: component styles below reference `--perch-*` only, never a raw colour.
+ * as inline hex. They are re-expressed as semantic custom properties because the
+ * panel has to be re-themable by changing tokens, and a screen that names
+ * `#21594a` cannot be re-themed. The rule that follows from that: component
+ * styles below reference `--perch-*` only, never a raw colour.
  *
  * Dark mode is NOT in the source design, which specified light only. The dark
  * ramp here is derived — surfaces inverted, accent lightened to hold contrast on
@@ -206,8 +206,7 @@
   --perch-focus-ring:
     0 0 0 1px var(--perch-surface), 0 0 0 3px var(--perch-accent-ring);
 
-  /* Debounce, from ARCH 13 §5. Exposed as tokens so a field cannot invent its
-     own timing. */
+  /* Debounce, exposed as tokens so a field cannot invent its own timing. */
   --perch-debounce-text: 400ms;
   --perch-debounce-immediate: 0ms;
 }

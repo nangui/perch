@@ -1,11 +1,11 @@
 /**
- * `TransportClient` — ARCH 13 §4 and §5.
+ * `TransportClient` — reconciliation and ordering.
  *
- * §4 opens with "this is the bug that makes a Livewire clone feel broken, and
- * nobody plans for it": a patch triggered by field A comes back while the user
- * is typing in field B, and overwrites B. The three mechanisms that document
- * names — dirty paths, an authoritative exception, and a single-flight queue
- * with sequence numbers — are the whole of this file.
+ * The bug that makes a Livewire clone feel broken, and nobody plans for it: a
+ * patch triggered by field A comes back while the user is typing in field B,
+ * and overwrites B. Three mechanisms answer it — dirty paths, an authoritative
+ * exception, and a single-flight queue with sequence numbers — and they are the
+ * whole of this file.
  *
  * No React, no fetch. Time and I/O are injected, so the ordering rules can be
  * tested without waiting and without a server.
@@ -21,9 +21,9 @@ export interface StateRequest {
 export interface StateResponse {
   readonly payload: SchemaPayload;
   /**
-   * Paths the server insists on, dirty or not — a computed total, say. ARCH 13
-   * §4 calls this the authoritative exception; everything else yields to what
-   * the user has typed since.
+   * Paths the server insists on, dirty or not — a computed total, say. This is
+   * the authoritative exception; everything else yields to what the user has
+   * typed since.
    */
   readonly authoritative?: readonly string[];
 }
@@ -76,9 +76,9 @@ export interface TransportOptions {
   /**
    * How long a request may stay in flight before it is abandoned. Without it a
    * request that never answers blocks every later change behind it, with no
-   * failure to show and no retry to offer — a silent loss, which ARCH 13 §5
-   * forbids. It is also what makes the sequence guard reachable: only an
-   * abandoned request can have a response arrive after a newer one.
+   * failure to show and no retry to offer — a silent loss, which is forbidden.
+   * It is also what makes the sequence guard reachable: only an abandoned
+   * request can have a response arrive after a newer one.
    */
   readonly timeout?: number;
 }
@@ -131,8 +131,8 @@ export class TransportClient {
   }
 
   /**
-   * A local edit. Optimistic on the draft zone only (ARCH 13 §5): the value
-   * appears at once, visibility and options never do.
+   * A local edit. Optimistic on the draft zone only: the value appears at once,
+   * visibility and options never do.
    *
    * `live` is the field's own, and absent means the field triggers no round
    * trip — the edit stays in the draft until the form is submitted. Passing a
@@ -241,7 +241,7 @@ export class TransportClient {
     this.#cancelTimeout = null;
   }
 
-  /** Retries the last failure. ARCH 13 §5: never a silent loss. */
+  /** Retries the last failure. Never a silent loss. */
   retry(): void {
     if (this.#failure === undefined) return;
     this.#failure = undefined;

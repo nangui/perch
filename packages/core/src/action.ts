@@ -1,7 +1,7 @@
 /**
- * Actions — PRD 08 §4.
+ * Actions.
  *
- * The two of §4 that are v0.1 *and* navigation: `EditAction` on a row and
+ * The two that are v0.1 *and* navigation: `EditAction` on a row and
  * `CreateAction` above the table. Both are links to pages that already exist.
  * The rest — `DeleteAction`, modals, confirmations, bulk — needs a route or a
  * dialog that does not, and an action that renders and does nothing would be

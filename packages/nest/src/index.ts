@@ -2,9 +2,9 @@
  * `@perchjs/nest` — inbound adapter: PanelModule, routing, guards, navigation.
  *
  * May import `@perchjs/core`. May never import `@perchjs/prisma`: data access
- * goes through the `DataAdapter` port (PRD 04 §7, ARCH 12 §1).
+ * goes through the `DataAdapter` port.
  *
- * Holds PRD 04 and stages 1, 2 and 9 of the nine-stage pipeline.
+ * Holds stages 1, 2 and 9 of the nine-stage pipeline.
  */
 
 export type { PanelAssets } from "./panel-assets.js";

@@ -1,5 +1,5 @@
 /**
- * Where a create lands — PRD 05 §3.2, panel level and overridable per resource.
+ * Where a create lands: panel level, overridable per resource.
  *
  * The design names three targets: index, view, edit. `view` has no route yet —
  * it is the infolist, v0.2 — and accepting it would mean answering with a URL

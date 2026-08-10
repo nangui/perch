@@ -43,10 +43,10 @@ export interface RawQuery {
  * Builds the `Query` the adapter will run, from parameters and from the schema
  * — never from the parameters alone.
  *
- * `include` is deliberately absent. PRD 03 §3.2 requires the loading plan to be
- * derived from the server's schema, and until columns declare what they reach
- * (PRD 07) the honest plan is to load no relation at all. A client that asks
- * for one is asking the wrong side.
+ * `include` is deliberately absent. The loading plan is derived from the
+ * server's schema, and until columns declare what they reach the honest plan is
+ * to load no relation at all. A client that asks for one is asking the wrong
+ * side.
  */
 export function readQuery(model: string, ir: Ir, raw: RawQuery, table?: Table): Query {
   const perPage = clamp(integer(raw.perPage) ?? DEFAULT_PER_PAGE, 1, MAX_PER_PAGE);
@@ -62,9 +62,9 @@ export function readQuery(model: string, ir: Ir, raw: RawQuery, table?: Table): 
     ...(sort === undefined ? {} : { sort: [sort] }),
     ...(search === undefined ? {} : { search }),
     // `filters` is read and dropped. A filter is a clause a resource declares
-    // (PRD 07 §5); one that arrives from a URL and reaches `where` untouched is
-    // an injection wearing the name of a feature. Nothing declares filters yet,
-    // so nothing is accepted.
+    // one that arrives from a URL and reaches `where` untouched is an injection
+    // wearing the name of a feature. Nothing declares filters yet, so nothing
+    // is accepted.
   };
 }
 

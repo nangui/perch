@@ -95,8 +95,8 @@ describe("row actions", () => {
   const withEdit: ColumnTree = { ...COLUMNS, actions: [{ type: "EditAction" }] };
 
   it("renders a link, not a button", () => {
-    // `EditAction` is navigation (PRD 08 §4). An anchor is what lets a browser
-    // open it in a new tab or copy its address.
+    // `EditAction` is navigation. An anchor is what lets a browser open it in a
+    // new tab or copy its address.
     render(
       <DataTable
         columns={withEdit}
@@ -137,8 +137,8 @@ describe("sorting from the keyboard", () => {
   it("makes a sortable header a button, and a plain one not", () => {
     table({ onSort: vi.fn() });
 
-    // ARCH 13 §10: sortable headers actionable from the keyboard. A click
-    // handler on a `th` is not.
+    // Sortable headers have to be actionable from the keyboard. A click handler
+    // on a `th` is not.
     expect(screen.getByRole("button", { name: /Headline/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Author/ })).toBeNull();
   });
@@ -178,7 +178,7 @@ describe("sorting from the keyboard", () => {
   });
 });
 
-describe("the flat rendering PRD 07 §2 calls non-negotiable", () => {
+describe("the flat rendering invariant 6 calls non-negotiable", () => {
   it("looks a renderer up once per column, not once per cell", async () => {
     // The wall Filament hit, and the assertion that actually catches it.
     // Counting render calls would not: a `<Cell>` component per cell produces
