@@ -6,9 +6,9 @@
     "outDir": ".tsbuild",
     "tsBuildInfoFile": ".tsbuild/.tsbuildinfo",
 
-    // NestJS repose sur les décorateurs legacy et l'injection par propriétés de
-    // constructeur. Les trois réglages ci-dessous sont donc désactivés ici, et
-    // ici seulement : le domaine (`core`) reste sans décorateur ni métadonnée.
+    // NestJS rests on legacy decorators and on constructor property injection,
+    // so the three settings below are relaxed here and here only: the domain
+    // (`core`) stays free of decorators and of emitted metadata.
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "erasableSyntaxOnly": false

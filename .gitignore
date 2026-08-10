@@ -21,10 +21,10 @@ coverage
 # Turborepo
 .turbo/
 
-# Fixtures écrites par les tests de frontières
+# Fixtures written by the boundary tests
 **/__boundary_fixture__.ts
 
-# Sortie de tsc --build (typecheck), distincte de dist/ produit par tsup
+# Output of tsc --build (typecheck), distinct from dist/ which tsdown produces
 .tsbuild/
 
 # Output of the DMMF contract test.

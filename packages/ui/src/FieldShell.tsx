@@ -1,10 +1,10 @@
 /**
  * The wrapper that makes the design's central promise true.
  *
- * From the source design's own header: *"Chaque champ occupe la même hauteur au
- * repos, en chargement et en erreur : le message d'erreur et l'aide partagent une
- * ligne réservée sous le contrôle, donc un patch du serveur ne fait jamais sauter
- * la mise en page."*
+ * From the source design's own header, translated: *"Every field occupies the
+ * same height at rest, while loading and in error: the error message and the
+ * help text share one reserved line under the control, so a patch from the
+ * server never makes the layout jump."*
  *
  * So the help line is always rendered, always at least
  * `--perch-help-line-height` tall, and carries either the help text or the error.

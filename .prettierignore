@@ -3,8 +3,8 @@ dist
 coverage
 pnpm-lock.yaml
 
-# La documentation est figée : Prettier la reformaterait (retours à la ligne,
-# tableaux, listes), ce qui est une réécriture de contenu. Elle reste sous
-# contrôle humain.
+# The documentation is settled. Prettier would reflow it — line breaks, tables,
+# lists — which is rewriting content rather than formatting it. It stays under
+# human control.
 *.md
 docs/
