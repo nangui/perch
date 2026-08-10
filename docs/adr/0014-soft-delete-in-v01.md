@@ -1,6 +1,6 @@
 # ADR 0014 — What `hasSoftDelete` means before v0.2
 
-**Status:** proposed · **Scope:** Perch (`@perchjs/core`, `@perchjs/prisma`)
+**Status:** accepted · **Scope:** Perch (`@perchjs/core`, `@perchjs/prisma`)
 
 ## Context
 
