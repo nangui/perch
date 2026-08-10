@@ -1,5 +1,6 @@
 /**
- * `GET {path}/:resource/create` — the create page.
+ * The panel's HTML pages: `GET {path}/:resource`, `/:resource/create` and
+ * `/:resource/:id/edit`.
  *
  * The panel root is taken from the request rather than from configuration: the
  * host may add a global prefix and a version segment, and neither is visible to
@@ -13,9 +14,11 @@ import {
   Inject,
   NotFoundException,
   Param,
+  Query,
   Req,
 } from "@nestjs/common";
 import type { DataAdapter, FormState, Row } from "@perchjs/core";
+import { listRecords } from "./records.js";
 import { resolveSchema, serialise } from "@perchjs/core";
 import type { PanelAssets } from "./panel-assets.js";
 import { PANEL_ASSETS } from "./panel-assets.js";
@@ -25,6 +28,7 @@ import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf } from "./panel-root.js";
 import { recordId } from "./record-id.js";
+import type { RawQuery } from "./records-query.js";
 import type { RegisteredResource } from "./resource-registry.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
@@ -47,6 +51,44 @@ export class PanelPageController {
     this.#assets = assets;
     this.#users = users;
     this.#data = data;
+  }
+
+  /**
+   * Registered after the two-segment routes, though Express would not confuse
+   * them: `:resource` alone cannot match `posts/create`.
+   *
+   * The first page of records is embedded rather than fetched. The form pages
+   * embed their resolved tree for the same reason — a panel that renders empty
+   * and then fills in has a visible seam, and one round trip is one round trip.
+   */
+  @Get(":resource")
+  @Header("content-type", "text/html; charset=utf-8")
+  @Header("cache-control", "no-store")
+  async list(
+    @Param("resource") slug: string,
+    @Query() query: RawQuery,
+    @Req() request: IncomingUrl,
+  ): Promise<string> {
+    const resource = this.#registry.get(slug);
+    if (resource === undefined) throw new NotFoundException();
+
+    const records = await listRecords(
+      this.#data,
+      resource,
+      query,
+      this.#users.resolve(request),
+    );
+    const root = rootOf(request, slug);
+
+    return renderShell({
+      root,
+      api: `${root}/api/${resource.metadata.slug}`,
+      title: resource.metadata.pluralLabel,
+      operation: "list",
+      payload: records,
+      scriptFile: entry(this.#assets, "panel.js"),
+      styleFile: entry(this.#assets, "panel.css"),
+    });
   }
 
   @Get(":resource/create")

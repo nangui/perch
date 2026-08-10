@@ -11,10 +11,15 @@ export interface ShellOptions {
   readonly root: string;
   /** Where `/state` and its siblings live, e.g. `/admin/api/people`. */
   readonly api: string;
+  /** The document title, and — on a list — the table's caption. */
   readonly title: string;
-  /** What the form will do when submitted. */
-  readonly operation: "create" | "edit";
-  /** The row being edited. Absent on a create. */
+  /**
+   * What the bundle should mount. `create` and `edit` are what the form will do
+   * when submitted; `list` is a table, and carries a page of records rather
+   * than a resolved tree.
+   */
+  readonly operation: "create" | "edit" | "list";
+  /** The row being edited. Absent on a create and on a list. */
   readonly id?: string;
   readonly payload: unknown;
   readonly scriptFile: string;
@@ -35,7 +40,7 @@ export function renderShell(options: ShellOptions): string {
 <body class="perch-root">
 <div id="perch-panel" data-api="${attribute(options.api)}" data-operation="${attribute(options.operation)}"${
     options.id === undefined ? "" : ` data-id="${attribute(options.id)}"`
-  } data-payload="${payload}"></div>
+  } data-title="${attribute(options.title)}" data-payload="${payload}"></div>
 <script type="module" src="${attribute(`${options.root}/assets/${options.scriptFile}`)}"></script>
 </body>
 </html>

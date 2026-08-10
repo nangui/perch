@@ -13,6 +13,8 @@ import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import type { SchemaPayload } from "@perchjs/core";
 import { PanelForm } from "./PanelForm.js";
+import type { RecordsPage } from "./PanelList.js";
+import { PanelList } from "./PanelList.js";
 import { registerBuiltInColumns } from "./columns.js";
 import { registerBuiltInComponents } from "./renderers.js";
 import type {
@@ -38,9 +40,22 @@ export function mount(element: HTMLElement): void {
     );
   }
   const id = element.dataset["id"];
+  const title = element.dataset["title"] ?? "";
 
   registerBuiltInComponents();
   registerBuiltInColumns();
+
+  if (operation === "list") {
+    createRoot(element).render(
+      <PanelList
+        initial={JSON.parse(payload) as RecordsPage}
+        title={title}
+        fetchPage={(sort) => records(api, sort)}
+      />,
+    );
+    return;
+  }
+
   createRoot(element).render(
     <PanelForm
       initial={JSON.parse(payload) as SchemaPayload}
@@ -132,3 +147,21 @@ async function send(
 
 const element = document.getElementById(MOUNT_ID);
 if (element !== null) mount(element);
+
+/**
+ * Asks for a page in a given order.
+ *
+ * The sort travels as `path:direction`, which is the shape `records-query.ts`
+ * reads — and it is checked there against what the columns declared, so a
+ * client that invents one is refused rather than obeyed.
+ *
+ * No page number, because there is nothing to turn one with: `.paginated()`
+ * from PRD 07 §3 is not built, so the table is always the server's first page.
+ * Sending one from here would be a control nobody can reach.
+ */
+async function records(api: string, sort: { path: string; direction: string }) {
+  const url = `${api}/records?sort=${encodeURIComponent(`${sort.path}:${sort.direction}`)}`;
+  const response = await fetch(url, { headers: { accept: "application/json" } });
+  if (!response.ok) throw new Error(`/records answered ${String(response.status)}`);
+  return (await response.json()) as RecordsPage;
+}

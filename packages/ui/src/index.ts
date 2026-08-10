@@ -35,6 +35,8 @@ export {
 } from "./column-registry.js";
 export { registerBuiltInColumns } from "./columns.js";
 export type { DataTableProps, DataTableSort } from "./DataTable.js";
+export type { PanelListProps, RecordsPage } from "./PanelList.js";
+export { PanelList } from "./PanelList.js";
 export { DataTable } from "./DataTable.js";
 export type { ControlBinding, FieldShellProps } from "./FieldShell.js";
 export { FieldShell } from "./FieldShell.js";

@@ -1304,3 +1304,25 @@
   color: var(--perch-danger-content);
   font-family: var(--perch-font-mono);
 }
+
+.perch-list {
+  padding: var(--perch-space-7);
+}
+
+.perch-list__title {
+  margin-bottom: var(--perch-space-6);
+  font-size: var(--perch-text-xl);
+  font-weight: 600;
+  color: var(--perch-content);
+}
+
+.perch-list__total {
+  margin-top: var(--perch-space-5);
+  font-size: var(--perch-text-base);
+  color: var(--perch-content-muted);
+}
+
+.perch-list__failure {
+  margin-bottom: var(--perch-space-5);
+  color: var(--perch-danger-content);
+}

@@ -214,6 +214,25 @@ describe("a shell that says too little", () => {
     expect(lookupColumn("IconColumn")).toBeDefined();
   });
 
+  it("takes the list's title from the element, not from the document", () => {
+    // `panel-shell.ts` states the contract: everything the bundle needs travels
+    // on the mount element. Reading `document.title` worked and was a coupling
+    // that file rules out.
+    document.title = "not this";
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "list",
+          title: "People",
+          payload: JSON.stringify({ rows: [], total: 0, columns: { columns: [] } }),
+        }),
+      );
+    });
+
+    expect(screen.getByRole("heading", { name: "People" })).toBeTruthy();
+  });
+
   it("refuses to mount rather than half working", () => {
     expect(() => {
       mount(element({ api: "/admin/api/people" }));

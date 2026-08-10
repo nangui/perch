@@ -33,8 +33,9 @@ export { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
 export type { UserResolver } from "./user-resolver.js";
 export { PANEL_USER_RESOLVER, RequestUserResolver } from "./user-resolver.js";
 export type { PanelModuleOptions } from "./panel.module.js";
-export type { RecordsResponse } from "./panel-records.controller.js";
 export { PanelRecordsController } from "./panel-records.controller.js";
+export type { RecordsResponse } from "./records.js";
+export { listRecords, mayList } from "./records.js";
 export type { RawQuery } from "./records-query.js";
 export {
   DEFAULT_PER_PAGE,

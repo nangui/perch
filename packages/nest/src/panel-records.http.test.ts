@@ -263,6 +263,45 @@ describe("the columns a resource declares", () => {
   });
 });
 
+describe("the list page", () => {
+  it("serves a shell carrying the first page, so nothing is fetched twice", async () => {
+    const url = await serve();
+    const response = await get(`${url}/admin/listed`);
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    expect(html).toContain('data-operation="list"');
+    // The payload is the records response, escaped into the attribute.
+    expect(html).toContain("&quot;total&quot;:3");
+    expect(html).toContain("&quot;TextColumn&quot;");
+  });
+
+  it("does not let the shell carry what the table never declared", async () => {
+    // The page embeds what the API answers, so it inherits the projection —
+    // and a leak here would be in the page source rather than behind a fetch.
+    const url = await serve();
+    const html = await (await get(`${url}/admin/listed`)).text();
+
+    expect(html).not.toContain("passwordHash");
+    expect(html).not.toContain("2b$10");
+  });
+
+  it("refuses the page exactly as it refuses the route", async () => {
+    const url = await serve();
+
+    expect((await get(`${url}/admin/ghost`)).status).toBe(404);
+    expect((await get(`${url}/admin/gated`, "grace")).status).toBe(404);
+    expect((await get(`${url}/admin/per-row`)).status).toBe(404);
+  });
+
+  it("does not shadow the two-segment pages", async () => {
+    const url = await serve();
+
+    expect((await get(`${url}/admin/listed/create`)).status).toBe(200);
+  });
+});
+
 describe("what it refuses, all with the same answer", () => {
   it("404s a resource that is not there", async () => {
     const url = await serve();
