@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { IconColumn, TextColumn } from "./column.js";
+import { EditAction } from "./action.js";
 import { serialiseTable, sortablePaths, Table } from "./table.js";
 
 describe("a column builder", () => {
@@ -70,6 +71,7 @@ describe("what crosses the wire", () => {
         { type: "TextColumn", path: "author.name" },
         { type: "IconColumn", path: "published", boolean: true },
       ],
+      actions: [],
       defaultSort: { path: "title", direction: "desc" },
     });
   });
@@ -82,7 +84,26 @@ describe("what crosses the wire", () => {
   });
 
   it("says nothing at all about a table with no columns", () => {
-    expect(serialiseTable(Table.make())).toEqual({ columns: [] });
+    expect(serialiseTable(Table.make())).toEqual({ columns: [], actions: [] });
+  });
+
+  it("carries the actions a row offers, with the label they were given", () => {
+    const table = Table.make().actions([
+      EditAction.make(),
+      EditAction.make().label("Open"),
+    ]);
+
+    expect(serialiseTable(table).actions).toEqual([
+      { type: "EditAction" },
+      { type: "EditAction", label: "Open" },
+    ]);
+  });
+
+  it("clones when actions are set, like everything else", () => {
+    const empty = Table.make();
+
+    expect(empty.actions([EditAction.make()])).not.toBe(empty);
+    expect(empty.state.actions).toHaveLength(0);
   });
 });
 

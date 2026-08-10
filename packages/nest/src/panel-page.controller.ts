@@ -72,13 +72,14 @@ export class PanelPageController {
     const resource = this.#registry.get(slug);
     if (resource === undefined) throw new NotFoundException();
 
+    const root = rootOf(request, slug);
     const records = await listRecords(
       this.#data,
       resource,
       query,
       this.#users.resolve(request),
+      root,
     );
-    const root = rootOf(request, slug);
 
     return renderShell({
       root,

@@ -11,7 +11,14 @@ import type { CanActivate, ExecutionContext, INestApplication } from "@nestjs/co
 import { Injectable } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { DataAdapter, Id, Ir, ModelMeta, Query, Row } from "@perchjs/core";
-import { IconColumn, Schema, Table, TextColumn, TextInput } from "@perchjs/core";
+import {
+  EditAction,
+  IconColumn,
+  Schema,
+  Table,
+  TextColumn,
+  TextInput,
+} from "@perchjs/core";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
@@ -124,6 +131,7 @@ class ListedResource {
         TextColumn.make("author.name").label("Author"),
         IconColumn.make("published").boolean(),
       ])
+      .actions([EditAction.make()])
       .defaultSort("title", "desc");
   }
 }
@@ -185,7 +193,10 @@ describe("listing records", () => {
       // is the same narrow pair the sort allowlist falls back to.
       rows: SHOWN,
       total: 3,
-      columns: { columns: [] },
+      columns: { columns: [], actions: [] },
+      // How a row action addresses one row, said rather than assumed.
+      recordKey: "id",
+      editPath: "/admin/posts",
     });
   });
 
@@ -233,6 +244,7 @@ describe("the columns a resource declares", () => {
         { type: "TextColumn", path: "author.name", label: "Author" },
         { type: "IconColumn", path: "published", boolean: true },
       ],
+      actions: [{ type: "EditAction" }],
       defaultSort: { path: "title", direction: "desc" },
     });
   });
@@ -285,6 +297,19 @@ describe("the list page", () => {
 
     expect(html).not.toContain("passwordHash");
     expect(html).not.toContain("2b$10");
+  });
+
+  it("keeps the host's prefix in the path a row action points at", async () => {
+    // The panel's root is the server's to know: a host may add a prefix, and a
+    // browser reconstructing it from the API path would get it wrong.
+    const url = await serve();
+    const response = await fetch(`${url}/admin/api/listed/records`, {
+      headers: { "x-user": "ada" },
+    });
+    const body = (await response.json()) as { editPath: string; recordKey: string };
+
+    expect(body.editPath).toBe("/admin/listed");
+    expect(body.recordKey).toBe("id");
   });
 
   it("refuses the page exactly as it refuses the route", async () => {

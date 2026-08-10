@@ -10,7 +10,13 @@
  * cost Filament a rewrite, and it would look like an improvement.
  */
 import type { ReactNode } from "react";
-import type { ColumnNode, ColumnTree, Row, SortDirection } from "@perchjs/core";
+import type {
+  ActionNode,
+  ColumnNode,
+  ColumnTree,
+  Row,
+  SortDirection,
+} from "@perchjs/core";
 import { lookupColumn } from "./column-registry.js";
 
 export interface DataTableSort {
@@ -27,6 +33,12 @@ export interface DataTableProps {
   readonly onSort?: (sort: DataTableSort) => void;
   readonly caption: string;
   readonly empty?: ReactNode;
+  /**
+   * Where a row action points. The server builds it — `${editPath}/${key}/edit`
+   * — because the panel's own root is the server's to know, not the browser's
+   * to reconstruct from the API path it was handed.
+   */
+  readonly rowHref?: (row: Row) => string | undefined;
 }
 
 export function DataTable({
@@ -36,7 +48,9 @@ export function DataTable({
   onSort,
   caption,
   empty,
+  rowHref,
 }: DataTableProps): ReactNode {
+  const actions = rowHref === undefined ? [] : columns.actions;
   // One lookup per column, before any row is touched.
   const rendered = columns.columns.map((column) => ({
     column,
@@ -66,6 +80,11 @@ export function DataTable({
               {header(column, sort, onSort)}
             </th>
           ))}
+          {actions.length === 0 ? null : (
+            <th scope="col" className="perch-table__head">
+              <span className="perch-visually-hidden">Actions</span>
+            </th>
+          )}
         </tr>
       </thead>
       <tbody>
@@ -78,10 +97,40 @@ export function DataTable({
                   : render(readPath(row, column.path), row, column)}
               </td>
             ))}
+            {actions.length === 0 || rowHref === undefined ? null : (
+              <td className="perch-table__cell perch-table__actions">
+                {actions.map((action) => rowAction(action, row, rowHref))}
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+/**
+ * A row action, as a link.
+ *
+ * `EditAction` is navigation (PRD 08 §4), so it is an anchor rather than a
+ * button: it goes somewhere, and the browser's own affordances — open in a new
+ * tab, copy the address — come with saying so honestly.
+ *
+ * A row the server gave no address for offers nothing rather than a dead link.
+ */
+function rowAction(
+  action: ActionNode,
+  row: Row,
+  href: (row: Row) => string | undefined,
+): ReactNode {
+  if (action.type !== "EditAction") return null;
+  const target = href(row);
+  if (target === undefined) return null;
+
+  return (
+    <a key={action.type} className="perch-table__action" href={target}>
+      {action.label ?? "Edit"}
+    </a>
   );
 }
 

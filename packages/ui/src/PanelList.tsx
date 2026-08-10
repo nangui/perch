@@ -24,6 +24,9 @@ export interface RecordsPage {
   readonly columns: ColumnTree;
   /** The order the server applied, which may not be the one that was asked. */
   readonly sort?: DataTableSort;
+  readonly recordKey: string;
+  /** Absent when the server would not vouch for the address. */
+  readonly editPath?: string;
 }
 
 export interface PanelListProps {
@@ -69,6 +72,7 @@ export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactN
         columns={page.columns}
         rows={page.rows}
         caption={title}
+        rowHref={(row) => href(page, row)}
         {...(sort === undefined ? {} : { sort })}
         {...(reorder === undefined ? {} : { onSort: reorder })}
       />
@@ -77,4 +81,18 @@ export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactN
       </p>
     </main>
   );
+}
+
+/**
+ * The address of one row's edit page.
+ *
+ * Built from what the server sent — the key's name and the path its pages live
+ * under — rather than from a convention. A model keyed on `uuid` is addressed
+ * by `uuid`, and a panel behind a prefix keeps it.
+ */
+function href(page: RecordsPage, row: Row): string | undefined {
+  if (page.editPath === undefined) return undefined;
+  const key = row[page.recordKey];
+  if (typeof key !== "string" && typeof key !== "number") return undefined;
+  return `${page.editPath}/${encodeURIComponent(String(key))}/edit`;
 }

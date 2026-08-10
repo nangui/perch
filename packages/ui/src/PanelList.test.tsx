@@ -15,8 +15,11 @@ const PAGE: RecordsPage = {
   total: 2,
   columns: {
     columns: [{ type: "TextColumn", path: "title", label: "Headline", sortable: true }],
+    actions: [{ type: "EditAction" }],
     defaultSort: { path: "title", direction: "asc" },
   },
+  recordKey: "id",
+  editPath: "/admin/posts",
 };
 
 beforeEach(() => {
@@ -43,7 +46,7 @@ describe("the list page", () => {
   it("opens on the order the table declared", () => {
     render(<PanelList initial={PAGE} title="Posts" fetchPage={vi.fn()} />);
 
-    expect(screen.getByRole("columnheader").getAttribute("aria-sort")).toBe(
+    expect(screen.getAllByRole("columnheader")[0]?.getAttribute("aria-sort")).toBe(
       "ascending",
     );
   });
@@ -69,14 +72,19 @@ describe("the list page", () => {
     // request would leave the header claiming an order nobody applied.
     const fetchPage = vi.fn(() =>
       // No `sort` in the answer: the request was refused.
-      Promise.resolve({ ...PAGE, columns: { columns: PAGE.columns.columns } }),
+      Promise.resolve({
+        ...PAGE,
+        columns: { columns: PAGE.columns.columns, actions: [] },
+      }),
     );
     render(<PanelList initial={PAGE} title="Posts" fetchPage={fetchPage} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Headline/ }));
 
     await waitFor(() => {
-      expect(screen.getByRole("columnheader").getAttribute("aria-sort")).toBe("none");
+      expect(screen.getAllByRole("columnheader")[0]?.getAttribute("aria-sort")).toBe(
+        "none",
+      );
     });
   });
 
@@ -89,7 +97,7 @@ describe("the list page", () => {
     fireEvent.click(screen.getByRole("button", { name: /Headline/ }));
 
     await waitFor(() => {
-      expect(screen.getByRole("columnheader").getAttribute("aria-sort")).toBe(
+      expect(screen.getAllByRole("columnheader")[0]?.getAttribute("aria-sort")).toBe(
         "descending",
       );
     });
@@ -106,6 +114,64 @@ describe("the list page", () => {
       expect(screen.getByRole("alert")).toBeTruthy();
     });
     expect(screen.getByText("Ada")).toBeTruthy();
+  });
+
+  it("links each row to its own edit page, by the key the server named", () => {
+    // Not `id` by convention: the response says which column addresses a row,
+    // and a model keyed on `uuid` is addressed by `uuid`.
+    render(<PanelList initial={PAGE} title="Posts" />);
+    const links = screen.getAllByRole("link", { name: "Edit" });
+
+    expect(links).toHaveLength(2);
+    expect(links[0]?.getAttribute("href")).toBe("/admin/posts/1/edit");
+    expect(links[1]?.getAttribute("href")).toBe("/admin/posts/2/edit");
+  });
+
+  it("keeps the panel's own prefix", () => {
+    render(
+      <PanelList
+        initial={{ ...PAGE, editPath: "/api/v1/admin/posts" }}
+        title="Posts"
+      />,
+    );
+
+    expect(screen.getAllByRole("link")[0]?.getAttribute("href")).toBe(
+      "/api/v1/admin/posts/1/edit",
+    );
+  });
+
+  it("addresses a row by whatever the model calls its key", () => {
+    render(
+      <PanelList
+        initial={{
+          ...PAGE,
+          recordKey: "uuid",
+          rows: [{ uuid: "a-b-c", title: "Ada" }],
+        }}
+        title="Posts"
+      />,
+    );
+
+    expect(screen.getByRole("link").getAttribute("href")).toBe(
+      "/admin/posts/a-b-c/edit",
+    );
+  });
+
+  it("offers nothing when the server would not vouch for the address", () => {
+    // The server withholds `editPath` when the root it was built from is not
+    // one this origin owns. A client that filled the gap in would undo it.
+    const withoutPath: RecordsPage = { ...PAGE };
+    delete (withoutPath as { editPath?: string }).editPath;
+    render(<PanelList initial={withoutPath} title="Posts" />);
+
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("offers nothing on a row the server gave no key for", () => {
+    // A dead link is worse than no link.
+    render(<PanelList initial={{ ...PAGE, rows: [{ title: "Ada" }] }} title="Posts" />);
+
+    expect(screen.queryByRole("link")).toBeNull();
   });
 
   it("offers no reordering when nothing can answer it", () => {

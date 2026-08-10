@@ -22,6 +22,7 @@ afterEach(() => {
 });
 
 const COLUMNS: ColumnTree = {
+  actions: [],
   columns: [
     { type: "TextColumn", path: "title", label: "Headline", sortable: true },
     { type: "TextColumn", path: "author.name", label: "Author" },
@@ -86,6 +87,48 @@ describe("what a table renders", () => {
 
     expect(screen.getByRole("status").textContent).toBe("No posts yet.");
     expect(screen.queryByRole("table")).toBeNull();
+  });
+});
+
+describe("row actions", () => {
+  const withEdit: ColumnTree = { ...COLUMNS, actions: [{ type: "EditAction" }] };
+
+  it("renders a link, not a button", () => {
+    // `EditAction` is navigation (PRD 08 §4). An anchor is what lets a browser
+    // open it in a new tab or copy its address.
+    render(
+      <DataTable
+        columns={withEdit}
+        rows={ROWS}
+        caption="Posts"
+        rowHref={(row) => `/admin/posts/${String(row["id"])}/edit`}
+      />,
+    );
+
+    expect(screen.getAllByRole("link", { name: "Edit" })).toHaveLength(2);
+    expect(screen.getAllByRole("columnheader")).toHaveLength(4);
+  });
+
+  it("adds no column at all when nothing can build an address", () => {
+    render(<DataTable columns={withEdit} rows={ROWS} caption="Posts" />);
+
+    expect(screen.getAllByRole("columnheader")).toHaveLength(3);
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("skips an action nobody registered a meaning for", () => {
+    // Rendering an unknown action as a link would send someone somewhere the
+    // server never offered.
+    render(
+      <DataTable
+        columns={{ ...COLUMNS, actions: [{ type: "SomeFutureAction" }] }}
+        rows={ROWS}
+        caption="Posts"
+        rowHref={() => "/somewhere"}
+      />,
+    );
+
+    expect(screen.queryByRole("link")).toBeNull();
   });
 });
 

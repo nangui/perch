@@ -5,6 +5,8 @@
  * to `records.ts`, which the list page calls too.
  */
 import { Controller, Get, Inject, Param, Query, Req } from "@nestjs/common";
+import type { IncomingUrl } from "./panel-root.js";
+import { rootOf } from "./panel-root.js";
 import type { DataAdapter } from "@perchjs/core";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { RawQuery } from "./records-query.js";
@@ -34,13 +36,15 @@ export class PanelRecordsController {
   async records(
     @Param("resource") slug: string,
     @Query() query: RawQuery,
-    @Req() request: unknown,
+    @Req() request: IncomingUrl,
   ): Promise<RecordsResponse> {
     return await listRecords(
       this.#data,
       this.#registry.get(slug),
       query,
       this.#users.resolve(request),
+      // `/admin/api/posts/records` → `/admin`, whatever prefix the host added.
+      rootOf(request, "api"),
     );
   }
 }

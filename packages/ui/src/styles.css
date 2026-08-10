@@ -1326,3 +1326,17 @@
   margin-bottom: var(--perch-space-5);
   color: var(--perch-danger-content);
 }
+
+.perch-table__actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.perch-table__action {
+  color: var(--perch-accent);
+  text-decoration: none;
+}
+
+.perch-table__action:hover {
+  text-decoration: underline;
+}
