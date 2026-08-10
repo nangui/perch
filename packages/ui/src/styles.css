@@ -1395,3 +1395,60 @@
 .perch-breadcrumb__link:hover {
   text-decoration: underline;
 }
+
+.perch-shell {
+  display: flex;
+  align-items: flex-start;
+  min-height: 100vh;
+}
+
+.perch-shell__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.perch-nav {
+  flex: 0 0 auto;
+  width: 15rem;
+  padding: var(--perch-space-6) var(--perch-space-5);
+  border-right: 1px solid var(--perch-border-subtle);
+}
+
+.perch-nav__group + .perch-nav__group {
+  margin-top: var(--perch-space-6);
+}
+
+.perch-nav__heading {
+  margin: 0 0 var(--perch-space-4);
+  font-size: var(--perch-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--perch-content-muted);
+}
+
+.perch-nav__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.perch-nav__link {
+  display: flex;
+  gap: var(--perch-space-4);
+  align-items: center;
+  padding: var(--perch-space-3) var(--perch-space-4);
+  border-radius: var(--perch-radius);
+  color: var(--perch-content);
+  font-size: var(--perch-text-base);
+  text-decoration: none;
+}
+
+.perch-nav__link:hover {
+  background: var(--perch-surface-muted);
+}
+
+.perch-nav__link[aria-current="page"] {
+  background: var(--perch-accent-surface);
+  color: var(--perch-accent);
+}

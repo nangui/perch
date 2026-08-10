@@ -14,6 +14,8 @@ import { createRoot } from "react-dom/client";
 import type { SchemaPayload } from "@perchjs/core";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { PanelForm } from "./PanelForm.js";
+import type { NavigationGroup } from "./PanelNav.js";
+import { PanelNav } from "./PanelNav.js";
 import type { RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
 import { registerBuiltInColumns } from "./columns.js";
@@ -44,36 +46,45 @@ export function mount(element: HTMLElement): void {
   const title = element.dataset["title"] ?? "";
   const listPath = element.dataset["listPath"];
   const listLabel = element.dataset["listLabel"];
+  const navigation = element.dataset["navigation"];
 
   registerBuiltInComponents();
   registerBuiltInColumns();
 
+  const menu = <PanelNav groups={groupsOf(navigation)} />;
+
   if (operation === "list") {
     createRoot(element).render(
-      <PanelList
-        initial={JSON.parse(payload) as RecordsPage}
-        title={title}
-        fetchPage={(sort) => records(api, sort)}
-      />,
+      <div className="perch-shell">
+        {menu}
+        <PanelList
+          initial={JSON.parse(payload) as RecordsPage}
+          title={title}
+          fetchPage={(sort) => records(api, sort)}
+        />
+      </div>,
     );
     return;
   }
 
   createRoot(element).render(
-    <>
-      <Breadcrumb
-        {...(listPath === undefined ? {} : { listPath })}
-        {...(listLabel === undefined ? {} : { listLabel })}
-        current={title}
-      />
-      <PanelForm
-        initial={JSON.parse(payload) as SchemaPayload}
-        send={(request) => send(api, operation, id, request)}
-        save={(request) => save(api, operation, id, request)}
-        onSaved={goWhereTheServerSays}
-        renderFailure={renderFailure}
-      />
-    </>,
+    <div className="perch-shell">
+      {menu}
+      <div className="perch-shell__main">
+        <Breadcrumb
+          {...(listPath === undefined ? {} : { listPath })}
+          {...(listLabel === undefined ? {} : { listLabel })}
+          current={title}
+        />
+        <PanelForm
+          initial={JSON.parse(payload) as SchemaPayload}
+          send={(request) => send(api, operation, id, request)}
+          save={(request) => save(api, operation, id, request)}
+          onSaved={goWhereTheServerSays}
+          renderFailure={renderFailure}
+        />
+      </div>
+    </div>,
   );
 }
 
@@ -174,4 +185,10 @@ async function records(api: string, sort: { path: string; direction: string }) {
   const response = await fetch(url, { headers: { accept: "application/json" } });
   if (!response.ok) throw new Error(`/records answered ${String(response.status)}`);
   return (await response.json()) as RecordsPage;
+}
+
+/** A menu the shell did not send is no menu, not a broken one. */
+function groupsOf(raw: string | undefined): readonly NavigationGroup[] {
+  if (raw === undefined) return [];
+  return JSON.parse(raw) as readonly NavigationGroup[];
 }

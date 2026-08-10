@@ -20,6 +20,7 @@ import { PanelSaveController } from "./panel-save.controller.js";
 import { PanelStateController } from "./panel-state.controller.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { loadPanelAssets, PANEL_ASSETS } from "./panel-assets.js";
+import { PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import type { ResourceClass } from "./resource-registry.js";
 import { PANEL_RESOURCE_TYPES, ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
@@ -28,6 +29,12 @@ import { PANEL_USER_RESOLVER, RequestUserResolver } from "./user-resolver.js";
 export interface PanelModuleOptions {
   /** Where the panel lives, e.g. `/admin`. */
   readonly path: string;
+  /**
+   * The order navigation groups appear in (PRD 04 §6). A group a resource names
+   * and this does not still appears, after these and alphabetically — an order
+   * nobody stated should at least be stable.
+   */
+  readonly navigationGroups?: readonly string[];
   /** Registered explicitly; discovery by folder scan comes later. */
   readonly resources?: readonly ResourceClass[];
   /**
@@ -86,6 +93,7 @@ export class PanelModule {
       ],
       providers: [
         { provide: PANEL_ASSETS, useValue: assets },
+        { provide: PANEL_NAVIGATION_GROUPS, useValue: options.navigationGroups ?? [] },
         { provide: PANEL_RESOURCE_TYPES, useValue: options.resources ?? [] },
         {
           provide: PANEL_USER_RESOLVER,

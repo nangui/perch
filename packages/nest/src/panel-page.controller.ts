@@ -18,6 +18,7 @@ import {
   Req,
 } from "@nestjs/common";
 import type { DataAdapter, FormState, Row } from "@perchjs/core";
+import { buildNavigation, PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { listRecords, resourcePath } from "./records.js";
 import { resolveSchema, serialise } from "@perchjs/core";
 import type { PanelAssets } from "./panel-assets.js";
@@ -40,13 +41,16 @@ export class PanelPageController {
   readonly #assets: PanelAssets;
   readonly #users: UserResolver;
   readonly #data: DataAdapter | null;
+  readonly #groups: readonly string[];
 
   constructor(
     registry: ResourceRegistry,
     @Inject(PANEL_ASSETS) assets: PanelAssets,
     @Inject(PANEL_USER_RESOLVER) users: UserResolver,
     @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
+    @Inject(PANEL_NAVIGATION_GROUPS) groups: readonly string[],
   ) {
+    this.#groups = groups;
     this.#registry = registry;
     this.#assets = assets;
     this.#users = users;
@@ -87,6 +91,7 @@ export class PanelPageController {
       title: resource.metadata.pluralLabel,
       operation: "list",
       payload: records,
+      navigation: await this.#navigation(request, root, slug),
       scriptFile: entry(this.#assets, "panel.js"),
       styleFile: entry(this.#assets, "panel.css"),
     });
@@ -157,6 +162,21 @@ export class PanelPageController {
     });
   }
 
+  /** Rebuilt per request: two users see two different panels (PRD 04 §5). */
+  async #navigation(
+    request: IncomingUrl,
+    root: string,
+    currentSlug: string,
+  ): Promise<unknown> {
+    return await buildNavigation(
+      this.#registry.all(),
+      this.#users.resolve(request),
+      root,
+      this.#groups,
+      currentSlug,
+    );
+  }
+
   async #render(page: {
     resource: RegisteredResource;
     request: IncomingUrl;
@@ -176,8 +196,14 @@ export class PanelPageController {
 
     // The same guard, and the same function, the row actions go through.
     const list = resourcePath(root, page.resource.metadata.slug);
+    const navigation = await this.#navigation(
+      page.request,
+      root,
+      page.resource.metadata.slug,
+    );
 
     return renderShell({
+      navigation,
       root,
       api: `${root}/api/${page.resource.metadata.slug}`,
       title: page.title,

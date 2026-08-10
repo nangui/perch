@@ -323,6 +323,17 @@ describe("the list page", () => {
     expect((await get(`${url}/admin/per-row`)).status).toBe(404);
   });
 
+  it("carries the panel menu, filtered by what this user may reach", async () => {
+    // PRD 04 §5: a `viewAny` refusal removes the entry. `gated` is Ada's.
+    const url = await serve();
+    const asAda = await (await get(`${url}/admin/listed`, "ada")).text();
+    const asGrace = await (await get(`${url}/admin/listed`, "grace")).text();
+
+    expect(asAda).toContain("&quot;/admin/gated&quot;");
+    expect(asGrace).not.toContain("&quot;/admin/gated&quot;");
+    expect(asGrace).toContain("&quot;/admin/listed&quot;");
+  });
+
   it("gives a form page the trail back to its list", async () => {
     // PRD 03 §4.2 puts breadcrumbs in the v0.1 chrome. Everything the bundle
     // needs travels on the mount element, this included.

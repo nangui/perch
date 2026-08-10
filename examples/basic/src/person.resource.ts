@@ -1,6 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import type { Option } from "@perchjs/core";
-import { Schema, Section, Select, TextInput } from "@perchjs/core";
+import {
+  CreateAction,
+  EditAction,
+  Schema,
+  Section,
+  Select,
+  Table,
+  TextColumn,
+  TextInput,
+} from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
 
 /**
@@ -31,12 +40,25 @@ export class Cities {
   }
 }
 
-@PanelResource({ model: "Person", slug: "people" })
+@PanelResource({ model: "Person", slug: "people", navigationGroup: "Directory" })
 export class PersonResource {
   readonly #cities: Cities;
 
   constructor(cities: Cities) {
     this.#cities = cities;
+  }
+
+  /** What the list page shows, and what it lets you do from there. */
+  table(): Table {
+    return Table.make()
+      .columns([
+        TextColumn.make("firstName").label("First name").sortable(),
+        TextColumn.make("lastName").label("Last name"),
+        TextColumn.make("city").label("City"),
+      ])
+      .actions([EditAction.make()])
+      .headerActions([CreateAction.make()])
+      .defaultSort("firstName");
   }
 
   form(): Schema {

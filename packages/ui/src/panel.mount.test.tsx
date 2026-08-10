@@ -214,6 +214,39 @@ describe("a shell that says too little", () => {
     expect(lookupColumn("IconColumn")).toBeDefined();
   });
 
+  it("mounts the panel menu from the element, on a form page", () => {
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "create",
+          title: "Create Person",
+          navigation: JSON.stringify([
+            { items: [{ label: "People", href: "/admin/people" }] },
+          ]),
+          payload: JSON.stringify(payload),
+        }),
+      );
+    });
+
+    expect(screen.getByRole("navigation", { name: "Panel" })).toBeTruthy();
+  });
+
+  it("shows no menu when the shell sent none", () => {
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "create",
+          title: "Create Person",
+          payload: JSON.stringify(payload),
+        }),
+      );
+    });
+
+    expect(screen.queryByRole("navigation", { name: "Panel" })).toBeNull();
+  });
+
   it("puts the trail back on a form page, from the element", () => {
     // Removing the breadcrumb from `mount` failed no test at all, which is the
     // same gap the column registration had: a component nobody asserts is

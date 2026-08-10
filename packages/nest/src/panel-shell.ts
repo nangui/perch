@@ -28,6 +28,8 @@ export interface ShellOptions {
    */
   readonly listPath?: string;
   readonly listLabel?: string;
+  /** The panel's own menu, already filtered by what this user may reach. */
+  readonly navigation?: unknown;
   readonly payload: unknown;
   readonly scriptFile: string;
   readonly styleFile: string;
@@ -51,6 +53,10 @@ export function renderShell(options: ShellOptions): string {
     options.listLabel === undefined
       ? ""
       : ` data-list-label="${attribute(options.listLabel)}"`
+  }${
+    options.navigation === undefined
+      ? ""
+      : ` data-navigation="${attribute(JSON.stringify(options.navigation))}"`
   } data-title="${attribute(options.title)}" data-payload="${payload}"></div>
 <script type="module" src="${attribute(`${options.root}/assets/${options.scriptFile}`)}"></script>
 </body>

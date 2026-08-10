@@ -65,11 +65,25 @@ export class MemoryAdapter implements DataAdapter {
   }
 
   findMany(query: Query): Promise<Page> {
-    const rows = this.#rows.slice(
-      query.skip ?? 0,
-      (query.skip ?? 0) + (query.take ?? 25),
-    );
-    return Promise.resolve({ rows, total: this.#rows.length });
+    // Enough of a sort to see the round trip work: the server orders, the
+    // browser only asks.
+    const sorted = [...this.#rows];
+    const order = query.sort?.[0];
+    if (order !== undefined) {
+      sorted.sort((a, b) => {
+        const left = text(a[order.path]);
+        const right = text(b[order.path]);
+        return order.direction === "asc"
+          ? left.localeCompare(right)
+          : right.localeCompare(left);
+      });
+    }
+
+    const from = query.skip ?? 0;
+    return Promise.resolve({
+      rows: sorted.slice(from, from + (query.take ?? 25)),
+      total: this.#rows.length,
+    });
   }
 
   findOne(_model: string, id: Id): Promise<Row | null> {
@@ -100,4 +114,9 @@ export class MemoryAdapter implements DataAdapter {
   transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     return fn(this);
   }
+}
+
+/** Sorting compares text; anything a cell cannot show sorts as nothing. */
+function text(value: unknown): string {
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
 }
