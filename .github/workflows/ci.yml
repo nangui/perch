@@ -91,15 +91,14 @@ jobs:
 # Guardrails still to come, each with the lot that makes it measurable
 # (CLAUDE.md, "Garde-fous CI"):
 #
-#   p95 on /records                           → PRD 03, once that route exists
 #   concurrency: 100 parallel requests        → PRD 02, once builders exist
 #   attack test: an unauthorised action       → PRD 04, with `can`
 #
-# Two have come off this list. The DMMF contract test runs inside `pnpm test`
-# against what a real `prisma generate` hands the generator (ADR 0012), and the
-# SQL query counter runs in tooling/database.test.ts, counting the statements
-# the driver actually sends. The p95 budget stays: there is no /records route to
-# measure yet, and a budget on a route that does not exist measures nothing.
+# Three have come off this list. The DMMF contract test runs inside `pnpm test`
+# against what a real `prisma generate` hands the generator (ADR 0012); the SQL
+# query counter runs in tooling/database.test.ts, counting the statements the
+# driver actually sends; and both p95 budgets now exist, on /state and on
+# /records, each over 100 HTTP round trips.
 #
 # They are listed here rather than in a backlog so that adding one is a visible
 # edit to this file, and so that their absence is legible today.

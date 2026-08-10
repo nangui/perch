@@ -15,6 +15,7 @@ import type { RedirectAfterCreate } from "./redirect.js";
 import { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
 import { PanelAssetsController } from "./panel-assets.controller.js";
 import { PanelPageController } from "./panel-page.controller.js";
+import { PanelRecordsController } from "./panel-records.controller.js";
 import { PanelSaveController } from "./panel-save.controller.js";
 import { PanelStateController } from "./panel-state.controller.js";
 import type { PanelAssets } from "./panel-assets.js";
@@ -79,6 +80,7 @@ export class PanelModule {
       controllers: [
         guarded(PanelAssetsController, guards),
         guarded(PanelStateController, guards),
+        guarded(PanelRecordsController, guards),
         guarded(PanelSaveController, guards),
         guarded(PanelPageController, guards),
       ],

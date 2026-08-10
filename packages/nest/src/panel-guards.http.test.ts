@@ -97,25 +97,50 @@ async function serve(guards?: readonly Type<CanActivate>[]) {
   return await app.getUrl();
 }
 
-const ROUTES = [
-  ["the page", (u: string) => fetch(`${u}/admin/people/create`)],
-  ["the assets", (u: string) => fetch(`${u}/admin/assets/${JS}`)],
-  [
-    "the API",
-    (u: string) =>
-      fetch(`${u}/admin/api/people/state`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ state: {}, dirtyPath: "name", operation: "create" }),
-      }),
-  ],
-] as const;
+/**
+ * Every route the panel registers, read from the router rather than listed.
+ *
+ * A hand-written list is a list that stops covering the workspace the moment
+ * somebody adds a route — and a panel route that escapes the guards is an
+ * authentication bypass, not a gap in coverage. `/records` was added while this
+ * list named three routes and would not have been noticed.
+ */
+function panelRoutes(url: string): readonly string[] {
+  const stack = routerStack();
+  const requests = stack
+    .filter((path) => path.startsWith("/admin"))
+    .map((path) =>
+      path.replace(":resource", "people").replace(":file", JS).replace(":id", "1"),
+    )
+    .map((path) => `${url}${path}`);
+
+  expect(requests.length, "no panel route was found to check").toBeGreaterThan(4);
+  return requests;
+}
+
+interface Layer {
+  readonly route?: { readonly path?: string };
+}
+
+function routerStack(): readonly string[] {
+  const server = app?.getHttpAdapter().getInstance() as {
+    router?: { stack?: Layer[] };
+    _router?: { stack?: Layer[] };
+  };
+  const stack = server.router?.stack ?? server._router?.stack ?? [];
+  return stack
+    .map((layer) => layer.route?.path)
+    .filter((p): p is string => p !== undefined);
+}
 
 describe("guards stand in front of every panel route", () => {
-  it.each(ROUTES)("refuses %s without the token", async (_, call) => {
+  it("refuses every one of them without the token", async () => {
     const url = await serve([TokenGuard]);
 
-    expect((await call(url)).status).toBe(403);
+    for (const route of panelRoutes(url)) {
+      const response = await fetch(route, { method: methodFor(route) });
+      expect(response.status, `${route} answered ${String(response.status)}`).toBe(403);
+    }
   });
 
   it("lets all three through with it", async () => {
@@ -139,6 +164,17 @@ describe("guards stand in front of every panel route", () => {
     ).toBe(200);
   });
 });
+
+/** The verb does not matter to a guard, but the route has to exist to be refused. */
+function methodFor(url: string): string {
+  if (url.endsWith("/edit") || url.includes("/assets/") || url.endsWith("/create")) {
+    return "GET";
+  }
+  if (url.endsWith("/records")) return "GET";
+  if (/\/api\/[^/]+\/\d+$/.test(url)) return "PATCH";
+  if (url.endsWith("/state")) return "POST";
+  return "POST";
+}
 
 describe("and in front of nothing else", () => {
   it("leaves the host's own routes alone", async () => {
