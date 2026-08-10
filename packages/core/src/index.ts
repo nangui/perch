@@ -45,6 +45,12 @@ export {
   resolvePath,
 } from "./path.js";
 
+// Tables: the column layer PRD 07 §4 opens with.
+export type { ColumnState } from "./column.js";
+export { Column, IconColumn, TextColumn } from "./column.js";
+export type { ColumnNode, ColumnTree, TableState } from "./table.js";
+export { serialiseTable, sortablePaths, Table } from "./table.js";
+
 // Field inference: what a field already knows without being told.
 export type {
   ComponentKind,

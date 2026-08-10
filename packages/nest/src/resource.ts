@@ -3,7 +3,7 @@
  * `@Injectable`: instantiating through the container is what lets a resolver
  * inject a business service and call `this.cities.byCountry(…)`.
  */
-import type { Schema } from "@perchjs/core";
+import type { Schema, Table } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import type { RedirectAfterCreate } from "./redirect.js";
 import { Injectable, SetMetadata } from "@nestjs/common";
@@ -36,6 +36,11 @@ export interface ResourceMetadata {
 /** One `form()` serves Create and Edit, told apart by `operation`. */
 export interface PanelResource {
   form: () => Schema;
+  /**
+   * The table `/records` answers with. Optional: a resource without one still
+   * lists, with no columns and the narrow default sort of `records-query.ts`.
+   */
+  table?: () => Table;
   /** Absent means allowed: the panel already sits behind the guards. */
   can?: Authorization;
   /** Overrides the panel's own choice for this resource alone. */

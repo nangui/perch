@@ -11,18 +11,21 @@ import type { CanActivate, ExecutionContext, INestApplication } from "@nestjs/co
 import { Injectable } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { DataAdapter, Id, Ir, ModelMeta, Query, Row } from "@perchjs/core";
-import { Schema, TextInput } from "@perchjs/core";
+import { IconColumn, Schema, Table, TextColumn, TextInput } from "@perchjs/core";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
 
+/** Each row carries a column no table declares. That is the point. */
 const ROWS: Row[] = [
-  { id: 1, title: "Ada" },
-  { id: 2, title: "Grace" },
-  { id: 3, title: "Katherine" },
+  { id: 1, title: "Ada", passwordHash: "$2b$10$one" },
+  { id: 2, title: "Grace", passwordHash: "$2b$10$two" },
+  { id: 3, title: "Katherine", passwordHash: "$2b$10$three" },
 ];
+
+const SHOWN = ROWS.map(({ id, title }) => ({ id, title }));
 
 const POST: ModelMeta = {
   name: "Post",
@@ -109,6 +112,22 @@ class GatedResource {
   can: Authorization = { viewAny: (user) => (user as { id: string }).id === "ada" };
 }
 
+@PanelResource({ model: "Post", slug: "listed" })
+class ListedResource {
+  form(): Schema {
+    return Schema.make([TextInput.make("title")]);
+  }
+  table(): Table {
+    return Table.make()
+      .columns([
+        TextColumn.make("title").label("Headline").sortable(),
+        TextColumn.make("author.name").label("Author"),
+        IconColumn.make("published").boolean(),
+      ])
+      .defaultSort("title", "desc");
+  }
+}
+
 @PanelResource({ model: "Post", slug: "per-row" })
 class PerRowResource {
   form(): Schema {
@@ -138,7 +157,7 @@ afterEach(async () => {
 async function serve(withAdapter = true): Promise<string> {
   const base = {
     path: "/admin",
-    resources: [OpenResource, GatedResource, PerRowResource],
+    resources: [OpenResource, GatedResource, ListedResource, PerRowResource],
     guards: [HeaderGuard],
     assets: assets(),
   };
@@ -161,14 +180,20 @@ describe("listing records", () => {
     const response = await get(`${url}/admin/api/posts/records`);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ rows: ROWS, total: 3 });
+    expect(await response.json()).toEqual({
+      // Not `ROWS`: without a table the default is the key and the label, which
+      // is the same narrow pair the sort allowlist falls back to.
+      rows: SHOWN,
+      total: 3,
+      columns: { columns: [] },
+    });
   });
 
   it("pages, and asks the adapter for exactly that page", async () => {
     const url = await serve();
     const response = await get(`${url}/admin/api/posts/records?page=2&perPage=1`);
 
-    expect(await response.json()).toEqual({ rows: [ROWS[1]], total: 3 });
+    expect(await response.json()).toMatchObject({ rows: [SHOWN[1]], total: 3 });
     expect(asked[0]).toMatchObject({ model: "Post", skip: 1, take: 1 });
   });
 
@@ -192,6 +217,49 @@ describe("listing records", () => {
 
     expect(asked[0]?.filters).toBeUndefined();
     expect(asked[0]?.include).toBeUndefined();
+  });
+});
+
+describe("the columns a resource declares", () => {
+  it("sends the tree, and only what the client renders from", async () => {
+    const url = await serve();
+    const body = (await (await get(`${url}/admin/api/listed/records`)).json()) as {
+      columns: unknown;
+    };
+
+    expect(body.columns).toEqual({
+      columns: [
+        { type: "TextColumn", path: "title", label: "Headline", sortable: true },
+        { type: "TextColumn", path: "author.name", label: "Author" },
+        { type: "IconColumn", path: "published", boolean: true },
+      ],
+      defaultSort: { path: "title", direction: "desc" },
+    });
+  });
+
+  it("sends only the columns it declared, whatever the row carries", async () => {
+    // The rule `serialise.ts` states for forms, applied to a row: hiding on the
+    // client is a leak, and what the client never receives cannot leak.
+    const url = await serve();
+    const body = (await (await get(`${url}/admin/api/listed/records`)).json()) as {
+      rows: Record<string, unknown>[];
+    };
+
+    expect(body.rows[0]).toEqual({ id: 1, title: "Ada" });
+    for (const row of body.rows) expect(row).not.toHaveProperty("passwordHash");
+  });
+
+  it("sorts by a column that asked, and by nothing else", async () => {
+    const url = await serve();
+    await get(`${url}/admin/api/listed/records?sort=title:desc`);
+    await get(`${url}/admin/api/listed/records?sort=author.name`);
+    // Declaring a table replaces the fallback outright: the key is refused too,
+    // because it did not ask.
+    await get(`${url}/admin/api/listed/records?sort=id`);
+
+    expect(asked[0]?.sort).toEqual([{ path: "title", direction: "desc" }]);
+    expect(asked[1]?.sort).toBeUndefined();
+    expect(asked[2]?.sort).toBeUndefined();
   });
 });
 
