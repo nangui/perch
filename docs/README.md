@@ -19,6 +19,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0011](adr/0011-admission-in-waves.md) | Client state is admitted in waves, not in one pass |
 | [0012](adr/0012-ir-at-build-time.md) | The IR is produced at build time, by a Prisma generator |
 | [0013](adr/0013-what-read-only-names.md) | `isReadOnly` names the database owning a value, not a relation |
+| [0014](adr/0014-soft-delete-in-v01.md) | `hasSoftDelete` describes the schema; deletion stays hard until v0.2 |
 
 ## Perch — a UI framework for NestJS
 
