@@ -1,194 +1,185 @@
-# Brief design — Perch
+# Design brief — Perch
 
-Document de travail à destination d'un agent ou d'un designer. Il ne fait pas
-autorité sur les ADR ni sur les PRD : en cas de contradiction, ceux-ci gagnent.
-
----
-
-## Le prompt à donner tel quel
-
-> Tu conçois le design system d'un framework open source d'interfaces
-> d'administration. Lis ce brief en entier avant de produire quoi que ce soit, et
-> commence par me poser les questions qui restent ouvertes plutôt que de combler
-> les trous par des choix par défaut.
->
-> ### Le produit
->
-> **Perch** — l'équivalent de Laravel Filament pour NestJS. Un développeur décrit
-> une ressource en TypeScript côté serveur, et obtient un panneau
-> d'administration complet sans écrire une ligne de front-end. Le rendu est
-> React, mais **l'utilisateur du framework ne touche jamais au React** : il ne
-> configure ni Vite, ni Webpack, ni Tailwind. Le panneau est servi précompilé.
->
-> Baseline : *« Le poste d'observation de ton app Nest. Déclare en TypeScript.
-> Regarde apparaître. »*
->
-> ### Qui regarde ces écrans
->
-> Deux publics, et ils ne veulent pas la même chose :
->
-> 1. **Le développeur qui installe Perch.** Il juge en trente secondes, sur une
->    capture d'écran, si le résultat a l'air professionnel ou bricolé. C'est lui
->    qui adopte.
-> 2. **L'employé qui utilise le panneau huit heures par jour** — saisie, tri,
->    filtres, actions en masse. Densité, lisibilité et vitesse au clavier
->    comptent davantage pour lui que l'élégance.
->
-> Quand les deux s'opposent, **le second gagne**. Un back-office est un outil de
-> travail, pas une vitrine.
->
-> ### Aucun design system existant n'est attaché — c'est volontaire
->
-> **Les tokens sont le livrable, pas le point de départ.** N'attache aucun design
-> system préexistant, et n'en dérive pas ta direction visuelle.
->
-> Trois raisons, dans cet ordre :
->
-> 1. **Perch est un framework dont le design system sera rethémé par ses
->    utilisateurs** (ARCH 13 §9). Il doit donc être coulé pour ça. Le poser sur le
->    preset de quelqu'un d'autre, c'est peindre par-dessus une fondation qui n'a
->    pas été prévue pour porter ce poids.
-> 2. **Les presets disponibles sont des systèmes éditoriaux** — grille suisse,
->    fond parchemin, mise en page de journal. Ils sont faits pour des pages qui
->    racontent quelque chose. Un back-office dense, navigable au clavier et
->    vérifié AA en CI a des contraintes opposées.
-> 3. **Un preset attaché devient la contrainte**, et il ne reste plus trois partis
->    pris à départager.
->
-> Le type visé : **système d'application, dense, token-first.** Sémantique
-> uniquement — jamais `blue-500` dans un écran. Clair et sombre à parité dès le
-> premier jeton. Primitives Radix habillées par notre propre couche de style.
-> Classe de référence : Linear, Supabase Studio, Directus, Filament — pas un
-> starter éditorial.
->
-> ### Contraintes non négociables
->
-> Elles viennent de décisions d'architecture déjà prises. Ne les rediscute pas,
-> conçois avec.
->
-> - **L'état est autoritatif côté serveur.** L'interface est un interpréteur :
->   zéro logique métier côté client. Conséquence directe pour toi : un champ peut
->   apparaître, disparaître, devenir désactivé ou voir ses options changer **en
->   réponse à un aller-retour réseau**. Il faut donc concevoir les états
->   intermédiaires : chargement d'un champ dépendant, section qui apparaît,
->   liste d'options en cours de rafraîchissement. Un formulaire qui saute
->   visuellement à chaque patch est un échec de design, pas un détail technique.
-> - **Trois zones d'état, à traiter différemment à l'écran.** *Canonique* : la
->   vérité du serveur, remplacée à chaque réponse. *Brouillon* : ce que
->   l'utilisateur tape avant le debounce, à protéger visuellement — on n'écrase
->   jamais sa frappe. *UI pure* : section repliée, onglet actif, largeur de
->   colonne, à préserver au travers des mises à jour.
-> - **Le debounce est de 400 ms sur le texte, 0 ms sur select, toggle et date.**
->   Le retour visuel doit rendre cette différence compréhensible sans
->   l'expliquer.
-> - **Radix pour toutes les primitives interactives** — combobox, dialog, tabs,
->   dropdown. On ne réécrit pas un combobox accessible. Conçois avec ce que Radix
->   sait faire.
-> - **Accessibilité : exigence, pas correctif.** Contraste AA minimum, vérifié en
->   intégration continue. Focus visible partout, piégé dans les modales, restitué
->   à la fermeture. Table entièrement navigable au clavier, en-têtes triables
->   actionnables au clavier. Erreurs liées au champ, annoncées.
-> - **Rendu de table plat.** Pas de composant React par cellule : une fonction de
->   rendu mémoïsée par *type* de colonne. Un design qui exige un état par cellule
->   est irréalisable ici.
-> - **Thémable par tokens.** Un intégrateur doit pouvoir remarquer le panneau
->   sans forker le CSS.
->
-> ### Ce que je te demande de produire
->
-> **1. Une direction visuelle, en trois propositions distinctes.** Pas trois
-> variations d'une même idée : trois partis pris qu'on peut départager. Pour
-> chacun, une phrase sur ce à quoi il renonce.
->
-> **2. Les tokens.** Couleurs sémantiques (`surface`, `content`, `border`,
-> `accent`, `danger`, `warning`, `success` — jamais `blue-500` dans un écran),
-> échelle typographique, échelle d'espacement, rayons, ombres, durées
-> d'animation. Clair et sombre dès le départ, pas ajouté après.
->
-> **3. Les composants de formulaire**, dans leurs états complets — repos,
-> survol, focus, désactivé, lecture seule, en erreur, en chargement, vide :
-> `TextInput` (avec ses variantes texte, email, mot de passe, URL, numérique),
-> `Textarea`, `Toggle`, `Select` (dont select dépendant en cours de
-> rafraîchissement, et select de relation avec recherche), `DateTimePicker`
-> (date seule et date-heure), `CodeEditor`, et le groupe répétable
-> (« repeater ») avec ajout, suppression et réordonnancement.
->
-> **4. La table.** En-tête triable, ligne, ligne sélectionnée, sélection
-> multiple avec barre d'actions groupées, filtres, pagination, état vide, état
-> de chargement, colonne de relation, colonne tronquée. Prévois la densité :
-> un utilisateur qui traite 200 lignes par jour ne veut pas de padding
-> généreux.
->
-> **5. Les surfaces.** Modale, panneau latéral, notification (succès, erreur,
-> avertissement), bandeau d'erreur réseau avec identifiant de requête copiable,
-> confirmation d'action destructive.
->
-> **6. La structure du panneau** — c'est la partie que j'attends le plus, et
-> celle qu'on bâcle d'habitude : navigation latérale avec groupes et badges de
-> compteurs, fil d'Ariane, en-tête de page avec ses actions, disposition
-> formulaire (une colonne, deux colonnes, sections, onglets), page de liste,
-> page de détail (« infolist »), tableau de bord avec widgets. Comment tout ça
-> se comporte en 1280 px de large, puis en 768.
->
-> **7. Les états d'erreur et de vide**, traités comme des écrans à part entière
-> et non comme des accidents.
->
-> ### Ce que je ne veux pas
->
-> - Une énième copie de l'esthétique shadcn/ui par défaut. Si la direction visuelle
->   ne se distingue pas d'un starter Next.js générique, elle a échoué.
-> - Des dégradés violets, des « glassmorphism », des cartes flottantes partout.
-> - Un design qui ne tient qu'en écran large, ou qui suppose une souris.
-> - Des maquettes qui montrent seulement l'état heureux. Les états d'erreur, de
->   chargement et de vide sont la moitié du travail.
-> - De la densité sacrifiée à l'élégance. Voir le public n°2.
->
-> ### La comparaison utile
->
-> Regarde **Filament** (PHP/Laravel) : c'est la cible fonctionnelle et la barre
-> qualitative. Regarde aussi **Retool**, **Directus**, **Strapi**,
-> **Supabase Studio**, **Linear** pour la densité et le clavier. Dis-moi ce que
-> chacun réussit et ce qu'il rate — je préfère un avis argumenté à un consensus.
->
-> ### Comment livrer
->
-> Commence par la direction visuelle et les tokens, montre-les-moi, attends ma
-> validation. Ne produis pas les cinquante composants avant qu'on soit d'accord
-> sur les fondations. Et si une contrainte ci-dessus rend un choix de design
-> impossible, dis-le-moi au lieu de contourner.
+A working document for an agent or a designer. It has no authority over the ADRs
+or the PRDs: where it contradicts them, they win.
 
 ---
 
-## Notes pour moi, hors prompt
+## The prompt, to be handed over as is
 
-**Décision du 6 août 2026 — aucun design system attaché.** L'outil de design
-proposait cinq presets (Modernist, Nocturne, Organic, Broadsheet, Industry) ;
-aucun n'a été retenu. La raison qui compte n'est pas esthétique : le design
-system de Perch *est* un livrable du produit, destiné à être rethémé par ses
-utilisateurs, et un framework ne construit pas sa fondation sur le preset d'un
-autre. S'y ajoute que ces presets sont des systèmes éditoriaux, alors que la
-cible est un système d'application dense.
+> You are designing the design system of an open-source framework for admin
+> interfaces. Read this brief in full before producing anything, and start by
+> asking me the questions that remain open rather than filling the gaps with
+> default choices.
+>
+> ### The product
+>
+> **Perch** — the equivalent of Laravel Filament for NestJS. A developer
+> describes a resource in TypeScript on the server and gets a complete admin
+> panel without writing a line of front-end code. The rendering is React, but
+> **the framework's user never touches React**: they configure neither Vite, nor
+> Webpack, nor Tailwind. The panel is served precompiled.
+>
+> Tagline: *"The perch over your Nest app. Declare in TypeScript. Watch it
+> appear."*
+>
+> ### Who looks at these screens
+>
+> Two audiences, and they do not want the same thing:
+>
+> 1. **The developer installing Perch.** They judge in thirty seconds, from a
+>    screenshot, whether the result looks professional or cobbled together. They
+>    are the one who adopts.
+> 2. **The employee using the panel eight hours a day** — data entry, sorting,
+>    filters, bulk actions. Density, legibility and keyboard speed matter more to
+>    them than elegance.
+>
+> When the two conflict, **the second wins**. A back office is a tool for work,
+> not a shop window.
+>
+> ### No existing design system is attached — deliberately
+>
+> **The tokens are the deliverable, not the starting point.** Attach no
+> pre-existing design system, and do not derive your visual direction from one.
+>
+> Three reasons, in this order:
+>
+> 1. **Perch is a framework whose design system will be re-themed by its users**
+>    (ARCH 13 §9). It therefore has to be cast for that. Laying it on somebody
+>    else's preset is painting over a foundation that was never meant to carry
+>    this weight.
+> 2. **The available presets are editorial systems** — Swiss grid, parchment
+>    background, newspaper layout. They are made for pages that tell something. A
+>    dense back office, keyboard-navigable and AA-checked in CI, has the opposite
+>    constraints.
+> 3. **An attached preset becomes the constraint**, and there are no longer three
+>    positions to choose between.
+>
+> The type aimed at: **an application system, dense, token-first.** Semantic only
+> — never `blue-500` in a screen. Light and dark at parity from the first token.
+> Radix primitives dressed by our own styling layer. Reference class: Linear,
+> Supabase Studio, Directus, Filament — not an editorial starter.
+>
+> ### Non-negotiable constraints
+>
+> They come from architecture decisions already taken. Do not relitigate them;
+> design with them.
+>
+> - **State is authoritative on the server.** The interface is an interpreter:
+>   zero business logic on the client. The direct consequence for you: a field can
+>   appear, disappear, become disabled or see its options change **in response to
+>   a network round trip**. So the intermediate states have to be designed: a
+>   dependent field loading, a section appearing, a list of options being
+>   refreshed. A form that jumps visually on every patch is a design failure, not
+>   a technical detail.
+> - **Three state zones, to be treated differently on screen.** *Canonical*: the
+>   server's truth, replaced on every response. *Draft*: what the user types
+>   before the debounce, to be protected visually — we never overwrite their
+>   keystrokes. *Pure UI*: collapsed section, active tab, column width, to be
+>   preserved across updates.
+> - **The debounce is 400 ms on text, 0 ms on select, toggle and date.** The
+>   visual feedback has to make that difference understandable without explaining
+>   it.
+> - **Radix for every interactive primitive** — combobox, dialog, tabs, dropdown.
+>   We do not rewrite an accessible combobox. Design with what Radix can do.
+> - **Accessibility: a requirement, not a fix.** AA contrast minimum, checked in
+>   continuous integration. Focus visible everywhere, trapped in modals, restored
+>   on close. Table fully keyboard-navigable, sortable headers actionable from the
+>   keyboard. Errors tied to their field, and announced.
+> - **Flat table rendering.** No React component per cell: one memoised render
+>   function per column *type*. A design that requires per-cell state is not
+>   buildable here.
+> - **Themable through tokens.** An integrator must be able to rebrand the panel
+>   without forking the CSS.
+>
+> ### What I am asking you to produce
+>
+> **1. A visual direction, as three distinct proposals.** Not three variations on
+> one idea: three positions that can be chosen between. For each, one sentence on
+> what it gives up.
+>
+> **2. The tokens.** Semantic colours (`surface`, `content`, `border`, `accent`,
+> `danger`, `warning`, `success` — never `blue-500` in a screen), type scale,
+> spacing scale, radii, shadows, animation durations. Light and dark from the
+> start, not added afterwards.
+>
+> **3. The form components**, in their full set of states — rest, hover, focus,
+> disabled, read-only, in error, loading, empty: `TextInput` (with its text,
+> email, password, URL and numeric variants), `Textarea`, `Toggle`, `Select`
+> (including a dependent select mid-refresh, and a relation select with search),
+> `DateTimePicker` (date only and date-time), `CodeEditor`, and the repeatable
+> group ("repeater") with add, remove and reorder.
+>
+> **4. The table.** Sortable header, row, selected row, multiple selection with a
+> bulk action bar, filters, pagination, empty state, loading state, relation
+> column, truncated column. Plan for density: someone processing 200 rows a day
+> does not want generous padding.
+>
+> **5. The surfaces.** Modal, side panel, notification (success, error, warning),
+> network error banner with a copyable request identifier, destructive action
+> confirmation.
+>
+> **6. The panel structure** — the part I am most waiting for, and the one
+> usually rushed: side navigation with groups and count badges, breadcrumbs, page
+> header with its actions, form layout (one column, two columns, sections, tabs),
+> list page, detail page ("infolist"), dashboard with widgets. How all of it
+> behaves at 1280 px wide, then at 768.
+>
+> **7. The error and empty states**, treated as screens in their own right rather
+> than as accidents.
+>
+> ### What I do not want
+>
+> - Yet another copy of the default shadcn/ui aesthetic. If the visual direction
+>   is indistinguishable from a generic Next.js starter, it has failed.
+> - Purple gradients, "glassmorphism", floating cards everywhere.
+> - A design that only holds on a wide screen, or that assumes a mouse.
+> - Mockups showing only the happy path. The error, loading and empty states are
+>   half the work.
+> - Density sacrificed to elegance. See audience number 2.
+>
+> ### The useful comparison
+>
+> Look at **Filament** (PHP/Laravel): it is the functional target and the quality
+> bar. Look also at **Retool**, **Directus**, **Strapi**, **Supabase Studio** and
+> **Linear** for density and keyboard use. Tell me what each one gets right and
+> what it gets wrong — I would rather have a reasoned opinion than a consensus.
+>
+> ### How to deliver
+>
+> Start with the visual direction and the tokens, show them to me, wait for my
+> approval. Do not produce the fifty components before we agree on the
+> foundations. And if a constraint above makes a design choice impossible, say so
+> instead of working around it.
 
-Cette note existe pour éviter de rouvrir le sujet. Ce qui le rouvrirait : un
-preset réellement conçu pour l'outillage dense — dans ce cas il devient un
-*candidat* à évaluer comme les autres directions, jamais une contrainte imposée
-d'avance.
+---
 
+## Notes for myself, outside the prompt
 
-**Ce qui reste à trancher avant que le design serve à quelque chose :** rien ne
-bloque le travail de design, il peut démarrer maintenant et en parallèle du
-backend. C'est même l'ordre le plus efficace : le jalon A1 aura besoin de trois
-composants finis, et les avoir dessinés d'avance évite de les improviser.
+**Decision of 6 August 2026 — no design system attached.** The design tool
+offered five presets (Modernist, Nocturne, Organic, Broadsheet, Industry); none
+was kept. The reason that counts is not aesthetic: Perch's design system *is* a
+deliverable of the product, meant to be re-themed by its users, and a framework
+does not build its foundation on somebody else's preset. On top of that, those
+presets are editorial systems, where the target is a dense application system.
 
-**Les trois composants du chemin critique**, à demander en priorité si le temps
-manque : `Select` (avec son état « options en cours de rafraîchissement »),
-`TextInput`, et la disposition de formulaire à une colonne. C'est exactement ce
-que A1 met à l'épreuve — un select « ville » dont les options dépendent d'un
-select « pays ».
+This note exists to avoid reopening the subject. What would reopen it: a preset
+genuinely designed for dense tooling — in which case it becomes a *candidate* to
+be evaluated like the other directions, never a constraint imposed in advance.
 
-**Sources dans ce dépôt**, si l'agent veut vérifier une contrainte :
-`docs/13-ARCH-frontend.md` (zones d'état, transport, accessibilité, theming),
-`docs/03-PRD-protocol-renderer.md` (protocole d'état), `docs/06-PRD-forms-fields.md`
-(catalogue de champs), `docs/07-PRD-tables.md` (table builder),
-`docs/08-PRD-actions-notifications.md` (modales et notifications),
-`docs/09-PRD-infolists-widgets.md` (page de détail et tableau de bord).
+**What remains to be settled before the design is of any use:** nothing blocks
+the design work; it can start now and in parallel with the backend. That is even
+the most efficient order: milestone A1 will need three finished components, and
+having them drawn in advance avoids improvising them.
+
+**The three components on the critical path**, to be asked for first if time is
+short: `Select` (with its "options being refreshed" state), `TextInput`, and the
+one-column form layout. That is exactly what A1 puts to the test — a "city"
+select whose options depend on a "country" select.
+
+**Sources in this repository**, if the agent wants to check a constraint:
+`docs/13-ARCH-frontend.md` (state zones, transport, accessibility, theming),
+`docs/03-PRD-protocol-renderer.md` (state protocol), `docs/06-PRD-forms-fields.md`
+(field catalogue), `docs/07-PRD-tables.md` (table builder),
+`docs/08-PRD-actions-notifications.md` (modals and notifications),
+`docs/09-PRD-infolists-widgets.md` (detail page and dashboard).
