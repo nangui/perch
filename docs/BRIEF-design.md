@@ -20,7 +20,7 @@ or the PRDs: where it contradicts them, they win.
 > **the framework's user never touches React**: they configure neither Vite, nor
 > Webpack, nor Tailwind. The panel is served precompiled.
 >
-> Tagline: *"The perch over your Nest app. Declare in TypeScript. Watch it
+> Tagline: *"The lookout over your Nest app. Declare it in TypeScript. Watch it
 > appear."*
 >
 > ### Who looks at these screens
