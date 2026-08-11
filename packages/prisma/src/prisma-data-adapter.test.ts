@@ -129,30 +129,50 @@ describe("reading a page", () => {
     });
   });
 
-  it("searches the one field a human reads, and no other", async () => {
+  it("searches exactly the paths it was given", async () => {
     // Every string column would reach a password hash or a token: rows come
     // back on a match nobody can see, and `search=a`, `search=ab` narrows a
-    // secret down from which rows return.
+    // secret down from which rows return. Which paths are allowed is settled
+    // where the declaration is read; this applies them.
     const { adapter, calls } = recorder();
-    const label = adapter.meta("User").labelField;
-    await adapter.findMany({ model: "User", search: "ada lovelace" });
+    await adapter.findMany({
+      model: "User",
+      search: { term: "ada", paths: ["name", "email"] },
+    });
 
     expect(argsOf(calls.findMany)["where"]).toEqual({
-      [label]: { contains: "ada lovelace", mode: "insensitive" },
+      OR: [
+        { name: { contains: "ada", mode: "insensitive" } },
+        { email: { contains: "ada", mode: "insensitive" } },
+      ],
     });
   });
 
-  it("searches nothing when the label is not a string", async () => {
-    const { client, calls } = recorder();
-    const odd: Ir = {
-      models: FIXTURE_IR.models.map((model) =>
-        model.name === "User" ? { ...model, labelField: "id" } : model,
-      ),
-    };
-    await new PrismaDataAdapter({ client, ir: odd }).findMany({
-      model: "User",
-      search: "7",
+  it("reaches through a relation without a second query", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({
+      model: "Post",
+      search: { term: "ada", paths: ["author.name"] },
     });
+
+    expect(argsOf(calls.findMany)["where"]).toEqual({
+      author: { name: { contains: "ada", mode: "insensitive" } },
+    });
+  });
+
+  it("says nothing when one path was allowed and it is the only one", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "User", search: { term: "ada", paths: ["name"] } });
+
+    // No `OR` around a single clause: it is the same question asked twice.
+    expect(argsOf(calls.findMany)["where"]).toEqual({
+      name: { contains: "ada", mode: "insensitive" },
+    });
+  });
+
+  it("searches nothing when no path was allowed", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "User", search: { term: "ada", paths: [] } });
 
     // The page still comes back; it is the `where` that has nothing to say.
     expect(argsOf(calls.findMany)).toEqual({ orderBy: [{ id: "asc" }] });

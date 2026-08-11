@@ -176,8 +176,46 @@ withDatabase("reading, against a real database", () => {
     expect(select).toMatch(/ORDER BY[\s\S]*"published"[\s\S]*"id"/i);
   });
 
+  it("searches every path it was allowed, in one query", async () => {
+    // Two columns, one OR, one statement. A search that costs a query per
+    // column is the same N+1 the include plan exists to avoid.
+    statements.length = 0;
+    const found = await adapter.findMany({
+      model: "Post",
+      search: { term: "post 1", paths: ["title", "body"] },
+    });
+
+    expect(found.total).toBe(1);
+    expect(statements.filter((sql) => /SELECT/i.test(sql))).toHaveLength(2);
+  });
+
+  it("reaches through a relation, which no unit test can execute", async () => {
+    // The nested clause the adapter builds is exactly the shape the unit tests
+    // assert and cannot run. Prisma rejects a wrong one.
+    const found = await adapter.findMany({
+      model: "Post",
+      search: { term: "lovelace", paths: ["author.name"] },
+    });
+
+    expect(found.total).toBe(4);
+  });
+
+  it("finds nothing rather than everything when no path was allowed", async () => {
+    const found = await adapter.findMany({
+      model: "Post",
+      search: { term: "post", paths: [] },
+    });
+
+    // Every row, because the search said nothing — not zero rows, and not a
+    // search of every column.
+    expect(found.total).toBe(4);
+  });
+
   it("searches the label field, case-insensitively", async () => {
-    const page = await adapter.findMany({ model: "Author", search: "lovelace" });
+    const page = await adapter.findMany({
+      model: "Author",
+      search: { term: "LOVELACE", paths: ["name"] },
+    });
 
     expect(page.total).toBe(1);
   });

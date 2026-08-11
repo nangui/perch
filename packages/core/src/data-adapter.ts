@@ -49,6 +49,12 @@ export interface IncludePlan {
   readonly [relation: string]: true | IncludePlan;
 }
 
+export interface Search {
+  readonly term: string;
+  /** Dotted, like a sort's: `title`, or `author.name`. */
+  readonly paths: readonly string[];
+}
+
 export interface Query {
   readonly model: string;
   readonly filters?: readonly Filter[];
@@ -56,8 +62,15 @@ export interface Query {
   readonly skip?: number;
   readonly take?: number;
   readonly include?: IncludePlan;
-  /** Full-text-ish search across the model's searchable fields. */
-  readonly search?: string;
+  /**
+   * A term, and the paths it may reach.
+   *
+   * The paths are named rather than left to the adapter. Which columns a search
+   * touches is an authorization decision — a match on a column nobody displays
+   * answers a question about it, one letter at a time — so it is settled where
+   * the declaration is read, not where the query is built.
+   */
+  readonly search?: Search;
 }
 
 export interface Page {

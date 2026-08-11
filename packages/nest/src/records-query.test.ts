@@ -4,9 +4,11 @@
  */
 import { describe, expect, it } from "vitest";
 import type { FieldMeta, Ir, ModelMeta } from "@perchjs/core";
+import { Table, TextColumn } from "@perchjs/core";
 import {
   DEFAULT_PER_PAGE,
   MAX_PER_PAGE,
+  MAX_SEARCH,
   MAX_SKIP,
   readQuery,
 } from "./records-query.js";
@@ -128,9 +130,45 @@ describe("sorting", () => {
 });
 
 describe("searching and filtering", () => {
-  it("passes the search term through", () => {
-    // Which field it reaches is the adapter's decision, and it reaches one.
-    expect(read({ search: "ada" }).search).toBe("ada");
+  it("reaches the label when no table says otherwise", () => {
+    // The one field a human reads the row by, which the caller already has.
+    expect(read({ search: "ada" }).search).toEqual({
+      term: "ada",
+      paths: [USER.labelField],
+    });
+  });
+
+  it("reaches exactly the columns a table declared", () => {
+    const table = Table.make().columns([
+      TextColumn.make("name").searchable(),
+      TextColumn.make("email").searchable(),
+      // Declared, displayed, and not searchable: a column is one or the other
+      // only if it says so.
+      TextColumn.make("role"),
+    ]);
+
+    expect(readQuery("User", IR, { search: "ada" }, table).search).toEqual({
+      term: "ada",
+      paths: ["name", "email"],
+    });
+  });
+
+  it("searches nothing when a table declares nothing searchable", () => {
+    // Not everything: a table that named its columns and asked for no search
+    // is a table that asked for no search.
+    const table = Table.make().columns([TextColumn.make("name").sortable()]);
+
+    expect(readQuery("User", IR, { search: "ada" }, table).search).toBeUndefined();
+  });
+
+  it("caps how long a term may be", () => {
+    // The third parameter with the shape `perPage` and `page` were capped for:
+    // an ILIKE pattern is compared against every row, and the comparison costs
+    // what the pattern is long. Truncated rather than dropped, because dropping
+    // it returns every row.
+    const term = read({ search: "a".repeat(5000) }).search;
+
+    expect(term?.term).toHaveLength(MAX_SEARCH);
   });
 
   it("treats an empty search as no search", () => {

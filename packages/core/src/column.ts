@@ -20,6 +20,7 @@ export interface ColumnState {
    */
   readonly label?: string;
   readonly sortable: boolean;
+  readonly searchable: boolean;
   /** Renders a check or a cross rather than the value. */
   readonly boolean?: true;
 }
@@ -49,11 +50,22 @@ export abstract class Column {
   sortable(on = true): this {
     return this.with({ ...this.state, sortable: on });
   }
+
+  /**
+   * Lets a search term reach this column, and — the part that matters — lets
+   * the server accept it reaching it. A search is an oracle in the way a sort
+   * is: asking whether any row matches `@acme.com` answers a question about
+   * values nobody displayed. So an undeclared column is not searched, and
+   * declaring one is a decision rather than a default.
+   */
+  searchable(on = true): this {
+    return this.with({ ...this.state, searchable: on });
+  }
 }
 
 export class TextColumn extends Column {
   static make(path: string): TextColumn {
-    return new TextColumn({ path, sortable: false });
+    return new TextColumn({ path, sortable: false, searchable: false });
   }
 
   override get type(): string {
@@ -67,7 +79,7 @@ export class TextColumn extends Column {
 
 export class IconColumn extends Column {
   static make(path: string): IconColumn {
-    return new IconColumn({ path, sortable: false });
+    return new IconColumn({ path, sortable: false, searchable: false });
   }
 
   override get type(): string {

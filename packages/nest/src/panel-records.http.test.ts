@@ -138,6 +138,21 @@ class ListedResource {
   }
 }
 
+@PanelResource({ model: "Post", slug: "searchable" })
+class SearchableResource {
+  form(): Schema {
+    return Schema.make([TextInput.make("title")]);
+  }
+  table(): Table {
+    return Table.make().columns([
+      TextColumn.make("title").searchable(),
+      // Displayed and not searchable: a column is one or the other only if it
+      // says so.
+      TextColumn.make("author.name"),
+    ]);
+  }
+}
+
 @PanelResource({ model: "Post", slug: "per-row" })
 class PerRowResource {
   form(): Schema {
@@ -167,7 +182,13 @@ afterEach(async () => {
 async function serve(withAdapter = true): Promise<string> {
   const base = {
     path: "/admin",
-    resources: [OpenResource, GatedResource, ListedResource, PerRowResource],
+    resources: [
+      OpenResource,
+      GatedResource,
+      ListedResource,
+      SearchableResource,
+      PerRowResource,
+    ],
     guards: [HeaderGuard],
     assets: assets(),
   };
@@ -244,6 +265,31 @@ describe("listing records", () => {
     // Silently: the second request is a plain 200, telling the caller nothing
     // about whether `secret` is a column.
     expect(asked).toHaveLength(2);
+  });
+
+  it("searches the field a human reads, when no table says otherwise", async () => {
+    const url = await serve();
+    await get(`${url}/admin/api/posts/records?search=ada`);
+
+    expect(asked[0]?.search).toEqual({ term: "ada", paths: ["title"] });
+  });
+
+  it("searches exactly the columns a table declared", async () => {
+    const url = await serve();
+    await get(`${url}/admin/api/searchable/records?search=ada`);
+
+    expect(asked[0]?.search).toEqual({ term: "ada", paths: ["title"] });
+  });
+
+  it("searches nothing when a table declares nothing searchable", async () => {
+    // Not everything. A table that named its columns and asked for no search
+    // asked for no search, and the request is still a plain 200 — the refusal
+    // tells the caller nothing about which columns exist.
+    const url = await serve();
+    const response = await get(`${url}/admin/api/listed/records?search=ada`);
+
+    expect(response.status).toBe(200);
+    expect(asked[0]?.search).toBeUndefined();
   });
 
   it("never turns a query parameter into a filter or an include", async () => {

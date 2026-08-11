@@ -35,6 +35,13 @@ export interface ActionNode {
 
 export interface ColumnTree {
   readonly columns: readonly ColumnNode[];
+  /**
+   * Whether a search reaches anything, which is all the client needs to decide
+   * between offering a box and offering nothing. Which columns it reaches is
+   * not said: that is the server's business, and naming them would answer a
+   * question nobody asked.
+   */
+  readonly searchable?: true;
   readonly actions: readonly ActionNode[];
   /** What the table offers above itself, rather than on a row. */
   readonly headerActions: readonly ActionNode[];
@@ -79,9 +86,10 @@ export class Table {
 /**
  * The tree the client receives.
  *
- * `sortable` is sent because the client renders a control from it. Nothing else
- * about the server's own capabilities is: the client asks for a search, it does
- * not need to be told which columns one reaches.
+ * `sortable` is sent because the client renders a control from it, and so is a
+ * single flag saying whether a search reaches anything at all. Which columns it
+ * reaches is not: the client asks for a search, and naming the columns behind
+ * it would answer a question nobody asked.
  */
 export function serialiseTable(table: Table): ColumnTree {
   return {
@@ -92,6 +100,7 @@ export function serialiseTable(table: Table): ColumnTree {
       ...(column.state.sortable ? { sortable: true as const } : {}),
       ...(column.state.boolean === undefined ? {} : { boolean: true as const }),
     })),
+    ...(searchablePaths(table).size === 0 ? {} : { searchable: true as const }),
     actions: table.state.actions.map(node),
     headerActions: table.state.headerActions.map(node),
     ...(table.state.defaultSort === undefined
@@ -111,5 +120,12 @@ function node(action: Action): ActionNode {
 export function sortablePaths(table: Table): ReadonlySet<string> {
   return new Set(
     table.state.columns.filter((c) => c.state.sortable).map((c) => c.state.path),
+  );
+}
+
+/** The paths a search may reach: exactly those a column declared. */
+export function searchablePaths(table: Table): ReadonlySet<string> {
+  return new Set(
+    table.state.columns.filter((c) => c.state.searchable).map((c) => c.state.path),
   );
 }

@@ -18,6 +18,7 @@ import type {
   RelationMeta,
   RelationWrite,
   Row,
+  Search,
   Sort,
   WriteTree,
 } from "@perchjs/core";
@@ -67,7 +68,7 @@ export class PrismaDataAdapter implements DataAdapter {
 
   async findMany(query: Query): Promise<Page> {
     const delegate = this.#delegate(query.model);
-    const where = whereOf(query, this.meta(query.model));
+    const where = whereOf(query);
 
     // One query for the page and one for the count, never one per row.
     const [rows, total] = await Promise.all([
@@ -210,9 +211,9 @@ export function delegateName(model: string): string {
   return model.charAt(0).toLowerCase() + model.slice(1);
 }
 
-function whereOf(query: Query, meta: ModelMeta): Record<string, unknown> {
+function whereOf(query: Query): Record<string, unknown> {
   const clauses = (query.filters ?? []).map(filterOf);
-  const search = searchOf(query.search, meta);
+  const search = searchOf(query.search);
   if (search !== undefined) clauses.push(search);
 
   if (clauses.length === 0) return {};
@@ -220,41 +221,38 @@ function whereOf(query: Query, meta: ModelMeta): Record<string, unknown> {
   return { AND: clauses };
 }
 
-/** `author.name` becomes a nested clause, which is what keeps it one query. */
 function filterOf(filter: Filter): Record<string, unknown> {
-  const [head, ...rest] = filter.path.split(".");
-  const leaf = { [filter.operator]: filter.value };
-  return rest.length === 0
-    ? { [head as string]: leaf }
-    : { [head as string]: filterOf({ ...filter, path: rest.join(".") }) };
+  return nested(filter.path, { [filter.operator]: filter.value });
 }
 
 /**
- * The one field a human reads to recognise a row, and no other.
+ * The term against every path the caller allowed, and no other.
  *
- * Every string column would reach a password hash or a token: rows would come
- * back on a match nobody can see, and `search=a`, `search=ab` narrows a secret
- * down from which rows return. Widening this belongs to whoever declares which
- * fields are searchable, not to a default.
+ * Which paths those are is not decided here: every string column would reach a
+ * password hash or a token, and `search=a`, `search=ab` narrows a secret down
+ * from which rows come back. The allowlist is built where the declaration is
+ * read, and this applies it.
  *
- * Not split into words either: splitting is what collapses on large datasets, so
- * it stays opt-in rather than being the default.
+ * Not split into words either: splitting is what collapses on large datasets,
+ * so it stays opt-in rather than being the default.
  */
-function searchOf(
-  search: string | undefined,
-  meta: ModelMeta,
-): Record<string, unknown> | undefined {
-  if (search === undefined || search === "") return undefined;
+function searchOf(search: Search | undefined): Record<string, unknown> | undefined {
+  if (search === undefined || search.term === "" || search.paths.length === 0) {
+    return undefined;
+  }
 
-  const field = meta.fields.find(
-    (candidate) =>
-      candidate.name === meta.labelField &&
-      candidate.type === "String" &&
-      candidate.kind === "scalar",
+  const clauses = search.paths.map((path) =>
+    nested(path, { contains: search.term, mode: "insensitive" }),
   );
-  if (field === undefined) return undefined;
+  return clauses.length === 1 ? clauses[0] : { OR: clauses };
+}
 
-  return { [field.name]: { contains: search, mode: "insensitive" } };
+/** `author.name` becomes a nested clause, which is what keeps it one query. */
+function nested(path: string, leaf: unknown): Record<string, unknown> {
+  const [head, ...rest] = path.split(".");
+  return {
+    [head ?? path]: rest.length === 0 ? leaf : nested(rest.join("."), leaf),
+  };
 }
 
 /**

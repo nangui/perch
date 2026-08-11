@@ -84,6 +84,27 @@ describe("what crosses the wire", () => {
     expect(second).not.toHaveProperty("label");
   });
 
+  it("says whether a search reaches anything, and never which columns", () => {
+    // The client renders a box from the flag. Naming the columns behind it
+    // would answer a question nobody asked — which is the whole reason the
+    // paths are an allowlist on the server.
+    const searchable = Table.make().columns([
+      TextColumn.make("title").searchable(),
+      TextColumn.make("secret"),
+    ]);
+    const tree = serialiseTable(searchable);
+
+    expect(tree.searchable).toBe(true);
+    expect(JSON.stringify(tree)).not.toContain('searchable":true,"path');
+    for (const column of tree.columns) {
+      expect(column).not.toHaveProperty("searchable");
+    }
+  });
+
+  it("says nothing about a search that reaches nothing", () => {
+    expect(serialiseTable(table)).not.toHaveProperty("searchable");
+  });
+
   it("says nothing at all about a table with no columns", () => {
     expect(serialiseTable(Table.make())).toEqual({
       columns: [],

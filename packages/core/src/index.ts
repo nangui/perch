@@ -30,6 +30,7 @@ export type {
   Query,
   RelationWrite,
   Row,
+  Search,
   Sort,
   SortDirection,
   WriteTree,
@@ -56,7 +57,7 @@ export { Action, CreateAction, EditAction } from "./action.js";
 export type { ColumnState } from "./column.js";
 export { Column, IconColumn, TextColumn } from "./column.js";
 export type { ActionNode, ColumnNode, ColumnTree, TableState } from "./table.js";
-export { serialiseTable, sortablePaths, Table } from "./table.js";
+export { searchablePaths, serialiseTable, sortablePaths, Table } from "./table.js";
 
 // Field inference: what a field already knows without being told.
 export type {
