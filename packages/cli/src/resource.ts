@@ -14,6 +14,8 @@
  */
 import type { ComponentKind, InferredField, Ir, ModelMeta } from "@perchjs/core";
 import { findModel, inferModel } from "@perchjs/core";
+import type { Entry } from "./module-edit.js";
+import { importFrom, normaliseRoot } from "./module-edit.js";
 
 /**
  * The components `@perchjs/core` actually exports a builder for.
@@ -29,6 +31,8 @@ const BUILDABLE = new Set<ComponentKind>(["TextInput", "Select"]);
 export interface ResourceSource {
   readonly path: string;
   readonly contents: string;
+  /** What the panel module has to name to put it on the panel. */
+  readonly className: string;
 }
 
 /**
@@ -43,7 +47,7 @@ export function slugOf(model: string): string {
   return model.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
-export function generateResource(ir: Ir, model: string): ResourceSource {
+export function generateResource(ir: Ir, model: string, src = "src"): ResourceSource {
   const meta = findModel(ir, model);
   if (meta === undefined) {
     throw new Error(
@@ -55,8 +59,24 @@ export function generateResource(ir: Ir, model: string): ResourceSource {
   const fields = inferModel(meta, ir);
 
   return {
-    path: `src/admin/resources/${slugOf(model)}.resource.ts`,
+    path: `${normaliseRoot(src)}/admin/resources/${slugOf(model)}.resource.ts`,
     contents: file(meta, fields),
+    className: `${meta.name}Resource`,
+  };
+}
+
+/**
+ * What registers it on the panel: the entry `perch panel`'s module gains.
+ *
+ * Named here rather than by the caller because the class name and the file name
+ * are decided here — two rules kept apart drift, and the symptom would be an
+ * import of a class that does not exist.
+ */
+export function resourceEntry(generated: ResourceSource, src = "src"): Entry {
+  return {
+    className: generated.className,
+    from: importFrom(`${normaliseRoot(src)}/admin/admin.module.ts`, generated.path),
+    key: "resources",
   };
 }
 

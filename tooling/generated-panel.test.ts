@@ -241,6 +241,55 @@ describe("with --write", () => {
   }, 30_000);
 });
 
+describe("the whole path, with no editing", () => {
+  it("panel, then resource, and the resource is on the panel", async () => {
+    // What the design calls time-to-first-CRUD: two commands and a running
+    // panel. A resource the module does not name is a file nobody reads, so
+    // this is the assertion that the path has no hand-edit left in it.
+    const dir = project();
+    await run([PRISMA, "generate", "--schema", "./prisma/schema.prisma"], dir);
+    await run([CLI, "panel", "--write"], dir);
+
+    const { code, out } = await run([CLI, "resource", "User"], dir);
+    const module_ = readFileSync(join(dir, "src", "admin", "admin.module.ts"), "utf8");
+
+    expect(code).toBe(0);
+    expect(out).toContain("added UserResource to src/admin/admin.module.ts");
+    expect(module_).toContain(
+      'import { UserResource } from "./resources/user.resource.js";',
+    );
+    expect(module_).toContain("resources: [UserResource]");
+
+    // And all three files still compile together.
+    const compiled = await typecheck(dir);
+    expect(compiled.out).toBe("");
+    expect(compiled.code).toBe(0);
+  }, 180_000);
+
+  it("says so rather than repeating itself on a second run", async () => {
+    const dir = project();
+    await run([PRISMA, "generate", "--schema", "./prisma/schema.prisma"], dir);
+    await run([CLI, "panel", "--write"], dir);
+    await run([CLI, "resource", "User"], dir);
+
+    const { out } = await run([CLI, "resource", "User", "--force"], dir);
+    const module_ = readFileSync(join(dir, "src", "admin", "admin.module.ts"), "utf8");
+
+    expect(out).toContain("already on the panel");
+    expect(module_.match(/UserResource/g)).toHaveLength(2);
+  }, 180_000);
+
+  it("points at perch panel when there is no module to add it to", async () => {
+    const dir = project();
+    await run([PRISMA, "generate", "--schema", "./prisma/schema.prisma"], dir);
+
+    const { code, out } = await run([CLI, "resource", "User"], dir);
+
+    expect(code).toBe(0);
+    expect(out).toContain("perch panel");
+  }, 120_000);
+});
+
 describe("an application whose class only holds a client", () => {
   it("says which one, rather than claiming there is none", async () => {
     // Telling somebody with a PrismaService that no client was found is a lie,

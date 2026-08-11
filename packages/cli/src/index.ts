@@ -19,8 +19,16 @@ import type { SchemaReading } from "./schema-fingerprint.js";
 import type { GeneratedFile, Source } from "./panel.js";
 import { diagnose } from "./doctor.js";
 import { readSchema } from "./schema-fingerprint.js";
-import { findClient, findHolder, generatePanel, register } from "./panel.js";
-import { generateResource } from "./resource.js";
+import type { ResourceSource } from "./resource.js";
+import { addToList } from "./module-edit.js";
+import {
+  adminModulePath,
+  findClient,
+  findHolder,
+  generatePanel,
+  register,
+} from "./panel.js";
+import { generateResource, resourceEntry } from "./resource.js";
 
 export type { ResourceSource } from "./resource.js";
 export type { Finding, Level, Project } from "./doctor.js";
@@ -36,7 +44,9 @@ export {
   PANEL_DATA,
   register,
 } from "./panel.js";
-export { generateResource, slugOf } from "./resource.js";
+export { generateResource, resourceEntry, slugOf } from "./resource.js";
+export type { Entry } from "./module-edit.js";
+export { addToList, importFrom } from "./module-edit.js";
 
 /** Where `@perchjs/prisma-generator` puts its output unless told otherwise. */
 export const DEFAULT_IR = "./perch/ir.json";
@@ -94,8 +104,9 @@ export async function run(argv: readonly string[]): Promise<number> {
     return 1;
   }
 
+  const src = sourceRoot(values.src);
   const ir = await readIr(values.ir);
-  const generated = generateResource(ir, model);
+  const generated = generateResource(ir, model, src);
   const target = resolve(generated.path);
 
   // Regenerating destroys nothing without explicit confirmation. No three-way
@@ -112,7 +123,55 @@ export async function run(argv: readonly string[]): Promise<number> {
   await mkdir(dirname(target), { recursive: true });
   await writeFile(target, generated.contents, "utf8");
   process.stdout.write(`perch: wrote ${generated.path}\n`);
+
+  await putOnThePanel(generated, src);
   return 0;
+}
+
+/**
+ * The resource added to the panel module, which is the last hand-edit on the
+ * way to a working panel.
+ *
+ * Written without asking, unlike `perch panel`'s edit to the root module: that
+ * one changes a file the developer wrote, this one changes a file Perch wrote
+ * and whose `resources` list exists for exactly this. A file it cannot read
+ * without guessing is left alone with the line to add printed.
+ */
+async function putOnThePanel(generated: ResourceSource, src: string): Promise<void> {
+  const path = adminModulePath(src);
+  const module = resolve(path);
+  const entry = resourceEntry(generated, src);
+
+  if (!existsSync(module)) {
+    process.stdout.write(
+      `perch: no ${path}, so nothing lists it yet. Run \`perch panel\`.\n`,
+    );
+    return;
+  }
+
+  const before = await readFile(module, "utf8");
+  const after = addToList(before, entry);
+
+  if (after === undefined) {
+    process.stdout.write(
+      `\nAdd it to ${path} yourself:\n\n` +
+        `  import { ${entry.className} } from "${entry.from}";\n` +
+        `  resources: [${entry.className}]\n\n`,
+    );
+    return;
+  }
+  if (after === before) {
+    process.stdout.write(`perch: ${entry.className} is already on the panel\n`);
+    return;
+  }
+
+  await writeFile(module, after, "utf8");
+  process.stdout.write(`perch: added ${entry.className} to ${path}\n`);
+}
+
+/** `--src`, as a path relative to the project. */
+function sourceRoot(src: string): string {
+  return relative(resolve("."), resolve(src)).split(sep).join("/");
 }
 
 /**
@@ -132,7 +191,7 @@ async function panel(values: {
   const sources = await sourcesUnder(root);
   // Relative to the project, so what is generated lands under the root `--src`
   // named rather than under a hard-coded `src`.
-  const src = relative(resolve("."), root).split(sep).join("/");
+  const src = sourceRoot(values.src);
   const client = findClient(sources, src);
   const holder = client === undefined ? findHolder(sources, src) : undefined;
   const files = generatePanel(
@@ -151,7 +210,7 @@ async function panel(values: {
 
   const appModule = resolve(root, "app.module.ts");
   const before = existsSync(appModule) ? await readFile(appModule, "utf8") : undefined;
-  const after = before === undefined ? undefined : register(before);
+  const after = before === undefined ? undefined : register(before, src);
   // Three outcomes, and they are not two: the edit is needed, it is already
   // there, or the file is a shape this will not touch. Telling somebody to add
   // a line they added last week is its own kind of wrong.

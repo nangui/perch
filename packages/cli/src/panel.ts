@@ -11,7 +11,7 @@
  * so the client is the application's to construct — this finds the provider
  * that already holds one, and says so when there is none.
  */
-import { dirname, relative } from "node:path";
+import { addToList, importFrom, normaliseRoot } from "./module-edit.js";
 
 export interface Source {
   /** Relative to the source root, with `/` separators. */
@@ -48,15 +48,11 @@ export const PANEL_DATA = "src/admin/panel-data.ts";
 
 /** The same two under whichever source root `--src` named. */
 export function adminModulePath(src = "src"): string {
-  return `${trimmed(src)}/admin/admin.module.ts`;
+  return `${normaliseRoot(src)}/admin/admin.module.ts`;
 }
 
 export function panelDataPath(src = "src"): string {
-  return `${trimmed(src)}/admin/panel-data.ts`;
-}
-
-function trimmed(src: string): string {
-  return src.replace(/^\.\//, "").replace(/\/+$/, "");
+  return `${normaliseRoot(src)}/admin/panel-data.ts`;
 }
 
 /**
@@ -225,63 +221,18 @@ export class PanelData extends PrismaDataAdapter {
 `;
 }
 
-/** A relative specifier from one generated file to another path. */
-function importFrom(from: string, to: string): string {
-  const target = to.replace(/\.tsx?$/, ".js").replace(/\.json$/, ".js");
-  const path = relative(dirname(from), target).split("\\").join("/");
-  return path.startsWith(".") ? path : `./${path}`;
-}
-
 /**
  * `AdminModule` added to an existing `app.module.ts`.
  *
- * Returns `undefined` when the file is not a shape this can edit without
- * guessing — more than one `@Module`, or an `imports` that is not a plain array
- * literal. A registration that lands in the wrong decorator is worse than a
- * message telling you the two lines to add, so the ambiguous case is refused
- * rather than attempted.
+ * Refused, rather than attempted, on a file this cannot read without guessing:
+ * more than one `imports`, or one that is not a plain array literal. The
+ * caller prints the two lines to add instead.
  */
-export function register(text: string): string | undefined {
-  if (/\bAdminModule\b/.test(text)) return text;
-  if ((text.match(/@Module\s*\(/g) ?? []).length !== 1) return undefined;
-
-  const withImport = addImport(text);
-  const imports = /(@Module\s*\(\s*\{[\s\S]*?\bimports\s*:\s*\[)/.exec(withImport);
-
-  if (imports !== null) {
-    const at = imports.index + imports[0].length;
-    const rest = withImport.slice(at);
-    // We are writing into somebody else's file, so it comes back as they would
-    // have written it: no comma before a `]`, no trailing space before a
-    // newline, one space between entries on a line.
-    const separator = /^\s*\]/.test(rest) ? "" : /^\n/.test(rest) ? "," : ", ";
-    return `${withImport.slice(0, at)}AdminModule${separator}${rest}`;
-  }
-
-  // An `imports` that is not an array literal — computed, spread, a variable.
-  // Adding one would leave the decorator with the key twice, which is a syntax
-  // error in the file we were asked not to break.
-  if (/@Module\s*\(\s*\{[\s\S]*?\bimports\s*:/.test(withImport)) return undefined;
-
-  // No `imports` at all: the decorator gains one rather than being rewritten.
-  const decorator = /@Module\s*\(\s*\{/.exec(withImport);
-  if (decorator === null) return undefined;
-  const at = decorator.index + decorator[0].length;
-  return `${withImport.slice(0, at)} imports: [AdminModule],${withImport.slice(at)}`;
-}
-
-/**
- * Before the first import, not after the last one.
- *
- * Where an import *ends* cannot be found by a line match: prettier writes
- * `import {\n  Module,\n} from …` all the time, and inserting after that first
- * line lands inside the braces and produces a file that does not parse. Where
- * one *begins* is unambiguous, so that is what this uses.
- */
-function addImport(text: string): string {
-  const statement = `import { AdminModule } from "./admin/admin.module.js";`;
-  const first = /^import\b/m.exec(text);
-  if (first === null) return `${statement}\n${text}`;
-
-  return `${text.slice(0, first.index)}${statement}\n${text.slice(first.index)}`;
+export function register(text: string, src = "src"): string | undefined {
+  return addToList(text, {
+    className: "AdminModule",
+    from: importFrom(`${normaliseRoot(src)}/app.module.ts`, adminModulePath(src)),
+    key: "imports",
+    create: true,
+  });
 }
