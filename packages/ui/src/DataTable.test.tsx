@@ -23,6 +23,7 @@ afterEach(() => {
 
 const COLUMNS: ColumnTree = {
   actions: [],
+  filters: [],
   headerActions: [],
   columns: [
     { type: "TextColumn", path: "title", label: "Headline", sortable: true },

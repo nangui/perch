@@ -4,11 +4,11 @@
  */
 import { describe, expect, it } from "vitest";
 import type { FieldMeta, Ir, ModelMeta } from "@perchjs/core";
-import { Table, TextColumn } from "@perchjs/core";
+import { Table, TextColumn, TextFilter } from "@perchjs/core";
 import {
   DEFAULT_PER_PAGE,
   MAX_PER_PAGE,
-  MAX_SEARCH,
+  MAX_TERM,
   MAX_SKIP,
   readQuery,
 } from "./records-query.js";
@@ -168,11 +168,41 @@ describe("searching and filtering", () => {
     // it returns every row.
     const term = read({ search: "a".repeat(5000) }).search;
 
-    expect(term?.term).toHaveLength(MAX_SEARCH);
+    expect(term?.term).toHaveLength(MAX_TERM);
   });
 
   it("treats an empty search as no search", () => {
     expect(read({ search: "" }).search).toBeUndefined();
+  });
+
+  it("turns a declared filter's value into a clause", () => {
+    const table = Table.make().filters([TextFilter.make("title")]);
+
+    expect(readQuery("User", IR, { "filter.title": "ada" }, table).clauses).toEqual([
+      { path: "title", operator: "contains", value: "ada" },
+    ]);
+  });
+
+  it("drops a name nothing declared, without a word", () => {
+    // Like a sort on an undeclared column: an error would say which filters
+    // exist.
+    const table = Table.make().filters([TextFilter.make("title")]);
+
+    expect(
+      readQuery("User", IR, { "filter.passwordHash": "a" }, table).clauses,
+    ).toBeUndefined();
+  });
+
+  it("accepts no filter at all from a resource with no table", () => {
+    expect(read({ "filter.title": "ada" }).clauses).toBeUndefined();
+  });
+
+  it("caps a filter's value like a search term", () => {
+    const table = Table.make().filters([TextFilter.make("title")]);
+    const [clause] =
+      readQuery("User", IR, { "filter.title": "a".repeat(5000) }, table).clauses ?? [];
+
+    expect(String(clause?.value)).toHaveLength(MAX_TERM);
   });
 
   it("never builds a filter from the query string", () => {

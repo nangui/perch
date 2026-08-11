@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { IconColumn, TextColumn } from "./column.js";
 import { EditAction } from "./action.js";
-import { serialiseTable, sortablePaths, Table } from "./table.js";
+import { declaredFilters, serialiseTable, sortablePaths, Table } from "./table.js";
+import { TextFilter } from "./filter.js";
 
 describe("a column builder", () => {
   it("clones on every fluent call", () => {
@@ -71,6 +72,7 @@ describe("what crosses the wire", () => {
         { type: "TextColumn", path: "author.name" },
         { type: "IconColumn", path: "published", boolean: true },
       ],
+      filters: [],
       actions: [],
       headerActions: [],
       defaultSort: { path: "title", direction: "desc" },
@@ -108,6 +110,7 @@ describe("what crosses the wire", () => {
   it("says nothing at all about a table with no columns", () => {
     expect(serialiseTable(Table.make())).toEqual({
       columns: [],
+      filters: [],
       actions: [],
       headerActions: [],
     });
@@ -148,5 +151,27 @@ describe("the sortable paths", () => {
     expect(sortablePaths(Table.make().columns([TextColumn.make("title")])).size).toBe(
       0,
     );
+  });
+});
+
+describe("two filters under one name", () => {
+  it("says so rather than quietly dropping one", () => {
+    // Which one survived would depend on the order they were written in, and
+    // the other would answer nothing for the life of the panel.
+    const table = Table.make().filters([
+      TextFilter.make("title"),
+      TextFilter.make("title").path("subtitle"),
+    ]);
+
+    expect(() => declaredFilters(table)).toThrow(/two filters are named title/);
+  });
+
+  it("is happy with two filters on one column under two names", () => {
+    const table = Table.make().filters([
+      TextFilter.make("headline").path("title"),
+      TextFilter.make("exact").path("title").exact(),
+    ]);
+
+    expect(declaredFilters(table).size).toBe(2);
   });
 });

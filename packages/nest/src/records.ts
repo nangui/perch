@@ -106,7 +106,7 @@ export async function listRecords(
     perPage,
     columns:
       table === undefined
-        ? { columns: [], actions: [], headerActions: [] }
+        ? { columns: [], filters: [], actions: [], headerActions: [] }
         : serialiseTable(table),
     recordKey: data.meta(model).primaryKey.name,
     ...pathOrNothing(resourcePath(root, resource.metadata.slug)),

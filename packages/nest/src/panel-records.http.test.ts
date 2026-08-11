@@ -18,6 +18,7 @@ import {
   Schema,
   Table,
   TextColumn,
+  TextFilter,
   TextInput,
 } from "@perchjs/core";
 import { afterEach, describe, expect, it } from "vitest";
@@ -144,12 +145,14 @@ class SearchableResource {
     return Schema.make([TextInput.make("title")]);
   }
   table(): Table {
-    return Table.make().columns([
-      TextColumn.make("title").searchable(),
-      // Displayed and not searchable: a column is one or the other only if it
-      // says so.
-      TextColumn.make("author.name"),
-    ]);
+    return Table.make()
+      .columns([
+        TextColumn.make("title").searchable(),
+        // Displayed and not searchable: a column is one or the other only if it
+        // says so.
+        TextColumn.make("author.name"),
+      ])
+      .filters([TextFilter.make("headline").path("title").label("Headline")]);
   }
 }
 
@@ -220,7 +223,7 @@ describe("listing records", () => {
       // controls from the answer rather than from what it asked for.
       page: 1,
       perPage: 25,
-      columns: { columns: [], actions: [], headerActions: [] },
+      columns: { columns: [], filters: [], actions: [], headerActions: [] },
       // How a row action addresses one row, said rather than assumed.
       recordKey: "id",
       resourcePath: "/admin/posts",
@@ -302,6 +305,31 @@ describe("listing records", () => {
     expect(asked[0]?.search).toBeUndefined();
   });
 
+  it("filters by a declared name, and by nothing else", async () => {
+    const url = await serve();
+    await get(`${url}/admin/api/searchable/records?filter.headline=ada`);
+    await get(`${url}/admin/api/searchable/records?filter.passwordHash=a`);
+
+    // The path is the declaration's, not the caller's: the filter is named
+    // `headline` and reaches `title`.
+    expect(asked[0]?.clauses).toEqual([
+      { path: "title", operator: "contains", value: "ada" },
+    ]);
+    // Silently, so the refusal says nothing about which filters exist.
+    expect(asked[1]?.clauses).toBeUndefined();
+  });
+
+  it("sends the filters it declared, and nothing about what they do", async () => {
+    const url = await serve();
+    const body = (await (await get(`${url}/admin/api/searchable/records`)).json()) as {
+      columns: { filters: unknown };
+    };
+
+    expect(body.columns.filters).toEqual([
+      { type: "TextFilter", name: "headline", label: "Headline" },
+    ]);
+  });
+
   it("never turns a query parameter into a filter or an include", async () => {
     const url = await serve();
     await get(
@@ -326,6 +354,7 @@ describe("the columns a resource declares", () => {
         { type: "TextColumn", path: "author.name", label: "Author" },
         { type: "IconColumn", path: "published", boolean: true },
       ],
+      filters: [],
       actions: [{ type: "EditAction" }],
       headerActions: [{ type: "CreateAction" }],
       defaultSort: { path: "title", direction: "desc" },

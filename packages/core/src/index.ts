@@ -56,8 +56,22 @@ export { Action, CreateAction, EditAction } from "./action.js";
 // Tables, and the column layer.
 export type { ColumnState } from "./column.js";
 export { Column, IconColumn, TextColumn } from "./column.js";
-export type { ActionNode, ColumnNode, ColumnTree, TableState } from "./table.js";
-export { searchablePaths, serialiseTable, sortablePaths, Table } from "./table.js";
+export type {
+  ActionNode,
+  ColumnNode,
+  ColumnTree,
+  FilterNode,
+  TableState,
+} from "./table.js";
+export type { FilterState } from "./filter.js";
+export { Filter, TextFilter } from "./filter.js";
+export {
+  declaredFilters,
+  searchablePaths,
+  serialiseTable,
+  sortablePaths,
+  Table,
+} from "./table.js";
 
 // Field inference: what a field already knows without being told.
 export type {

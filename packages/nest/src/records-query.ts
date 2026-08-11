@@ -9,8 +9,21 @@
  *
  * What goes back out is `row-projection.ts`, which serves the writes too.
  */
-import type { Ir, Query, Search, Sort, SortDirection, Table } from "@perchjs/core";
-import { findModel, searchablePaths, sortablePaths } from "@perchjs/core";
+import type {
+  Clause,
+  Ir,
+  Query,
+  Search,
+  Sort,
+  SortDirection,
+  Table,
+} from "@perchjs/core";
+import {
+  declaredFilters,
+  findModel,
+  searchablePaths,
+  sortablePaths,
+} from "@perchjs/core";
 
 export const DEFAULT_PER_PAGE = 25;
 
@@ -32,30 +45,48 @@ export const MAX_PER_PAGE = 100;
 export const MAX_SKIP = 10_000;
 
 /**
- * How long a search term may be.
+ * How long a term a caller writes may be — a search, or a filter value.
  *
  * `perPage` and `page` are capped because an unbounded one is a denial of
  * service with a URL, and a term is the third parameter with that shape: an
  * `ILIKE '%…%'` is compared against every row, and the comparison costs what
- * the pattern is long. Nobody types two hundred characters into a search box.
+ * the pattern is long. Nobody types two hundred characters into a search box, or into a filter.
  *
  * Truncated rather than refused. Dropping it returns every row, which is
  * further from what was asked than a prefix of it.
  */
-export const MAX_SEARCH = 200;
+export const MAX_TERM = 200;
 
 /** The deepest page whose first row is still within `MAX_SKIP`. */
 export function lastPage(perPage: number): number {
   return Math.floor(MAX_SKIP / perPage) + 1;
 }
 
+/**
+ * Whatever arrived in the query string. Every value is `unknown` because every
+ * value is somebody else's.
+ *
+ * A filter arrives as `filter.<name>`, flat: measured, the query parser hands
+ * `filter[x]=1` over as the literal key `filter[x]` rather than nesting it, so
+ * neither form is an object and the dotted one reads better in an address.
+ *
+ * The index signature is the honest shape and it costs something: with it, a
+ * misspelt `raw.serch` below is `unknown` rather than an error. Closing the
+ * type was tried and does not work — what arrives really does carry keys nobody
+ * declared, and a closed type refuses the object at every call site instead of
+ * catching a typo. The four fields are read once, immediately below, which is
+ * the whole surface that risk covers.
+ */
 export interface RawQuery {
   readonly page?: unknown;
   readonly perPage?: unknown;
   readonly sort?: unknown;
   readonly search?: unknown;
-  readonly filters?: unknown;
+  readonly [parameter: string]: unknown;
 }
+
+/** The prefix a filter's value arrives under. */
+export const FILTER_PREFIX = "filter.";
 
 /**
  * Builds the `Query` the adapter will run, from parameters and from the schema
@@ -76,6 +107,7 @@ export function readQuery(model: string, ir: Ir, raw: RawQuery, table?: Table): 
   const skip = (page - 1) * perPage;
   const sort = sortOf(model, ir, raw.sort, table);
   const search = searchOf(model, ir, raw.search, table);
+  const clauses = clausesOf(raw, table);
 
   return {
     model,
@@ -83,11 +115,43 @@ export function readQuery(model: string, ir: Ir, raw: RawQuery, table?: Table): 
     take: perPage,
     ...(sort === undefined ? {} : { sort: [sort] }),
     ...(search === undefined ? {} : { search }),
-    // `filters` is read and dropped. A filter is a clause a resource declares
-    // one that arrives from a URL and reaches `where` untouched is an injection
-    // wearing the name of a feature. Nothing declares filters yet, so nothing
-    // is accepted.
+    ...(clauses.length === 0 ? {} : { clauses }),
   };
+}
+
+/**
+ * A value from the query string becomes a clause only by passing through the
+ * declaration that named it.
+ *
+ * This is the whole reason a filter is not a clause. What arrives is a name and
+ * a value; the path and the comparison come from the table, in code nobody
+ * outside can reach. A name nothing declared is dropped in silence, like a sort
+ * on an undeclared column and for the same reason — an error would say which
+ * filters exist.
+ *
+ * Values are capped like a search term. A filter is compared against every row
+ * too, and the comparison costs what the value is long.
+ */
+function clausesOf(
+  raw: Record<string, unknown>,
+  table: Table | undefined,
+): readonly Clause[] {
+  if (table === undefined) return [];
+
+  const declared = declaredFilters(table);
+  const clauses: Clause[] = [];
+
+  for (const [parameter, value] of Object.entries(raw)) {
+    if (!parameter.startsWith(FILTER_PREFIX)) continue;
+
+    const filter = declared.get(parameter.slice(FILTER_PREFIX.length));
+    const term = text(value)?.slice(0, MAX_TERM);
+    if (filter === undefined || term === undefined) continue;
+
+    const clause = filter.clause(term);
+    if (clause !== undefined) clauses.push(clause);
+  }
+  return clauses;
 }
 
 /**
@@ -107,7 +171,7 @@ function searchOf(
   raw: unknown,
   table: Table | undefined,
 ): Search | undefined {
-  const term = text(raw)?.slice(0, MAX_SEARCH);
+  const term = text(raw)?.slice(0, MAX_TERM);
   if (term === undefined || term === "") return undefined;
 
   const paths = [...searchable(model, ir, table)];

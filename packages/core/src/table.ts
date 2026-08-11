@@ -1,17 +1,20 @@
 /**
  * The table a resource declares.
  *
- * The columns, which of them may be sorted by, and the actions a row offers.
- * Filters, bulk actions, pagination sizes and the empty state are not here;
- * each needs a route or a renderer that does not exist yet, and an option that
- * does nothing is worse than an absent one.
+ * The columns, which of them may be sorted by or searched, the filters a
+ * reader can narrow it with, and the actions a row offers. Bulk actions,
+ * pagination sizes and the empty state are not here; each needs a route or a
+ * renderer that does not exist yet, and an option that does nothing is worse
+ * than an absent one.
  */
 import type { Action } from "./action.js";
 import type { Column } from "./column.js";
+import type { Filter } from "./filter.js";
 import type { SortDirection } from "./data-adapter.js";
 
 export interface TableState {
   readonly columns: readonly Column[];
+  readonly filters: readonly Filter[];
   readonly actions: readonly Action[];
   readonly headerActions: readonly Action[];
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
@@ -27,6 +30,17 @@ export interface ColumnNode {
   readonly boolean?: true;
 }
 
+/**
+ * What a filter looks like on the wire: enough to draw a control, and nothing
+ * about what it does. The path and the comparison stay on the server, because
+ * sending them would suggest they were open to discussion.
+ */
+export interface FilterNode {
+  readonly type: string;
+  readonly name: string;
+  readonly label?: string;
+}
+
 /** What a row action looks like on the wire. */
 export interface ActionNode {
   readonly type: string;
@@ -35,6 +49,7 @@ export interface ActionNode {
 
 export interface ColumnTree {
   readonly columns: readonly ColumnNode[];
+  readonly filters: readonly FilterNode[];
   /**
    * Whether a search reaches anything, which is all the client needs to decide
    * between offering a box and offering nothing. Which columns it reaches is
@@ -56,7 +71,12 @@ export class Table {
   }
 
   static make(): Table {
-    return new Table({ columns: [], actions: [], headerActions: [] });
+    return new Table({ columns: [], filters: [], actions: [], headerActions: [] });
+  }
+
+  /** What a reader can narrow the table with. */
+  filters(list: readonly Filter[]): Table {
+    return new Table({ ...this.state, filters: [...list] });
   }
 
   columns(list: readonly Column[]): Table {
@@ -101,6 +121,11 @@ export function serialiseTable(table: Table): ColumnTree {
       ...(column.state.boolean === undefined ? {} : { boolean: true as const }),
     })),
     ...(searchablePaths(table).size === 0 ? {} : { searchable: true as const }),
+    filters: table.state.filters.map((filter) => ({
+      type: filter.type,
+      name: filter.state.name,
+      ...(filter.state.label === undefined ? {} : { label: filter.state.label }),
+    })),
     actions: table.state.actions.map(node),
     headerActions: table.state.headerActions.map(node),
     ...(table.state.defaultSort === undefined
@@ -121,6 +146,31 @@ export function sortablePaths(table: Table): ReadonlySet<string> {
   return new Set(
     table.state.columns.filter((c) => c.state.sortable).map((c) => c.state.path),
   );
+}
+
+/**
+ * The filters a table declared, by the name a client asks for them by.
+ *
+ * Two filters under one name would leave one of them unreachable, and which one
+ * would depend on the order they were written in. That is a mistake to make
+ * loudly and at boot, in the way a table is built once and read on every
+ * request — not a refusal to make per request, where it would tell a caller
+ * something about a table they never asked about.
+ */
+export function declaredFilters(table: Table): ReadonlyMap<string, Filter> {
+  const byName = new Map<string, Filter>();
+
+  for (const filter of table.state.filters) {
+    if (byName.has(filter.state.name)) {
+      throw new Error(
+        `two filters are named ${filter.state.name}; one of them can never be ` +
+          `reached. Give it a different name, or \`.path()\` if both were meant ` +
+          `to filter the same column.`,
+      );
+    }
+    byName.set(filter.state.name, filter);
+  }
+  return byName;
 }
 
 /** The paths a search may reach: exactly those a column declared. */

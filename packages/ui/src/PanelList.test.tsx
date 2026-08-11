@@ -18,6 +18,7 @@ const PAGE: RecordsPage = {
   columns: {
     columns: [{ type: "TextColumn", path: "title", label: "Headline", sortable: true }],
     actions: [{ type: "EditAction" }],
+    filters: [],
     headerActions: [{ type: "CreateAction" }],
     defaultSort: { path: "title", direction: "asc" },
   },
@@ -80,7 +81,12 @@ describe("the list page", () => {
       // No `sort` in the answer: the request was refused.
       Promise.resolve({
         ...PAGE,
-        columns: { columns: PAGE.columns.columns, actions: [], headerActions: [] },
+        columns: {
+          columns: PAGE.columns.columns,
+          filters: [],
+          actions: [],
+          headerActions: [],
+        },
       }),
     );
     render(<PanelList initial={PAGE} title="Posts" fetchPage={fetchPage} />);
