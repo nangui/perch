@@ -11,7 +11,8 @@
  */
 import type { ReactNode, SyntheticEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
-import type { SchemaNode, SchemaPayload } from "@perchjs/core";
+import type { FormState, SchemaNode, SchemaPayload } from "@perchjs/core";
+import type { SearchedOption } from "./node-props.js";
 import { SchemaRenderer } from "./SchemaRenderer.js";
 import type {
   SaveRequest,
@@ -32,6 +33,16 @@ export interface PanelFormProps {
   readonly submitLabel?: string;
   /** Rendered above the form when a request failed. Never silent. */
   readonly renderFailure?: (snapshot: Snapshot, retry: () => void) => ReactNode;
+  /**
+   * Asks the server for a searchable field's options. The state travels with
+   * it: whether a field is there at all is the resolution's to decide, and it
+   * decides from the state.
+   */
+  readonly searchOptions?: (
+    path: string,
+    term: string,
+    state: FormState,
+  ) => Promise<readonly SearchedOption[]>;
   readonly timeout?: number;
 }
 
@@ -42,6 +53,7 @@ export function PanelForm({
   onSaved,
   submitLabel = "Save",
   renderFailure,
+  searchOptions,
   timeout,
 }: PanelFormProps): ReactNode {
   /**
@@ -90,6 +102,18 @@ export function PanelForm({
     [client],
   );
 
+  // Through a ref, so the callback keeps its identity: handed down as a prop
+  // it would otherwise change on every keystroke, and the effect that runs it
+  // would re-issue a search each time an unrelated field was edited.
+  const state = useRef(snapshot.payload.state);
+  state.current = snapshot.payload.state;
+
+  const search = useCallback(
+    async (path: string, term: string) =>
+      searchOptions === undefined ? [] : await searchOptions(path, term, state.current),
+    [searchOptions],
+  );
+
   const pending = useMemo(() => new Set(snapshot.pending), [snapshot.pending]);
   const inFlight = useMemo(() => new Set(snapshot.inFlight), [snapshot.inFlight]);
 
@@ -101,6 +125,7 @@ export function PanelForm({
         onChange={onChange}
         pending={pending}
         inFlight={inFlight}
+        {...(searchOptions === undefined ? {} : { searchOptions: search })}
       />
       {save === undefined ? null : (
         <div className="perch-form-actions">

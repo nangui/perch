@@ -10,6 +10,7 @@
 import type { ReactNode } from "react";
 import { memo, useCallback } from "react";
 import type { SchemaNode, SchemaPayload } from "@perchjs/core";
+import type { NodeProps } from "./node-props.js";
 import { lookupComponent } from "./registry.js";
 
 export interface SchemaRendererProps {
@@ -18,6 +19,8 @@ export interface SchemaRendererProps {
   /** Paths with a patch in flight, so a field can show it. */
   readonly pending?: ReadonlySet<string>;
   readonly inFlight?: ReadonlySet<string>;
+  /** Threaded down to whichever field declares itself searchable. */
+  readonly searchOptions?: NodeProps["searchOptions"];
 }
 
 export function SchemaRenderer({
@@ -25,6 +28,7 @@ export function SchemaRenderer({
   onChange,
   pending,
   inFlight,
+  searchOptions,
 }: SchemaRendererProps): ReactNode {
   /**
    * Stable while its inputs are, or `memo` below compares a fresh closure every
@@ -43,11 +47,12 @@ export function SchemaRenderer({
           pending={node.path !== undefined && pending?.has(node.path) === true}
           inFlight={node.path !== undefined && inFlight?.has(node.path) === true}
           onChange={onChange}
+          searchOptions={searchOptions}
           renderChild={renderNode}
         />
       );
     },
-    [payload, onChange, pending, inFlight],
+    [payload, onChange, pending, inFlight, searchOptions],
   );
 
   return render(payload.schema);
@@ -65,6 +70,7 @@ const RenderedNode = memo(function RenderedNode({
   pending,
   inFlight,
   onChange,
+  searchOptions,
   renderChild,
 }: {
   readonly node: SchemaNode;
@@ -73,6 +79,7 @@ const RenderedNode = memo(function RenderedNode({
   readonly pending?: boolean | undefined;
   readonly inFlight?: boolean | undefined;
   readonly onChange: (path: string, value: unknown) => void;
+  readonly searchOptions?: NodeProps["searchOptions"];
   readonly renderChild: (child: SchemaNode) => ReactNode;
 }): ReactNode {
   const Renderer = lookupComponent(node.type);
@@ -85,6 +92,7 @@ const RenderedNode = memo(function RenderedNode({
       pending={pending}
       inFlight={inFlight}
       onChange={onChange}
+      searchOptions={searchOptions}
       renderChild={renderChild}
     />
   );

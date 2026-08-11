@@ -6,10 +6,12 @@
  * substitutable, which is what a plugin needs to replace one.
  */
 import type { ReactNode } from "react";
+import { useCallback } from "react";
 import type { SchemaNode } from "@perchjs/core";
 import { FieldShell } from "./FieldShell.js";
 import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
+import { SearchableSelect } from "./fields/SearchableSelect.js";
 import { TextInput } from "./fields/TextInput.js";
 import type { TextFlavour } from "./fields/TextInput.js";
 import type { NodeProps } from "./node-props.js";
@@ -98,6 +100,7 @@ function SelectRenderer({
   pending,
   inFlight,
   onChange,
+  searchOptions,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
   const options = (node.options ?? [])
@@ -106,25 +109,65 @@ function SelectRenderer({
       (option): option is { value: string; label: string } => option.value !== null,
     );
 
+  const label = node.label ?? node.path ?? "";
+  const path = node.path;
+
+  // Stable, or the effect that runs it fires on every render of the form.
+  const search = useCallback(
+    async (term: string) => {
+      if (searchOptions === undefined || path === undefined) return [];
+      const answer = await searchOptions(path, term);
+      return answer
+        .map((option) => ({ value: scalar(option.value), label: option.label }))
+        .filter(
+          (option): option is { value: string; label: string } => option.value !== null,
+        );
+    },
+    [searchOptions, path],
+  );
+
+  // A field the host cannot ask about is not searchable, whatever it declared:
+  // a search box that answers nothing is worse than none.
+  const searchable = node.props?.["searchable"] === true && searchOptions !== undefined;
+
   return (
     <FieldShell
-      label={node.label ?? node.path ?? ""}
+      label={label}
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
     >
-      {(binding) => (
-        <Select
-          value={scalar(value)}
-          onValueChange={(next) => {
-            if (node.path !== undefined) onChange(node.path, next);
-          }}
-          options={options}
-          status={status}
-          binding={binding}
-          {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
-        />
-      )}
+      {(binding) =>
+        searchable ? (
+          <SearchableSelect
+            value={scalar(value)}
+            onValueChange={(next) => {
+              if (path !== undefined) onChange(path, next);
+            }}
+            options={options}
+            status={status}
+            binding={binding}
+            label={label}
+            search={search}
+            {...(node.placeholder === undefined
+              ? {}
+              : { placeholder: node.placeholder })}
+          />
+        ) : (
+          <Select
+            value={scalar(value)}
+            onValueChange={(next) => {
+              if (node.path !== undefined) onChange(node.path, next);
+            }}
+            options={options}
+            status={status}
+            binding={binding}
+            {...(node.placeholder === undefined
+              ? {}
+              : { placeholder: node.placeholder })}
+          />
+        )
+      }
     </FieldShell>
   );
 }

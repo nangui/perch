@@ -11,8 +11,9 @@
  */
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import type { SchemaPayload } from "@perchjs/core";
+import type { FormState, SchemaPayload } from "@perchjs/core";
 import { Breadcrumb } from "./Breadcrumb.js";
+import type { SearchedOption } from "./node-props.js";
 import { PanelForm } from "./PanelForm.js";
 import type { NavigationGroup } from "./PanelNav.js";
 import { PanelNav } from "./PanelNav.js";
@@ -83,6 +84,9 @@ export function mount(element: HTMLElement): void {
           save={(request) => save(api, operation, id, request)}
           onSaved={goWhereTheServerSays}
           renderFailure={renderFailure}
+          searchOptions={(path, term, state) =>
+            askOptions(api, operation, id, path, term, state)
+          }
         />
       </div>
     </div>,
@@ -170,6 +174,42 @@ async function send(
 
 const element = document.getElementById(MOUNT_ID);
 if (element !== null) mount(element);
+
+/**
+ * Asks what a searchable field may be set to.
+ *
+ * The state travels with the term because the server resolves the form before
+ * it answers: whether the field is there, and whether the reader may use it,
+ * are decisions it makes from the state rather than trusts the client about.
+ *
+ * A failure raises rather than resolving to nothing. An empty list is a real
+ * answer — "nothing matched" — and returning one for a request that never
+ * arrived would tell the reader their search worked.
+ */
+async function askOptions(
+  api: string,
+  operation: string,
+  id: string | undefined,
+  path: string,
+  term: string,
+  state: FormState,
+): Promise<readonly SearchedOption[]> {
+  const response = await fetch(`${api}/options`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      state,
+      operation,
+      path,
+      term,
+      ...(id === undefined ? {} : { id }),
+    }),
+    credentials: "same-origin",
+  });
+  if (!response.ok) throw new Error(`/options answered ${String(response.status)}`);
+
+  return ((await response.json()) as { options: readonly SearchedOption[] }).options;
+}
 
 /**
  * Asks for a page, in an order and at a number.

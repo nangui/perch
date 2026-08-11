@@ -527,6 +527,50 @@
   background: var(--perch-surface-muted);
 }
 
+/* A combobox names its active option with `aria-activedescendant` rather than
+   focusing it, so the highlight has to be drawn: without this the keyboard
+   moves through a list that never looks like it moved. */
+.perch-option[data-active="true"] {
+  background: var(--perch-surface-muted);
+}
+
+.perch-option[aria-selected="true"] {
+  border-left-color: var(--perch-accent);
+  background: var(--perch-accent-surface);
+  font-weight: 600;
+}
+
+/* Square with the popover: the input is the top edge of the panel, so it drops
+   its own border and radius rather than drawing a box inside a box. */
+.perch-combobox__input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--perch-border);
+  border-radius: 0;
+}
+
+.perch-combobox__list {
+  max-height: 15rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.perch-combobox__empty,
+.perch-combobox__status {
+  display: block;
+  padding: var(--perch-space-4) var(--perch-space-5);
+  color: var(--perch-content-subtle);
+  font-size: var(--perch-text-control);
+}
+
+/* Empty while nothing is in flight, and an empty box with padding is a gap the
+   list appears to float below. */
+.perch-combobox__status:empty {
+  display: none;
+}
+
 .perch-option[data-state="checked"] {
   border-left-color: var(--perch-accent);
   background: var(--perch-accent-surface);
