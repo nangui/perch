@@ -304,6 +304,57 @@ describe("a shell that says too little", () => {
     expect(screen.getByRole("heading", { name: "People" })).toBeTruthy();
   });
 
+  it("puts the page and the order in the query string it fetches", async () => {
+    // The seam between the controls and the route. `PanelList` asks for a page
+    // through a callback; nothing but mounting says the callback turns that
+    // into a URL `records-query.ts` can read.
+    const listing = {
+      rows: [{ id: 1, title: "Ada" }],
+      total: 6,
+      page: 1,
+      perPage: 2,
+      columns: {
+        columns: [
+          { type: "TextColumn", path: "title", label: "Headline", sortable: true },
+        ],
+        actions: [],
+        headerActions: [],
+        defaultSort: { path: "title", direction: "asc" },
+      },
+      recordKey: "id",
+      resourcePath: "/admin/people",
+    };
+    // Restubbed rather than re-implemented: `/records` answers with a listing,
+    // not with the schema payload the other tests here are about.
+    fetchMock = vi.fn(() =>
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(listing) }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "list",
+          title: "People",
+          payload: JSON.stringify(listing),
+        }),
+      );
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    });
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    const [url] = callArgs(0);
+    expect(url).toContain("/admin/api/people/records?");
+    expect(url).toContain("page=2");
+    expect(url).toContain(`sort=${encodeURIComponent("title:asc")}`);
+  });
+
   it("refuses to mount rather than half working", () => {
     expect(() => {
       mount(element({ api: "/admin/api/people" }));

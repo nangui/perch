@@ -35,7 +35,7 @@ export {
 } from "./column-registry.js";
 export { registerBuiltInColumns } from "./columns.js";
 export type { DataTableProps, DataTableSort } from "./DataTable.js";
-export type { PanelListProps, RecordsPage } from "./PanelList.js";
+export type { PageRequest, PanelListProps, RecordsPage } from "./PanelList.js";
 export type { NavigationGroup, NavigationItem, PanelNavProps } from "./PanelNav.js";
 export { PanelNav } from "./PanelNav.js";
 export { PanelList } from "./PanelList.js";

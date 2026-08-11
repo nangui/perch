@@ -1321,6 +1321,14 @@
   color: var(--perch-content-muted);
 }
 
+/* Turning a page is a button, not a link: it replaces the rows in place rather
+   than going anywhere the browser knows about. */
+.perch-pagination {
+  display: flex;
+  gap: var(--perch-space-4);
+  margin-top: var(--perch-space-5);
+}
+
 .perch-list__failure {
   margin-bottom: var(--perch-space-5);
   color: var(--perch-danger-content);

@@ -16,7 +16,7 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { PanelForm } from "./PanelForm.js";
 import type { NavigationGroup } from "./PanelNav.js";
 import { PanelNav } from "./PanelNav.js";
-import type { RecordsPage } from "./PanelList.js";
+import type { PageRequest, RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
 import { registerBuiltInColumns } from "./columns.js";
 import { registerBuiltInComponents } from "./renderers.js";
@@ -60,7 +60,7 @@ export function mount(element: HTMLElement): void {
         <PanelList
           initial={JSON.parse(payload) as RecordsPage}
           title={title}
-          fetchPage={(sort) => records(api, sort)}
+          fetchPage={(request) => records(api, request)}
         />
       </div>,
     );
@@ -171,19 +171,23 @@ const element = document.getElementById(MOUNT_ID);
 if (element !== null) mount(element);
 
 /**
- * Asks for a page in a given order.
+ * Asks for a page, in an order and at a number.
  *
- * The sort travels as `path:direction`, which is the shape `records-query.ts`
- * reads — and it is checked there against what the columns declared, so a
- * client that invents one is refused rather than obeyed.
- *
- * No page number, because there is nothing to turn one with: `.paginated()` is
- * not built, so the table is always the server's first page. Sending one from
- * here would be a control nobody can reach.
+ * Both travel as query parameters — the sort as `path:direction`, which is the
+ * shape `records-query.ts` reads. Both are checked there against what the
+ * columns declared and against the paging depth, so a client that invents
+ * either is refused rather than obeyed, and the answer says what it got.
  */
-async function records(api: string, sort: { path: string; direction: string }) {
-  const url = `${api}/records?sort=${encodeURIComponent(`${sort.path}:${sort.direction}`)}`;
-  const response = await fetch(url, { headers: { accept: "application/json" } });
+async function records(api: string, request: PageRequest): Promise<RecordsPage> {
+  const query = new URLSearchParams();
+  if (request.sort !== undefined) {
+    query.set("sort", `${request.sort.path}:${request.sort.direction}`);
+  }
+  if (request.page !== undefined) query.set("page", String(request.page));
+
+  const response = await fetch(`${api}/records?${query.toString()}`, {
+    headers: { accept: "application/json" },
+  });
   if (!response.ok) throw new Error(`/records answered ${String(response.status)}`);
   return (await response.json()) as RecordsPage;
 }

@@ -8,7 +8,7 @@
  * page it holds.
  */
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ColumnTree, Row } from "@perchjs/core";
 import { DataTable } from "./DataTable.js";
 import type { DataTableSort } from "./DataTable.js";
@@ -21,6 +21,9 @@ import type { DataTableSort } from "./DataTable.js";
 export interface RecordsPage {
   readonly rows: readonly Row[];
   readonly total: number;
+  /** The page the server served, and its size. Read, never assumed. */
+  readonly page: number;
+  readonly perPage: number;
   readonly columns: ColumnTree;
   /** The order the server applied, which may not be the one that was asked. */
   readonly sort?: DataTableSort;
@@ -29,11 +32,20 @@ export interface RecordsPage {
   readonly resourcePath?: string;
 }
 
+/** What the table asks for. Everything absent means "as it was". */
+export interface PageRequest {
+  readonly sort?: DataTableSort;
+  readonly page?: number;
+}
+
 export interface PanelListProps {
   readonly initial: RecordsPage;
   readonly title: string;
-  /** Asks the server for a page. Absent means the table cannot be reordered. */
-  readonly fetchPage?: (sort: DataTableSort) => Promise<RecordsPage>;
+  /**
+   * Asks the server for a page. Absent means the table cannot be reordered and
+   * cannot be turned — it is whatever the shell embedded.
+   */
+  readonly fetchPage?: (request: PageRequest) => Promise<RecordsPage>;
 }
 
 export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactNode {
@@ -48,16 +60,49 @@ export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactN
    */
   const sort = page.sort ?? page.columns.defaultSort;
 
-  const reorder =
+  /**
+   * The request the table is waiting on. Anything older that arrives after it
+   * is dropped.
+   *
+   * Turning a page is two clicks away from a race: Next then Previous puts two
+   * requests in flight, and whichever the network hands back last wins — which
+   * can be the one the reader has already moved on from. The form transport
+   * numbers its requests for the same reason; this is the same rule with one
+   * counter instead of a queue.
+   */
+  const latest = useRef(0);
+
+  const ask =
     fetchPage === undefined
       ? undefined
-      : (next: DataTableSort) => {
+      : (request: PageRequest) => {
+          const sequence = (latest.current += 1);
           setFailed(false);
-          fetchPage(next).then(setPage, () => {
-            // The rows on screen are still the ones the server sent; saying so
-            // is better than replacing them with an empty table.
-            setFailed(true);
-          });
+          fetchPage(request).then(
+            (answer) => {
+              if (sequence === latest.current) setPage(answer);
+            },
+            () => {
+              // The rows on screen are still the ones the server sent; saying so
+              // is better than replacing them with an empty table.
+              if (sequence === latest.current) setFailed(true);
+            },
+          );
+        };
+
+  // Reordering starts over. Page 5 of one order is not page 5 of another, and
+  // keeping the number would land the reader somewhere they did not choose.
+  const reorder =
+    ask === undefined
+      ? undefined
+      : (next: DataTableSort) => {
+          ask({ sort: next, page: 1 });
+        };
+  const turn =
+    ask === undefined
+      ? undefined
+      : (to: number) => {
+          ask({ ...(sort === undefined ? {} : { sort }), page: to });
         };
 
   return (
@@ -67,8 +112,11 @@ export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactN
         {headerActions(page)}
       </div>
       {failed ? (
+        // One sentence for both round trips this page makes. "Could not
+        // reorder" was the only one when reordering was the only one, and it
+        // read as a lie the first time a page failed to turn.
         <p className="perch-list__failure" role="alert">
-          Could not reorder. Showing the previous order.
+          Could not reach the server. Showing what was already here.
         </p>
       ) : null}
       <DataTable
@@ -79,10 +127,74 @@ export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactN
         {...(sort === undefined ? {} : { sort })}
         {...(reorder === undefined ? {} : { onSort: reorder })}
       />
+      {pagination(page, turn)}
+      {/*
+        The one live region on this page: it is what changes when a page is
+        turned, and a second would make the two talk over each other.
+      */}
       <p className="perch-list__total" role="status">
-        {page.total === 1 ? "1 record" : `${String(page.total)} records`}
+        {status(page)}
       </p>
     </main>
+  );
+}
+
+/** How many pages the server's answer implies. */
+function pageCount(page: RecordsPage): number {
+  return Math.max(Math.ceil(page.total / Math.max(page.perPage, 1)), 1);
+}
+
+/**
+ * The count, and which page of it is on screen.
+ *
+ * One sentence rather than two elements, because it is the page's only live
+ * region — the rows change under a screen reader without announcing themselves,
+ * so this is what says a turn happened.
+ */
+function status(page: RecordsPage): string {
+  const records = page.total === 1 ? "1 record" : `${String(page.total)} records`;
+  const pages = pageCount(page);
+  if (pages === 1) return records;
+  return `Page ${String(page.page)} of ${String(pages)}, ${records}`;
+}
+
+/**
+ * Previous and next, and nothing when there is one page.
+ *
+ * The page shown is the server's answer, not what was clicked. Advancing a
+ * counter locally would show page 4 after the server had served page 3 — the
+ * same rule the sort indicator follows, for the same reason.
+ */
+function pagination(
+  page: RecordsPage,
+  turn: ((to: number) => void) | undefined,
+): ReactNode {
+  const pages = pageCount(page);
+  if (turn === undefined || pages === 1) return null;
+
+  return (
+    <nav className="perch-pagination" aria-label="Pagination">
+      <button
+        type="button"
+        className="perch-button"
+        disabled={page.page <= 1}
+        onClick={() => {
+          turn(page.page - 1);
+        }}
+      >
+        Previous
+      </button>
+      <button
+        type="button"
+        className="perch-button"
+        disabled={page.page >= pages}
+        onClick={() => {
+          turn(page.page + 1);
+        }}
+      >
+        Next
+      </button>
+    </nav>
   );
 }
 

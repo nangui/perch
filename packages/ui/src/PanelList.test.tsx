@@ -13,6 +13,8 @@ const PAGE: RecordsPage = {
     { id: 2, title: "Grace" },
   ],
   total: 2,
+  page: 1,
+  perPage: 25,
   columns: {
     columns: [{ type: "TextColumn", path: "title", label: "Headline", sortable: true }],
     actions: [{ type: "EditAction" }],
@@ -62,7 +64,10 @@ describe("the list page", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Headline/ }));
 
-    expect(fetchPage).toHaveBeenCalledWith({ path: "title", direction: "desc" });
+    expect(fetchPage).toHaveBeenCalledWith({
+      sort: { path: "title", direction: "desc" },
+      page: 1,
+    });
     await waitFor(() => {
       expect(screen.queryByText("Ada")).toBeNull();
     });
@@ -215,5 +220,176 @@ describe("the list page", () => {
     render(<PanelList initial={PAGE} title="Posts" />);
 
     expect(screen.queryByRole("button")).toBeNull();
+  });
+});
+
+describe("turning a page", () => {
+  /** Three pages of two, so there is a previous and a next to reach. */
+  const paged = (page: number): RecordsPage => ({
+    ...PAGE,
+    total: 6,
+    perPage: 2,
+    page,
+  });
+
+  it("shows no controls when everything fits on one page", () => {
+    render(<PanelList initial={PAGE} title="Posts" fetchPage={vi.fn()} />);
+
+    expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("2 records");
+  });
+
+  it("says which page of how many, next to the count", () => {
+    render(<PanelList initial={paged(2)} title="Posts" fetchPage={vi.fn()} />);
+
+    expect(screen.getByRole("status").textContent).toBe("Page 2 of 3, 6 records");
+  });
+
+  it("asks the server for the next page rather than slicing what it holds", async () => {
+    // Invariant 1, the same reason sorting is a round trip: the client cannot
+    // see past the page it was given.
+    const fetchPage = vi.fn(() => Promise.resolve(paged(3)));
+    render(<PanelList initial={paged(2)} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("status").textContent).toBe("Page 3 of 3, 6 records");
+    });
+    expect(fetchPage).toHaveBeenCalledWith({
+      page: 3,
+      sort: { path: "title", direction: "asc" },
+    });
+  });
+
+  it("keeps the order it is in while turning", () => {
+    // Turning a page in a different order than the one on screen would reorder
+    // the table without being asked.
+    const fetchPage = vi.fn(() => Promise.resolve(paged(1)));
+    render(<PanelList initial={paged(2)} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+
+    expect(fetchPage).toHaveBeenCalledWith({
+      page: 1,
+      sort: { path: "title", direction: "asc" },
+    });
+  });
+
+  it("starts over when the order changes", async () => {
+    // Page 5 of one order is not page 5 of another.
+    const fetchPage = vi.fn(() => Promise.resolve(paged(1)));
+    render(<PanelList initial={paged(3)} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Headline/ }));
+
+    await waitFor(() => {
+      expect(fetchPage).toHaveBeenCalledWith({
+        page: 1,
+        sort: { path: "title", direction: "desc" },
+      });
+    });
+  });
+
+  it("offers no way off either end", () => {
+    const { unmount } = render(
+      <PanelList initial={paged(1)} title="Posts" fetchPage={vi.fn()} />,
+    );
+    expect(screen.getByRole("button", { name: "Previous" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+    unmount();
+
+    render(<PanelList initial={paged(3)} title="Posts" fetchPage={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+  });
+
+  it("shows the page the server served, not the one that was clicked", async () => {
+    // The server caps the paging depth, so what comes back is not always what
+    // was asked for. A counter advanced locally would disagree with the rows.
+    const fetchPage = vi.fn(() => Promise.resolve(paged(2)));
+    render(<PanelList initial={paged(2)} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("status").textContent).toBe("Page 2 of 3, 6 records");
+    });
+  });
+
+  it("ignores an answer overtaken by a later one", async () => {
+    // Click Next, then Previous, and let the first answer arrive last. Without
+    // a guard the stale page wins and the reader is somewhere they left. This
+    // is the ordering bug the form transport solves with sequence numbers; the
+    // list had no equivalent.
+    const answers: ((value: RecordsPage) => void)[] = [];
+    const fetchPage = vi.fn(
+      () => new Promise<RecordsPage>((resolve) => answers.push(resolve)),
+    );
+    render(<PanelList initial={paged(2)} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+
+    // Out of order on purpose: the newer request answers first.
+    answers[1]?.(paged(1));
+    answers[0]?.(paged(3));
+
+    await waitFor(() => {
+      expect(screen.getByRole("status").textContent).toBe("Page 1 of 3, 6 records");
+    });
+  });
+
+  it("does not raise an alarm about a request nobody is waiting on", async () => {
+    // Next fails, Previous succeeds, and the refusal lands last. Without the
+    // same guard the answers get, the page that loaded fine wears an alert.
+    const outcomes: { resolve: (v: RecordsPage) => void; reject: () => void }[] = [];
+    const fetchPage = vi.fn(
+      () =>
+        new Promise<RecordsPage>((resolve, reject) => {
+          outcomes.push({
+            resolve,
+            reject: () => {
+              reject(new Error("500"));
+            },
+          });
+        }),
+    );
+    render(<PanelList initial={paged(2)} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+
+    outcomes[1]?.resolve(paged(1));
+    outcomes[0]?.reject();
+
+    await waitFor(() => {
+      expect(screen.getByRole("status").textContent).toBe("Page 1 of 3, 6 records");
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("says the same thing whichever round trip failed", async () => {
+    // The message covers both now. "Could not reorder" read as a lie the first
+    // time a page failed to turn.
+    const fetchPage = vi.fn(() => Promise.reject(new Error("500")));
+    render(<PanelList initial={paged(2)} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert").textContent).not.toContain("reorder");
+    });
+    expect(screen.getByText("Ada")).toBeTruthy();
+  });
+
+  it("cannot be turned at all when nothing fetches", () => {
+    render(<PanelList initial={paged(2)} title="Posts" />);
+
+    expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
   });
 });
