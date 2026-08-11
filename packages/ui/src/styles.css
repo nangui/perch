@@ -793,7 +793,11 @@
   box-shadow: var(--perch-focus-ring);
 }
 
-.perch-button:disabled {
+/* `data-disabled` is how a control says it is unavailable without leaving the
+   tab order — the focus a reader is holding then does not fall to the body.
+   The same pair `.perch-control` uses. */
+.perch-button:disabled,
+.perch-button[data-disabled="true"] {
   color: var(--perch-content-muted);
   background: var(--perch-surface-muted);
   cursor: not-allowed;

@@ -295,17 +295,15 @@ describe("turning a page", () => {
     const { unmount } = render(
       <PanelList initial={paged(1)} title="Posts" fetchPage={vi.fn()} />,
     );
-    expect(screen.getByRole("button", { name: "Previous" })).toHaveProperty(
-      "disabled",
-      true,
-    );
+    expect(
+      screen.getByRole("button", { name: "Previous" }).getAttribute("aria-disabled"),
+    ).toBe("true");
     unmount();
 
     render(<PanelList initial={paged(3)} title="Posts" fetchPage={vi.fn()} />);
-    expect(screen.getByRole("button", { name: "Next" })).toHaveProperty(
-      "disabled",
-      true,
-    );
+    expect(
+      screen.getByRole("button", { name: "Next" }).getAttribute("aria-disabled"),
+    ).toBe("true");
   });
 
   it("shows the page the server served, not the one that was clicked", async () => {
@@ -385,6 +383,37 @@ describe("turning a page", () => {
       expect(screen.getByRole("alert").textContent).not.toContain("reorder");
     });
     expect(screen.getByText("Ada")).toBeTruthy();
+  });
+
+  it("keeps a control with nowhere to go in the tab order", () => {
+    // `disabled` takes an element out of the tab order, and a browser drops the
+    // focus it was holding to the body — so a keyboard reader who pressed Next
+    // to the last page is left nowhere, and the next Tab starts again from the
+    // top of the document.
+    //
+    // The focus itself is not asserted here: jsdom does not move it on disable,
+    // measured, so that test passes whichever way this is written. What is
+    // asserted is the mechanism that avoids the question — the control stays a
+    // real, focusable button and says it is unavailable.
+    render(<PanelList initial={paged(3)} title="Posts" fetchPage={vi.fn()} />);
+    const next = screen.getByRole("button", { name: "Next" });
+
+    // The semantics say unavailable; the property that would remove it from the
+    // tab order is the one that must stay off.
+    expect(next.getAttribute("aria-disabled")).toBe("true");
+    expect(next).toHaveProperty("disabled", false);
+    // And the stylesheet's own hook, or it looks as pressable as a live one.
+    expect(next.getAttribute("data-disabled")).toBe("true");
+  });
+
+  it("does nothing when a control with nowhere to go is pressed anyway", () => {
+    // It stays focusable, so it stays pressable. What it must not do is ask.
+    const fetchPage = vi.fn(() => Promise.resolve(paged(3)));
+    render(<PanelList initial={paged(3)} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(fetchPage).not.toHaveBeenCalled();
   });
 
   it("cannot be turned at all when nothing fetches", () => {

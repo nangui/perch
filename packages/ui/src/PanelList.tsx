@@ -174,27 +174,62 @@ function pagination(
 
   return (
     <nav className="perch-pagination" aria-label="Pagination">
-      <button
-        type="button"
-        className="perch-button"
-        disabled={page.page <= 1}
-        onClick={() => {
-          turn(page.page - 1);
-        }}
-      >
-        Previous
-      </button>
-      <button
-        type="button"
-        className="perch-button"
-        disabled={page.page >= pages}
-        onClick={() => {
-          turn(page.page + 1);
-        }}
-      >
-        Next
-      </button>
+      <PageButton
+        label="Previous"
+        to={page.page - 1}
+        spent={page.page <= 1}
+        turn={turn}
+      />
+      <PageButton
+        label="Next"
+        to={page.page + 1}
+        spent={page.page >= pages}
+        turn={turn}
+      />
     </nav>
+  );
+}
+
+/**
+ * `aria-disabled`, never `disabled`.
+ *
+ * `disabled` takes the element out of the tab order, and a browser drops the
+ * focus it was holding to the body — so pressing Next to the last page leaves a
+ * keyboard reader nowhere, with the next Tab starting again from the top of the
+ * document. The control stays a real button, says it is unavailable, and does
+ * nothing when pressed anyway.
+ *
+ * The alternative is to keep `disabled` and move the focus by hand, which means
+ * choosing somewhere to send it and moving it under a reader who did not ask.
+ *
+ * `data-disabled` alongside it is the stylesheet's hook, the one
+ * `statusAttributes` sets on every field: `aria-disabled` changes nothing a
+ * reader can see, so without it a control with nowhere to go looks exactly as
+ * pressable as one that works. `Select` pairs them the same way.
+ */
+function PageButton({
+  label,
+  to,
+  spent,
+  turn,
+}: {
+  readonly label: string;
+  readonly to: number;
+  readonly spent: boolean;
+  readonly turn: (to: number) => void;
+}): ReactNode {
+  return (
+    <button
+      type="button"
+      className="perch-button"
+      aria-disabled={spent}
+      data-disabled={spent ? "true" : "false"}
+      onClick={() => {
+        if (!spent) turn(to);
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

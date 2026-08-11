@@ -102,6 +102,9 @@ const UI_PAIRS: readonly (readonly [string, string, string])[] = [
   ["--perch-border-hover", "--perch-surface", "the edge on hover"],
   ["--perch-accent", "--perch-surface", "the focus ring against a card"],
   ["--perch-danger", "--perch-surface", "the border of an invalid control"],
+  // Reachable since a spent pagination control stayed focusable: before that a
+  // disabled button could not take focus, so accent never met a muted fill.
+  ["--perch-accent", "--perch-surface-muted", "the focused edge of a spent control"],
 ];
 
 /**
