@@ -21,7 +21,8 @@ export interface Sort {
   readonly direction: SortDirection;
 }
 
-export type FilterOperator =
+/** How a clause compares. */
+export type ClauseOperator =
   | "equals"
   | "not"
   | "in"
@@ -34,9 +35,17 @@ export type FilterOperator =
   | "startsWith"
   | "endsWith";
 
-export interface Filter {
+/**
+ * One condition a query applies: a path, how to compare it, and to what.
+ *
+ * Not what a resource declares. A declaration carries a label and a control,
+ * and produces one of these once a value arrives — which is the whole security
+ * story: the path and the operator are settled by the declaration, and only the
+ * value ever comes from outside.
+ */
+export interface Clause {
   readonly path: string;
-  readonly operator: FilterOperator;
+  readonly operator: ClauseOperator;
   readonly value: unknown;
 }
 
@@ -57,7 +66,7 @@ export interface Search {
 
 export interface Query {
   readonly model: string;
-  readonly filters?: readonly Filter[];
+  readonly clauses?: readonly Clause[];
   readonly sort?: readonly Sort[];
   readonly skip?: number;
   readonly take?: number;

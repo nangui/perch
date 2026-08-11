@@ -21,9 +21,9 @@ export { findField, findModel, findRelation } from "./ir.js";
 
 // The outbound port an adapter fills.
 export type {
+  Clause,
+  ClauseOperator,
   DataAdapter,
-  Filter,
-  FilterOperator,
   Id,
   IncludePlan,
   Page,

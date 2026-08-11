@@ -184,7 +184,7 @@ describe("searching and filtering", () => {
       ]),
     });
 
-    expect(query.filters).toBeUndefined();
+    expect(query.clauses).toBeUndefined();
   });
 
   it("never builds an include from the query string", () => {

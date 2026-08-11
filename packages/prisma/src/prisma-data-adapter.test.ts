@@ -93,7 +93,7 @@ describe("reading a page", () => {
     const { adapter, calls } = recorder();
     await adapter.findMany({
       model: "User",
-      filters: [{ path: "email", operator: "contains", value: "@acme" }],
+      clauses: [{ path: "email", operator: "contains", value: "@acme" }],
     });
 
     expect(argsOf(calls.findMany)["where"]).toEqual({
@@ -106,7 +106,7 @@ describe("reading a page", () => {
     const { adapter, calls } = recorder();
     await adapter.findMany({
       model: "Post",
-      filters: [{ path: "author.email", operator: "equals", value: "a@b.c" }],
+      clauses: [{ path: "author.email", operator: "equals", value: "a@b.c" }],
     });
 
     expect(argsOf(calls.findMany)["where"]).toEqual({
@@ -118,7 +118,7 @@ describe("reading a page", () => {
     const { adapter, calls } = recorder();
     await adapter.findMany({
       model: "User",
-      filters: [
+      clauses: [
         { path: "email", operator: "contains", value: "@acme" },
         { path: "id", operator: "gt", value: 10 },
       ],

@@ -134,7 +134,7 @@ withDatabase("reading, against a real database", () => {
     // test can execute.
     const page = await adapter.findMany({
       model: "Post",
-      filters: [{ path: "author.email", operator: "equals", value: "ada@example.com" }],
+      clauses: [{ path: "author.email", operator: "equals", value: "ada@example.com" }],
       sort: [{ path: "author.name", direction: "asc" }],
       include: { author: true, comments: true },
       take: 10,
@@ -249,7 +249,7 @@ withDatabase("writing, against a real database", () => {
     });
     const posts = await adapter.findMany({
       model: "Post",
-      filters: [{ path: "authorId", operator: "equals", value: author["id"] }],
+      clauses: [{ path: "authorId", operator: "equals", value: author["id"] }],
     });
     const doomed = posts.rows.find((row) => row["title"] === "Doomed");
 
@@ -270,7 +270,7 @@ withDatabase("writing, against a real database", () => {
 
     const after = await adapter.findMany({
       model: "Post",
-      filters: [{ path: "authorId", operator: "equals", value: author["id"] }],
+      clauses: [{ path: "authorId", operator: "equals", value: author["id"] }],
     });
     expect(after.total).toBe(1);
     expect(after.rows[0]).toMatchObject({ title: "Kept", published: true });

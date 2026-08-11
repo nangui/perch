@@ -8,7 +8,7 @@
  */
 import type {
   DataAdapter,
-  Filter,
+  Clause,
   Id,
   IncludePlan,
   Ir,
@@ -212,7 +212,7 @@ export function delegateName(model: string): string {
 }
 
 function whereOf(query: Query): Record<string, unknown> {
-  const clauses = (query.filters ?? []).map(filterOf);
+  const clauses = (query.clauses ?? []).map(clauseOf);
   const search = searchOf(query.search);
   if (search !== undefined) clauses.push(search);
 
@@ -221,8 +221,8 @@ function whereOf(query: Query): Record<string, unknown> {
   return { AND: clauses };
 }
 
-function filterOf(filter: Filter): Record<string, unknown> {
-  return nested(filter.path, { [filter.operator]: filter.value });
+function clauseOf(clause: Clause): Record<string, unknown> {
+  return nested(clause.path, { [clause.operator]: clause.value });
 }
 
 /**

@@ -308,7 +308,7 @@ describe("listing records", () => {
       `${url}/admin/api/posts/records?filters=%5B%7B%22path%22%3A%22secret%22%7D%5D&include=author`,
     );
 
-    expect(asked[0]?.filters).toBeUndefined();
+    expect(asked[0]?.clauses).toBeUndefined();
     expect(asked[0]?.include).toBeUndefined();
   });
 });
