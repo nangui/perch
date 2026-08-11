@@ -24,6 +24,15 @@ export interface OptionsRequest {
   readonly relationship: { readonly name: string; readonly labelField: string };
   /** At most this many rows: a relation with 50k rows is not a dropdown. */
   readonly limit: number;
+  /**
+   * What the field holds right now, if anything.
+   *
+   * The cap makes the list a window, and the row being edited may point
+   * outside it. A select whose value is absent from its own options shows
+   * whatever came first instead, and saving the form then rewrites a field
+   * nobody touched — so the loader is told which value it must not omit.
+   */
+  readonly selected?: unknown;
 }
 
 export interface ResolveOptions {
@@ -312,9 +321,11 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
   ) {
     // A declared list wins over a relation: a field that says both meant the
     // list, and querying anyway would spend a round trip to be overruled.
+    const selected = ctx.state[component.name];
     options = await ctx.options.loadOptions({
       relationship: component.state.relationship,
       limit: component.state.optionsLimit,
+      ...(selected === undefined || selected === null ? {} : { selected }),
     });
   }
 

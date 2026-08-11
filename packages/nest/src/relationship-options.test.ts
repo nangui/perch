@@ -294,3 +294,191 @@ describe("a relation a select cannot carry", () => {
     ).rejects.toThrow("a select carries one value");
   });
 });
+
+describe("a value the cap left outside the window", () => {
+  // 60 rows, named so that the one being edited sorts last of all.
+  const MANY: readonly Row[] = [
+    ...Array.from({ length: 59 }, (_, i) => ({
+      id: i + 1,
+      name: `A${String(i).padStart(2, "0")}`,
+    })),
+    { id: 999, name: "Zoe" },
+  ];
+
+  function windowed(): { data: DataAdapter; queries: Query[] } {
+    const queries: Query[] = [];
+    const data = {
+      ir: () => IR,
+      findMany: (query: Query) => {
+        queries.push(query);
+        const clause = query.clauses?.[0];
+        const rows =
+          clause === undefined
+            ? MANY.slice(0, query.take)
+            : MANY.filter((row) => row["id"] === clause.value);
+        return Promise.resolve({ rows, total: MANY.length });
+      },
+    } as unknown as DataAdapter;
+    return { data, queries };
+  }
+
+  it("is fetched and kept, rather than silently dropped", async () => {
+    const { data } = windowed();
+
+    const options = await optionLoader(
+      data,
+      "Post",
+    )?.({
+      relationship: { name: "author", labelField: "name" },
+      limit: 50,
+      selected: 999,
+    });
+
+    expect(options?.[0]).toEqual({ value: 999, label: "Zoe" });
+    expect(options).toHaveLength(51);
+  });
+
+  it("is matched as text, because that is how a form returns it", async () => {
+    // The row sits inside the window; a strict comparison would fetch it again
+    // and hand the reader the same author twice.
+    const { data, queries } = windowed();
+
+    const options = await optionLoader(
+      data,
+      "Post",
+    )?.({
+      relationship: { name: "author", labelField: "name" },
+      limit: 50,
+      selected: "3",
+    });
+
+    expect(options?.filter((option) => option.value === 3)).toHaveLength(1);
+    expect(queries).toHaveLength(1);
+  });
+
+  it("is looked up as the type the column holds", async () => {
+    // `"999"` from a form against an Int column matches nothing, which would
+    // read as a deleted row and drop the value being edited.
+    const { data, queries } = windowed();
+
+    const options = await optionLoader(
+      data,
+      "Post",
+    )?.({
+      relationship: { name: "author", labelField: "name" },
+      limit: 50,
+      selected: "999",
+    });
+
+    expect(queries[1]?.clauses?.[0]?.value).toBe(999);
+    expect(options?.[0]).toEqual({ value: 999, label: "Zoe" });
+  });
+
+  it("costs nothing when the value is already on the list", async () => {
+    const { data, queries } = windowed();
+
+    await optionLoader(
+      data,
+      "Post",
+    )?.({
+      relationship: { name: "author", labelField: "name" },
+      limit: 50,
+      selected: 1,
+    });
+
+    expect(queries).toHaveLength(1);
+  });
+
+  it("leaves the list alone when the row is gone", async () => {
+    const { data } = windowed();
+
+    const options = await optionLoader(
+      data,
+      "Post",
+    )?.({
+      relationship: { name: "author", labelField: "name" },
+      limit: 50,
+      selected: 12345,
+    });
+
+    expect(options).toHaveLength(50);
+  });
+
+  it("asks for the missing row once across the passes of one request", async () => {
+    const { data, queries } = windowed();
+    const load = optionLoader(data, "Post");
+    const request = {
+      relationship: { name: "author", labelField: "name" },
+      limit: 50,
+      selected: 999,
+    };
+
+    await load?.(request);
+    await load?.(request);
+
+    expect(queries).toHaveLength(2);
+  });
+
+  it("reaches the renderer through a form being edited", async () => {
+    const { data } = windowed();
+    const schema = Schema.make([
+      Select.make("authorId").relationship("author", "name"),
+    ]);
+
+    const resolved = await resolveSchema(
+      schema,
+      { authorId: 999 },
+      {
+        operation: "edit",
+        record: { id: 1, authorId: 999 },
+        ...withOptions(data, "Post"),
+      },
+    );
+
+    const options = serialise(resolved).schema.children?.[0]?.options ?? [];
+    expect(options.map((option) => option.value)).toContain(999);
+  });
+});
+
+describe("a select the reader cleared", () => {
+  const WITH_ZERO: readonly Row[] = [
+    { id: 0, name: "Row zero" },
+    { id: 5, name: "Ada" },
+  ];
+
+  it("is no selection, and costs no lookup", async () => {
+    const { data, queries } = adapterOf(WITH_ZERO);
+
+    const options = await optionLoader(
+      data,
+      "Post",
+    )?.({
+      relationship: { name: "author", labelField: "name" },
+      limit: 50,
+      selected: "",
+    });
+
+    // `Number("")` is 0, and an id of 0 is a real row: without the guard the
+    // empty value fetches it and the list carries it twice.
+    expect(queries).toHaveLength(1);
+    expect(options).toEqual([
+      { value: 0, label: "Row zero" },
+      { value: 5, label: "Ada" },
+    ]);
+  });
+
+  it("counts whitespace as cleared", async () => {
+    const { data, queries } = adapterOf(WITH_ZERO);
+
+    await optionLoader(
+      data,
+      "Post",
+    )?.({
+      relationship: { name: "author", labelField: "name" },
+      limit: 50,
+      selected: "   ",
+    });
+
+    expect(queries).toHaveLength(1);
+  });
+});
