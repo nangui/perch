@@ -153,7 +153,7 @@ function wiring(project: Project): readonly Finding[] {
     {
       level: "error",
       title: "No PanelModule.forRoot in the source.",
-      fix: "Import PanelModule into a Nest module and call forRoot with your resources.",
+      fix: "Run `perch panel` — it shows what it would write, and `--write` applies it.",
     },
   ];
 }

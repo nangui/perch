@@ -137,6 +137,14 @@ describe("the wiring", () => {
       /No PanelModule.forRoot/,
     );
   });
+
+  it("names the command that fixes it", () => {
+    // A diagnosis whose remedy is now one command should say so rather than
+    // describe the wiring by hand.
+    const found = diagnose({ ...healthy, sources: ["export class AppModule {}"] });
+
+    expect(found[0]?.fix).toContain("perch panel");
+  });
 });
 
 describe("two resources on one URL", () => {

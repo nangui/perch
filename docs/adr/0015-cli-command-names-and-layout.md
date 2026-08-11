@@ -1,6 +1,6 @@
 # ADR 0015 — What the CLI commands are called, and where they write
 
-**Status:** proposed · **Scope:** Perch (`@perchjs/cli`)
+**Status:** accepted · **Scope:** Perch (`@perchjs/cli`)
 
 ## Context
 

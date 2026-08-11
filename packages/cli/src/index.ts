@@ -11,29 +11,42 @@
 import { parseArgs } from "node:util";
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve, sep } from "node:path";
+import { dirname, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Ir } from "@perchjs/core";
 import type { Finding, Project } from "./doctor.js";
 import type { SchemaReading } from "./schema-fingerprint.js";
+import type { GeneratedFile, Source } from "./panel.js";
 import { diagnose } from "./doctor.js";
 import { readSchema } from "./schema-fingerprint.js";
+import { findClient, findHolder, generatePanel, register } from "./panel.js";
 import { generateResource } from "./resource.js";
 
 export type { ResourceSource } from "./resource.js";
 export type { Finding, Level, Project } from "./doctor.js";
 export type { SchemaReading } from "./schema-fingerprint.js";
+export type { ClientBinding, GeneratedFile, PanelOptions, Source } from "./panel.js";
 export { readSchema } from "./schema-fingerprint.js";
 export { diagnose, SUPPORTED_PRISMA_MAJOR } from "./doctor.js";
+export {
+  ADMIN_MODULE,
+  findClient,
+  findHolder,
+  generatePanel,
+  PANEL_DATA,
+  register,
+} from "./panel.js";
 export { generateResource, slugOf } from "./resource.js";
 
 /** Where `@perchjs/prisma-generator` puts its output unless told otherwise. */
 export const DEFAULT_IR = "./perch/ir.json";
 export const DEFAULT_SCHEMA = "./prisma/schema.prisma";
 export const DEFAULT_SRC = "./src";
+export const DEFAULT_PANEL_PATH = "/admin";
 
 const USAGE = `perch — code generation for a Perch panel
 
+  perch panel              wire a panel into this application
   perch resource <Model>   write src/admin/resources/<model>.resource.ts
   perch doctor             check what this project is missing
 
@@ -41,6 +54,8 @@ Options
   --ir <path>       where the generated IR lives (default: ${DEFAULT_IR})
   --schema <path>   schema.prisma (default: ${DEFAULT_SCHEMA})
   --src <path>      the application's source root (default: ${DEFAULT_SRC})
+  --path <url>      where the panel answers (default: ${DEFAULT_PANEL_PATH})
+  --write           apply the changes; without it, perch panel only shows them
   --force           overwrite a file that is already there
 `;
 
@@ -51,6 +66,8 @@ export async function run(argv: readonly string[]): Promise<number> {
       ir: { type: "string", default: DEFAULT_IR },
       schema: { type: "string", default: DEFAULT_SCHEMA },
       src: { type: "string", default: DEFAULT_SRC },
+      path: { type: "string", default: DEFAULT_PANEL_PATH },
+      write: { type: "boolean", default: false },
       force: { type: "boolean", default: false },
       help: { type: "boolean", default: false },
     },
@@ -64,6 +81,9 @@ export async function run(argv: readonly string[]): Promise<number> {
   }
   if (command === "doctor") {
     return report(diagnose(await inspect(values.ir, values.schema, values.src)));
+  }
+  if (command === "panel") {
+    return await panel(values);
   }
   if (command !== "resource") {
     process.stderr.write(`perch: unknown command "${command}".\n\n${USAGE}`);
@@ -93,6 +113,128 @@ export async function run(argv: readonly string[]): Promise<number> {
   await writeFile(target, generated.contents, "utf8");
   process.stdout.write(`perch: wrote ${generated.path}\n`);
   return 0;
+}
+
+/**
+ * `perch panel`. Shows what it would do; `--write` is what does it.
+ *
+ * That is the mitigation the design names for a command that edits code
+ * somebody else wrote, and it costs one flag on the path to a first panel.
+ */
+async function panel(values: {
+  ir: string;
+  src: string;
+  path: string;
+  write: boolean;
+  force: boolean;
+}): Promise<number> {
+  const root = resolve(values.src);
+  const sources = await sourcesUnder(root);
+  // Relative to the project, so what is generated lands under the root `--src`
+  // named rather than under a hard-coded `src`.
+  const src = relative(resolve("."), root).split(sep).join("/");
+  const client = findClient(sources, src);
+  const holder = client === undefined ? findHolder(sources, src) : undefined;
+  const files = generatePanel(
+    { path: values.path, ir: relative(resolve("."), resolve(values.ir)), src },
+    client,
+  );
+
+  const present = files.filter((file) => existsSync(resolve(file.path)));
+  if (present.length > 0 && !values.force) {
+    for (const file of present) {
+      process.stderr.write(`perch: ${file.path} is already there.\n`);
+    }
+    process.stderr.write("Read them, then re-run with --force to replace them.\n");
+    return 1;
+  }
+
+  const appModule = resolve(root, "app.module.ts");
+  const before = existsSync(appModule) ? await readFile(appModule, "utf8") : undefined;
+  const after = before === undefined ? undefined : register(before);
+  // Three outcomes, and they are not two: the edit is needed, it is already
+  // there, or the file is a shape this will not touch. Telling somebody to add
+  // a line they added last week is its own kind of wrong.
+  const registration: Registration =
+    after === undefined ? "refused" : after === before ? "already" : "needed";
+
+  if (!values.write) {
+    return preview(files, client, holder, registration, values.path);
+  }
+
+  for (const file of files) {
+    await mkdir(dirname(resolve(file.path)), { recursive: true });
+    await writeFile(resolve(file.path), file.contents, "utf8");
+    process.stdout.write(`perch: wrote ${file.path}\n`);
+  }
+
+  if (registration === "needed" && after !== undefined) {
+    await writeFile(appModule, after, "utf8");
+    process.stdout.write(
+      `perch: registered AdminModule in ${values.src}/app.module.ts\n`,
+    );
+  } else if (registration === "already") {
+    process.stdout.write("perch: AdminModule is already in your root module\n");
+  } else {
+    process.stdout.write(`\nAdd this to your root module yourself:\n\n${PASTE}\n`);
+  }
+
+  process.stdout.write(
+    advice(client, holder) + `perch: your panel is at ${values.path}\n`,
+  );
+  return 0;
+}
+
+type Registration = "needed" | "already" | "refused";
+
+const PASTE =
+  `  import { AdminModule } from "./admin/admin.module.js";\n\n` +
+  `  @Module({ imports: [AdminModule] })\n`;
+
+/** What `--write` would do, and nothing else. */
+function preview(
+  files: readonly GeneratedFile[],
+  client: ReturnType<typeof findClient>,
+  holder: string | undefined,
+  registration: Registration,
+  path: string,
+): number {
+  process.stdout.write("perch panel would:\n\n");
+  for (const file of files) process.stdout.write(`  create  ${file.path}\n`);
+  process.stdout.write(
+    {
+      needed: "  edit    src/app.module.ts — add AdminModule to its imports\n",
+      already: "  leave   src/app.module.ts alone; AdminModule is already there\n",
+      refused: "  leave   your root module alone; it will print what to add\n",
+    }[registration],
+  );
+  process.stdout.write(`\nYour panel would answer at ${path}.\n`);
+  process.stdout.write(advice(client, holder));
+
+  for (const file of files) {
+    process.stdout.write(`\n--- ${file.path}\n${file.contents}`);
+  }
+  process.stdout.write("\nRe-run with --write to apply.\n");
+  return 0;
+}
+
+function advice(client: ReturnType<typeof findClient>, holder?: string): string {
+  if (client !== undefined) {
+    return `\nPanelData injects ${client.className}, which is your Prisma client.\n\n`;
+  }
+  if (holder !== undefined) {
+    // Saying "none was found" to somebody who has one is a lie, and the useful
+    // half is which property to hand over.
+    return (
+      `\n${holder} holds a PrismaClient but is not one, and the adapter reads\n` +
+      `its delegates directly. Provide that property as PANEL_PRISMA_CLIENT.\n\n`
+    );
+  }
+  return (
+    "\nNo Prisma client was found in your sources, so PanelData takes one\n" +
+    "through PANEL_PRISMA_CLIENT. Provide it wherever you build your client —\n" +
+    "Prisma 7 needs a driver adapter, so only you can.\n\n"
+  );
 }
 
 /** Every finding, worst first, and an exit code a script can read. */
@@ -144,7 +286,7 @@ async function inspect(
       : { schema: schema.text, schemaFingerprint: schema.fingerprint }),
     irPresent: existsSync(resolve(irPath)),
     ...(meta?.schemaHash === undefined ? {} : { irSchemaHash: meta.schemaHash }),
-    sources: await sourcesUnder(resolve(srcPath)),
+    sources: (await sourcesUnder(resolve(srcPath))).map((source) => source.text),
   };
 }
 
@@ -187,13 +329,19 @@ async function maybeJson<T>(path: string): Promise<T | undefined> {
  * fighting over one URL, and doctor reporting that would fail a build over
  * nothing.
  */
-async function sourcesUnder(root: string): Promise<readonly string[]> {
+async function sourcesUnder(root: string): Promise<readonly Source[]> {
   if (!existsSync(root)) return [];
-  const out: string[] = [];
+  const out: Source[] = [];
   for (const entry of await readdir(root, { withFileTypes: true, recursive: true })) {
     if (!entry.isFile() || !written(entry.name)) continue;
     if (entry.parentPath.split(sep).includes("node_modules")) continue;
-    out.push(await readFile(resolve(entry.parentPath, entry.name), "utf8"));
+
+    const file = resolve(entry.parentPath, entry.name);
+    out.push({
+      // Relative to the project, so a generated import can be built from it.
+      path: relative(resolve("."), file).split(sep).join("/"),
+      text: await readFile(file, "utf8"),
+    });
   }
   return out;
 }
