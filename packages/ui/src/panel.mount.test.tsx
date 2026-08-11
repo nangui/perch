@@ -61,6 +61,29 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Three pages of two, so there is a page to turn to. */
+function paged(page: number) {
+  return {
+    rows: [{ id: 1, title: "Ada" }],
+    total: 6,
+    page,
+    perPage: 2,
+    // What the server sends back when it applied one, which is what the
+    // address is written from.
+    sort: { path: "title", direction: "asc" },
+    columns: {
+      columns: [
+        { type: "TextColumn", path: "title", label: "Headline", sortable: true },
+      ],
+      actions: [],
+      headerActions: [],
+      defaultSort: { path: "title", direction: "asc" },
+    },
+    recordKey: "id",
+    resourcePath: "/admin/people",
+  };
+}
+
 function element(dataset: Record<string, string>): HTMLElement {
   const node = document.createElement("div");
   node.id = "perch-panel";
@@ -353,6 +376,147 @@ describe("a shell that says too little", () => {
     expect(url).toContain("/admin/api/people/records?");
     expect(url).toContain("page=2");
     expect(url).toContain(`sort=${encodeURIComponent("title:asc")}`);
+  });
+
+  it("writes the page it is showing into the address", async () => {
+    // Reloading comes back to the same place, and the address can be sent to
+    // somebody else. Written from the answer, not the request: the server caps
+    // the paging depth, so an address built from what was asked can name a page
+    // nobody was served.
+    const listing = paged(1);
+    fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(paged(3)),
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    globalThis.history.replaceState(null, "", "/admin/people");
+
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "list",
+          title: "People",
+          payload: JSON.stringify(listing),
+        }),
+      );
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    });
+    await waitFor(() => {
+      expect(globalThis.location.search).toContain("page=3");
+    });
+    expect(globalThis.location.pathname).toBe("/admin/people");
+    expect(globalThis.location.search).toContain(
+      `sort=${encodeURIComponent("title:asc")}`,
+    );
+  });
+
+  it("says nothing about the first page, which is what no page means", async () => {
+    fetchMock = vi.fn(() =>
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(paged(1)) }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    globalThis.history.replaceState(null, "", "/admin/people?page=3");
+
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "list",
+          title: "People",
+          payload: JSON.stringify(paged(2)),
+        }),
+      );
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    });
+    await waitFor(() => {
+      expect(globalThis.location.search).not.toContain("page=");
+    });
+  });
+
+  it("leaves alone what it did not put there", async () => {
+    // A search or a filter, once either exists, is nobody's business here.
+    fetchMock = vi.fn(() =>
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(paged(2)) }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    globalThis.history.replaceState(null, "", "/admin/people?q=ada");
+
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "list",
+          title: "People",
+          payload: JSON.stringify(paged(1)),
+        }),
+      );
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    });
+    // The turn first: `q=ada` is already there, so asserting it alone passes
+    // on the first tick, before the address is ever rewritten.
+    await waitFor(() => {
+      expect(globalThis.location.search).toContain("page=2");
+    });
+    expect(globalThis.location.search).toContain("q=ada");
+  });
+
+  it("does not let an overtaken answer write the address", async () => {
+    // The table already drops a stale answer. The address is written where the
+    // fetch happens, one layer below that, so it could still be rewritten by a
+    // page the reader has moved on from — the table showing one page and the
+    // address naming another.
+    const answers: ((value: unknown) => void)[] = [];
+    fetchMock = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          answers.push((value) => {
+            resolve({ ok: true, status: 200, json: () => Promise.resolve(value) });
+          });
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    globalThis.history.replaceState(null, "", "/admin/people");
+
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "list",
+          title: "People",
+          payload: JSON.stringify(paged(2)),
+        }),
+      );
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    });
+
+    // Out of order on purpose: the newer request answers first.
+    await act(async () => {
+      answers[1]?.(paged(1));
+      answers[0]?.(paged(3));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("status").textContent).toContain("Page 1");
+    });
+    expect(globalThis.location.search).not.toContain("page=3");
   });
 
   it("refuses to mount rather than half working", () => {

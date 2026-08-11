@@ -61,6 +61,7 @@ export function mount(element: HTMLElement): void {
           initial={JSON.parse(payload) as RecordsPage}
           title={title}
           fetchPage={(request) => records(api, request)}
+          onPage={remember}
         />
       </div>,
     );
@@ -184,12 +185,54 @@ async function records(api: string, request: PageRequest): Promise<RecordsPage> 
     query.set("sort", `${request.sort.path}:${request.sort.direction}`);
   }
   if (request.page !== undefined) query.set("page", String(request.page));
+  if (request.perPage !== undefined) query.set("perPage", String(request.perPage));
 
   const response = await fetch(`${api}/records?${query.toString()}`, {
     headers: { accept: "application/json" },
   });
   if (!response.ok) throw new Error(`/records answered ${String(response.status)}`);
+
   return (await response.json()) as RecordsPage;
+}
+
+/**
+ * The address says what is on screen, so reloading it comes back to the same
+ * place and sending it to somebody shows them the same thing.
+ *
+ * Written from the answer rather than from the request, for the reason the
+ * controls are: the server caps the paging depth and drops a sort it never
+ * declared, so an address built from what was asked can name a page that was
+ * never served.
+ *
+ * Called by `PanelList` for the answer it accepted, never from the fetch: two
+ * requests can be in flight, and the one that lands last is not always the one
+ * the reader is on. Written from the fetch, an overtaken answer left the table
+ * showing one page and the address naming another.
+ *
+ * `replaceState`, not `pushState`: turning a page would otherwise stack history
+ * entries that Back walks through without redrawing anything, since nothing
+ * here listens for `popstate`. An address that lies about the page under it is
+ * worse than a Back button that leaves the list.
+ *
+ * Anything else already in the query is left alone — a search or a filter, once
+ * either exists, is nobody's business here.
+ */
+function remember(page: RecordsPage): void {
+  const query = new URLSearchParams(globalThis.location.search);
+
+  if (page.sort === undefined) query.delete("sort");
+  else query.set("sort", `${page.sort.path}:${page.sort.direction}`);
+
+  // The first page is what an address with no page means, so it says nothing.
+  if (page.page <= 1) query.delete("page");
+  else query.set("page", String(page.page));
+
+  const search = query.toString();
+  globalThis.history.replaceState(
+    null,
+    "",
+    `${globalThis.location.pathname}${search === "" ? "" : `?${search}`}`,
+  );
 }
 
 /** A menu the shell did not send is no menu, not a broken one. */

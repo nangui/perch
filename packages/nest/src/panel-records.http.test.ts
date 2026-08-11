@@ -368,6 +368,23 @@ describe("the list page", () => {
     expect(html).toContain('data-list-label="Posts"');
   });
 
+  it("opens the list on the page and order the URL asks for", async () => {
+    // Half of "reloading restores the exact state, and the URL is shareable":
+    // the page embeds its first records rather than fetching them, so what it
+    // embeds has to be what the address says.
+    const url = await serve();
+    const html = await (
+      await get(`${url}/admin/listed?sort=title:asc&page=2&perPage=2`)
+    ).text();
+
+    expect(html).toContain("&quot;page&quot;:2");
+    expect(html).toContain("&quot;perPage&quot;:2");
+    expect(html).toContain(
+      "&quot;sort&quot;:{&quot;path&quot;:&quot;title&quot;,&quot;direction&quot;:&quot;asc&quot;}",
+    );
+    expect(asked[0]).toMatchObject({ skip: 2, take: 2 });
+  });
+
   it("does not shadow the two-segment pages", async () => {
     const url = await serve();
 

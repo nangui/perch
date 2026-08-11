@@ -36,6 +36,7 @@ export interface RecordsPage {
 export interface PageRequest {
   readonly sort?: DataTableSort;
   readonly page?: number;
+  readonly perPage?: number;
 }
 
 export interface PanelListProps {
@@ -46,9 +47,20 @@ export interface PanelListProps {
    * cannot be turned — it is whatever the shell embedded.
    */
   readonly fetchPage?: (request: PageRequest) => Promise<RecordsPage>;
+  /**
+   * The page that is now on screen. Called for the answer this accepted and no
+   * other, so a caller writing it somewhere — an address, say — inherits the
+   * ordering rule rather than needing its own.
+   */
+  readonly onPage?: (page: RecordsPage) => void;
 }
 
-export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactNode {
+export function PanelList({
+  initial,
+  title,
+  fetchPage,
+  onPage,
+}: PanelListProps): ReactNode {
   const [page, setPage] = useState(initial);
   const [failed, setFailed] = useState(false);
 
@@ -80,7 +92,9 @@ export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactN
           setFailed(false);
           fetchPage(request).then(
             (answer) => {
-              if (sequence === latest.current) setPage(answer);
+              if (sequence !== latest.current) return;
+              setPage(answer);
+              onPage?.(answer);
             },
             () => {
               // The rows on screen are still the ones the server sent; saying so
@@ -98,11 +112,18 @@ export function PanelList({ initial, title, fetchPage }: PanelListProps): ReactN
       : (next: DataTableSort) => {
           ask({ sort: next, page: 1 });
         };
+  // `perPage` travels with the turn: an address may carry one and the server
+  // honours it, so a request that leaves it out gets the default back and the
+  // table changes size under the reader.
   const turn =
     ask === undefined
       ? undefined
       : (to: number) => {
-          ask({ ...(sort === undefined ? {} : { sort }), page: to });
+          ask({
+            ...(sort === undefined ? {} : { sort }),
+            page: to,
+            perPage: page.perPage,
+          });
         };
 
   return (

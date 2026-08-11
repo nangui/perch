@@ -260,6 +260,7 @@ describe("turning a page", () => {
     });
     expect(fetchPage).toHaveBeenCalledWith({
       page: 3,
+      perPage: 2,
       sort: { path: "title", direction: "asc" },
     });
   });
@@ -274,6 +275,7 @@ describe("turning a page", () => {
 
     expect(fetchPage).toHaveBeenCalledWith({
       page: 1,
+      perPage: 2,
       sort: { path: "title", direction: "asc" },
     });
   });
@@ -416,6 +418,22 @@ describe("turning a page", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
     expect(fetchPage).not.toHaveBeenCalled();
+  });
+
+  it("keeps the page size it was given while turning", () => {
+    // An address can carry `perPage`, and the server honours it. Asking for the
+    // next page without repeating it gets the default back, and then the
+    // address says one size while the table shows another.
+    const fetchPage = vi.fn(() => Promise.resolve(paged(3)));
+    render(<PanelList initial={paged(2)} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(fetchPage).toHaveBeenCalledWith({
+      page: 3,
+      perPage: 2,
+      sort: { path: "title", direction: "asc" },
+    });
   });
 
   it("cannot be turned at all when nothing fetches", () => {
