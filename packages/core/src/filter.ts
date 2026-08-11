@@ -13,6 +13,8 @@
  * exist.
  */
 import type { Clause, ClauseOperator } from "./data-adapter.js";
+import type { Option, OptionsInput } from "./fields/select.js";
+import { normaliseOptions } from "./fields/select.js";
 
 export interface FilterState {
   /** What a client names it by. Unique within a table. */
@@ -82,5 +84,57 @@ export class TextFilter extends Filter {
     if (term === "") return undefined;
 
     return { path: this.state.path, operator: this.state.operator, value: term };
+  }
+}
+
+/**
+ * A choice among values the table named.
+ *
+ * The closed set is the point. A free-text filter passes whatever arrives
+ * through to a `contains`; this one answers only to values it declared, so
+ * `filter.status=<anything>` is not a way to ask whether a row exists with that
+ * value in that column. A value nothing declared produces no clause.
+ *
+ * The declared value is what reaches the clause, not the string that arrived.
+ * A URL carries `1`, the option holds the number `1`, and an Int column
+ * compared against the string would find nothing and look like an empty table
+ * rather than a bug.
+ */
+export class SelectFilter extends Filter {
+  readonly choices: readonly Option[];
+
+  private constructor(state: FilterState, choices: readonly Option[]) {
+    super(state);
+    this.choices = choices;
+  }
+
+  static make(name: string): SelectFilter {
+    return new SelectFilter({ name, path: name, operator: "equals" }, []);
+  }
+
+  override get type(): string {
+    return "SelectFilter";
+  }
+
+  protected override with(state: FilterState): this {
+    return new SelectFilter(state, this.choices) as this;
+  }
+
+  /** What it may be set to. A static list; a relationship comes later. */
+  options(input: OptionsInput): this {
+    return new SelectFilter(this.state, normaliseOptions(input)) as this;
+  }
+
+  override clause(value: string): Clause | undefined {
+    // Matched as a string because that is what a URL carries, and answered with
+    // the declared value because that is what the column holds.
+    const chosen = this.choices.find((option) => String(option.value) === value);
+    if (chosen === undefined) return undefined;
+
+    return {
+      path: this.state.path,
+      operator: this.state.operator,
+      value: chosen.value,
+    };
   }
 }

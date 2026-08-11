@@ -16,6 +16,7 @@ import {
   EditAction,
   IconColumn,
   Schema,
+  SelectFilter,
   Table,
   TextColumn,
   TextFilter,
@@ -152,7 +153,13 @@ class SearchableResource {
         // says so.
         TextColumn.make("author.name"),
       ])
-      .filters([TextFilter.make("headline").path("title").label("Headline")]);
+      .filters([
+        TextFilter.make("headline").path("title").label("Headline"),
+        SelectFilter.make("published").options([
+          { value: true, label: "Published" },
+          { value: false, label: "Draft" },
+        ]),
+      ]);
   }
 }
 
@@ -319,6 +326,20 @@ describe("listing records", () => {
     expect(asked[1]?.clauses).toBeUndefined();
   });
 
+  it("answers a choice only with a value it declared", async () => {
+    // The closed set, over HTTP. Without it `filter.published=<anything>` asks
+    // whether a row exists with that value in that column, one guess at a time.
+    const url = await serve();
+    await get(`${url}/admin/api/searchable/records?filter.published=true`);
+    await get(`${url}/admin/api/searchable/records?filter.published=maybe`);
+
+    // `true` the boolean, not `"true"` the string a URL carries.
+    expect(asked[0]?.clauses).toEqual([
+      { path: "published", operator: "equals", value: true },
+    ]);
+    expect(asked[1]?.clauses).toBeUndefined();
+  });
+
   it("says which filters it applied", async () => {
     // What the controls are drawn from. A name it declined never appears, so a
     // control cannot show a value the server ignored.
@@ -348,6 +369,15 @@ describe("listing records", () => {
 
     expect(body.columns.filters).toEqual([
       { type: "TextFilter", name: "headline", label: "Headline" },
+      {
+        type: "SelectFilter",
+        name: "published",
+        // Stringified for the control, and turned back on the way in.
+        options: [
+          { value: "true", label: "Published" },
+          { value: "false", label: "Draft" },
+        ],
+      },
     ]);
   });
 

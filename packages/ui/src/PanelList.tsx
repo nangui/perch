@@ -263,21 +263,42 @@ function narrowing(
           }}
         />
       ) : null}
-      {filters.map((filter) =>
-        filter.type === "TextFilter" ? (
-          <input
-            key={filter.name}
-            className="perch-control"
-            type="text"
-            name={filter.name}
-            aria-label={filter.label ?? filter.name}
-            value={state.entered[filter.name] ?? ""}
-            onChange={(event) => {
-              state.setEntered({ ...state.entered, [filter.name]: event.target.value });
-            }}
-          />
-        ) : null,
-      )}
+      {filters.map((filter) => {
+        // `key` is passed on the element, never through the spread: React 19
+        // warns about that and — the part that matters — does not use it, so a
+        // list of controls would reconcile by position and hand a reader's
+        // focus and half-typed value to a different filter when one is added.
+        const shared = {
+          className: "perch-control",
+          name: filter.name,
+          "aria-label": filter.label ?? filter.name,
+          value: state.entered[filter.name] ?? "",
+          onChange: (event: { target: { value: string } }) => {
+            state.setEntered({ ...state.entered, [filter.name]: event.target.value });
+          },
+        };
+
+        if (filter.type === "TextFilter") {
+          return <input key={filter.name} {...shared} type="text" />;
+        }
+        // A choice with nothing to choose from is a control that can only be
+        // put back where it started.
+        if (filter.type === "SelectFilter" && (filter.options?.length ?? 0) > 0) {
+          return (
+            <select key={filter.name} {...shared}>
+              {/* An empty choice, or the control cannot be put back. */}
+              <option value="">Any</option>
+              {filter.options?.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          );
+        }
+        // A type the renderer has no meaning for is skipped, not guessed at.
+        return null;
+      })}
       <button type="submit" className="perch-button">
         Apply
       </button>

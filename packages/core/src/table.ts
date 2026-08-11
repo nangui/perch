@@ -10,6 +10,7 @@
 import type { Action } from "./action.js";
 import type { Column } from "./column.js";
 import type { Filter } from "./filter.js";
+import { SelectFilter } from "./filter.js";
 import type { SortDirection } from "./data-adapter.js";
 
 export interface TableState {
@@ -39,6 +40,8 @@ export interface FilterNode {
   readonly type: string;
   readonly name: string;
   readonly label?: string;
+  /** What a choice may be set to. Absent where a filter has no closed set. */
+  readonly options?: readonly { readonly value: string; readonly label: string }[];
 }
 
 /** What a row action looks like on the wire. */
@@ -125,6 +128,16 @@ export function serialiseTable(table: Table): ColumnTree {
       type: filter.type,
       name: filter.state.name,
       ...(filter.state.label === undefined ? {} : { label: filter.state.label }),
+      // Stringified: a value crosses the wire as what a control will send back,
+      // and the declaration turns it into what the column holds on the way in.
+      ...(filter instanceof SelectFilter
+        ? {
+            options: filter.choices.map((option) => ({
+              value: String(option.value),
+              label: option.label,
+            })),
+          }
+        : {}),
     })),
     actions: table.state.actions.map(node),
     headerActions: table.state.headerActions.map(node),

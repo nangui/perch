@@ -3,7 +3,7 @@
  * cases where that promise is kept or broken.
  */
 import { describe, expect, it } from "vitest";
-import { TextFilter } from "./filter.js";
+import { SelectFilter, TextFilter } from "./filter.js";
 
 describe("what a value becomes", () => {
   it("is a clause naming the path and the comparison the filter declared", () => {
@@ -59,5 +59,61 @@ describe("building one", () => {
 
   it("keys the renderer registry by a declared type", () => {
     expect(TextFilter.make("title").type).toBe("TextFilter");
+  });
+});
+
+describe("a choice among declared values", () => {
+  const status = SelectFilter.make("status").options({
+    draft: "Draft",
+    published: "Published",
+  });
+
+  it("answers to a value it declared", () => {
+    expect(status.clause("draft")).toEqual({
+      path: "status",
+      operator: "equals",
+      value: "draft",
+    });
+  });
+
+  it("answers to nothing else", () => {
+    // The closed set is the point. Without it `filter.status=<anything>` asks
+    // whether a row exists with that value in that column, one guess at a time.
+    expect(status.clause("secret")).toBeUndefined();
+    expect(status.clause("")).toBeUndefined();
+  });
+
+  it("sends the declared value, not the string that arrived", () => {
+    // A URL carries `1`; an Int column holds the number. Compared as a string
+    // it matches nothing, which reads as an empty table rather than a bug.
+    const country = SelectFilter.make("country").options([
+      { value: 1, label: "France" },
+      { value: 2, label: "Belgium" },
+    ]);
+
+    expect(country.clause("1")).toEqual({
+      path: "country",
+      operator: "equals",
+      value: 1,
+    });
+  });
+
+  it("filters a column it was not named after, when told to", () => {
+    const filter = SelectFilter.make("author")
+      .path("author.id")
+      .options([{ value: 7, label: "Ada" }]);
+
+    expect(filter.clause("7")).toMatchObject({ path: "author.id" });
+  });
+
+  it("keeps its choices through a clone", () => {
+    // Every fluent method clones, and a clone that forgot them would answer to
+    // nothing at all.
+    expect(status.label("Status").clause("draft")).toBeDefined();
+    expect(status.path("state").clause("draft")).toMatchObject({ path: "state" });
+  });
+
+  it("answers to nothing before it has any", () => {
+    expect(SelectFilter.make("status").clause("draft")).toBeUndefined();
   });
 });

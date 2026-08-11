@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { IconColumn, TextColumn } from "./column.js";
 import { EditAction } from "./action.js";
 import { declaredFilters, serialiseTable, sortablePaths, Table } from "./table.js";
-import { TextFilter } from "./filter.js";
+import { SelectFilter, TextFilter } from "./filter.js";
 
 describe("a column builder", () => {
   it("clones on every fluent call", () => {
@@ -173,5 +173,32 @@ describe("two filters under one name", () => {
     ]);
 
     expect(declaredFilters(table).size).toBe(2);
+  });
+});
+
+describe("what a filter says on the wire", () => {
+  it("carries the choices a select declared, as strings", () => {
+    // A control sends back what it was given, and the declaration turns that
+    // into what the column holds on the way in.
+    const table = Table.make().filters([
+      SelectFilter.make("country")
+        .label("Country")
+        .options([{ value: 1, label: "France" }]),
+    ]);
+
+    expect(serialiseTable(table).filters).toEqual([
+      {
+        type: "SelectFilter",
+        name: "country",
+        label: "Country",
+        options: [{ value: "1", label: "France" }],
+      },
+    ]);
+  });
+
+  it("says nothing about choices for a filter that has none", () => {
+    const table = Table.make().filters([TextFilter.make("title")]);
+
+    expect(serialiseTable(table).filters[0]).not.toHaveProperty("options");
   });
 });

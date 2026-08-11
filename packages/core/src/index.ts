@@ -64,7 +64,7 @@ export type {
   TableState,
 } from "./table.js";
 export type { FilterState } from "./filter.js";
-export { Filter, TextFilter } from "./filter.js";
+export { Filter, SelectFilter, TextFilter } from "./filter.js";
 export {
   declaredFilters,
   searchablePaths,

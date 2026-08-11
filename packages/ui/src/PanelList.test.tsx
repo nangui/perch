@@ -723,3 +723,98 @@ describe("narrowing by a filter", () => {
     expect(screen.queryByLabelText("status")).toBeNull();
   });
 });
+
+describe("narrowing by a choice", () => {
+  const chooser = (over: Partial<RecordsPage> = {}): RecordsPage => ({
+    ...PAGE,
+    columns: {
+      ...PAGE.columns,
+      filters: [
+        {
+          type: "SelectFilter",
+          name: "status",
+          label: "Status",
+          options: [
+            { value: "draft", label: "Draft" },
+            { value: "published", label: "Published" },
+          ],
+        },
+      ],
+    },
+    ...over,
+  });
+
+  it("draws the choices the server declared, and no others", () => {
+    render(<PanelList initial={chooser()} title="Posts" fetchPage={vi.fn()} />);
+    const control = screen.getByLabelText("Status");
+
+    expect(
+      [...control.querySelectorAll("option")].map((one) => one.textContent),
+    ).toEqual(["Any", "Draft", "Published"]);
+  });
+
+  it("offers a way back to no choice at all", () => {
+    // Without it a filter can be set and never unset, and the reader is stuck
+    // with a narrower table than they asked for.
+    const fetchPage = vi.fn(() => Promise.resolve(chooser()));
+    render(
+      <PanelList
+        initial={chooser({ filters: { status: "draft" } })}
+        title="Posts"
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.not.objectContaining({ filters: expect.anything() }),
+    );
+  });
+
+  it("sends the value it was given, which the server turns back", () => {
+    const fetchPage = vi.fn(() => Promise.resolve(chooser()));
+    render(<PanelList initial={chooser()} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "draft" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ filters: { status: "draft" } }),
+    );
+  });
+
+  it("shows the choice the server applied", async () => {
+    const fetchPage = vi.fn(() =>
+      Promise.resolve(chooser({ filters: { status: "published" } })),
+    );
+    render(<PanelList initial={chooser()} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "draft" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Status")).toHaveProperty("value", "published");
+    });
+  });
+
+  it("draws nothing for a select the server sent no choices for", () => {
+    render(
+      <PanelList
+        initial={chooser({
+          columns: {
+            ...PAGE.columns,
+            filters: [
+              { type: "SelectFilter", name: "status", label: "Status", options: [] },
+            ],
+          },
+        })}
+        title="Posts"
+        fetchPage={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Status")).toBeNull();
+  });
+});
