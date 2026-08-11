@@ -27,6 +27,8 @@ export interface RecordsPage {
   readonly columns: ColumnTree;
   /** The order the server applied, which may not be the one that was asked. */
   readonly sort?: DataTableSort;
+  /** The term the server searched for, which may not be the one that was asked. */
+  readonly search?: string;
   readonly recordKey: string;
   /** Absent when the server would not vouch for the address. */
   readonly resourcePath?: string;
@@ -37,6 +39,7 @@ export interface PageRequest {
   readonly sort?: DataTableSort;
   readonly page?: number;
   readonly perPage?: number;
+  readonly search?: string;
 }
 
 export interface PanelListProps {
@@ -63,6 +66,25 @@ export function PanelList({
 }: PanelListProps): ReactNode {
   const [page, setPage] = useState(initial);
   const [failed, setFailed] = useState(false);
+
+  /**
+   * What is in the search box, and which answer it was last reconciled with.
+   *
+   * The box has to be typed into, so it holds what was typed; but the term the
+   * server applied is not always that one — it is capped, and a table that
+   * declares no searchable column drops it — so the box follows the answer
+   * whenever a new one names a different term.
+   *
+   * Adjusted during render rather than in an effect, and certainly not by
+   * changing the field's `key`: remounting an element takes the focus with it,
+   * and the reader had just used the one control they were pointed at.
+   */
+  const [typed, setTyped] = useState(initial.search ?? "");
+  const [reconciled, setReconciled] = useState(initial.search ?? "");
+  if ((page.search ?? "") !== reconciled) {
+    setReconciled(page.search ?? "");
+    setTyped(page.search ?? "");
+  }
 
   /**
    * Read, never decided. The sort *indicator* belongs to the pure-UI zone, and
@@ -115,12 +137,26 @@ export function PanelList({
   // `perPage` travels with the turn: an address may carry one and the server
   // honours it, so a request that leaves it out gets the default back and the
   // table changes size under the reader.
+  // A new term starts over, for the reason a new order does: page 5 of one
+  // result set is not page 5 of another.
+  const find =
+    ask === undefined
+      ? undefined
+      : (term: string) => {
+          ask({
+            ...(sort === undefined ? {} : { sort }),
+            ...(term === "" ? {} : { search: term }),
+            page: 1,
+            perPage: page.perPage,
+          });
+        };
   const turn =
     ask === undefined
       ? undefined
       : (to: number) => {
           ask({
             ...(sort === undefined ? {} : { sort }),
+            ...(page.search === undefined ? {} : { search: page.search }),
             page: to,
             perPage: page.perPage,
           });
@@ -132,6 +168,7 @@ export function PanelList({
         <h1 className="perch-list__title">{title}</h1>
         {headerActions(page)}
       </div>
+      {search(page, find, typed, setTyped)}
       {failed ? (
         // One sentence for both round trips this page makes. "Could not
         // reorder" was the only one when reordering was the only one, and it
@@ -157,6 +194,53 @@ export function PanelList({
         {status(page)}
       </p>
     </main>
+  );
+}
+
+/**
+ * The search box, when a search reaches anything and something can answer it.
+ *
+ * A form rather than a box that asks on every keystroke: a round trip per
+ * letter is what the design warns about for filters, and the same arithmetic
+ * applies here. Enter submits, which is what a `role="search"` form does
+ * without being told.
+ *
+ * What it holds is what was typed; what an answer names is what it becomes.
+ * The two differ because the term is capped and can be dropped entirely, and
+ * the reconciliation happens on the component rather than by remounting the
+ * field, which would take the focus with it.
+ */
+function search(
+  page: RecordsPage,
+  find: ((term: string) => void) | undefined,
+  typed: string,
+  setTyped: (term: string) => void,
+): ReactNode {
+  if (find === undefined || page.columns.searchable !== true) return null;
+
+  return (
+    <form
+      className="perch-list__search"
+      role="search"
+      onSubmit={(event) => {
+        event.preventDefault();
+        find(typed.trim());
+      }}
+    >
+      <input
+        className="perch-control"
+        type="search"
+        name="search"
+        aria-label="Search"
+        value={typed}
+        onChange={(event) => {
+          setTyped(event.target.value);
+        }}
+      />
+      <button type="submit" className="perch-button">
+        Search
+      </button>
+    </form>
   );
 }
 

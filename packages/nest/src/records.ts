@@ -39,6 +39,14 @@ export interface RecordsResponse {
    */
   readonly sort?: Sort;
   /**
+   * The term actually searched for, which is not always the one that was asked
+   * for — it is capped, and a resource whose columns declare no search drops it
+   * entirely. The box on the client is filled from this for the reason the sort
+   * indicator is: showing what was typed after the server refused it is the
+   * client inventing a state.
+   */
+  readonly search?: string;
+  /**
    * What the model calls its primary key, and where its pages live. Together
    * they are how a row action addresses one row: `${resourcePath}/${row[recordKey]}`.
    * Sent rather than assumed — a model keyed on `uuid` had the client falling
@@ -103,6 +111,7 @@ export async function listRecords(
     recordKey: data.meta(model).primaryKey.name,
     ...pathOrNothing(resourcePath(root, resource.metadata.slug)),
     ...(applied === undefined ? {} : { sort: applied }),
+    ...(query.search === undefined ? {} : { search: query.search.term }),
   };
 }
 

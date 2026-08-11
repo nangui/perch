@@ -519,6 +519,45 @@ describe("a shell that says too little", () => {
     expect(globalThis.location.search).not.toContain("page=3");
   });
 
+  it("puts the term in the query string, and in the address", async () => {
+    // The seam again: the box calls a callback, and nothing but mounting says
+    // that callback becomes a URL `records-query.ts` can read.
+    const listing = { ...paged(1), columns: { ...paged(1).columns, searchable: true } };
+    fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ ...listing, search: "ada" }),
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    globalThis.history.replaceState(null, "", "/admin/people");
+
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "list",
+          title: "People",
+          payload: JSON.stringify(listing),
+        }),
+      );
+    });
+
+    act(() => {
+      fireEvent.change(screen.getByLabelText("Search"), { target: { value: "ada" } });
+      fireEvent.submit(screen.getByRole("search"));
+    });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    expect(callArgs(0)[0]).toContain("search=ada");
+    await waitFor(() => {
+      expect(globalThis.location.search).toContain("search=ada");
+    });
+  });
+
   it("refuses to mount rather than half working", () => {
     expect(() => {
       mount(element({ api: "/admin/api/people" }));

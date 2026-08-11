@@ -95,3 +95,23 @@ describe("a disabled button", () => {
     });
   });
 });
+
+describe("the search form", () => {
+  it("gives its field and its button the same height", () => {
+    // A field is taller than a button everywhere else, because a button is not
+    // a field. In one row they have to agree, and nothing that renders markup
+    // can see that they do not.
+    const form = document.createElement("form");
+    form.className = "perch-list__search";
+    const field = document.createElement("input");
+    field.className = "perch-control";
+    const button = document.createElement("button");
+    button.className = "perch-button";
+    form.append(field, button);
+    document.body.append(form);
+
+    expect(globalThis.getComputedStyle(field).height).toBe(
+      globalThis.getComputedStyle(button).height,
+    );
+  });
+});

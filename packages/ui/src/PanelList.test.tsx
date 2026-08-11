@@ -442,3 +442,129 @@ describe("turning a page", () => {
     expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
   });
 });
+
+describe("searching", () => {
+  /** A table whose columns declare a search reaches something. */
+  const searchable = (over: Partial<RecordsPage> = {}): RecordsPage => ({
+    ...PAGE,
+    columns: { ...PAGE.columns, searchable: true },
+    ...over,
+  });
+
+  it("offers nothing when a search reaches nothing", () => {
+    // The server says whether one does. A box that filters nothing is a
+    // promise the panel cannot keep.
+    render(<PanelList initial={PAGE} title="Posts" fetchPage={vi.fn()} />);
+
+    expect(screen.queryByRole("search")).toBeNull();
+  });
+
+  it("offers nothing when nothing can answer it", () => {
+    render(<PanelList initial={searchable()} title="Posts" />);
+
+    expect(screen.queryByRole("search")).toBeNull();
+  });
+
+  it("asks the server rather than filtering what it holds", () => {
+    // Invariant 1 again: the rows on screen are one page of many, so filtering
+    // them here would search the page instead of the table.
+    const fetchPage = vi.fn(() => Promise.resolve(searchable()));
+    render(<PanelList initial={searchable()} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "ada" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith({
+      search: "ada",
+      page: 1,
+      perPage: 25,
+      sort: { path: "title", direction: "asc" },
+    });
+  });
+
+  it("starts over on a new term", () => {
+    // Page 5 of one result set is not page 5 of another.
+    const fetchPage = vi.fn(() => Promise.resolve(searchable()));
+    render(
+      <PanelList
+        initial={searchable({ total: 6, perPage: 2, page: 3 })}
+        title="Posts"
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "ada" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, search: "ada" }),
+    );
+  });
+
+  it("keeps the term while turning a page", () => {
+    const fetchPage = vi.fn(() => Promise.resolve(searchable()));
+    render(
+      <PanelList
+        initial={searchable({ total: 6, perPage: 2, page: 1, search: "ada" })}
+        title="Posts"
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 2, search: "ada" }),
+    );
+  });
+
+  it("shows the term the server searched for, not the one that was typed", async () => {
+    // The term is capped and can be dropped. A box showing what was typed over
+    // results that ignored it is the client inventing a state.
+    const fetchPage = vi.fn(() => Promise.resolve(searchable({ search: "ad" })));
+    render(<PanelList initial={searchable()} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "adaaa" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Search")).toHaveProperty("value", "ad");
+    });
+  });
+
+  it("keeps the focus in the box it was searched from", async () => {
+    // Resetting the field by changing its `key` remounts it, and a remounted
+    // element takes the focus with it — the reader ends up on the body, having
+    // just used the one control they were told to use.
+    const fetchPage = vi.fn(() => Promise.resolve(searchable({ search: "ada" })));
+    render(<PanelList initial={searchable()} title="Posts" fetchPage={fetchPage} />);
+
+    const box = screen.getByLabelText("Search");
+    box.focus();
+    fireEvent.change(box, { target: { value: "ada" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Search")).toHaveProperty("value", "ada");
+    });
+    expect(document.activeElement).toBe(screen.getByLabelText("Search"));
+  });
+
+  it("sends an emptied box as no search at all", () => {
+    const fetchPage = vi.fn(() => Promise.resolve(searchable()));
+    render(
+      <PanelList
+        initial={searchable({ search: "ada" })}
+        title="Posts"
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "  " } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.not.objectContaining({ search: expect.anything() }),
+    );
+  });
+});

@@ -186,6 +186,7 @@ async function records(api: string, request: PageRequest): Promise<RecordsPage> 
   }
   if (request.page !== undefined) query.set("page", String(request.page));
   if (request.perPage !== undefined) query.set("perPage", String(request.perPage));
+  if (request.search !== undefined) query.set("search", request.search);
 
   const response = await fetch(`${api}/records?${query.toString()}`, {
     headers: { accept: "application/json" },
@@ -219,6 +220,9 @@ async function records(api: string, request: PageRequest): Promise<RecordsPage> 
  */
 function remember(page: RecordsPage): void {
   const query = new URLSearchParams(globalThis.location.search);
+
+  if (page.search === undefined || page.search === "") query.delete("search");
+  else query.set("search", page.search);
 
   if (page.sort === undefined) query.delete("sort");
   else query.set("sort", `${page.sort.path}:${page.sort.direction}`);

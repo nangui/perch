@@ -1334,6 +1334,21 @@
   color: var(--perch-content-muted);
 }
 
+/* The search sits above the table, not in its header: it acts on the whole
+   result set rather than on a column. */
+.perch-list__search {
+  display: flex;
+  gap: var(--perch-space-4);
+  margin-bottom: var(--perch-space-5);
+}
+
+/* A field is taller than a button everywhere else in the panel, because a
+   button is not a field. Side by side in one form they have to agree, and the
+   button is the one that cannot grow: its size is a pointer target. */
+.perch-list__search .perch-control {
+  height: var(--perch-control-height-sm);
+}
+
 /* Turning a page is a button, not a link: it replaces the rows in place rather
    than going anywhere the browser knows about. */
 .perch-pagination {

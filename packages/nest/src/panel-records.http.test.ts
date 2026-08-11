@@ -269,9 +269,19 @@ describe("listing records", () => {
 
   it("searches the field a human reads, when no table says otherwise", async () => {
     const url = await serve();
-    await get(`${url}/admin/api/posts/records?search=ada`);
+    const response = await get(`${url}/admin/api/posts/records?search=ada`);
 
     expect(asked[0]?.search).toEqual({ term: "ada", paths: ["title"] });
+    // Echoed, so the box on the client shows what was searched for rather than
+    // what was typed: the term is capped, and a table can drop it entirely.
+    expect(await response.json()).toMatchObject({ search: "ada" });
+  });
+
+  it("says nothing about a search it did not run", async () => {
+    const url = await serve();
+    const response = await get(`${url}/admin/api/listed/records?search=ada`);
+
+    expect(await response.json()).not.toHaveProperty("search");
   });
 
   it("searches exactly the columns a table declared", async () => {
