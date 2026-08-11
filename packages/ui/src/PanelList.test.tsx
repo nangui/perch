@@ -574,3 +574,152 @@ describe("searching", () => {
     );
   });
 });
+
+describe("narrowing by a filter", () => {
+  /** A table declaring one filter, and no search. */
+  const filtered = (over: Partial<RecordsPage> = {}): RecordsPage => ({
+    ...PAGE,
+    columns: {
+      ...PAGE.columns,
+      filters: [{ type: "TextFilter", name: "headline", label: "Headline" }],
+    },
+    ...over,
+  });
+
+  it("offers nothing when a table declares neither a filter nor a search", () => {
+    render(<PanelList initial={PAGE} title="Posts" fetchPage={vi.fn()} />);
+
+    expect(screen.queryByRole("search")).toBeNull();
+  });
+
+  it("names the region for what it does, not for a control inside it", () => {
+    // An unnamed landmark is announced as "search" among however many others a
+    // panel grows, and naming it after its box left two things answering to
+    // "Search".
+    render(<PanelList initial={filtered()} title="Posts" fetchPage={vi.fn()} />);
+
+    expect(screen.getByRole("search", { name: "Narrow the list" })).toBeTruthy();
+  });
+
+  it("draws a control per declared filter, by the label it was given", () => {
+    render(<PanelList initial={filtered()} title="Posts" fetchPage={vi.fn()} />);
+
+    expect(screen.getByLabelText("Headline")).toBeTruthy();
+    // No search declared, so no search box beside it.
+    expect(screen.queryByLabelText("Search")).toBeNull();
+  });
+
+  it("sends the value under the name the server named", () => {
+    const fetchPage = vi.fn(() => Promise.resolve(filtered()));
+    render(<PanelList initial={filtered()} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.change(screen.getByLabelText("Headline"), { target: { value: "ada" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ filters: { headline: "ada" }, page: 1 }),
+    );
+  });
+
+  it("sends a blank control as no filter at all", () => {
+    const fetchPage = vi.fn(() => Promise.resolve(filtered()));
+    render(<PanelList initial={filtered()} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.change(screen.getByLabelText("Headline"), { target: { value: "  " } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.not.objectContaining({ filters: expect.anything() }),
+    );
+  });
+
+  it("keeps the filters while turning a page", () => {
+    const fetchPage = vi.fn(() => Promise.resolve(filtered()));
+    render(
+      <PanelList
+        initial={filtered({
+          total: 6,
+          perPage: 2,
+          page: 1,
+          filters: { headline: "ada" },
+        })}
+        title="Posts"
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 2, filters: { headline: "ada" } }),
+    );
+  });
+
+  it("shows what the server applied, not what was entered", async () => {
+    // A filter the server declined — an undeclared name, a value it capped —
+    // must not stay in the box as though it were working.
+    const fetchPage = vi.fn(() =>
+      Promise.resolve(filtered({ filters: { headline: "ad" } })),
+    );
+    render(<PanelList initial={filtered()} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.change(screen.getByLabelText("Headline"), { target: { value: "adaaa" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Headline")).toHaveProperty("value", "ad");
+    });
+  });
+
+  it("empties a control the server dropped entirely", async () => {
+    const fetchPage = vi.fn(() => Promise.resolve(filtered()));
+    render(
+      <PanelList
+        initial={filtered({ filters: { headline: "ada" } })}
+        title="Posts"
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Headline")).toHaveProperty("value", "");
+    });
+  });
+
+  it("keeps the focus in the control it was applied from", async () => {
+    const fetchPage = vi.fn(() =>
+      Promise.resolve(filtered({ filters: { headline: "ada" } })),
+    );
+    render(<PanelList initial={filtered()} title="Posts" fetchPage={fetchPage} />);
+
+    const box = screen.getByLabelText("Headline");
+    box.focus();
+    fireEvent.change(box, { target: { value: "ada" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Headline")).toHaveProperty("value", "ada");
+    });
+    expect(document.activeElement).toBe(screen.getByLabelText("Headline"));
+  });
+
+  it("skips a filter type the renderer has no meaning for", () => {
+    // The same rule the actions follow: draw what is understood, skip the rest.
+    render(
+      <PanelList
+        initial={filtered({
+          columns: {
+            ...PAGE.columns,
+            filters: [{ type: "SelectFilter", name: "status" }],
+          },
+        })}
+        title="Posts"
+        fetchPage={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByLabelText("status")).toBeNull();
+  });
+});

@@ -97,7 +97,34 @@ export const FILTER_PREFIX = "filter.";
  * to load no relation at all. A client that asks for one is asking the wrong
  * side.
  */
-export function readQuery(model: string, ir: Ir, raw: RawQuery, table?: Table): Query {
+/**
+ * The query, and the filters that got through, from one reading.
+ *
+ * Two readings would be two answers to "what was applied": the route builds the
+ * clauses and the response names them, and nothing but this would keep those
+ * from drifting apart.
+ */
+export function readList(
+  model: string,
+  ir: Ir,
+  raw: RawQuery,
+  table?: Table,
+): { readonly query: Query; readonly filters: Readonly<Record<string, string>> } {
+  const accepted = acceptedFilters(raw, table);
+
+  return {
+    query: readQuery(model, ir, raw, table, accepted),
+    filters: Object.fromEntries([...accepted].map(([name, one]) => [name, one.value])),
+  };
+}
+
+export function readQuery(
+  model: string,
+  ir: Ir,
+  raw: RawQuery,
+  table?: Table,
+  accepted = acceptedFilters(raw, table),
+): Query {
   const perPage = clamp(integer(raw.perPage) ?? DEFAULT_PER_PAGE, 1, MAX_PER_PAGE);
   // The page is capped, not the offset it produces. Clamping the offset instead
   // left it off the page boundary — `perPage=30` stopped at 10000, which is no
@@ -107,7 +134,7 @@ export function readQuery(model: string, ir: Ir, raw: RawQuery, table?: Table): 
   const skip = (page - 1) * perPage;
   const sort = sortOf(model, ir, raw.sort, table);
   const search = searchOf(model, ir, raw.search, table);
-  const clauses = clausesOf(raw, table);
+  const clauses = [...accepted.values()].map((one) => one.clause);
 
   return {
     model,
@@ -120,6 +147,9 @@ export function readQuery(model: string, ir: Ir, raw: RawQuery, table?: Table): 
 }
 
 /**
+ * Which filters were accepted, by name: the value that got through and the
+ * clause it produced.
+ *
  * A value from the query string becomes a clause only by passing through the
  * declaration that named it.
  *
@@ -131,27 +161,32 @@ export function readQuery(model: string, ir: Ir, raw: RawQuery, table?: Table): 
  *
  * Values are capped like a search term. A filter is compared against every row
  * too, and the comparison costs what the value is long.
+ *
+ * The names come back out because the controls are drawn from them: what the
+ * server accepted, not what was asked, in the way the sort and the page already
+ * answer.
  */
-function clausesOf(
+export function acceptedFilters(
   raw: Record<string, unknown>,
   table: Table | undefined,
-): readonly Clause[] {
-  if (table === undefined) return [];
+): ReadonlyMap<string, { readonly value: string; readonly clause: Clause }> {
+  const accepted = new Map<string, { value: string; clause: Clause }>();
+  if (table === undefined) return accepted;
 
   const declared = declaredFilters(table);
-  const clauses: Clause[] = [];
 
-  for (const [parameter, value] of Object.entries(raw)) {
+  for (const [parameter, raw_] of Object.entries(raw)) {
     if (!parameter.startsWith(FILTER_PREFIX)) continue;
 
-    const filter = declared.get(parameter.slice(FILTER_PREFIX.length));
-    const term = text(value)?.slice(0, MAX_TERM);
+    const name = parameter.slice(FILTER_PREFIX.length);
+    const filter = declared.get(name);
+    const term = text(raw_)?.slice(0, MAX_TERM);
     if (filter === undefined || term === undefined) continue;
 
     const clause = filter.clause(term);
-    if (clause !== undefined) clauses.push(clause);
+    if (clause !== undefined) accepted.set(name, { value: term, clause });
   }
-  return clauses;
+  return accepted;
 }
 
 /**

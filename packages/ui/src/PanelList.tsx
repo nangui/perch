@@ -29,6 +29,8 @@ export interface RecordsPage {
   readonly sort?: DataTableSort;
   /** The term the server searched for, which may not be the one that was asked. */
   readonly search?: string;
+  /** The filters the server applied, by name. Never one it declined. */
+  readonly filters?: Readonly<Record<string, string>>;
   readonly recordKey: string;
   /** Absent when the server would not vouch for the address. */
   readonly resourcePath?: string;
@@ -40,6 +42,7 @@ export interface PageRequest {
   readonly page?: number;
   readonly perPage?: number;
   readonly search?: string;
+  readonly filters?: Readonly<Record<string, string>>;
 }
 
 export interface PanelListProps {
@@ -80,10 +83,14 @@ export function PanelList({
    * and the reader had just used the one control they were pointed at.
    */
   const [typed, setTyped] = useState(initial.search ?? "");
-  const [reconciled, setReconciled] = useState(initial.search ?? "");
-  if ((page.search ?? "") !== reconciled) {
-    setReconciled(page.search ?? "");
+  const [entered, setEntered] = useState<Readonly<Record<string, string>>>(
+    initial.filters ?? {},
+  );
+  const [reconciled, setReconciled] = useState(stamp(initial));
+  if (stamp(page) !== reconciled) {
+    setReconciled(stamp(page));
     setTyped(page.search ?? "");
+    setEntered(page.filters ?? {});
   }
 
   /**
@@ -142,10 +149,11 @@ export function PanelList({
   const find =
     ask === undefined
       ? undefined
-      : (term: string) => {
+      : (term: string, filters: Readonly<Record<string, string>>) => {
           ask({
             ...(sort === undefined ? {} : { sort }),
             ...(term === "" ? {} : { search: term }),
+            ...(Object.keys(filters).length === 0 ? {} : { filters }),
             page: 1,
             perPage: page.perPage,
           });
@@ -157,6 +165,7 @@ export function PanelList({
           ask({
             ...(sort === undefined ? {} : { sort }),
             ...(page.search === undefined ? {} : { search: page.search }),
+            ...(page.filters === undefined ? {} : { filters: page.filters }),
             page: to,
             perPage: page.perPage,
           });
@@ -168,7 +177,7 @@ export function PanelList({
         <h1 className="perch-list__title">{title}</h1>
         {headerActions(page)}
       </div>
-      {search(page, find, typed, setTyped)}
+      {narrowing(page, find, { typed, setTyped, entered, setEntered })}
       {failed ? (
         // One sentence for both round trips this page makes. "Could not
         // reorder" was the only one when reordering was the only one, and it
@@ -210,38 +219,92 @@ export function PanelList({
  * the reconciliation happens on the component rather than by remounting the
  * field, which would take the focus with it.
  */
-function search(
+interface Narrowing {
+  readonly typed: string;
+  readonly setTyped: (term: string) => void;
+  readonly entered: Readonly<Record<string, string>>;
+  readonly setEntered: (values: Readonly<Record<string, string>>) => void;
+}
+
+function narrowing(
   page: RecordsPage,
-  find: ((term: string) => void) | undefined,
-  typed: string,
-  setTyped: (term: string) => void,
+  find: ((term: string, filters: Readonly<Record<string, string>>) => void) | undefined,
+  state: Narrowing,
 ): ReactNode {
-  if (find === undefined || page.columns.searchable !== true) return null;
+  const searchable = page.columns.searchable === true;
+  const filters = page.columns.filters;
+  if (find === undefined || (!searchable && filters.length === 0)) return null;
 
   return (
     <form
       className="perch-list__search"
+      // A landmark, so it is reachable without reading the page, and named,
+      // because an unnamed one is announced as "search" among however many
+      // others a panel grows. `search` covers filtering too: what the role
+      // describes is a facility for narrowing to what a reader is after, not a
+      // text box. The name is the region's, not any control's — reusing
+      // "Search" here made the box and the form round it answer to one name.
       role="search"
+      aria-label="Narrow the list"
       onSubmit={(event) => {
         event.preventDefault();
-        find(typed.trim());
+        find(state.typed.trim(), trimmed(state.entered));
       }}
     >
-      <input
-        className="perch-control"
-        type="search"
-        name="search"
-        aria-label="Search"
-        value={typed}
-        onChange={(event) => {
-          setTyped(event.target.value);
-        }}
-      />
+      {searchable ? (
+        <input
+          className="perch-control"
+          type="search"
+          name="search"
+          aria-label="Search"
+          value={state.typed}
+          onChange={(event) => {
+            state.setTyped(event.target.value);
+          }}
+        />
+      ) : null}
+      {filters.map((filter) =>
+        filter.type === "TextFilter" ? (
+          <input
+            key={filter.name}
+            className="perch-control"
+            type="text"
+            name={filter.name}
+            aria-label={filter.label ?? filter.name}
+            value={state.entered[filter.name] ?? ""}
+            onChange={(event) => {
+              state.setEntered({ ...state.entered, [filter.name]: event.target.value });
+            }}
+          />
+        ) : null,
+      )}
       <button type="submit" className="perch-button">
-        Search
+        Apply
       </button>
     </form>
   );
+}
+
+/** A blank control is one nobody used, and says nothing. */
+function trimmed(
+  entered: Readonly<Record<string, string>>,
+): Readonly<Record<string, string>> {
+  return Object.fromEntries(
+    Object.entries(entered)
+      .map(([name, value]) => [name, value.trim()] as const)
+      .filter(([, value]) => value !== ""),
+  );
+}
+
+/**
+ * What the answer says about the narrowing, as one comparable value.
+ *
+ * The controls follow the answer, and an answer differs when its term or any of
+ * its filters do. Comparing the pair rather than the term alone is what stops a
+ * filter the server declined from staying in the box.
+ */
+function stamp(page: RecordsPage): string {
+  return JSON.stringify([page.search ?? "", page.filters ?? {}]);
 }
 
 /** How many pages the server's answer implies. */

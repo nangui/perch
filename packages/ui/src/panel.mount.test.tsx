@@ -320,7 +320,11 @@ describe("a shell that says too little", () => {
           api: "/admin/api/people",
           operation: "list",
           title: "People",
-          payload: JSON.stringify({ rows: [], total: 0, columns: { columns: [] } }),
+          payload: JSON.stringify({
+            rows: [],
+            total: 0,
+            columns: { columns: [], filters: [] },
+          }),
         }),
       );
     });
@@ -557,6 +561,85 @@ describe("a shell that says too little", () => {
     expect(callArgs(0)[0]).toContain("search=ada");
     await waitFor(() => {
       expect(globalThis.location.search).toContain("search=ada");
+    });
+  });
+
+  it("puts a filter's value in the query string, and in the address", async () => {
+    const declared = {
+      ...paged(1),
+      columns: {
+        ...paged(1).columns,
+        filters: [{ type: "TextFilter", name: "headline", label: "Headline" }],
+      },
+    };
+    fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ ...declared, filters: { headline: "ada" } }),
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    globalThis.history.replaceState(null, "", "/admin/people");
+
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "list",
+          title: "People",
+          payload: JSON.stringify(declared),
+        }),
+      );
+    });
+
+    act(() => {
+      fireEvent.change(screen.getByLabelText("Headline"), { target: { value: "ada" } });
+      fireEvent.submit(screen.getByRole("search"));
+    });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    expect(callArgs(0)[0]).toContain("filter.headline=ada");
+    await waitFor(() => {
+      expect(globalThis.location.search).toContain("filter.headline=ada");
+    });
+  });
+
+  it("takes a filter the server declined out of the address", async () => {
+    // Otherwise reloading asks for it again, and the address describes a table
+    // nobody was shown.
+    const declared = {
+      ...paged(1),
+      columns: {
+        ...paged(1).columns,
+        filters: [{ type: "TextFilter", name: "headline" }],
+      },
+    };
+    fetchMock = vi.fn(() =>
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(declared) }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    globalThis.history.replaceState(null, "", "/admin/people?filter.headline=ada");
+
+    act(() => {
+      mount(
+        element({
+          api: "/admin/api/people",
+          operation: "list",
+          title: "People",
+          payload: JSON.stringify({ ...declared, filters: { headline: "ada" } }),
+        }),
+      );
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    });
+
+    await waitFor(() => {
+      expect(globalThis.location.search).not.toContain("filter.headline");
     });
   });
 

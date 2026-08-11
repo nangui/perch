@@ -187,6 +187,9 @@ async function records(api: string, request: PageRequest): Promise<RecordsPage> 
   if (request.page !== undefined) query.set("page", String(request.page));
   if (request.perPage !== undefined) query.set("perPage", String(request.perPage));
   if (request.search !== undefined) query.set("search", request.search);
+  for (const [name, value] of Object.entries(request.filters ?? {})) {
+    query.set(`filter.${name}`, value);
+  }
 
   const response = await fetch(`${api}/records?${query.toString()}`, {
     headers: { accept: "application/json" },
@@ -223,6 +226,15 @@ function remember(page: RecordsPage): void {
 
   if (page.search === undefined || page.search === "") query.delete("search");
   else query.set("search", page.search);
+
+  // Every filter the address carries is replaced by what the answer applied:
+  // one the server declined has to leave, or reloading would ask for it again.
+  for (const key of [...query.keys()]) {
+    if (key.startsWith("filter.")) query.delete(key);
+  }
+  for (const [name, value] of Object.entries(page.filters ?? {})) {
+    query.set(`filter.${name}`, value);
+  }
 
   if (page.sort === undefined) query.delete("sort");
   else query.set("sort", `${page.sort.path}:${page.sort.direction}`);

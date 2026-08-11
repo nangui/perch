@@ -13,7 +13,7 @@ import type { Authorization } from "./authorization.js";
 import { mayReach } from "./authorization.js";
 import { sameOrigin } from "./panel-root.js";
 import type { RawQuery } from "./records-query.js";
-import { DEFAULT_PER_PAGE, readQuery } from "./records-query.js";
+import { DEFAULT_PER_PAGE, readList } from "./records-query.js";
 import type { RegisteredResource } from "./resource-registry.js";
 import { project, visibleKeys } from "./row-projection.js";
 
@@ -46,6 +46,12 @@ export interface RecordsResponse {
    * client inventing a state.
    */
   readonly search?: string;
+  /**
+   * The filters actually applied, by name. Drawn from rather than echoed: a
+   * name nothing declared never appears here, so a control cannot show a value
+   * the server ignored.
+   */
+  readonly filters?: Readonly<Record<string, string>>;
   /**
    * What the model calls its primary key, and where its pages live. Together
    * they are how a row action addresses one row: `${resourcePath}/${row[recordKey]}`.
@@ -94,7 +100,7 @@ export async function listRecords(
   const model = resource.metadata.model;
   const table = resource.instance.table?.();
   const ir = data.ir();
-  const query = readQuery(model, ir, raw, table);
+  const { query, filters } = readList(model, ir, raw, table);
   const found = await data.findMany(query);
   const applied = query.sort?.[0];
   const perPage = query.take ?? DEFAULT_PER_PAGE;
@@ -112,6 +118,7 @@ export async function listRecords(
     ...pathOrNothing(resourcePath(root, resource.metadata.slug)),
     ...(applied === undefined ? {} : { sort: applied }),
     ...(query.search === undefined ? {} : { search: query.search.term }),
+    ...(Object.keys(filters).length === 0 ? {} : { filters }),
   };
 }
 

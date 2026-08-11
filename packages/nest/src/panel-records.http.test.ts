@@ -319,6 +319,27 @@ describe("listing records", () => {
     expect(asked[1]?.clauses).toBeUndefined();
   });
 
+  it("says which filters it applied", async () => {
+    // What the controls are drawn from. A name it declined never appears, so a
+    // control cannot show a value the server ignored.
+    const url = await serve();
+    const applied = await (
+      await get(`${url}/admin/api/searchable/records?filter.headline=ada&filter.nope=x`)
+    ).json();
+
+    expect(applied).toMatchObject({ filters: { headline: "ada" } });
+    expect((applied as { filters: Record<string, string> }).filters).not.toHaveProperty(
+      "nope",
+    );
+  });
+
+  it("says nothing about filters when none were applied", async () => {
+    const url = await serve();
+    const body = await (await get(`${url}/admin/api/searchable/records`)).json();
+
+    expect(body).not.toHaveProperty("filters");
+  });
+
   it("sends the filters it declared, and nothing about what they do", async () => {
     const url = await serve();
     const body = (await (await get(`${url}/admin/api/searchable/records`)).json()) as {
