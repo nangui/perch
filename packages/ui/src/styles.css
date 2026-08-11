@@ -790,7 +790,17 @@
   background: var(--perch-surface-muted);
 }
 
-.perch-button:disabled {
+/* One rule for the two ways a button says it cannot be used. `aria-disabled`
+   keeps it in the tab order, so the focus a reader is holding does not fall to
+   the body, and `data-disabled` is what the stylesheet reads — the pair
+   `.perch-control` uses.
+
+   Both weigh the same as each other and more than a modifier: a class plus a
+   pseudo-class, or a class plus an attribute, against a modifier's single
+   class. So a disabled `--primary` or `--danger` control looks disabled
+   wherever this rule sits, and it sits with the button's other states. */
+.perch-button:disabled,
+.perch-button[data-disabled="true"] {
   color: var(--perch-content-muted);
   background: var(--perch-surface-muted);
   cursor: not-allowed;
@@ -1447,21 +1457,4 @@
 .perch-nav__link[aria-current="page"] {
   background: var(--perch-accent-surface);
   color: var(--perch-accent);
-}
-
-/* A control that says it is unavailable without leaving the tab order, which is
-   what keeps the focus a reader is holding from falling to the body. The same
-   attribute `.perch-control` reads.
-
-   After the modifiers, deliberately: a state outranks a variant, so an
-   unavailable `--icon` or `--danger` control looks unavailable rather than
-   looking like its variant.
-
-   `:disabled` sits above with the button's other states and does not get that,
-   so a disabled `--primary` submit stays accent-coloured. Worth settling, but
-   it is a decision about how the panel looks. */
-.perch-button[data-disabled="true"] {
-  color: var(--perch-content-muted);
-  background: var(--perch-surface-muted);
-  cursor: not-allowed;
 }
