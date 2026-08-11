@@ -14,6 +14,7 @@ import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { RedirectAfterCreate } from "./redirect.js";
 import { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
 import { PanelAssetsController } from "./panel-assets.controller.js";
+import { PanelOptionsController } from "./panel-options.controller.js";
 import { PanelPageController } from "./panel-page.controller.js";
 import { PanelRecordsController } from "./panel-records.controller.js";
 import { PanelSaveController } from "./panel-save.controller.js";
@@ -87,6 +88,7 @@ export class PanelModule {
       controllers: [
         guarded(PanelAssetsController, guards),
         guarded(PanelStateController, guards),
+        guarded(PanelOptionsController, guards),
         guarded(PanelRecordsController, guards),
         guarded(PanelSaveController, guards),
         guarded(PanelPageController, guards),

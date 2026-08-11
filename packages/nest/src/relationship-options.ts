@@ -50,9 +50,13 @@ export function optionLoader(
   const lists = new Map<string, Promise<readonly Option[]>>();
   const singles = new Map<string, Promise<Option | undefined>>();
 
-  return async ({ relationship, limit, selected }) => {
-    const key = `${relationship.name}|${relationship.labelField}|${String(limit)}`;
-    const options = await memo(lists, key, () => list(relationship, limit));
+  return async ({ relationship, limit, selected, term }) => {
+    const key =
+      `${relationship.name}|${relationship.labelField}|${String(limit)}|` +
+      // Told apart on purpose: no term asks for the window, and an empty term
+      // is a search for nothing. They are not the same question.
+      (term === undefined ? `-` : `t${term}`);
+    const options = await memo(lists, key, () => list(relationship, limit, term));
 
     // A select carries its value in a URL and gets it back as text, so `2` and
     // `"2"` are the same choice here. Comparing them strictly would fetch a row
@@ -79,12 +83,17 @@ export function optionLoader(
   async function list(
     relationship: OptionsRequest["relationship"],
     limit: number,
+    term: string | undefined,
   ): Promise<readonly Option[]> {
     const target = resolve(relationship);
     const page = await adapter.findMany({
       model: target.relation.targetModel,
       take: limit,
       sort: [{ path: target.labelField, direction: "asc" }],
+      // The label field and nothing else. Which columns a search touches is an
+      // authorization decision, and it is settled from the declaration rather
+      // than from anything that arrived.
+      ...(term === undefined ? {} : { search: { term, paths: [target.labelField] } }),
     });
     return page.rows.flatMap((row) => option(row, target));
   }

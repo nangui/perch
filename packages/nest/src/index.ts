@@ -17,6 +17,8 @@ export { PanelAssetsController } from "./panel-assets.controller.js";
 export type { StateRequest } from "./panel-state.controller.js";
 export { PanelStateController } from "./panel-state.controller.js";
 export { PanelPageController } from "./panel-page.controller.js";
+export type { OptionsAnswer, OptionsBody } from "./panel-options.controller.js";
+export { PanelOptionsController } from "./panel-options.controller.js";
 export type { SaveResponse } from "./panel-save.controller.js";
 export { PanelSaveController } from "./panel-save.controller.js";
 export type { Admission, Admitted } from "./admission.js";

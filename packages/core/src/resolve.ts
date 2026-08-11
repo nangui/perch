@@ -33,6 +33,19 @@ export interface OptionsRequest {
    * nobody touched — so the loader is told which value it must not omit.
    */
   readonly selected?: unknown;
+  /**
+   * What the reader typed, when the field was declared `.searchable()`.
+   *
+   * Absent on every render: a form asks for the window, not for a match. Only
+   * the route that exists to answer typing sets it, and only for a field that
+   * said it could be searched — otherwise a term is a way to ask which rows a
+   * relation holds, one letter at a time.
+   *
+   * Never asked alongside `selected`. They are two different questions: one
+   * wants the window and the value being edited kept in it, the other wants
+   * what matched and nothing else.
+   */
+  readonly term?: string;
 }
 
 export interface ResolveOptions {
