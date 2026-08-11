@@ -26,6 +26,7 @@ import { dehydrate, serialise } from "@perchjs/core";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import { admit } from "./admission.js";
+import { withOptions } from "./relationship-options.js";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf } from "./panel-root.js";
 import { resourcePath } from "./records.js";
@@ -179,6 +180,7 @@ export class PanelSaveController {
       operation,
       user,
       record,
+      ...withOptions(this.#data, resource.metadata.model),
     });
 
     // Before the write, not after: a form with errors touches nothing, and the

@@ -18,10 +18,27 @@ export type FieldErrors = Readonly<Record<string, string>>;
 /** Node id → the state paths its resolvers read on the last pass. */
 export type DependencyTrace = ReadonlyMap<string, ReadonlySet<string>>;
 
+/** What a `.relationship()` needs loaded, for whoever can run a query. */
+export interface OptionsRequest {
+  /** The relation on the model being edited, and the field to label rows by. */
+  readonly relationship: { readonly name: string; readonly labelField: string };
+  /** At most this many rows: a relation with 50k rows is not a dropdown. */
+  readonly limit: number;
+}
+
 export interface ResolveOptions {
   readonly operation: Operation;
   readonly user?: unknown;
   readonly record?: Readonly<Record<string, unknown>>;
+  /**
+   * Loads what a `.relationship()` declares.
+   *
+   * Core cannot query, so it says what it needs and the caller — which holds
+   * the IR and an adapter — answers. Every path that renders a form supplies
+   * this; without it a relationship select resolves to no options at all,
+   * which is a dropdown a reader cannot choose from.
+   */
+  readonly loadOptions?: (request: OptionsRequest) => Promise<readonly Option[]>;
   /** What the client changed. Absent means a first load: resolve everything. */
   readonly dirtyPath?: string;
   /**
@@ -288,6 +305,17 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       count,
     );
     options = raw === undefined ? undefined : normaliseOptions(raw);
+  } else if (
+    component instanceof Select &&
+    component.state.relationship !== undefined &&
+    ctx.options.loadOptions !== undefined
+  ) {
+    // A declared list wins over a relation: a field that says both meant the
+    // list, and querying anyway would spend a round trip to be overruled.
+    options = await ctx.options.loadOptions({
+      relationship: component.state.relationship,
+      limit: component.state.optionsLimit,
+    });
   }
 
   if (ctx.counter.calls > before) ctx.trace.set(node.id, reads);

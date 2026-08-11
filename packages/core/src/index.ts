@@ -126,6 +126,7 @@ export type {
   DependencyTrace,
   FieldErrors,
   FormState,
+  OptionsRequest,
   ResolvedNode,
   ResolveOptions,
   ResolveResult,

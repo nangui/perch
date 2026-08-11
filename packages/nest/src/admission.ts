@@ -12,6 +12,7 @@
  */
 import type { FormState, Operation, ResolveResult, Row, Schema } from "@perchjs/core";
 import { resolveSchema, sanitize } from "@perchjs/core";
+import type { OptionLoader } from "./relationship-options.js";
 
 /** Same bound as the resolution cycle, and the same posture past it. */
 const MAX_PASSES = 5;
@@ -42,6 +43,13 @@ export interface Admission {
   readonly operation: Operation;
   readonly user: unknown;
   readonly record: Row | null;
+  /**
+   * Loads what a `.relationship()` declares. Admission itself does not need
+   * options — neither stage 5 nor validation consults them — but the tree it
+   * returns is what a refused save renders, and a dropdown that empties every
+   * time a form comes back with an error is worse than the error.
+   */
+  readonly loadOptions?: OptionLoader;
 }
 
 export interface Admitted {
@@ -59,6 +67,7 @@ export async function admit(request: Admission): Promise<Admitted> {
     operation: request.operation,
     user: request.user,
     ...(request.record === null ? {} : { record: request.record }),
+    ...(request.loadOptions === undefined ? {} : { loadOptions: request.loadOptions }),
   };
 
   let accepted: FormState = {};

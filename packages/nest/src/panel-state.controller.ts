@@ -29,6 +29,7 @@ import type {
   SchemaPayload,
 } from "@perchjs/core";
 import { resolveSchema, serialise } from "@perchjs/core";
+import { withOptions } from "./relationship-options.js";
 import { admit } from "./admission.js";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
@@ -88,12 +89,17 @@ export class PanelStateController {
 
     const schema = resource.instance.form();
 
+    // One loader for both resolutions: memoised, so the admission passes and
+    // the answer share a single query rather than repeating it.
+    const options = withOptions(this.#data, resource.metadata.model);
+
     const { accepted, tree } = await admit({
       schema,
       state: decoded.state,
       operation: decoded.operation,
       user,
       record,
+      ...options,
     });
     const next = await resolveSchema(schema, accepted, {
       operation: decoded.operation,
@@ -101,6 +107,7 @@ export class PanelStateController {
       user,
       ...(record === null ? {} : { record }),
       previous: tree,
+      ...options,
     });
 
     return serialise(next);

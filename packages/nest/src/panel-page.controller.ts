@@ -21,6 +21,7 @@ import type { DataAdapter, FormState, Row } from "@perchjs/core";
 import { buildNavigation, PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { listRecords, resourcePath } from "./records.js";
 import { resolveSchema, serialise } from "@perchjs/core";
+import { withOptions } from "./relationship-options.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PANEL_ASSETS } from "./panel-assets.js";
 import { renderShell } from "./panel-shell.js";
@@ -192,6 +193,7 @@ export class PanelPageController {
       operation: page.operation,
       user: this.#users.resolve(page.request),
       ...(page.record === undefined ? {} : { record: page.record }),
+      ...withOptions(this.#data, page.resource.metadata.model),
     });
 
     // The same guard, and the same function, the row actions go through.
