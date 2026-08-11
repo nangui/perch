@@ -781,6 +781,9 @@
   font-family: var(--perch-font-sans);
   font-size: var(--perch-text-base);
   cursor: pointer;
+  /* The list page's create action is an anchor: it goes somewhere, so it says
+     so honestly, and then it has to stop underlining itself. */
+  text-decoration: none;
 }
 
 .perch-button:hover {
@@ -1361,21 +1364,6 @@
   gap: var(--perch-space-4);
 }
 
-.perch-button {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--perch-space-4) var(--perch-space-5);
-  border-radius: var(--perch-radius);
-  background: var(--perch-accent);
-  color: var(--perch-content-inverse);
-  font-size: var(--perch-text-base);
-  text-decoration: none;
-}
-
-.perch-button:hover {
-  background: var(--perch-accent-hover);
-}
-
 .perch-breadcrumb {
   padding: var(--perch-space-5) var(--perch-space-7) 0;
 }
@@ -1465,15 +1453,13 @@
    what keeps the focus a reader is holding from falling to the body. The same
    attribute `.perch-control` reads.
 
-   Last, and it has to be: `.perch-button` is declared twice in this file — the
-   list page added a second, accent-coloured block below — and equal specificity
-   makes source order decide, so a rule written beside the first block is
-   painted over by the second.
+   After the modifiers, deliberately: a state outranks a variant, so an
+   unavailable `--icon` or `--danger` control looks unavailable rather than
+   looking like its variant.
 
-   `:disabled` is deliberately not here. It sits above with the button's other
-   states, where the modifiers still outrank it: a disabled `--primary` submit
-   stays accent-coloured, as it is today. That it does is worth a look, but it
-   is a decision about how the panel looks rather than one about focus. */
+   `:disabled` sits above with the button's other states and does not get that,
+   so a disabled `--primary` submit stays accent-coloured. Worth settling, but
+   it is a decision about how the panel looks. */
 .perch-button[data-disabled="true"] {
   color: var(--perch-content-muted);
   background: var(--perch-surface-muted);

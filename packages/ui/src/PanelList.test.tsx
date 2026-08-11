@@ -182,10 +182,12 @@ describe("the list page", () => {
 
   it("offers a create link above the table, from the same path", () => {
     render(<PanelList initial={PAGE} title="Posts" />);
+    const create = screen.getByRole("link", { name: "Create" });
 
-    expect(screen.getByRole("link", { name: "Create" }).getAttribute("href")).toBe(
-      "/admin/posts/create",
-    );
+    expect(create.getAttribute("href")).toBe("/admin/posts/create");
+    // The page main action, which is what the primary variant is for. It read
+    // as one only because a duplicate rule painted every button that colour.
+    expect(create.className).toContain("perch-button--primary");
   });
 
   it("leaves no empty header when every action is skipped", () => {

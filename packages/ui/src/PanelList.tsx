@@ -261,7 +261,11 @@ function headerActions(page: RecordsPage): ReactNode {
   const links = page.columns.headerActions
     .filter((action) => action.type === "CreateAction")
     .map((action) => (
-      <a key={action.type} className="perch-button" href={`${path}/create`}>
+      <a
+        key={action.type}
+        className="perch-button perch-button--primary"
+        href={`${path}/create`}
+      >
         {action.label ?? "Create"}
       </a>
     ));
