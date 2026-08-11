@@ -26,6 +26,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0012](0012-ir-at-build-time.md) | The IR is produced at build time, by a Prisma generator | accepted |
 | [0013](0013-what-read-only-names.md) | `isReadOnly` names the database owning a value, not a relation | accepted |
 | [0014](0014-soft-delete-in-v01.md) | `hasSoftDelete` describes the schema; deletion stays hard until v0.2 | accepted |
+| [0015](0015-cli-command-names-and-layout.md) | The command is `perch panel`, and the CLI writes under `src/admin/` | proposed |
 
 ## Format
 
