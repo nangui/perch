@@ -118,8 +118,11 @@ export function Repeater<T extends RepeaterItem>({
           type="button"
           className="perch-button"
           style={{ marginLeft: "auto" }}
-          onClick={onAdd}
-          disabled={atMax}
+          onClick={() => {
+            if (!atMax) onAdd();
+          }}
+          aria-disabled={atMax}
+          data-disabled={atMax ? "true" : "false"}
           {...(atMax ? { title: `At most ${String(max)} items.` } : {})}
         >
           + {addLabel}
@@ -164,28 +167,22 @@ export function Repeater<T extends RepeaterItem>({
                 {/* Both directions: §2.5.7 wants a single-pointer alternative to
                     dragging, and "down" alone means moving four rows to raise
                     the fifth. */}
-                <button
-                  type="button"
-                  className="perch-button perch-button--icon"
-                  aria-label={`Move item ${String(index + 1)} up`}
-                  onClick={() => {
+                <Direction
+                  label={`Move item ${String(index + 1)} up`}
+                  glyph="↑"
+                  spent={index === 0}
+                  onMove={() => {
                     move(item.id, -1);
                   }}
-                  disabled={index === 0}
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  className="perch-button perch-button--icon"
-                  aria-label={`Move item ${String(index + 1)} down`}
-                  onClick={() => {
+                />
+                <Direction
+                  label={`Move item ${String(index + 1)} down`}
+                  glyph="↓"
+                  spent={index === items.length - 1}
+                  onMove={() => {
                     move(item.id, 1);
                   }}
-                  disabled={index === items.length - 1}
-                >
-                  ↓
-                </button>
+                />
                 <button
                   type="button"
                   className="perch-button perch-button--icon perch-button--danger"
@@ -212,6 +209,47 @@ export function Repeater<T extends RepeaterItem>({
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * One end of the reordering, `aria-disabled` rather than `disabled`.
+ *
+ * `disabled` takes an element out of the tab order and a browser drops the
+ * focus it was holding to the body — so raising an item to the top with the
+ * keyboard ended with the focus nowhere, in the one control whose whole purpose
+ * is to be reachable without a mouse. It stays a real button, says it is
+ * unavailable, and moves nothing when pressed anyway.
+ *
+ * `data-disabled` is what the stylesheet reads, the same pair `Select` and the
+ * pagination use: `aria-disabled` changes nothing a reader can see.
+ *
+ * Pressing it anyway moves nothing, and there is no guard here for that:
+ * `move` refuses a destination outside the list, so one would be a second
+ * answer to a question already answered.
+ */
+function Direction({
+  label,
+  glyph,
+  spent,
+  onMove,
+}: {
+  readonly label: string;
+  readonly glyph: string;
+  readonly spent: boolean;
+  readonly onMove: () => void;
+}): ReactNode {
+  return (
+    <button
+      type="button"
+      className="perch-button perch-button--icon"
+      aria-label={label}
+      aria-disabled={spent}
+      data-disabled={spent ? "true" : "false"}
+      onClick={onMove}
+    >
+      {glyph}
+    </button>
   );
 }
 

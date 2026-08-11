@@ -179,7 +179,7 @@ describe("2.5.7 Dragging Movements — a pointer alternative to every drag", () 
     expect(screen.getByRole("button", { name: /move item 2 down/i })).toBeDefined();
   });
 
-  it("disables each direction only at the end it cannot go", () => {
+  it("marks each direction unavailable only at the end it cannot go", () => {
     renderRepeater();
     const up = (n: number): HTMLButtonElement =>
       screen.getByRole<HTMLButtonElement>("button", {
@@ -189,10 +189,27 @@ describe("2.5.7 Dragging Movements — a pointer alternative to every drag", () 
       screen.getByRole<HTMLButtonElement>("button", {
         name: `Move item ${String(n)} down`,
       });
-    expect(up(1).disabled).toBe(true);
-    expect(down(1).disabled).toBe(false);
-    expect(up(3).disabled).toBe(false);
-    expect(down(3).disabled).toBe(true);
+    expect(up(1).getAttribute("aria-disabled")).toBe("true");
+    expect(down(1).getAttribute("aria-disabled")).toBe("false");
+    expect(up(3).getAttribute("aria-disabled")).toBe("false");
+    expect(down(3).getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("keeps a direction it cannot go in the tab order", () => {
+    // `disabled` takes an element out of the tab order and a browser drops the
+    // focus it was holding. Reordering an item to the top with the keyboard
+    // therefore ended with the focus on the body — in the one control whose
+    // whole purpose is to be reachable without a mouse.
+    //
+    // The focus is not asserted: jsdom does not move it on disable, measured,
+    // so such a test passes whichever way this is written.
+    renderRepeater();
+    const up = screen.getByRole<HTMLButtonElement>("button", {
+      name: "Move item 1 up",
+    });
+
+    expect(up.disabled).toBe(false);
+    expect(up.getAttribute("data-disabled")).toBe("true");
   });
 
   it("puts exactly as many buttons in a row as the grid track was sized for", () => {

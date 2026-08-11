@@ -787,20 +787,16 @@
   background: var(--perch-surface-muted);
 }
 
+.perch-button:disabled {
+  color: var(--perch-content-muted);
+  background: var(--perch-surface-muted);
+  cursor: not-allowed;
+}
+
 .perch-button:focus-visible {
   outline: none;
   border-color: var(--perch-accent);
   box-shadow: var(--perch-focus-ring);
-}
-
-/* `data-disabled` is how a control says it is unavailable without leaving the
-   tab order — the focus a reader is holding then does not fall to the body.
-   The same pair `.perch-control` uses. */
-.perch-button:disabled,
-.perch-button[data-disabled="true"] {
-  color: var(--perch-content-muted);
-  background: var(--perch-surface-muted);
-  cursor: not-allowed;
 }
 
 .perch-button--primary {
@@ -1463,4 +1459,23 @@
 .perch-nav__link[aria-current="page"] {
   background: var(--perch-accent-surface);
   color: var(--perch-accent);
+}
+
+/* A control that says it is unavailable without leaving the tab order, which is
+   what keeps the focus a reader is holding from falling to the body. The same
+   attribute `.perch-control` reads.
+
+   Last, and it has to be: `.perch-button` is declared twice in this file — the
+   list page added a second, accent-coloured block below — and equal specificity
+   makes source order decide, so a rule written beside the first block is
+   painted over by the second.
+
+   `:disabled` is deliberately not here. It sits above with the button's other
+   states, where the modifiers still outrank it: a disabled `--primary` submit
+   stays accent-coloured, as it is today. That it does is worth a look, but it
+   is a decision about how the panel looks rather than one about focus. */
+.perch-button[data-disabled="true"] {
+  color: var(--perch-content-muted);
+  background: var(--perch-surface-muted);
+  cursor: not-allowed;
 }

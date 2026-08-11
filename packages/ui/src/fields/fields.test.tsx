@@ -340,11 +340,41 @@ describe("Repeater", () => {
   });
 
   it("cannot move the last item further down", () => {
-    renderRepeater();
-    expect(
-      screen.getByRole<HTMLButtonElement>("button", { name: /move item 3 down/i })
-        .disabled,
-    ).toBe(true);
+    // Marked unavailable rather than disabled, so the keyboard keeps it: see
+    // a11y.test.tsx. What matters here is that pressing it moves nothing.
+    const onReorder = renderRepeater();
+    const down = screen.getByRole<HTMLButtonElement>("button", {
+      name: /move item 3 down/i,
+    });
+
+    expect(down.getAttribute("aria-disabled")).toBe("true");
+    down.click();
+    expect(onReorder).not.toHaveBeenCalled();
+  });
+
+  it("adds nothing once the maximum is reached", () => {
+    // Unlike a move, which `move` clamps, an add has nothing behind it: the
+    // handler is the caller's and would append an item past the limit.
+    const onAdd = vi.fn();
+    render(
+      <Repeater
+        title="Contacts"
+        items={[{ id: "a" }, { id: "b" }]}
+        max={2}
+        onAdd={onAdd}
+        onRemove={vi.fn()}
+        onReorder={vi.fn()}
+      >
+        {() => null}
+      </Repeater>,
+    );
+    const add = screen.getByRole("button", { name: /Add/i });
+
+    expect(add.getAttribute("aria-disabled")).toBe("true");
+    // And the stylesheet's hook, or a button that adds nothing looks live.
+    expect(add.getAttribute("data-disabled")).toBe("true");
+    add.click();
+    expect(onAdd).not.toHaveBeenCalled();
   });
 
   it("reserves a note line per item and shows the error in it", () => {

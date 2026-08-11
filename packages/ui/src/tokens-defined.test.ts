@@ -41,34 +41,44 @@ describe("the token contract", () => {
 });
 
 describe("what an unavailable control looks like", () => {
-  it("styles every class the components mark with aria-disabled", () => {
+  it("styles every control the components mark with aria-disabled", () => {
     // `aria-disabled` keeps a control in the tab order, which is why the
-    // pagination and the empty Select both use it — but it changes nothing a
-    // reader can see. `:disabled` rules do not apply to it, so without a hook
-    // of its own a control with nowhere to go looks exactly as pressable as one
-    // that works. `[data-disabled="true"]` is that hook here.
+    // pagination, the repeater's reordering and the empty Select all use it —
+    // but it changes nothing a reader can see. `:disabled` rules do not apply
+    // to it, so without a hook of its own a control with nowhere to go looks
+    // exactly as pressable as one that works. `[data-disabled="true"]` is that
+    // hook here.
     const styles = read("styles.css");
-    const marked = new Set<string>();
+
+    // Per element, not per class: `perch-button perch-button--icon` needs one
+    // rule between the two of them, and asking for both fails on a modifier
+    // that only adjusts a shape.
+    const controls: string[][] = [];
 
     for (const source of components()) {
       for (const match of source.matchAll(/aria-disabled=/g)) {
         // The class on the same element, which is the one a rule can reach.
         const around = source.slice(Math.max(match.index - 400, 0), match.index);
         const className = /className="([^"]*)"(?![\s\S]*className=")/.exec(around)?.[1];
-        for (const single of (className ?? "").split(/\s+/)) {
-          if (single.startsWith("perch-")) marked.add(single);
-        }
+        const classes = (className ?? "")
+          .split(/\s+/)
+          .filter((single) => single.startsWith("perch-"));
+        if (classes.length > 0) controls.push(classes);
       }
     }
 
     expect(
-      marked.size,
+      controls.length,
       "no component marks aria-disabled — has this moved?",
     ).toBeGreaterThan(0);
-    const unstyled = [...marked].filter(
-      (single) => !styles.includes(`.${single}[data-disabled="true"]`),
+    const unstyled = controls.filter(
+      (classes) =>
+        !classes.some((single) => styles.includes(`.${single}[data-disabled="true"]`)),
     );
 
-    expect(unstyled, `styled by nothing: ${unstyled.join(", ")}`).toEqual([]);
+    expect(
+      unstyled.map((classes) => classes.join(" ")),
+      "marked unavailable and styled by nothing",
+    ).toEqual([]);
   });
 });
