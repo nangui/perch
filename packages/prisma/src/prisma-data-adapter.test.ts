@@ -70,17 +70,23 @@ describe("reading a page", () => {
 
     expect(calls.findMany).toHaveBeenCalledTimes(1);
     expect(calls.count).toHaveBeenCalledTimes(1);
-    expect(argsOf(calls.findMany)).toEqual({ skip: 25, take: 25 });
+    expect(argsOf(calls.findMany)).toEqual({
+      skip: 25,
+      take: 25,
+      orderBy: [{ id: "asc" }],
+    });
     expect(page).toEqual({ rows: [{ id: 1 }], total: 7 });
   });
 
-  it("leaves out what was not asked for", async () => {
+  it("leaves out what was not asked for, apart from the order", async () => {
     const { adapter, calls } = recorder();
     await adapter.findMany({ model: "User" });
 
     // An empty `where` is not the same request as no `where`, and the second is
-    // what a query with no filters means.
-    expect(argsOf(calls.findMany)).toEqual({});
+    // what a query with no filters means. The order is the exception: it is the
+    // adapter's own, not the caller's, because a page without one is not
+    // reproducible.
+    expect(argsOf(calls.findMany)).toEqual({ orderBy: [{ id: "asc" }] });
   });
 
   it("turns a filter into a clause", async () => {
@@ -149,7 +155,7 @@ describe("reading a page", () => {
     });
 
     // The page still comes back; it is the `where` that has nothing to say.
-    expect(argsOf(calls.findMany)).toEqual({});
+    expect(argsOf(calls.findMany)).toEqual({ orderBy: [{ id: "asc" }] });
   });
 
   it("sorts, through a relation as well", async () => {
@@ -165,7 +171,43 @@ describe("reading a page", () => {
     expect(argsOf(calls.findMany)["orderBy"]).toEqual([
       { createdAt: "desc" },
       { author: { email: "asc" } },
+      // The tiebreaker, taking the direction of the sort it follows.
+      { id: "asc" },
     ]);
+  });
+
+  it("breaks a tie on the primary key, so two pages cannot repeat a row", async () => {
+    // Ordering by a column that is not unique leaves rows with equal values in
+    // whatever order the database chose that time. Page 1 and page 2 are two
+    // separate queries, so a row can appear in both and another in neither.
+    const { adapter, calls } = recorder();
+    await adapter.findMany({
+      model: "Post",
+      sort: [{ path: "createdAt", direction: "desc" }],
+      skip: 25,
+      take: 25,
+    });
+
+    expect(argsOf(calls.findMany)["orderBy"]).toEqual([
+      { createdAt: "desc" },
+      { id: "desc" },
+    ]);
+  });
+
+  it("orders by the key alone when nothing was asked", async () => {
+    // Prisma would send the same thing here on its own, which is a courtesy
+    // and not a contract. The port asks every adapter for a total order.
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "Post", skip: 0, take: 25 });
+
+    expect(argsOf(calls.findMany)["orderBy"]).toEqual([{ id: "asc" }]);
+  });
+
+  it("does not repeat the key when the sort already ends on it", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "Post", sort: [{ path: "id", direction: "asc" }] });
+
+    expect(argsOf(calls.findMany)["orderBy"]).toEqual([{ id: "asc" }]);
   });
 
   it("turns an include plan into one nested include", async () => {

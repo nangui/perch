@@ -153,6 +153,29 @@ withDatabase("reading, against a real database", () => {
     expect(page.total).toBe(4);
   });
 
+  it("orders every page by something unique, so two pages cannot overlap", async () => {
+    // The acceptance criterion, and the only case that is ours to fix:
+    // measured, Prisma appends `ORDER BY "id"` to a limited query that asked
+    // for no order at all, but appends nothing to one that named a column.
+    //
+    // Asserting the *rows* proves nothing here — four rows in a fresh table
+    // come back in insertion order whatever the ORDER BY says, and that version
+    // of this test passed with the tiebreaker removed. What discriminates is
+    // the statement PostgreSQL was actually sent.
+    statements.length = 0;
+    await adapter.findMany({
+      model: "Post",
+      sort: [{ path: "published", direction: "asc" }],
+      skip: 2,
+      take: 2,
+    });
+
+    const select = statements.find((sql) => /SELECT/i.test(sql) && /LIMIT/i.test(sql));
+
+    expect(select).toBeDefined();
+    expect(select).toMatch(/ORDER BY[\s\S]*"published"[\s\S]*"id"/i);
+  });
+
   it("searches the label field, case-insensitively", async () => {
     const page = await adapter.findMany({ model: "Author", search: "lovelace" });
 

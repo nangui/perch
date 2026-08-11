@@ -87,6 +87,15 @@ export interface DataAdapter {
   /** Resolved once at bootstrap and cached; never called on a hot path. */
   ir(): Ir;
   meta(model: string): ModelMeta;
+  /**
+   * A page, in a total order.
+   *
+   * The order has to end on something unique — the primary key will do — even
+   * when `sort` is empty or names a column with repeated values. Two pages are
+   * two queries, so without that a row comes back on both and another on
+   * neither, and the reader never learns which. It is the adapter's to add,
+   * because it is the adapter that knows what the database guarantees.
+   */
   findMany(query: Query): Promise<Page>;
   findOne(model: string, id: Id, include?: IncludePlan): Promise<Row | null>;
   create(model: string, data: WriteTree): Promise<Row>;

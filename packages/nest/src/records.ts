@@ -13,13 +13,22 @@ import type { Authorization } from "./authorization.js";
 import { mayReach } from "./authorization.js";
 import { sameOrigin } from "./panel-root.js";
 import type { RawQuery } from "./records-query.js";
-import { readQuery } from "./records-query.js";
+import { DEFAULT_PER_PAGE, readQuery } from "./records-query.js";
 import type { RegisteredResource } from "./resource-registry.js";
 import { project, visibleKeys } from "./row-projection.js";
 
 export interface RecordsResponse {
   readonly rows: readonly Row[];
   readonly total: number;
+  /**
+   * The page actually served and its size, which are not always the ones that
+   * were asked for: `perPage` is capped and paging is stopped at a depth past
+   * which nobody is reading. Read from the query the server built rather than
+   * echoed back, for the reason `sort` is — a client that draws its controls
+   * from what it requested draws a state the server refused.
+   */
+  readonly page: number;
+  readonly perPage: number;
   /** Empty for a resource that declares no table. */
   readonly columns: ColumnTree;
   /**
@@ -78,12 +87,15 @@ export async function listRecords(
   const table = resource.instance.table?.();
   const ir = data.ir();
   const query = readQuery(model, ir, raw, table);
-  const page = await data.findMany(query);
+  const found = await data.findMany(query);
   const applied = query.sort?.[0];
+  const perPage = query.take ?? DEFAULT_PER_PAGE;
 
   return {
-    rows: project(page.rows, visibleKeys(model, ir, table)),
-    total: page.total,
+    rows: project(found.rows, visibleKeys(model, ir, table)),
+    total: found.total,
+    page: Math.floor((query.skip ?? 0) / perPage) + 1,
+    perPage,
     columns:
       table === undefined
         ? { columns: [], actions: [], headerActions: [] }

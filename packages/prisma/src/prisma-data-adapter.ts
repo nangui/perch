@@ -73,7 +73,7 @@ export class PrismaDataAdapter implements DataAdapter {
     const [rows, total] = await Promise.all([
       delegate.findMany({
         ...(Object.keys(where).length === 0 ? {} : { where }),
-        ...(query.sort === undefined ? {} : { orderBy: orderOf(query.sort) }),
+        orderBy: orderOf(query.sort, this.meta(query.model).primaryKey.name),
         ...(query.skip === undefined ? {} : { skip: query.skip }),
         ...(query.take === undefined ? {} : { take: query.take }),
         ...includeOf(query.include),
@@ -257,8 +257,31 @@ function searchOf(
   return { [field.name]: { contains: search, mode: "insensitive" } };
 }
 
-function orderOf(sort: readonly Sort[]): Record<string, unknown>[] {
-  return sort.map(({ path, direction }) => nestedOrder(path, direction));
+/**
+ * The order, always ending on the primary key.
+ *
+ * A page is one query and the next page is another. Ordering by a column that
+ * is not unique leaves rows with equal values in whatever order the database
+ * chose that time, so a row can come back on both pages and another on neither.
+ * The key is unique and indexed, which makes the order total and the cost nil.
+ * It takes the direction of the sort it follows, so "newest first" stays that
+ * way among rows sharing a timestamp.
+ *
+ * Sent even when nothing was asked, where Prisma would have added the same
+ * thing itself — measured: a limited query with no `orderBy` comes out as
+ * `ORDER BY "id" ASC`. That is a courtesy this does not rely on. The port asks
+ * every adapter for a total order, and an adapter that gets it by accident
+ * loses it on the release that changes its mind.
+ */
+function orderOf(
+  sort: readonly Sort[] | undefined,
+  primaryKey: string,
+): Record<string, unknown>[] {
+  const asked = (sort ?? []).map(({ path, direction }) => nestedOrder(path, direction));
+  const last = sort?.at(-1);
+  if (last?.path === primaryKey) return asked;
+
+  return [...asked, { [primaryKey]: last?.direction ?? "asc" }];
 }
 
 function nestedOrder(path: string, direction: string): Record<string, unknown> {

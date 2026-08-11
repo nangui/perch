@@ -31,6 +31,11 @@ export const MAX_PER_PAGE = 100;
  */
 export const MAX_SKIP = 10_000;
 
+/** The deepest page whose first row is still within `MAX_SKIP`. */
+export function lastPage(perPage: number): number {
+  return Math.floor(MAX_SKIP / perPage) + 1;
+}
+
 export interface RawQuery {
   readonly page?: unknown;
   readonly perPage?: unknown;
@@ -50,8 +55,12 @@ export interface RawQuery {
  */
 export function readQuery(model: string, ir: Ir, raw: RawQuery, table?: Table): Query {
   const perPage = clamp(integer(raw.perPage) ?? DEFAULT_PER_PAGE, 1, MAX_PER_PAGE);
-  const page = Math.max(integer(raw.page) ?? 1, 1);
-  const skip = clamp((page - 1) * perPage, 0, MAX_SKIP);
+  // The page is capped, not the offset it produces. Clamping the offset instead
+  // left it off the page boundary — `perPage=30` stopped at 10000, which is no
+  // page's first row — so the page the answer reported could not be asked for
+  // again and got a different set of rows.
+  const page = clamp(integer(raw.page) ?? 1, 1, lastPage(perPage));
+  const skip = (page - 1) * perPage;
   const sort = sortOf(model, ir, raw.sort, table);
   const search = text(raw.search);
 

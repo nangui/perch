@@ -195,6 +195,10 @@ describe("listing records", () => {
       // is the same narrow pair the sort allowlist falls back to.
       rows: SHOWN,
       total: 3,
+      // Which page was served and how big it is, so the client can draw its
+      // controls from the answer rather than from what it asked for.
+      page: 1,
+      perPage: 25,
       columns: { columns: [], actions: [], headerActions: [] },
       // How a row action addresses one row, said rather than assumed.
       recordKey: "id",
@@ -206,8 +210,28 @@ describe("listing records", () => {
     const url = await serve();
     const response = await get(`${url}/admin/api/posts/records?page=2&perPage=1`);
 
-    expect(await response.json()).toMatchObject({ rows: [SHOWN[1]], total: 3 });
+    expect(await response.json()).toMatchObject({
+      rows: [SHOWN[1]],
+      total: 3,
+      // Which page was served, read from the query the server built rather
+      // than echoed back from what was asked.
+      page: 2,
+      perPage: 1,
+    });
     expect(asked[0]).toMatchObject({ model: "Post", skip: 1, take: 1 });
+  });
+
+  it("answers with the page it served, not the one that was asked for", async () => {
+    // Paging stops at a depth past which nobody is reading. A client drawing
+    // its controls from what it requested would show page 999999 of 1.
+    const url = await serve();
+    const response = await get(`${url}/admin/api/posts/records?page=999999&perPage=10`);
+
+    const body = (await response.json()) as { page: number; perPage: number };
+
+    expect(body.perPage).toBe(10);
+    expect(body.page).toBeLessThan(999999);
+    expect(asked[0]?.skip).toBe((body.page - 1) * 10);
   });
 
   it("sorts by the label, and silently not by anything else", async () => {

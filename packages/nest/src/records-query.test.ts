@@ -71,6 +71,21 @@ describe("paging", () => {
     expect(read({ page: "100", perPage: "100" }).skip).toBe(9900);
   });
 
+  it("stops on a page boundary, so the page it served can be asked for again", () => {
+    // Capping the offset instead left it mid-page: perPage=30 stopped at 10000,
+    // which is no page first row, and the page the answer reported came back
+    // with different rows.
+    for (const perPage of [7, 25, 30, 100]) {
+      const skip = read({ page: "999999", perPage: String(perPage) }).skip ?? 0;
+
+      expect(skip % perPage).toBe(0);
+      expect(skip).toBeLessThanOrEqual(MAX_SKIP);
+      expect(
+        read({ page: String(skip / perPage + 1), perPage: String(perPage) }).skip,
+      ).toBe(skip);
+    }
+  });
+
   it("ignores what is not a whole number", () => {
     for (const bad of ["abc", "1.5", "1e9999", "", ["2"], null]) {
       expect(read({ page: bad, perPage: bad })).toMatchObject({
