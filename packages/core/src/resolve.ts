@@ -9,6 +9,7 @@ import type { Component, Operation, Resolvable, ResolverContext } from "./compon
 import { isResolver } from "./component.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
+import { Placeholder } from "./fields/placeholder.js";
 import { Select } from "./fields/select.js";
 import type { Option, OptionsInput } from "./option.js";
 import { normaliseOptions } from "./option.js";
@@ -82,6 +83,8 @@ export interface ResolvedNode {
   readonly helperText?: string;
   readonly placeholder?: string;
   readonly required?: boolean;
+  /** What a `Placeholder` shows. Resolved, so it may read other fields. */
+  readonly content?: string;
   readonly options?: readonly Option[];
   readonly children: readonly ResolvedNode[];
 }
@@ -135,6 +138,19 @@ export async function resolveSchema(
       if (!(component instanceof Field)) continue;
       const path = component.name;
       if (path === "" || path in state) continue;
+
+      // The row first, for a field no client is allowed to echo back. On an
+      // edit its stored value is the server's own answer, and `default()` is
+      // for the create where there is no row to ask.
+      if (
+        !component.acceptsClient &&
+        options.record !== undefined &&
+        path in options.record
+      ) {
+        state[path] = options.record[path];
+        continue;
+      }
+
       const fallback = component.state.defaultValue;
       if (fallback === undefined) continue;
       const reads = new Set<string>();
@@ -306,6 +322,13 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       : false;
   const label = await value(component.state.label, rc, undefined, count);
   const helperText = await value(component.state.helperText, rc, undefined, count);
+  // Resolved every pass, not hydrated once: a computed line that tracks another
+  // field has to be recomputed when that field changes, and `default()` fills a
+  // blank exactly once.
+  const content =
+    component instanceof Placeholder
+      ? await value(component.state.content, rc, undefined, count)
+      : undefined;
 
   // Resolved here rather than copied from the state: both accept a resolver,
   // and a `required` the server enforces but never sends is an error the user
@@ -349,6 +372,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     readOnly,
     ...(label === undefined ? {} : { label }),
     ...(helperText === undefined ? {} : { helperText }),
+    ...(content === undefined ? {} : { content }),
     ...(placeholder === undefined ? {} : { placeholder }),
     ...(required ? { required: true } : {}),
     ...(options === undefined ? {} : { options }),

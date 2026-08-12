@@ -12,6 +12,7 @@ import { FieldShell } from "./FieldShell.js";
 import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
+import { Placeholder } from "./fields/Placeholder.js";
 import { Radio } from "./fields/Radio.js";
 import { Textarea } from "./fields/Textarea.js";
 import { Toggle } from "./fields/Toggle.js";
@@ -355,6 +356,39 @@ function TextareaRenderer({
   );
 }
 
+function PlaceholderRenderer({ node, error, pending, inFlight }: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+
+  return (
+    <FieldShell
+      label={node.label ?? node.path ?? ""}
+      status={status}
+      inline={node.inlineLabel === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <Placeholder
+          status={status}
+          describedBy={binding.id}
+          {...(node.content === undefined ? {} : { content: node.content })}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
+/**
+ * A field the reader never sees draws nothing at all.
+ *
+ * Registered rather than left out: an unregistered type shows the marker meant
+ * for a component nobody wrote, and a hidden field is not a gap in the panel.
+ * Its value travels in the payload's state, which is all it needs to survive a
+ * round trip it is never allowed to change.
+ */
+function HiddenRenderer(): ReactNode {
+  return null;
+}
+
 /**
  * Called once at module load. A plugin adds its own with the same function
  * (extension point E3) — there is no privileged path for the built-ins.
@@ -367,6 +401,8 @@ export function registerBuiltInComponents(): void {
   registerComponent("Select", SelectRenderer);
   registerComponent("Checkbox", CheckboxRenderer);
   registerComponent("Radio", RadioRenderer);
+  registerComponent("Placeholder", PlaceholderRenderer);
+  registerComponent("Hidden", HiddenRenderer);
   registerComponent("Toggle", ToggleRenderer);
   registerComponent("Textarea", TextareaRenderer);
 }

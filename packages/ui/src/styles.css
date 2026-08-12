@@ -586,6 +586,18 @@
   color: var(--perch-content-muted);
 }
 
+/* A reading, in the shape of a control: it sits in a column of fields and the
+   eye reads that column as a column. Not a control, so nothing here suggests
+   there is something to do to it. */
+.perch-placeholder {
+  display: flex;
+  align-items: center;
+  min-height: var(--perch-control-height);
+  margin: 0;
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+}
+
 /* Real inputs sharing a name, so the browser gives the group its arrow keys
    and its single tab stop. Out of sight, not out of the layout: `display: none`
    would take them out of the tab order along with everything else. */

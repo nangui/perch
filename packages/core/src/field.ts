@@ -128,6 +128,19 @@ export abstract class Field extends Component {
   }
 
   /**
+   * Whether a client may set this field at all.
+   *
+   * A structural answer, not a flag: `disabled` and `readOnly` are resolvable,
+   * so a field whose safety depended on one could be unlocked by the resolver
+   * that was supposed to lock it. A hidden field is the exact place tampering
+   * is worth attempting, and "the reader cannot see it" is not the same
+   * sentence as "the reader cannot set it".
+   */
+  get acceptsClient(): boolean {
+    return true;
+  }
+
+  /**
    * The list this field offers, if it offers one.
    *
    * Asked of the field for the same reason `admits` is: the cycle resolved

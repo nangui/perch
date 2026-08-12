@@ -29,6 +29,8 @@ export interface SchemaNode {
   readonly readOnly?: boolean;
   readonly required?: boolean;
   readonly inlineLabel?: true;
+  /** What a `Placeholder` shows, already resolved. */
+  readonly content?: string;
   /**
    * Absent means the field never triggers a round trip. Present, it carries the
    * debounce set per field type — the client cannot invent it.
@@ -74,12 +76,19 @@ export function serialise(result: ResolveResult): SchemaPayload {
     type: result.root.component.type,
   };
   const visible = new Set(paths(schema));
+  const withheld = new Set(
+    result.nodes
+      .filter((node) => !readable(node))
+      .map((node) => (node.component as Field).name),
+  );
   return {
     schema,
     // A pruned field has no value; a hidden one has no node, so it has no value
     // the client can see either.
     state: Object.fromEntries(
-      Object.entries(result.state).filter(([path]) => visible.has(path)),
+      Object.entries(result.state).filter(
+        ([path]) => visible.has(path) && !withheld.has(path),
+      ),
     ),
     errors: Object.fromEntries(
       Object.entries(result.errors).filter(([path]) => visible.has(path)),
@@ -114,6 +123,7 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     ...(resolved.helperText === undefined ? {} : { helperText: resolved.helperText }),
     ...(resolved.disabled ? { disabled: true } : {}),
     ...(resolved.readOnly ? { readOnly: true } : {}),
+    ...(resolved.content === undefined ? {} : { content: resolved.content }),
     ...(resolved.required === true ? { required: true } : {}),
     ...(component instanceof Field && component.state.inlineLabel
       ? { inlineLabel: true as const }
@@ -131,6 +141,22 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     ...(Object.keys(extras).length === 0 ? {} : { props: extras }),
     ...(children.length === 0 ? {} : { children }),
   };
+}
+
+/**
+ * Paths whose value the client is given.
+ *
+ * A field it may not set has no use for the value and no business holding it:
+ * "hidden" names where a thing is drawn, never who may read it, and a value in
+ * `data-payload` is a value in the page source. Nothing is lost by keeping it
+ * back — the server re-derives it from the row on every pass.
+ *
+ * Not the same test as `acceptsClientState`: a disabled field also refuses
+ * incoming state, and its value is exactly what the reader has to keep seeing.
+ */
+function readable(resolved: ResolvedNode): boolean {
+  const field = resolved.component;
+  return !(field instanceof Field) || field.acceptsClient;
 }
 
 function paths(schema: SchemaNode): string[] {

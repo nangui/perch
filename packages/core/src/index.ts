@@ -121,6 +121,12 @@ export { Checkbox } from "./fields/checkbox.js";
 export type { ToggleState } from "./fields/toggle.js";
 export { Toggle } from "./fields/toggle.js";
 
+export type { HiddenState } from "./fields/hidden.js";
+export { Hidden } from "./fields/hidden.js";
+
+export type { PlaceholderState } from "./fields/placeholder.js";
+export { Placeholder } from "./fields/placeholder.js";
+
 export type { RadioState } from "./fields/radio.js";
 export { Radio } from "./fields/radio.js";
 

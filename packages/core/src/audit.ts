@@ -12,6 +12,8 @@
  * of somebody's own form, and the only useful answer is which line.
  */
 import type { Component } from "./component.js";
+import { Field } from "./field.js";
+import { Hidden } from "./fields/hidden.js";
 import { Radio } from "./fields/radio.js";
 import { Select } from "./fields/select.js";
 import { SelectFilter } from "./filter.js";
@@ -27,7 +29,38 @@ export interface Complaint {
 export function auditSchema(root: Component): readonly Complaint[] {
   const complaints: Complaint[] = [];
   walk(root, complaints);
+
+  // A hook may `set()` any path at all, and what it sets is opaque from here.
+  // So the hidden-field complaint below is only made where nothing in the form
+  // could possibly be filling one: certain, rather than probable. A boot that
+  // stops a working form is worse than one that misses a broken one.
+  if (!anyHook(root)) {
+    for (const field of hiddenFields(root)) {
+      if (field.state.defaultValue !== undefined) continue;
+      complaints.push({
+        field: field.name === "" ? "an unnamed Hidden" : field.name,
+        problem:
+          "has no default, and a hidden field takes its value from the row or " +
+          "from one — so a create would write nothing for it",
+      });
+    }
+  }
+
   return complaints;
+}
+
+function anyHook(component: Component): boolean {
+  if (component instanceof Field && component.state.afterStateUpdated !== undefined) {
+    return true;
+  }
+  return component.children.some(anyHook);
+}
+
+function hiddenFields(component: Component): readonly Hidden[] {
+  return [
+    ...(component instanceof Hidden ? [component] : []),
+    ...component.children.flatMap(hiddenFields),
+  ];
 }
 
 function walk(component: Component, into: Complaint[]): void {

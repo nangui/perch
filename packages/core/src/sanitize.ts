@@ -19,6 +19,8 @@ export type RejectionReason =
   | "invisible"
   | "disabled"
   | "read-only"
+  /** A field of a kind no client ever sets, whatever its flags resolved to. */
+  | "server-owned"
   /** `wrong-shape`, `undeclared-value` — what the field itself turned away. */
   | ValueRefusal;
 
@@ -47,6 +49,12 @@ export function sanitize(previous: ResolveResult, incoming: FormState): Sanitize
     const node = fields.get(path);
     if (node === undefined) {
       rejected.push({ path, reason: "unknown-path" });
+      continue;
+    }
+    // Asked of the kind of field before its flags, because a resolvable flag
+    // is a lock whose key the form holds.
+    if (!(node.component as Field).acceptsClient) {
+      rejected.push({ path, reason: "server-owned" });
       continue;
     }
     if (!acceptsClientState(node)) {
