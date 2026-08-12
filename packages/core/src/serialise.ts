@@ -50,6 +50,7 @@ export interface SchemaPayload {
 const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   TextInput: ["flavour", "minLength", "maxLength", "step"],
   Select: ["searchable", "multiple", "preload", "optionsLimit"],
+  Checkbox: ["inline"],
   Section: ["columns", "collapsible", "collapsed", "icon"],
   Grid: ["columns"],
   Schema: ["columns"],

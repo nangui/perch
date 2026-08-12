@@ -499,6 +499,82 @@
   color: var(--perch-accent);
 }
 
+/* A real input, kept in the accessibility tree and driven by the platform.
+   Taken out of sight rather than out of the layout: `display: none` would
+   remove it from the tab order along with everything else. */
+.perch-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  min-height: var(--perch-control-height);
+  position: relative;
+}
+
+.perch-checkbox__input {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.perch-checkbox__input:disabled {
+  cursor: not-allowed;
+}
+
+.perch-checkbox__box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius-sm);
+  background: var(--perch-surface);
+  color: var(--perch-content-inverse);
+  font-size: var(--perch-text-sm);
+  line-height: 1;
+}
+
+.perch-checkbox__input:checked + .perch-checkbox__box {
+  border-color: var(--perch-accent);
+  background: var(--perch-accent);
+}
+
+/* The ring follows the invisible input, so the focus lands where the reader
+   sees the box rather than nowhere at all. */
+.perch-checkbox__input:focus-visible + .perch-checkbox__box {
+  outline: 2px solid var(--perch-accent);
+  outline-offset: 2px;
+}
+
+.perch-checkbox__input:disabled + .perch-checkbox__box {
+  border-color: var(--perch-border);
+  background: var(--perch-surface-muted);
+  color: var(--perch-content-muted);
+}
+
+/* \`.inline()\` puts the label beside the box, which is how a checkbox reads:
+   the label is the thing being agreed to, not a heading over it. The help line
+   below stays where it is, so nothing under the field moves. */
+.perch-field[data-inline="true"] {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: var(--perch-space-4);
+}
+
+.perch-field[data-inline="true"] .perch-field__label {
+  order: 2;
+  margin: 0;
+}
+
+.perch-field[data-inline="true"] .perch-field__help {
+  grid-column: 1 / -1;
+}
+
 .perch-popover {
   overflow: hidden;
   border: 1px solid var(--perch-border-strong);

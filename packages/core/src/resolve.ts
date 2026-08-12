@@ -372,7 +372,7 @@ async function validate(
     const current = state[path];
     const ctx = context(state, options, new Set());
 
-    if (node.required === true && isBlank(current)) {
+    if (node.required === true && !field.satisfiesRequired(current)) {
       errors[path] = "This field is required.";
       continue;
     }
@@ -437,11 +437,4 @@ function flattenResolved(node: ResolvedNode): readonly ResolvedNode[] {
 function intersects(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
   for (const item of b) if (a.has(item)) return true;
   return false;
-}
-
-function isBlank(value: unknown): boolean {
-  // An empty array is a selection nobody made. Without this a required
-  // multiple select passes validation while nothing at all is chosen.
-  if (Array.isArray(value)) return value.length === 0;
-  return value === undefined || value === null || value === "";
 }

@@ -11,6 +11,7 @@
  * from the incoming state would be asking the attacker to mark their own work.
  */
 import { acceptsClientState, Field } from "./field.js";
+import { Checkbox } from "./fields/checkbox.js";
 import { Select } from "./fields/select.js";
 import type { FormState, ResolvedNode, ResolveResult } from "./resolve.js";
 
@@ -78,6 +79,9 @@ function refuse(node: ResolvedNode, value: unknown): RejectionReason | undefined
   // A select is the only field that holds several so far. A `Repeater` or a
   // `KeyValue` holds a shape this would refuse, and each will have to say so
   // here before it can be written to.
+  //
+  // Two `instanceof` now. A third means this belongs on the field itself,
+  // asked rather than decided from outside.
   const list = field instanceof Select && field.state.multiple;
 
   // Clearing a field is a choice like any other, and the empty forms are the
@@ -85,6 +89,11 @@ function refuse(node: ResolvedNode, value: unknown): RejectionReason | undefined
   if (isEmpty(value, list)) return undefined;
 
   if (Array.isArray(value) !== list) return "wrong-shape";
+
+  // A box is ticked or it is not. `"yes"` passes for a scalar and reaches a
+  // boolean column as text.
+  if (field instanceof Checkbox && typeof value !== "boolean") return "wrong-shape";
+
   const held = list ? (value as readonly unknown[]) : [value];
   if (held.some((one) => !isScalar(one))) return "wrong-shape";
 

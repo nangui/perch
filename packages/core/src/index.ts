@@ -115,6 +115,9 @@ export type {
 } from "./field.js";
 export { baseFieldState, Field, isDehydrated } from "./field.js";
 
+export type { CheckboxState } from "./fields/checkbox.js";
+export { Checkbox } from "./fields/checkbox.js";
+
 export type { TextInputState } from "./fields/text-input.js";
 export { TextInput } from "./fields/text-input.js";
 

@@ -28,6 +28,14 @@ export interface FieldShellProps {
   readonly status: FieldStatus;
   readonly required?: boolean;
   /**
+   * The label beside the control rather than above it.
+   *
+   * For the fields where the label reads as part of the control — a checkbox
+   * and the thing it agrees to — and never a way out of the reserved help
+   * line: the row moves, the line under it does not.
+   */
+  readonly inline?: boolean;
+  /**
    * Receives the ids to bind. The control must spread `controlProps` onto its
    * focusable element, or the label and the error are announced to nobody.
    */
@@ -49,6 +57,7 @@ export function FieldShell({
   help,
   status,
   required = false,
+  inline = false,
   children,
 }: FieldShellProps): ReactNode {
   const controlId = useId();
@@ -56,7 +65,7 @@ export function FieldShell({
   const invalid = status.error !== undefined;
 
   return (
-    <div className="perch-field">
+    <div className="perch-field" {...(inline ? { "data-inline": "true" } : {})}>
       <div className="perch-field__label">
         <label className="perch-field__label-text" htmlFor={controlId}>
           {label}

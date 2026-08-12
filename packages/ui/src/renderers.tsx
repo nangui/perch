@@ -11,6 +11,7 @@ import type { SchemaNode } from "@perchjs/core";
 import { FieldShell } from "./FieldShell.js";
 import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
+import { Checkbox } from "./fields/Checkbox.js";
 import { MultiSelect } from "./fields/MultiSelect.js";
 import { SearchableSelect } from "./fields/SearchableSelect.js";
 import { TextInput } from "./fields/TextInput.js";
@@ -205,6 +206,40 @@ function SelectRenderer({
   );
 }
 
+function CheckboxRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+
+  return (
+    <FieldShell
+      label={node.label ?? node.path ?? ""}
+      status={status}
+      required={node.required === true}
+      inline={node.props?.["inline"] === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <Checkbox
+          // Anything but `true` is unticked. A column that has never been
+          // written holds null, and a box cannot be half on.
+          checked={value === true}
+          onCheckedChange={(next) => {
+            if (node.path !== undefined) onChange(node.path, next);
+          }}
+          status={status}
+          binding={binding}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
 /**
  * Called once at module load. A plugin adds its own with the same function
  * (extension point E3) — there is no privileged path for the built-ins.
@@ -215,4 +250,5 @@ export function registerBuiltInComponents(): void {
   registerComponent("Grid", LayoutRenderer);
   registerComponent("TextInput", TextInputRenderer);
   registerComponent("Select", SelectRenderer);
+  registerComponent("Checkbox", CheckboxRenderer);
 }

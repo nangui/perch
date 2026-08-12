@@ -62,6 +62,18 @@ export abstract class Field extends Component {
     return this.state.name ?? "";
   }
 
+  /**
+   * Whether this value counts as filled in, for the `required` rule alone.
+   *
+   * Asked of the field rather than decided centrally, because the answer is
+   * not the same everywhere: `false` is a value a numeric field holds and a
+   * checkbox does not, and `[]` is a selection nobody made.
+   */
+  satisfiesRequired(value: unknown): boolean {
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== undefined && value !== null && value !== "";
+  }
+
   required(value: Resolvable<boolean> = true): this {
     return this.with({ required: value });
   }
