@@ -6,7 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { Component } from "./component.js";
 import type { ResolvedFlags } from "./field.js";
 import { acceptsClientState, isDehydrated } from "./field.js";
-import { Select, normaliseOptions } from "./fields/select.js";
+import { Select } from "./fields/select.js";
+import { normaliseOptions } from "./option.js";
 import { TextInput } from "./fields/text-input.js";
 
 afterEach(() => {

@@ -8,8 +8,8 @@
  * hold when it was made mandatory.
  */
 import { configured } from "../component.js";
-import type { FieldState } from "../field.js";
-import { baseFieldState, Field } from "../field.js";
+import type { FieldState, ValueRefusal } from "../field.js";
+import { baseFieldState, Field, isUnset } from "../field.js";
 
 export interface CheckboxState extends FieldState {
   /** Beside its label rather than under it, for a short one. */
@@ -39,6 +39,12 @@ export class Checkbox extends Field {
 
   inline(value = true): this {
     return this.with({ inline: value });
+  }
+
+  /** Ticked or not. `"yes"` passes for a scalar and lands in a boolean column. */
+  override admits(value: unknown): ValueRefusal | undefined {
+    if (isUnset(value)) return undefined;
+    return typeof value === "boolean" ? undefined : "wrong-shape";
   }
 
   /** Unchecked is a value, and not one that satisfies being required. */

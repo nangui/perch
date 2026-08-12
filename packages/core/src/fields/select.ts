@@ -4,17 +4,9 @@
  */
 import type { Resolvable } from "../component.js";
 import { configured } from "../component.js";
-import type { FieldState } from "../field.js";
-import { baseFieldState, Field } from "../field.js";
-
-export interface Option {
-  readonly value: unknown;
-  readonly label: string;
-  readonly disabled?: boolean;
-}
-
-/** `{ draft: "Draft" }` is the shorthand; `Option[]` is the full form. */
-export type OptionsInput = readonly Option[] | Readonly<Record<string, string>>;
+import type { FieldState, ValueRefusal } from "../field.js";
+import type { Option, OptionsInput } from "../option.js";
+import { baseFieldState, Field, isScalarValue, isUnset } from "../field.js";
 
 export interface SelectState extends FieldState {
   readonly options?: Resolvable<OptionsInput>;
@@ -87,6 +79,38 @@ export class Select extends Field {
     return this.with({ preload: value });
   }
 
+  /**
+   * The closed set closes here.
+   *
+   * A relation is exempt: its options are a window onto a table — fifty rows of
+   * fifty thousand — so judging against them would refuse the very value being
+   * edited. Its closed set is the table, and the foreign key is what closes it.
+   *
+   * Nothing declared means nothing is legal, not everything: a select with
+   * neither options nor a relation is a mistake, and being lenient about it
+   * would make the mistake into a way in.
+   */
+  override admits(
+    value: unknown,
+    options: readonly Option[] | undefined,
+  ): ValueRefusal | undefined {
+    const list = this.state.multiple;
+    if (isUnset(value)) return undefined;
+    if (Array.isArray(value) !== list) return "wrong-shape";
+
+    const held = list ? (value as readonly unknown[]) : [value];
+    if (held.some((one) => !isScalarValue(one))) return "wrong-shape";
+    if (this.state.relationship !== undefined) return undefined;
+
+    // Matched as text, because a form returns `"2"` for a key declared as `2`.
+    //
+    // An emptied multiple select arrives as `[]` and passes here, because
+    // every member of nothing was declared. Said out loud rather than left to
+    // be rediscovered: it is a clearing, and clearing is always allowed.
+    const names = new Set((options ?? []).map((option) => String(option.value)));
+    return held.every((one) => names.has(String(one))) ? undefined : "undeclared-value";
+  }
+
   optionsLimit(value: number): this {
     return this.with({ optionsLimit: value });
   }
@@ -102,13 +126,5 @@ function refuseBoth(
   throw new Error(
     `\`${field}\` is a multiple select on the relation \`${relation}\`, and ` +
       `writing several rows of a relation is not supported yet`,
-  );
-}
-
-/** Both accepted shapes to one, so nothing downstream knows the shorthand exists. */
-export function normaliseOptions(input: OptionsInput): readonly Option[] {
-  if (Array.isArray(input)) return input as readonly Option[];
-  return Object.entries(input as Readonly<Record<string, string>>).map(
-    ([value, label]) => ({ value, label }),
   );
 }

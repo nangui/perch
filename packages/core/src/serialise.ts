@@ -13,7 +13,7 @@
 import type { ColumnSpan } from "./component.js";
 import type { LiveConfig } from "./field.js";
 import { Field } from "./field.js";
-import type { Option } from "./fields/select.js";
+import type { Option } from "./option.js";
 import type { FieldErrors, ResolvedNode, ResolveResult } from "./resolve.js";
 
 export interface SchemaNode {

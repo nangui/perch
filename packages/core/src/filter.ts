@@ -13,8 +13,8 @@
  * exist.
  */
 import type { Clause, ClauseOperator } from "./data-adapter.js";
-import type { Option, OptionsInput } from "./fields/select.js";
-import { normaliseOptions } from "./fields/select.js";
+import type { Option, OptionsInput } from "./option.js";
+import { normaliseOptions } from "./option.js";
 
 export interface FilterState {
   /** What a client names it by. Unique within a table. */

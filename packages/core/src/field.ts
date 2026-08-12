@@ -5,6 +5,7 @@
  * resolution cycle, and the domain depends on nothing until then.
  */
 import type { ComponentState, Resolvable, ResolverContext } from "./component.js";
+import type { Option } from "./option.js";
 import { Component } from "./component.js";
 
 /** 400 ms on text, 0 on a select, a toggle or a date. */
@@ -46,6 +47,20 @@ export interface FieldState extends ComponentState {
   readonly rules: readonly ValidationRule[];
 }
 
+/** Why a value was turned away, as opposed to the path that carried it. */
+export type ValueRefusal = "wrong-shape" | "undeclared-value";
+
+/** Nothing at all. A field that holds several says so for itself. */
+export function isUnset(value: unknown): boolean {
+  return value === undefined || value === null || value === "";
+}
+
+export function isScalarValue(value: unknown): boolean {
+  return (
+    typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+  );
+}
+
 export abstract class Field extends Component {
   declare readonly state: FieldState;
 
@@ -60,6 +75,31 @@ export abstract class Field extends Component {
 
   override get name(): string {
     return this.state.name ?? "";
+  }
+
+  /**
+   * Whether this field can hold this value at all.
+   *
+   * Asked at the trust boundary, of the field, because the answer is the
+   * field's own: a checkbox holds two values, a select holds the ones it
+   * declared, and text holds anything that is text. Deciding it from outside
+   * meant a chain of `instanceof` that every new field type had to be added to
+   * — and that nothing would fail to remind anyone about.
+   *
+   * Clearing is always allowed. It is the one thing no declaration names.
+   *
+   * `options` are the resolved ones, which is why they arrive rather than
+   * being read off the state: a list can come from a resolver.
+   */
+  admits(
+    value: unknown,
+    options: readonly Option[] | undefined,
+  ): ValueRefusal | undefined {
+    // Named and unread: the signature belongs to the fields that do read it,
+    // and text is anything that is text.
+    void options;
+    if (isUnset(value)) return undefined;
+    return isScalarValue(value) ? undefined : "wrong-shape";
   }
 
   /**

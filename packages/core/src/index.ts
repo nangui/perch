@@ -121,8 +121,10 @@ export { Checkbox } from "./fields/checkbox.js";
 export type { TextInputState } from "./fields/text-input.js";
 export { TextInput } from "./fields/text-input.js";
 
-export type { Option, OptionsInput, SelectState } from "./fields/select.js";
-export { normaliseOptions, Select } from "./fields/select.js";
+export type { Option, OptionsInput } from "./option.js";
+export { normaliseOptions } from "./option.js";
+export type { SelectState } from "./fields/select.js";
+export { Select } from "./fields/select.js";
 
 // The resolution cycle.
 export type {

@@ -9,8 +9,9 @@ import type { Component, Operation, Resolvable, ResolverContext } from "./compon
 import { isResolver } from "./component.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
-import type { Option, OptionsInput } from "./fields/select.js";
-import { normaliseOptions, Select } from "./fields/select.js";
+import { Select } from "./fields/select.js";
+import type { Option, OptionsInput } from "./option.js";
+import { normaliseOptions } from "./option.js";
 
 export type FormState = Readonly<Record<string, unknown>>;
 export type FieldErrors = Readonly<Record<string, string>>;
