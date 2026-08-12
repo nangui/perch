@@ -11,10 +11,7 @@ import { configured } from "../component.js";
 import type { FieldState, ValueRefusal } from "../field.js";
 import { baseFieldState, Field, isUnset } from "../field.js";
 
-export interface CheckboxState extends FieldState {
-  /** Beside its label rather than under it, for a short one. */
-  readonly inline: boolean;
-}
+export type CheckboxState = FieldState;
 
 export class Checkbox extends Field {
   declare readonly state: CheckboxState;
@@ -33,12 +30,7 @@ export class Checkbox extends Field {
   }
 
   static make(name: string): Checkbox {
-    const state: CheckboxState = { ...baseFieldState(name), inline: false };
-    return configured(new Checkbox(state));
-  }
-
-  inline(value = true): this {
-    return this.with({ inline: value });
+    return configured(new Checkbox(baseFieldState(name)));
   }
 
   /** Ticked or not. `"yes"` passes for a scalar and lands in a boolean column. */

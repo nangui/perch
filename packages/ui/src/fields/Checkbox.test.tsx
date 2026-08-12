@@ -24,7 +24,6 @@ function payload(
           type: "Checkbox",
           path: "accepted",
           label: "Terms",
-          props: { inline: false },
           ...extra,
         },
       ],
@@ -128,7 +127,7 @@ describe("a value that is not a boolean at all", () => {
   });
 });
 
-describe("`.inline()`", () => {
+describe("`.inlineLabel()`", () => {
   it("marks the field, which is what the layout hangs off", () => {
     resetRegistry();
     registerBuiltInComponents();
@@ -144,7 +143,7 @@ describe("`.inline()`", () => {
                 type: "Checkbox",
                 path: "accepted",
                 label: "Terms",
-                props: { inline: true },
+                inlineLabel: true,
               },
             ],
           },

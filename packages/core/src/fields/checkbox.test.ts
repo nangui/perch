@@ -62,14 +62,27 @@ describe("what a box may hold", () => {
 });
 
 describe("on the wire", () => {
-  it("carries whether it sits beside its label", async () => {
+  it("carries whether its label sits beside it", async () => {
+    // Named for what it does. A radio group lays its *choices* out in a row,
+    // which is a different decision, and one word for both is what Filament
+    // spent years untangling.
     const result = await resolveSchema(
-      Schema.make([Checkbox.make("accepted").inline()]),
+      Schema.make([Checkbox.make("accepted").inlineLabel()]),
       {},
       { operation: "create" },
     );
 
-    expect(serialise(result).schema.children?.[0]?.props).toEqual({ inline: true });
+    expect(serialise(result).schema.children?.[0]?.inlineLabel).toBe(true);
+  });
+
+  it("says nothing about it when it was not asked for", async () => {
+    const result = await resolveSchema(
+      Schema.make([Checkbox.make("accepted")]),
+      {},
+      { operation: "create" },
+    );
+
+    expect(serialise(result).schema.children?.[0]).not.toHaveProperty("inlineLabel");
   });
 
   it("commits at once, because ticking is a decision and not typing", () => {

@@ -5,7 +5,7 @@
  * resolution cycle, and the domain depends on nothing until then.
  */
 import type { ComponentState, Resolvable, ResolverContext } from "./component.js";
-import type { Option } from "./option.js";
+import type { Option, OptionsInput } from "./option.js";
 import { Component } from "./component.js";
 
 /** 400 ms on text, 0 on a select, a toggle or a date. */
@@ -45,6 +45,15 @@ export interface FieldState extends ComponentState {
   readonly dehydrateStateUsing?: StateTransform;
   readonly formatStateUsing?: StateTransform;
   readonly rules: readonly ValidationRule[];
+  /**
+   * The label beside the control rather than above it.
+   *
+   * Its own name because it is its own decision: Filament v4 split this from
+   * laying a field's *choices* out in a row after years of one `inline()`
+   * meaning both, and a reader of this API should never have to remember which
+   * field they are on to know what they asked for.
+   */
+  readonly inlineLabel: boolean;
 }
 
 /** Why a value was turned away, as opposed to the path that carried it. */
@@ -116,6 +125,18 @@ export abstract class Field extends Component {
 
   override get name(): string {
     return this.state.name ?? "";
+  }
+
+  /**
+   * The list this field offers, if it offers one.
+   *
+   * Asked of the field for the same reason `admits` is: the cycle resolved
+   * options for one class by name, so a second field declaring `.options()`
+   * had them silently never resolved — the list crossed nothing, the boundary
+   * saw no declaration, and every value a reader picked was refused.
+   */
+  get declaredOptions(): Resolvable<OptionsInput> | undefined {
+    return undefined;
   }
 
   /**
@@ -216,6 +237,11 @@ export abstract class Field extends Component {
     return this.with({ rules: [...this.state.rules, rule] });
   }
 
+  /** The label beside the control. Never about how choices are laid out. */
+  inlineLabel(value = true): this {
+    return this.with({ inlineLabel: value });
+  }
+
   rules(rules: readonly ValidationRule[]): this {
     return this.with({ rules: [...this.state.rules, ...rules] });
   }
@@ -257,5 +283,5 @@ function isBlank(value: unknown): boolean {
 }
 
 export function baseFieldState(name: string): FieldState {
-  return { name, children: [], dehydrated: true, rules: [] };
+  return { name, children: [], dehydrated: true, rules: [], inlineLabel: false };
 }

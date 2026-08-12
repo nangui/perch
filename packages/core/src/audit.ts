@@ -12,6 +12,7 @@
  * of somebody's own form, and the only useful answer is which line.
  */
 import type { Component } from "./component.js";
+import { Radio } from "./fields/radio.js";
 import { Select } from "./fields/select.js";
 import { SelectFilter } from "./filter.js";
 import type { Table } from "./table.js";
@@ -31,6 +32,14 @@ export function auditSchema(root: Component): readonly Complaint[] {
 
 function walk(component: Component, into: Complaint[]): void {
   if (component instanceof Select) inspectSelect(component, into);
+  // Every choice is on the page, so there is no relation and no window to
+  // excuse an empty list: the boundary would refuse every value a reader picks.
+  if (component instanceof Radio && component.state.options === undefined) {
+    into.push({
+      field: component.name === "" ? "an unnamed Radio" : component.name,
+      problem: "has no options, so it offers nothing and would refuse anything",
+    });
+  }
   for (const child of component.children) walk(child, into);
 }
 

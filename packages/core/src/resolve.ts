@@ -320,13 +320,9 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       : false;
 
   let options: readonly Option[] | undefined;
-  if (component instanceof Select && component.state.options !== undefined) {
-    const raw = await value<OptionsInput | undefined>(
-      component.state.options,
-      rc,
-      undefined,
-      count,
-    );
+  const declared = component instanceof Field ? component.declaredOptions : undefined;
+  if (declared !== undefined) {
+    const raw = await value<OptionsInput | undefined>(declared, rc, undefined, count);
     options = raw === undefined ? undefined : normaliseOptions(raw);
   } else if (
     component instanceof Select &&

@@ -46,6 +46,10 @@ export class Select extends Field {
     return configured(new Select(state));
   }
 
+  override get declaredOptions(): Resolvable<OptionsInput> | undefined {
+    return this.state.options;
+  }
+
   options(value: Resolvable<OptionsInput>): this {
     return this.with({ options: value });
   }

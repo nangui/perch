@@ -28,6 +28,7 @@ export interface SchemaNode {
   readonly disabled?: boolean;
   readonly readOnly?: boolean;
   readonly required?: boolean;
+  readonly inlineLabel?: true;
   /**
    * Absent means the field never triggers a round trip. Present, it carries the
    * debounce set per field type — the client cannot invent it.
@@ -50,7 +51,7 @@ export interface SchemaPayload {
 const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   TextInput: ["flavour", "minLength", "maxLength", "step"],
   Select: ["searchable", "multiple", "preload", "optionsLimit"],
-  Checkbox: ["inline"],
+  Radio: ["inline"],
   Toggle: ["onIcon", "offIcon", "onColor"],
   Textarea: ["rows", "autosize", "maxLength"],
   Section: ["columns", "collapsible", "collapsed", "icon"],
@@ -114,6 +115,9 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     ...(resolved.disabled ? { disabled: true } : {}),
     ...(resolved.readOnly ? { readOnly: true } : {}),
     ...(resolved.required === true ? { required: true } : {}),
+    ...(component instanceof Field && component.state.inlineLabel
+      ? { inlineLabel: true as const }
+      : {}),
     ...(component instanceof Field && component.state.live !== undefined
       ? { live: component.state.live }
       : {}),

@@ -12,6 +12,7 @@ import { FieldShell } from "./FieldShell.js";
 import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
+import { Radio } from "./fields/Radio.js";
 import { Textarea } from "./fields/Textarea.js";
 import { Toggle } from "./fields/Toggle.js";
 import { MultiSelect } from "./fields/MultiSelect.js";
@@ -208,6 +209,47 @@ function SelectRenderer({
   );
 }
 
+function RadioRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const label = node.label ?? node.path ?? "";
+  const options = (node.options ?? [])
+    .map((option) => ({ value: scalar(option.value), label: option.label }))
+    .filter(
+      (option): option is { value: string; label: string } => option.value !== null,
+    );
+
+  return (
+    <FieldShell
+      label={label}
+      status={status}
+      required={node.required === true}
+      inline={node.inlineLabel === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <Radio
+          value={scalar(value)}
+          onValueChange={(next) => {
+            if (node.path !== undefined) onChange(node.path, next);
+          }}
+          options={options}
+          status={status}
+          binding={binding}
+          label={label}
+          inline={node.props?.["inline"] === true}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
 function CheckboxRenderer({
   node,
   value,
@@ -223,7 +265,7 @@ function CheckboxRenderer({
       label={node.label ?? node.path ?? ""}
       status={status}
       required={node.required === true}
-      inline={node.props?.["inline"] === true}
+      inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
     >
       {(binding) => (
@@ -324,6 +366,7 @@ export function registerBuiltInComponents(): void {
   registerComponent("TextInput", TextInputRenderer);
   registerComponent("Select", SelectRenderer);
   registerComponent("Checkbox", CheckboxRenderer);
+  registerComponent("Radio", RadioRenderer);
   registerComponent("Toggle", ToggleRenderer);
   registerComponent("Textarea", TextareaRenderer);
 }
