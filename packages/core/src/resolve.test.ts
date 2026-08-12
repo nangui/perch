@@ -281,3 +281,31 @@ describe("a resolver may not write", () => {
     await expect(resolveSchema(form, {}, CREATE)).rejects.toThrow(/cannot set state/);
   });
 });
+
+describe("what counts as blank", () => {
+  it("treats an empty selection as nothing chosen", async () => {
+    // Without this a required multiple select passes validation while the
+    // reader has picked nothing at all.
+    const schema = Schema.make([
+      Select.make("tags").options({ a: "Alpha" }).multiple().required(),
+    ]);
+
+    const result = await resolveSchema(schema, { tags: [] }, { operation: "create" });
+
+    expect(result.errors["tags"]).toBe("This field is required.");
+  });
+
+  it("takes one choice as a choice", async () => {
+    const schema = Schema.make([
+      Select.make("tags").options({ a: "Alpha" }).multiple().required(),
+    ]);
+
+    const result = await resolveSchema(
+      schema,
+      { tags: ["a"] },
+      { operation: "create" },
+    );
+
+    expect(result.errors["tags"]).toBeUndefined();
+  });
+});

@@ -60,6 +60,7 @@ export class Select extends Field {
 
   /** Loads the labels, searches them, persists the foreign key. */
   relationship(name: string, labelField = "name"): this {
+    refuseBoth(this.state.multiple, name, this.name);
     return this.with({ relationship: { name, labelField } });
   }
 
@@ -68,7 +69,16 @@ export class Select extends Field {
     return this.with({ searchable: value });
   }
 
+  /**
+   * Several values rather than one. The state becomes an array.
+   *
+   * Not on a relationship yet: choosing several rows is a write to a
+   * many-to-many table, and nothing takes that path so far. Refused out loud
+   * rather than accepted and quietly persisted as one value — a control that
+   * lets you pick three and saves one is worse than a control that refuses.
+   */
   multiple(value = true): this {
+    if (value) refuseBoth(true, this.state.relationship?.name, this.name);
     return this.with({ multiple: value });
   }
 
@@ -80,6 +90,19 @@ export class Select extends Field {
   optionsLimit(value: number): this {
     return this.with({ optionsLimit: value });
   }
+}
+
+/** Declared in either order; refused the same way. */
+function refuseBoth(
+  multiple: boolean,
+  relation: string | undefined,
+  field: string,
+): void {
+  if (!multiple || relation === undefined) return;
+  throw new Error(
+    `\`${field}\` is a multiple select on the relation \`${relation}\`, and ` +
+      `writing several rows of a relation is not supported yet`,
+  );
 }
 
 /** Both accepted shapes to one, so nothing downstream knows the shorthand exists. */

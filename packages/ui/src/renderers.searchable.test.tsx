@@ -24,6 +24,35 @@ beforeAll(() => {
 
 afterEach(cleanup);
 
+function multiplePayload(value: unknown): SchemaPayload {
+  return {
+    schema: {
+      id: "0",
+      type: "Schema",
+      children: [
+        {
+          id: "tags",
+          type: "Select",
+          path: "tags",
+          label: "Tags",
+          options: [
+            { value: "a", label: "Alpha" },
+            { value: "b", label: "Beta" },
+          ],
+          props: {
+            searchable: false,
+            multiple: true,
+            preload: false,
+            optionsLimit: 50,
+          },
+        },
+      ],
+    },
+    state: { tags: value },
+    errors: {},
+  };
+}
+
 function payload(searchable: boolean): SchemaPayload {
   return {
     schema: {
@@ -80,5 +109,43 @@ describe("a searchable Select the host cannot ask about", () => {
     draw(true, false);
 
     expect(screen.queryByRole("combobox", { name: "Search Author" })).toBeNull();
+  });
+});
+
+describe("a Select the server declared multiple", () => {
+  function drawMultiple(value: unknown): void {
+    resetRegistry();
+    registerBuiltInComponents();
+    render(<SchemaRenderer payload={multiplePayload(value)} onChange={vi.fn()} />);
+  }
+
+  it("gets the control that takes more than one", () => {
+    drawMultiple([]);
+
+    fireEvent.click(screen.getByRole("button"));
+
+    expect(screen.getByRole("listbox").getAttribute("aria-multiselectable")).toBe(
+      "true",
+    );
+  });
+
+  it("reads a list as the selection it is", () => {
+    drawMultiple(["a", "b"]);
+
+    expect(screen.getByRole("button").textContent).toContain("2 selected");
+  });
+
+  it("reads a lone scalar as a selection of one", () => {
+    // A field switched to multiple after a row was written still holds what it
+    // held. Dropping it would lose a value on the next save, silently.
+    drawMultiple("b");
+
+    expect(screen.getByRole("button").textContent).toContain("Beta");
+  });
+
+  it("reads nothing at all as nothing chosen", () => {
+    drawMultiple(undefined);
+
+    expect(screen.getByRole("button").textContent).toContain("Select…");
   });
 });

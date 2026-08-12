@@ -11,6 +11,7 @@ import type { SchemaNode } from "@perchjs/core";
 import { FieldShell } from "./FieldShell.js";
 import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
+import { MultiSelect } from "./fields/MultiSelect.js";
 import { SearchableSelect } from "./fields/SearchableSelect.js";
 import { TextInput } from "./fields/TextInput.js";
 import type { TextFlavour } from "./fields/TextInput.js";
@@ -36,6 +37,23 @@ function scalar(value: unknown): string | null {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   return null;
+}
+
+/**
+ * A multiple select holds a list.
+ *
+ * A scalar becomes a list of one rather than nothing: a field switched to
+ * multiple after a row was written holds what it held, and dropping it would
+ * lose a value on the next save without saying so.
+ */
+function list(value: unknown): readonly string[] {
+  if (Array.isArray(value)) {
+    return (value as readonly unknown[])
+      .map(scalar)
+      .filter((held): held is string => held !== null);
+  }
+  const only = scalar(value);
+  return only === null ? [] : [only];
 }
 
 /** `columns` reaches the CSS as a variable, so the grid stays in the stylesheet. */
@@ -129,6 +147,7 @@ function SelectRenderer({
   // A field the host cannot ask about is not searchable, whatever it declared:
   // a search box that answers nothing is worse than none.
   const searchable = node.props?.["searchable"] === true && searchOptions !== undefined;
+  const multiple = node.props?.["multiple"] === true;
 
   return (
     <FieldShell
@@ -138,7 +157,21 @@ function SelectRenderer({
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
     >
       {(binding) =>
-        searchable ? (
+        multiple ? (
+          <MultiSelect
+            value={list(value)}
+            onValueChange={(next) => {
+              if (path !== undefined) onChange(path, next);
+            }}
+            options={options}
+            status={status}
+            binding={binding}
+            label={label}
+            {...(node.placeholder === undefined
+              ? {}
+              : { placeholder: node.placeholder })}
+          />
+        ) : searchable ? (
           <SearchableSelect
             value={scalar(value)}
             onValueChange={(next) => {
