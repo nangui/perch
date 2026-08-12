@@ -112,7 +112,6 @@ class PostResource {
       TextInput.make("title"),
       Select.make("authorId").relationship("author", "name").searchable(),
       Select.make("quietId").relationship("author", "name"),
-      Select.make("staticId").options({ a: "A" }).searchable(),
       Select.make("lockedId").relationship("author", "name").searchable().disabled(),
       Select.make("hiddenId")
         .relationship("author", "name")
@@ -217,11 +216,10 @@ describe("what it refuses, in silence", () => {
     expect(answer.options).toEqual([]);
   });
 
-  it("a select with a static list, which has no relation to search", async () => {
-    const { answer } = await ask({ ...base, path: "staticId", term: "a" });
-
-    expect(answer.options).toEqual([]);
-  });
+  // A searchable select with no relationship is refused at boot now, so the
+  // route's own guard against one cannot be reached from a running panel. It
+  // stays because the route does not get to assume the audit ran; the case is
+  // covered where it is now reachable, in the audit's own tests.
 
   it("a field the form disabled", async () => {
     const { answer } = await ask({ ...base, path: "lockedId", term: "a" });
@@ -256,7 +254,7 @@ describe("what it refuses, in silence", () => {
 
   it("and never says which of those it was", async () => {
     const refusals = await Promise.all(
-      ["quietId", "staticId", "lockedId", "hiddenId", "nothing"].map((path) =>
+      ["quietId", "lockedId", "hiddenId", "nothing"].map((path) =>
         ask({ ...base, path, term: "a" }),
       ),
     );

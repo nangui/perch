@@ -10,8 +10,10 @@
  * request, because a builder shared between requests leaks one user's state into
  * another's.
  */
+import type { OnModuleInit } from "@nestjs/common";
 import { Inject, Injectable } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
+import { auditSchema, auditTable, describeComplaints } from "@perchjs/core";
 import type { PanelResource, ResourceMetadata } from "./resource.js";
 import { resourceMetadata } from "./resource.js";
 
@@ -28,7 +30,7 @@ export interface RegisteredResource {
 }
 
 @Injectable()
-export class ResourceRegistry {
+export class ResourceRegistry implements OnModuleInit {
   readonly #bySlug = new Map<
     string,
     { metadata: ResourceMetadata; type: ResourceClass }
@@ -68,6 +70,31 @@ export class ResourceRegistry {
       }
 
       this.#bySlug.set(metadata.slug, { metadata, type });
+    }
+  }
+
+  /**
+   * Every form is read once, here, and a form that cannot work stops the boot.
+   *
+   * Not in the constructor: the instances come from the container, and asking
+   * for them before it has finished building would depend on the order it
+   * happens to build providers in.
+   *
+   * Loud, and at boot, because these are lines of somebody own form rather
+   * than anything a client sent. A field that promises what it cannot do
+   * otherwise fails at the one moment nobody is watching for it — under a
+   * reader, in production, with no error at all.
+   */
+  onModuleInit(): void {
+    for (const { metadata, instance } of this.all()) {
+      const table = instance.table?.();
+      const complaints = [
+        ...auditSchema(instance.form()),
+        ...(table === undefined ? [] : auditTable(table)),
+      ];
+      if (complaints.length > 0) {
+        throw new Error(describeComplaints(`Resource "${metadata.slug}"`, complaints));
+      }
     }
   }
 

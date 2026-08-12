@@ -21,7 +21,9 @@ class PersonResource {
     return Schema.make([
       TextInput.make("name").required(),
       Select.make("countryId").options({ fr: "France" }).live(),
-      Select.make("cityId").visible(({ get }) => Boolean(get("countryId"))),
+      Select.make("cityId")
+        .options({ paris: "Paris" })
+        .visible(({ get }) => Boolean(get("countryId"))),
     ]);
   }
 }

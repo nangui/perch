@@ -7,7 +7,17 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Injectable, Module } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import { resolveSchema, Schema, Select, serialise, TextInput } from "@perchjs/core";
+import type { Table } from "@perchjs/core";
+import {
+  resolveSchema,
+  Schema,
+  Select,
+  SelectFilter,
+  serialise,
+  Table as TableBuilder,
+  TextColumn,
+  TextInput,
+} from "@perchjs/core";
 import { describe, expect, it } from "vitest";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
@@ -163,5 +173,64 @@ describe("refusing to boot", () => {
     }
 
     await expect(registry([Bare])).rejects.toThrow(/carries no @PanelResource/);
+  });
+});
+
+describe("a form that cannot work", () => {
+  @PanelResource({ model: "Post", slug: "broken" })
+  class BrokenResource {
+    form(): Schema {
+      return Schema.make([Select.make("status")]);
+    }
+  }
+
+  it("stops the boot rather than failing under a reader", async () => {
+    // Loud, and at boot: this is a line of somebody's own form, not anything a
+    // client sent, and the only useful answer is which line.
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [BrokenResource],
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (moduleRef) => await moduleRef.init()),
+    ).rejects.toThrow("`status` has neither options nor a relationship");
+  });
+});
+
+describe("a table that cannot work", () => {
+  @PanelResource({ model: "Post", slug: "broken-table" })
+  class BrokenTableResource {
+    form(): Schema {
+      return Schema.make([TextInput.make("title")]);
+    }
+    table(): Table {
+      // Declared and never given its choices: it would cross the wire, draw no
+      // control, and filter nothing, with nothing at all to say why.
+      return TableBuilder.make()
+        .columns([TextColumn.make("title")])
+        .filters([SelectFilter.make("status")]);
+    }
+  }
+
+  it("stops the boot as surely as a form does", async () => {
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [BrokenTableResource],
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (moduleRef) => await moduleRef.init()),
+    ).rejects.toThrow("`status` is a choice with nothing to choose from");
   });
 });
