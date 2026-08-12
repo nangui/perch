@@ -333,6 +333,14 @@
   resize: none;
 }
 
+/* The browser sizes it during layout, so there is no measuring on keystroke
+   and nothing to redo when a value arrives from the server. `rows` stays the
+   floor, and where this is unsupported it is the whole answer. */
+.perch-textarea__input[data-autosize="true"] {
+  field-sizing: content;
+  max-height: 60vh;
+}
+
 .perch-textarea__footer {
   display: flex;
   align-items: center;

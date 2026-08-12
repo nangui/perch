@@ -7,9 +7,28 @@
  * which is exactly what the source design shows.
  */
 import type { ChangeEvent, ReactNode } from "react";
+import { useMemo } from "react";
 import type { FieldStatus } from "../field-state.js";
 import { statusAttributes } from "../field-state.js";
 import type { ControlBinding } from "../FieldShell.js";
+
+/**
+ * Counted in graphemes, because that is what the person typing counts.
+ *
+ * The same count the server makes, written a second time on purpose: the
+ * renderer takes types from the domain and no behaviour, so a rule that has to
+ * hold on both sides is expressed on both sides. The two must not drift — a
+ * footer reading "7 / 3" over a field the server saves without complaint is
+ * worse than no footer.
+ */
+const GRAPHEMES = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+function count(text: string): number {
+  let seen = 0;
+  const walk = GRAPHEMES.segment(text)[Symbol.iterator]();
+  while (!walk.next().done) seen += 1;
+  return seen;
+}
 
 export interface TextareaProps {
   readonly value: string;
@@ -21,6 +40,16 @@ export interface TextareaProps {
    *  not a silent clip — the user must see what they wrote. */
   readonly maxLength?: number;
   readonly rows?: number;
+  /**
+   * Grows with what is in it.
+   *
+   * `field-sizing: content` rather than measuring `scrollHeight` on every
+   * keystroke: the browser does it during layout, so there is no reflow to
+   * schedule and nothing to get wrong when the value arrives from the server
+   * instead of from typing. Where it is unsupported the box keeps `rows`,
+   * which is the same box as not asking for this at all.
+   */
+  readonly autosize?: boolean;
 }
 
 export function Textarea({
@@ -31,8 +60,10 @@ export function Textarea({
   placeholder,
   maxLength,
   rows,
+  autosize = false,
 }: TextareaProps): ReactNode {
-  const over = maxLength !== undefined && value.length > maxLength;
+  const length = useMemo(() => count(value), [value]);
+  const over = maxLength !== undefined && length > maxLength;
   const readOnly = status.readOnly === true;
 
   return (
@@ -40,6 +71,7 @@ export function Textarea({
       <textarea
         {...binding}
         className="perch-textarea__input"
+        {...(autosize ? { "data-autosize": "true" } : {})}
         value={value}
         placeholder={placeholder}
         rows={rows}
@@ -70,7 +102,7 @@ export function Textarea({
             <span
               className={`perch-textarea__count${over ? " perch-textarea__count--error" : ""}`}
             >
-              {value.length} / {maxLength}
+              {length} / {maxLength}
             </span>
           )}
         </div>

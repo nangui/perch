@@ -12,6 +12,7 @@ import { FieldShell } from "./FieldShell.js";
 import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
+import { Textarea } from "./fields/Textarea.js";
 import { Toggle } from "./fields/Toggle.js";
 import { MultiSelect } from "./fields/MultiSelect.js";
 import { SearchableSelect } from "./fields/SearchableSelect.js";
@@ -274,6 +275,44 @@ function ToggleRenderer({
   );
 }
 
+function TextareaRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const props = node.props ?? {};
+  const rows = props["rows"];
+  const maxLength = props["maxLength"];
+
+  return (
+    <FieldShell
+      label={node.label ?? node.path ?? ""}
+      status={status}
+      required={node.required === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <Textarea
+          value={typeof value === "string" ? value : ""}
+          onChange={(next) => {
+            if (node.path !== undefined) onChange(node.path, next);
+          }}
+          status={status}
+          binding={binding}
+          autosize={props["autosize"] === true}
+          {...(typeof rows === "number" ? { rows } : {})}
+          {...(typeof maxLength === "number" ? { maxLength } : {})}
+          {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
 /**
  * Called once at module load. A plugin adds its own with the same function
  * (extension point E3) — there is no privileged path for the built-ins.
@@ -286,4 +325,5 @@ export function registerBuiltInComponents(): void {
   registerComponent("Select", SelectRenderer);
   registerComponent("Checkbox", CheckboxRenderer);
   registerComponent("Toggle", ToggleRenderer);
+  registerComponent("Textarea", TextareaRenderer);
 }

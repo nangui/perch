@@ -61,6 +61,47 @@ export function isScalarValue(value: unknown): boolean {
   );
 }
 
+/**
+ * The rules a declared length implies, shared by every field that holds text.
+ *
+ * Counted in graphemes, which is what the person typing counts. `"👋".length`
+ * is 2 and a family emoji is seven code points; a limit that calls one
+ * character seven is a limit nobody can reason about, and the counter under the
+ * box would disagree with the error under that.
+ */
+export function lengthRules(
+  min: number | undefined,
+  max: number | undefined,
+): readonly ValidationRule[] {
+  const rules: ValidationRule[] = [];
+  if (min !== undefined) {
+    rules.push((value) =>
+      typeof value !== "string" || count(value) >= min
+        ? true
+        : `Must be at least ${String(min)} characters.`,
+    );
+  }
+  if (max !== undefined) {
+    rules.push((value) =>
+      typeof value !== "string" || count(value) <= max
+        ? true
+        : `Must be at most ${String(max)} characters.`,
+    );
+  }
+  return rules;
+}
+
+// Built once: a segmenter per keystroke per field is not free.
+const GRAPHEMES = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+function count(text: string): number {
+  // The iterator is lazy, so this walks the string once and holds nothing.
+  let seen = 0;
+  const walk = GRAPHEMES.segment(text)[Symbol.iterator]();
+  while (!walk.next().done) seen += 1;
+  return seen;
+}
+
 export abstract class Field extends Component {
   declare readonly state: FieldState;
 
@@ -75,6 +116,21 @@ export abstract class Field extends Component {
 
   override get name(): string {
     return this.state.name ?? "";
+  }
+
+  /**
+   * The rules the field's own declaration implies.
+   *
+   * `.maxLength(500)` is a promise, and until now it was one the browser was
+   * asked to keep: the number crossed the wire as a hint and nothing on the
+   * server looked at it again. State is authoritative here, so a limit that was
+   * declared is checked here.
+   *
+   * Read off the state rather than appended by the setter, so declaring a
+   * second limit replaces the first instead of leaving both to fire.
+   */
+  get declaredRules(): readonly ValidationRule[] {
+    return [];
   }
 
   /**

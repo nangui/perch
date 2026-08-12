@@ -3,8 +3,8 @@
  * so a hand-written field and an inferred one describe themselves the same way.
  */
 import { configured } from "../component.js";
-import type { FieldState } from "../field.js";
-import { baseFieldState, Field } from "../field.js";
+import type { FieldState, ValidationRule } from "../field.js";
+import { baseFieldState, Field, lengthRules } from "../field.js";
 import type { TextFlavour } from "../inference.js";
 
 export interface TextInputState extends FieldState {
@@ -25,6 +25,10 @@ export class TextInput extends Field {
 
   protected override with(patch: Partial<TextInputState>): this {
     return super.with(patch);
+  }
+
+  override get declaredRules(): readonly ValidationRule[] {
+    return lengthRules(this.state.minLength, this.state.maxLength);
   }
 
   static make(name: string): TextInput {

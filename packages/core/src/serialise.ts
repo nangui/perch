@@ -52,6 +52,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   Select: ["searchable", "multiple", "preload", "optionsLimit"],
   Checkbox: ["inline"],
   Toggle: ["onIcon", "offIcon", "onColor"],
+  Textarea: ["rows", "autosize", "maxLength"],
   Section: ["columns", "collapsible", "collapsed", "icon"],
   Grid: ["columns"],
   Schema: ["columns"],

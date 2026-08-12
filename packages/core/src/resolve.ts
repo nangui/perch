@@ -377,7 +377,7 @@ async function validate(
       errors[path] = "This field is required.";
       continue;
     }
-    for (const rule of field.state.rules) {
+    for (const rule of [...field.declaredRules, ...field.state.rules]) {
       const outcome = await rule(current, ctx);
       if (outcome !== true) {
         errors[path] = outcome;
