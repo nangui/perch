@@ -12,6 +12,7 @@ import { FieldShell } from "./FieldShell.js";
 import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
+import { Toggle } from "./fields/Toggle.js";
 import { MultiSelect } from "./fields/MultiSelect.js";
 import { SearchableSelect } from "./fields/SearchableSelect.js";
 import { TextInput } from "./fields/TextInput.js";
@@ -240,6 +241,39 @@ function CheckboxRenderer({
   );
 }
 
+function ToggleRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const props = node.props ?? {};
+
+  // No `FieldShell`: this control carries its own label and its own reserved
+  // help line, because the design puts the label beside the switch rather than
+  // above it. Wrapping it would give the row two labels and two help lines.
+  return (
+    <Toggle
+      // Anything but `true` is off. A column never written holds null, and a
+      // switch cannot be half on.
+      checked={value === true}
+      onCheckedChange={(next) => {
+        if (node.path !== undefined) onChange(node.path, next);
+      }}
+      label={node.label ?? node.path ?? ""}
+      status={status}
+      required={node.required === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...(typeof props["onIcon"] === "string" ? { onIcon: props["onIcon"] } : {})}
+      {...(typeof props["offIcon"] === "string" ? { offIcon: props["offIcon"] } : {})}
+      {...(typeof props["onColor"] === "string" ? { onColor: props["onColor"] } : {})}
+    />
+  );
+}
+
 /**
  * Called once at module load. A plugin adds its own with the same function
  * (extension point E3) — there is no privileged path for the built-ins.
@@ -251,4 +285,5 @@ export function registerBuiltInComponents(): void {
   registerComponent("TextInput", TextInputRenderer);
   registerComponent("Select", SelectRenderer);
   registerComponent("Checkbox", CheckboxRenderer);
+  registerComponent("Toggle", ToggleRenderer);
 }

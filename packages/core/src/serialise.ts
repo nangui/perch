@@ -51,6 +51,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   TextInput: ["flavour", "minLength", "maxLength", "step"],
   Select: ["searchable", "multiple", "preload", "optionsLimit"],
   Checkbox: ["inline"],
+  Toggle: ["onIcon", "offIcon", "onColor"],
   Section: ["columns", "collapsible", "collapsed", "icon"],
   Grid: ["columns"],
   Schema: ["columns"],

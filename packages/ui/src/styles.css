@@ -456,6 +456,28 @@
   background: var(--perch-surface-muted);
 }
 
+/* One of three signs, never the only one: the role says it and the knob's
+   position shows it, both of which survive a reader who cannot see colour. */
+.perch-toggle[data-on-color="success"][data-state="checked"] {
+  border-color: var(--perch-success-content);
+  background: var(--perch-success-content);
+}
+
+.perch-toggle[data-on-color="danger"][data-state="checked"] {
+  border-color: var(--perch-danger);
+  background: var(--perch-danger);
+}
+
+.perch-toggle__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: var(--perch-text-xs);
+  line-height: 1;
+  color: var(--perch-content-secondary);
+}
+
 .perch-toggle-text {
   display: flex;
   flex-direction: column;

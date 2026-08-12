@@ -27,9 +27,20 @@ export interface ToggleProps {
   readonly label: string;
   readonly help?: string;
   readonly status: FieldStatus;
+  /** Announced on the control, not only marked on the label. */
+  readonly required?: boolean;
   /** Short annotation beside the label: `on`, `off`, `disabled`, `in flight`. */
   readonly tag?: string;
   readonly id?: string;
+  /**
+   * Drawn in the knob. Decoration, and never the only sign of state: the role
+   * says it, the position shows it, and someone who sees neither still hears
+   * "on".
+   */
+  readonly onIcon?: string;
+  readonly offIcon?: string;
+  /** Which of the panel's own colours the track takes when on. */
+  readonly onColor?: string;
 }
 
 export function Toggle({
@@ -38,8 +49,12 @@ export function Toggle({
   label,
   help,
   status,
+  required = false,
   tag,
   id,
+  onIcon,
+  offIcon,
+  onColor,
 }: ToggleProps): ReactNode {
   const generatedId = useId();
   const controlId = id ?? generatedId;
@@ -62,8 +77,16 @@ export function Toggle({
         aria-labelledby={labelId}
         aria-describedby={helpId}
         {...(status.error === undefined ? {} : { "aria-invalid": true })}
+        {...(required ? { "aria-required": true } : {})}
+        {...(onColor === undefined ? {} : { "data-on-color": onColor })}
       >
-        <Switch.Thumb className="perch-toggle__knob" />
+        <Switch.Thumb className="perch-toggle__knob">
+          {(checked ? onIcon : offIcon) === undefined ? null : (
+            <span className="perch-toggle__icon" aria-hidden="true">
+              {checked ? onIcon : offIcon}
+            </span>
+          )}
+        </Switch.Thumb>
       </Switch.Root>
 
       <div className="perch-toggle-text">
