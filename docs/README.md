@@ -20,6 +20,8 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0012](adr/0012-ir-at-build-time.md) | The IR is produced at build time, by a Prisma generator |
 | [0013](adr/0013-what-read-only-names.md) | `isReadOnly` names the database owning a value, not a relation |
 | [0014](adr/0014-soft-delete-in-v01.md) | `hasSoftDelete` describes the schema; deletion stays hard until v0.2 |
+| [0015](adr/0015-cli-command-names-and-layout.md) | The command is `perch panel`, and the CLI writes under `src/admin/` |
+| [0016](adr/0016-file-storage-port.md) | Uploads go up on selection, through a storage port, and the row is written last |
 
 ## Perch — a UI framework for NestJS
 
