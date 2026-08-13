@@ -7,6 +7,14 @@
  */
 import type { SchemaNode } from "@perchjs/core";
 
+/** What the upload route answers with. The key is the field's value. */
+export interface UploadedFile {
+  readonly key: string;
+  readonly name: string;
+  readonly size: number;
+  readonly type: string;
+}
+
 export interface SearchedOption {
   readonly value: string | number | boolean | null;
   readonly label: string;
@@ -32,6 +40,16 @@ export interface NodeProps {
    */
   readonly searchOptions?:
     ((path: string, term: string) => Promise<readonly SearchedOption[]>) | undefined;
+  /**
+   * Sends a file the reader chose, and answers with what was staged.
+   *
+   * A capability like the others: the component is handed a function and still
+   * knows nothing about multipart, or about the route. Absent where the host
+   * cannot send — the control then says so rather than accepting a file it
+   * would drop.
+   */
+  readonly uploadFile?:
+    ((path: string, file: File) => Promise<UploadedFile>) | undefined;
   /** Renders a child node. Passed down so no component imports the renderer. */
   readonly renderChild: (child: SchemaNode) => React.ReactNode;
 }

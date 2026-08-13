@@ -21,6 +21,7 @@ export interface SchemaRendererProps {
   readonly inFlight?: ReadonlySet<string>;
   /** Threaded down to whichever field declares itself searchable. */
   readonly searchOptions?: NodeProps["searchOptions"];
+  readonly uploadFile?: NodeProps["uploadFile"];
 }
 
 export function SchemaRenderer({
@@ -29,6 +30,7 @@ export function SchemaRenderer({
   pending,
   inFlight,
   searchOptions,
+  uploadFile,
 }: SchemaRendererProps): ReactNode {
   /**
    * Stable while its inputs are, or `memo` below compares a fresh closure every
@@ -48,11 +50,12 @@ export function SchemaRenderer({
           inFlight={node.path !== undefined && inFlight?.has(node.path) === true}
           onChange={onChange}
           searchOptions={searchOptions}
+          uploadFile={uploadFile}
           renderChild={renderNode}
         />
       );
     },
-    [payload, onChange, pending, inFlight, searchOptions],
+    [payload, onChange, pending, inFlight, searchOptions, uploadFile],
   );
 
   return render(payload.schema);
@@ -71,6 +74,7 @@ const RenderedNode = memo(function RenderedNode({
   inFlight,
   onChange,
   searchOptions,
+  uploadFile,
   renderChild,
 }: {
   readonly node: SchemaNode;
@@ -80,6 +84,7 @@ const RenderedNode = memo(function RenderedNode({
   readonly inFlight?: boolean | undefined;
   readonly onChange: (path: string, value: unknown) => void;
   readonly searchOptions?: NodeProps["searchOptions"];
+  readonly uploadFile?: NodeProps["uploadFile"];
   readonly renderChild: (child: SchemaNode) => ReactNode;
 }): ReactNode {
   const Renderer = lookupComponent(node.type);
@@ -93,6 +98,7 @@ const RenderedNode = memo(function RenderedNode({
       inFlight={inFlight}
       onChange={onChange}
       searchOptions={searchOptions}
+      uploadFile={uploadFile}
       renderChild={renderChild}
     />
   );

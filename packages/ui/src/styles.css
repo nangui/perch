@@ -586,6 +586,54 @@
   color: var(--perch-content-muted);
 }
 
+/* The input is real and keeps the dialog the platform owns. The note under it
+   is always rendered, so the field does not change height as it goes from
+   empty to sending to holding a file. */
+.perch-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--perch-space-4);
+}
+
+.perch-upload__control {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  min-height: var(--perch-control-height);
+}
+
+.perch-upload__input {
+  color: var(--perch-content);
+  font-size: var(--perch-text-control);
+}
+
+.perch-upload__input::file-selector-button {
+  margin-right: var(--perch-space-4);
+  padding: 0 var(--perch-space-5);
+  height: var(--perch-control-height-inner);
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius-sm);
+  background: var(--perch-surface);
+  color: var(--perch-content);
+  font: inherit;
+  cursor: pointer;
+}
+
+.perch-upload__input:disabled::file-selector-button {
+  border-color: var(--perch-border);
+  background: var(--perch-surface-muted);
+  color: var(--perch-content-muted);
+  cursor: not-allowed;
+}
+
+.perch-upload__note {
+  margin: 0;
+  min-height: var(--perch-help-line-height);
+  color: var(--perch-content-subtle);
+  font-size: var(--perch-text-sm);
+}
+
 /* A reading, in the shape of a control: it sits in a column of fields and the
    eye reads that column as a column. Not a control, so nothing here suggests
    there is something to do to it. */

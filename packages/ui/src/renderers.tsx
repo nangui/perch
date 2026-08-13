@@ -13,6 +13,7 @@ import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
 import { DateTimePicker } from "./fields/DateTimePicker.js";
+import { FileUpload } from "./fields/FileUpload.js";
 import { Placeholder } from "./fields/Placeholder.js";
 import { Radio } from "./fields/Radio.js";
 import { Textarea } from "./fields/Textarea.js";
@@ -452,6 +453,57 @@ function DateTimePickerRenderer({
   );
 }
 
+function FileUploadRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+  uploadFile,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const props = node.props ?? {};
+  const path = node.path;
+  const types = props["acceptedFileTypes"];
+  const maxSize = props["maxSize"];
+
+  // Stable per path, so the control does not see a new function each render.
+  const send = useCallback(
+    async (file: File) => {
+      if (uploadFile === undefined || path === undefined) {
+        throw new Error("Uploading is not available here.");
+      }
+      return await uploadFile(path, file);
+    },
+    [uploadFile, path],
+  );
+
+  return (
+    <FieldShell
+      label={node.label ?? node.path ?? ""}
+      status={status}
+      required={node.required === true}
+      inline={node.inlineLabel === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <FileUpload
+          value={typeof value === "string" ? value : ""}
+          onValueChange={(key) => {
+            if (path !== undefined) onChange(path, key);
+          }}
+          status={status}
+          binding={binding}
+          {...(uploadFile === undefined || path === undefined ? {} : { upload: send })}
+          {...(Array.isArray(types) ? { accept: types.join(",") } : {})}
+          {...(typeof maxSize === "number" ? { maxSize } : {})}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
 /**
  * Called once at module load. A plugin adds its own with the same function
  * (extension point E3) — there is no privileged path for the built-ins.
@@ -465,6 +517,7 @@ export function registerBuiltInComponents(): void {
   registerComponent("Checkbox", CheckboxRenderer);
   registerComponent("Radio", RadioRenderer);
   registerComponent("DateTimePicker", DateTimePickerRenderer);
+  registerComponent("FileUpload", FileUploadRenderer);
   registerComponent("Placeholder", PlaceholderRenderer);
   registerComponent("Hidden", HiddenRenderer);
   registerComponent("Toggle", ToggleRenderer);

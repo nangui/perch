@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import type { FormState, SchemaPayload } from "@perchjs/core";
 import { Breadcrumb } from "./Breadcrumb.js";
-import type { SearchedOption } from "./node-props.js";
+import type { SearchedOption, UploadedFile } from "./node-props.js";
 import { PanelForm } from "./PanelForm.js";
 import type { NavigationGroup } from "./PanelNav.js";
 import { PanelNav } from "./PanelNav.js";
@@ -87,6 +87,7 @@ export function mount(element: HTMLElement): void {
           searchOptions={(path, term, state) =>
             askOptions(api, operation, id, path, term, state)
           }
+          uploadFile={(path, file, state) => sendFile(api, id, path, file, state)}
         />
       </div>
     </div>,
@@ -174,6 +175,48 @@ async function send(
 
 const element = document.getElementById(MOUNT_ID);
 if (element !== null) mount(element);
+
+/**
+ * Sends a file the reader chose, and answers with what was staged.
+ *
+ * Multipart, which is why this is not the state protocol: the form's state
+ * rides along as one JSON field so the server can resolve the tree the reader
+ * is actually looking at, and the bytes ride beside it rather than through it.
+ *
+ * A refusal carries the server's own words. It knows the limit and the types,
+ * and "that file is 2000 bytes, and the limit is 1000" is worth more to
+ * somebody choosing another file than anything this side could invent.
+ */
+async function sendFile(
+  api: string,
+  id: string | undefined,
+  path: string,
+  file: File,
+  state: FormState,
+): Promise<UploadedFile> {
+  const form = new FormData();
+  form.set("path", path);
+  form.set("state", JSON.stringify(state));
+  if (id !== undefined) form.set("id", id);
+  form.set("file", file);
+
+  const response = await fetch(`${api}/upload`, {
+    method: "POST",
+    body: form,
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    const said: unknown = await response.json().catch(() => undefined);
+    const message =
+      typeof said === "object" && said !== null && "message" in said
+        ? String(said.message)
+        : `The upload answered ${String(response.status)}`;
+    throw new Error(message);
+  }
+
+  return ((await response.json()) as { file: UploadedFile }).file;
+}
 
 /**
  * Asks what a searchable field may be set to.

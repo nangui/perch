@@ -12,7 +12,7 @@
 import type { ReactNode, SyntheticEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { FormState, SchemaNode, SchemaPayload } from "@perchjs/core";
-import type { SearchedOption } from "./node-props.js";
+import type { SearchedOption, UploadedFile } from "./node-props.js";
 import { SchemaRenderer } from "./SchemaRenderer.js";
 import type {
   SaveRequest,
@@ -43,6 +43,12 @@ export interface PanelFormProps {
     term: string,
     state: FormState,
   ) => Promise<readonly SearchedOption[]>;
+  /** Sends a file the reader chose. Absent means the form cannot. */
+  readonly uploadFile?: (
+    path: string,
+    file: File,
+    state: FormState,
+  ) => Promise<UploadedFile>;
   readonly timeout?: number;
 }
 
@@ -54,6 +60,7 @@ export function PanelForm({
   submitLabel = "Save",
   renderFailure,
   searchOptions,
+  uploadFile,
   timeout,
 }: PanelFormProps): ReactNode {
   /**
@@ -108,6 +115,14 @@ export function PanelForm({
   const state = useRef(snapshot.payload.state);
   state.current = snapshot.payload.state;
 
+  const sendFile = useCallback(
+    async (path: string, file: File) => {
+      if (uploadFile === undefined) throw new Error("Uploading is not available here.");
+      return await uploadFile(path, file, state.current);
+    },
+    [uploadFile],
+  );
+
   const search = useCallback(
     async (path: string, term: string) =>
       searchOptions === undefined ? [] : await searchOptions(path, term, state.current),
@@ -126,6 +141,7 @@ export function PanelForm({
         pending={pending}
         inFlight={inFlight}
         {...(searchOptions === undefined ? {} : { searchOptions: search })}
+        {...(uploadFile === undefined ? {} : { uploadFile: sendFile })}
       />
       {save === undefined ? null : (
         <div className="perch-form-actions">
