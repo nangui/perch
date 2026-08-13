@@ -118,8 +118,16 @@ describe.each(PACKAGES)("@perchjs/%s", (pkg) => {
 
 describe("the peer contract each adapter declares", () => {
   it("has @perchjs/nest own the NestJS runtime as peers", () => {
+    // The platform is here because the upload route needs its file interceptor,
+    // and v0.1 is Express only. A host running the panel already has it; the
+    // peer is what says so rather than leaving it to be discovered by an
+    // import that resolves in this workspace and nowhere else.
     const peers = manifest("nest").peerDependencies ?? {};
-    expect(Object.keys(peers).sort()).toEqual(["@nestjs/common", "@nestjs/core"]);
+    expect(Object.keys(peers).sort()).toEqual([
+      "@nestjs/common",
+      "@nestjs/core",
+      "@nestjs/platform-express",
+    ]);
   });
 
   it("has @perchjs/prisma own the generated client as a peer", () => {

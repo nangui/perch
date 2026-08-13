@@ -124,6 +124,11 @@ export { Toggle } from "./fields/toggle.js";
 export type { WallClock } from "./zoned.js";
 export { isWallClock, toInstant, toWallClock } from "./zoned.js";
 
+export type { IncomingFile, StagedFile, StorageAdapter } from "./storage.js";
+
+export type { FileUploadState } from "./fields/file-upload.js";
+export { FileUpload } from "./fields/file-upload.js";
+
 export type { DateTimePickerState } from "./fields/date-time-picker.js";
 export { DateTimePicker } from "./fields/date-time-picker.js";
 

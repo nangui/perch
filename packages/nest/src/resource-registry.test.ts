@@ -11,6 +11,7 @@ import type { Table } from "@perchjs/core";
 import {
   resolveSchema,
   Schema,
+  FileUpload,
   Select,
   SelectFilter,
   serialise,
@@ -232,5 +233,67 @@ describe("a table that cannot work", () => {
         .compile()
         .then(async (moduleRef) => await moduleRef.init()),
     ).rejects.toThrow("`status` is a choice with nothing to choose from");
+  });
+});
+
+describe("an upload pointed at a disk nobody gave", () => {
+  @PanelResource({ model: "Post", slug: "no-disk" })
+  class NoDiskResource {
+    form(): Schema {
+      return Schema.make([FileUpload.make("cover").disk("s3")]);
+    }
+  }
+
+  it("stops the boot, naming the disks there are", async () => {
+    // Not `auditSchema`'s to catch: which disks exist is the host's
+    // arrangement, and `@perchjs/core` has never heard of it.
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [NoDiskResource],
+            disks: { local: {} as never },
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (moduleRef) => await moduleRef.init()),
+    ).rejects.toThrow(
+      "names the disk `s3`, which the panel was not given — it has `local`",
+    );
+  });
+
+  it("says so plainly when there are none at all", async () => {
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [NoDiskResource],
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (moduleRef) => await moduleRef.init()),
+    ).rejects.toThrow("it has none at all");
+  });
+
+  it("boots once the disk it names is there", async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        PanelModule.forRoot({
+          path: "/admin",
+          resources: [NoDiskResource],
+          disks: { s3: {} as never },
+          assets: assets(),
+        }),
+      ],
+    }).compile();
+
+    await expect(moduleRef.init()).resolves.toBeDefined();
+    await moduleRef.close();
   });
 });

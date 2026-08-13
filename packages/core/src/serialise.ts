@@ -55,6 +55,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   Select: ["searchable", "multiple", "preload", "optionsLimit"],
   Radio: ["inline"],
   DateTimePicker: ["withTime", "timezone", "minDate", "maxDate"],
+  FileUpload: ["disk", "maxSize", "acceptedFileTypes"],
   Toggle: ["onIcon", "offIcon", "onColor"],
   Textarea: ["rows", "autosize", "maxLength"],
   Section: ["columns", "collapsible", "collapsed", "icon"],

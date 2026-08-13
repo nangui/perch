@@ -11,10 +11,13 @@ import type { DataAdapter } from "@perchjs/core";
 import { Module, UseGuards } from "@nestjs/common";
 import { RouterModule } from "@nestjs/core";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
+import type { PanelDisks } from "./storage.token.js";
+import { PANEL_STORAGE } from "./storage.token.js";
 import type { RedirectAfterCreate } from "./redirect.js";
 import { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
 import { PanelAssetsController } from "./panel-assets.controller.js";
 import { PanelOptionsController } from "./panel-options.controller.js";
+import { PanelUploadController } from "./panel-upload.controller.js";
 import { PanelPageController } from "./panel-page.controller.js";
 import { PanelRecordsController } from "./panel-records.controller.js";
 import { PanelSaveController } from "./panel-save.controller.js";
@@ -38,6 +41,14 @@ export interface PanelModuleOptions {
   readonly navigationGroups?: readonly string[];
   /** Registered explicitly; discovery by folder scan comes later. */
   readonly resources?: readonly ResourceClass[];
+  /**
+   * The disks a `FileUpload` may name, by the names it names them by.
+   *
+   * A record rather than one adapter, because a panel may keep avatars on one
+   * store and invoices on another. Absent is fine until a form asks for one,
+   * and then the audit says so at boot.
+   */
+  readonly disks?: PanelDisks;
   /**
    * Modules whose providers the resources inject. Resources are instantiated
    * here, so their dependencies have to be visible here.
@@ -89,6 +100,7 @@ export class PanelModule {
         guarded(PanelAssetsController, guards),
         guarded(PanelStateController, guards),
         guarded(PanelOptionsController, guards),
+        guarded(PanelUploadController, guards),
         guarded(PanelRecordsController, guards),
         guarded(PanelSaveController, guards),
         guarded(PanelPageController, guards),
@@ -104,6 +116,12 @@ export class PanelModule {
         options.dataAdapter === undefined
           ? { provide: PANEL_DATA_ADAPTER, useValue: null }
           : { provide: PANEL_DATA_ADAPTER, useClass: options.dataAdapter },
+        {
+          // Empty is legitimate: a panel with no `FileUpload` needs no disk,
+          // and the audit is what stops a form naming one that is not there.
+          provide: PANEL_STORAGE,
+          useValue: options.disks ?? {},
+        },
         {
           provide: PANEL_REDIRECT_AFTER_CREATE,
           useValue: options.redirectAfterCreate ?? "edit",

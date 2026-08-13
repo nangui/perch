@@ -15,6 +15,7 @@ import type { Component } from "./component.js";
 import { Field } from "./field.js";
 import { Hidden } from "./fields/hidden.js";
 import { DateTimePicker } from "./fields/date-time-picker.js";
+import { FileUpload } from "./fields/file-upload.js";
 import { Radio } from "./fields/radio.js";
 import { Select } from "./fields/select.js";
 import { SelectFilter } from "./filter.js";
@@ -68,6 +69,9 @@ function hiddenFields(component: Component): readonly Hidden[] {
 function walk(component: Component, into: Complaint[]): void {
   if (component instanceof Select) inspectSelect(component, into);
   if (component instanceof DateTimePicker) inspectDates(component, into);
+  // A media type nothing can match is a filter that refuses everything, and a
+  // reader whose file is turned away is told only that it was.
+  if (component instanceof FileUpload) inspectUpload(component, into);
   // Every choice is on the page, so there is no relation and no window to
   // excuse an empty list: the boundary would refuse every value a reader picks.
   if (component instanceof Radio && component.state.options === undefined) {
@@ -107,6 +111,30 @@ function inspectDates(picker: DateTimePicker, into: Complaint[]): void {
       problem:
         `has a \`${which}\` of \`${shown}\`, which is not shaped like the values it ` +
         `bounds — this field holds \`${wanted}\``,
+    });
+  }
+}
+
+function inspectUpload(upload: FileUpload, into: Complaint[]): void {
+  const name = upload.name === "" ? "an unnamed FileUpload" : upload.name;
+  const types = upload.state.acceptedFileTypes;
+  if (types === undefined) return;
+
+  if (types.length === 0) {
+    into.push({
+      field: name,
+      problem: "accepts an empty list of media types, so it would refuse every file",
+    });
+    return;
+  }
+
+  for (const pattern of types) {
+    // `image/*` is a family. `*` alone is the absence of a rule dressed as one,
+    // and `image` with no slash matches nothing at all.
+    if (/^[\w.+-]+\/(\*|[\w.+-]+)$/.test(pattern)) continue;
+    into.push({
+      field: name,
+      problem: `accepts \`${pattern}\`, which is not a media type — it would match nothing`,
     });
   }
 }

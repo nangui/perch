@@ -13,8 +13,11 @@
 import type { OnModuleInit } from "@nestjs/common";
 import { Inject, Injectable } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
-import { auditSchema, auditTable, describeComplaints } from "@perchjs/core";
+import type { Component } from "@perchjs/core";
+import { auditSchema, auditTable, describeComplaints, FileUpload } from "@perchjs/core";
 import type { PanelResource, ResourceMetadata } from "./resource.js";
+import type { PanelDisks } from "./storage.token.js";
+import { PANEL_STORAGE } from "./storage.token.js";
 import { resourceMetadata } from "./resource.js";
 
 export const PANEL_RESOURCE_TYPES = Symbol("PERCH_PANEL_RESOURCE_TYPES");
@@ -36,12 +39,15 @@ export class ResourceRegistry implements OnModuleInit {
     { metadata: ResourceMetadata; type: ResourceClass }
   >();
   readonly #moduleRef: ModuleRef;
+  readonly #disks: PanelDisks;
 
   constructor(
     @Inject(PANEL_RESOURCE_TYPES) types: readonly ResourceClass[],
     moduleRef: ModuleRef,
+    @Inject(PANEL_STORAGE) disks: PanelDisks,
   ) {
     this.#moduleRef = moduleRef;
+    this.#disks = disks;
 
     for (const type of types) {
       const metadata = resourceMetadata(type);
@@ -88,14 +94,39 @@ export class ResourceRegistry implements OnModuleInit {
   onModuleInit(): void {
     for (const { metadata, instance } of this.all()) {
       const table = instance.table?.();
+      const form = instance.form();
       const complaints = [
-        ...auditSchema(instance.form()),
+        ...auditSchema(form),
         ...(table === undefined ? [] : auditTable(table)),
+        ...this.#unknownDisks(form),
       ];
       if (complaints.length > 0) {
         throw new Error(describeComplaints(`Resource "${metadata.slug}"`, complaints));
       }
     }
+  }
+
+  /**
+   * Uploads pointed at a disk nobody provided.
+   *
+   * Not `auditSchema`'s to catch: which disks exist is the host's arrangement
+   * and `@perchjs/core` has never heard of it. The complaint reads the same
+   * either way, which is the point — a field that cannot work stops the boot
+   * wherever the reason for it happens to live.
+   */
+  #unknownDisks(form: Component): readonly { field: string; problem: string }[] {
+    const uploads = flatten(form).filter(
+      (component): component is FileUpload => component instanceof FileUpload,
+    );
+
+    return uploads
+      .filter((upload) => !(upload.state.disk in this.#disks))
+      .map((upload) => ({
+        field: upload.name === "" ? "an unnamed FileUpload" : upload.name,
+        problem:
+          `names the disk \`${upload.state.disk}\`, which the panel was not given — ` +
+          `it has ${describeDisks(this.#disks)}`,
+      }));
   }
 
   get(slug: string): RegisteredResource | undefined {
@@ -116,4 +147,15 @@ export class ResourceRegistry implements OnModuleInit {
       instance: this.#moduleRef.get<PanelResource>(registered.type, { strict: false }),
     };
   }
+}
+
+function flatten(component: Component): readonly Component[] {
+  return [component, ...component.children.flatMap(flatten)];
+}
+
+/** Named rather than counted: the usual mistake is a typo, and a name shows it. */
+function describeDisks(disks: PanelDisks): string {
+  const names = Object.keys(disks);
+  if (names.length === 0) return "none at all";
+  return names.map((name) => `\`${name}\``).join(", ");
 }
