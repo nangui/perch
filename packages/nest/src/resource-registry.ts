@@ -14,8 +14,18 @@ import type { OnModuleInit } from "@nestjs/common";
 import { Inject, Injectable } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
 import type { Component } from "@perchjs/core";
-import { auditSchema, auditTable, describeComplaints, FileUpload } from "@perchjs/core";
+import type { DataAdapter, Table } from "@perchjs/core";
+import {
+  auditSchema,
+  auditTable,
+  columnPaths,
+  describeComplaints,
+  findModel,
+  FileUpload,
+  resolvePath,
+} from "@perchjs/core";
 import type { PanelResource, ResourceMetadata } from "./resource.js";
+import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
 import { resourceMetadata } from "./resource.js";
@@ -40,14 +50,17 @@ export class ResourceRegistry implements OnModuleInit {
   >();
   readonly #moduleRef: ModuleRef;
   readonly #disks: PanelDisks;
+  readonly #data: DataAdapter | null;
 
   constructor(
     @Inject(PANEL_RESOURCE_TYPES) types: readonly ResourceClass[],
     moduleRef: ModuleRef,
     @Inject(PANEL_STORAGE) disks: PanelDisks,
+    @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
   ) {
     this.#moduleRef = moduleRef;
     this.#disks = disks;
+    this.#data = data;
 
     for (const type of types) {
       const metadata = resourceMetadata(type);
@@ -99,11 +112,49 @@ export class ResourceRegistry implements OnModuleInit {
         ...auditSchema(form),
         ...(table === undefined ? [] : auditTable(table)),
         ...this.#unknownDisks(form),
+        ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
       ];
       if (complaints.length > 0) {
         throw new Error(describeComplaints(`Resource "${metadata.slug}"`, complaints));
       }
     }
+  }
+
+  /**
+   * Columns reading a path the model does not have.
+   *
+   * Not `auditTable`'s to catch: the IR is the adapter's and the domain has
+   * never heard of it. A typo here is a column that renders blank on every row
+   * for as long as nobody looks closely — and, since the loading plan is built
+   * from these paths, a relation that silently never loads.
+   */
+  #unreachableColumns(
+    model: string,
+    table: Table,
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const ir = this.#data.ir();
+
+    // A model the IR does not carry is one problem, not one per column, and it
+    // is not this check's. The read path tolerates it the same way: `allowed`
+    // answers with an empty set rather than complaining about every path.
+    if (findModel(ir, model) === undefined) return [];
+
+    return columnPaths(table).flatMap((path) => {
+      try {
+        resolvePath(ir, model, path);
+        return [];
+      } catch (error) {
+        return [
+          {
+            field: path,
+            problem: `is a column on \`${model}\` that reads nothing: ${
+              error instanceof Error ? error.message : "the path does not resolve"
+            }`,
+          },
+        ];
+      }
+    });
   }
 
   /**

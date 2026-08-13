@@ -10,7 +10,15 @@ import { tmpdir } from "node:os";
 import type { CanActivate, ExecutionContext, INestApplication } from "@nestjs/common";
 import { Injectable } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import type { DataAdapter, Id, Ir, ModelMeta, Query, Row } from "@perchjs/core";
+import type {
+  DataAdapter,
+  FieldMeta,
+  Id,
+  Ir,
+  ModelMeta,
+  Query,
+  Row,
+} from "@perchjs/core";
 import {
   CreateAction,
   EditAction,
@@ -37,6 +45,32 @@ const ROWS: Row[] = [
 
 const SHOWN = ROWS.map(({ id, title }) => ({ id, title }));
 
+function field(name: string, type: string): FieldMeta {
+  return {
+    name,
+    kind: "scalar",
+    type,
+    isRequired: true,
+    isList: false,
+    isId: name === "id",
+    isUnique: false,
+    isReadOnly: false,
+    hasDefault: false,
+    isLongText: false,
+  } as FieldMeta;
+}
+
+const AUTHOR: ModelMeta = {
+  name: "Author",
+  dbName: "Author",
+  primaryKey: field("id", "Int"),
+  fields: [field("id", "Int"), field("name", "String")],
+  relations: [],
+  uniqueConstraints: [],
+  hasSoftDelete: false,
+  labelField: "name",
+};
+
 const POST: ModelMeta = {
   name: "Post",
   dbName: "Post",
@@ -52,8 +86,26 @@ const POST: ModelMeta = {
     hasDefault: true,
     isLongText: false,
   },
-  fields: [],
-  relations: [],
+  // Filled rather than stubbed: the columns below read these, and an IR that
+  // says `Post` exists with no fields is a convenience that made every one of
+  // them read nothing.
+  fields: [
+    field("id", "Int"),
+    field("title", "String"),
+    field("published", "Boolean"),
+    field("authorId", "Int"),
+  ],
+  relations: [
+    {
+      name: "author",
+      type: "one",
+      targetModel: "Author",
+      foreignKeyFields: ["authorId"],
+      referencedFields: ["id"],
+      isRequired: true,
+      isList: false,
+    },
+  ],
   uniqueConstraints: [],
   hasSoftDelete: false,
   labelField: "title",
@@ -65,7 +117,7 @@ const asked: Query[] = [];
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [POST] };
+    return { models: [POST, AUTHOR] };
   }
   meta(): ModelMeta {
     return POST;
@@ -557,5 +609,40 @@ describe("what it refuses, all with the same answer", () => {
     const url = await serve(false);
 
     expect((await get(`${url}/admin/api/posts/records`)).status).toBe(404);
+  });
+});
+
+describe("a column that reads through a relation", () => {
+  it("asks for it once, in the page's own query", async () => {
+    // Invariant 7. One `include` merged from the columns, so a page of fifty
+    // rows costs the same as a page of one.
+    const url = await serve();
+    asked.length = 0;
+
+    await get(`${url}/admin/api/listed/records`);
+
+    expect(asked).toHaveLength(1);
+    expect(asked[0]?.include).toEqual({ author: true });
+  });
+
+  it("asks for nothing where no column reaches out", async () => {
+    // A plan is derived from what the columns declare, never from a parameter:
+    // a client asking for a relation is asking the wrong side.
+    const url = await serve();
+    asked.length = 0;
+
+    await get(`${url}/admin/api/posts/records`);
+
+    expect(asked).toHaveLength(1);
+    expect(asked[0]?.include).toBeUndefined();
+  });
+
+  it("cannot be widened by anything a client sends", async () => {
+    const url = await serve();
+    asked.length = 0;
+
+    await get(`${url}/admin/api/listed/records?include=author.secrets&with=author`);
+
+    expect(asked[0]?.include).toEqual({ author: true });
   });
 });

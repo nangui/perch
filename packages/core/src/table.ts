@@ -155,6 +155,18 @@ function node(action: Action): ActionNode {
 }
 
 /** The paths a client may sort by: exactly those a column declared. */
+/**
+ * Every path the columns read, dotted ones included.
+ *
+ * This is the declaration the loading plan is built from: a column saying
+ * `author.name` is a column saying the query has to reach the author. One plan
+ * per request, merged across every column, which is what keeps the count at one
+ * query rather than one per row.
+ */
+export function columnPaths(table: Table): readonly string[] {
+  return table.state.columns.map((column) => column.state.path);
+}
+
 export function sortablePaths(table: Table): ReadonlySet<string> {
   return new Set(
     table.state.columns.filter((c) => c.state.sortable).map((c) => c.state.path),

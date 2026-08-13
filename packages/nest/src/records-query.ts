@@ -11,6 +11,7 @@
  */
 import type {
   Clause,
+  IncludePlan,
   Ir,
   Query,
   Search,
@@ -19,6 +20,8 @@ import type {
   Table,
 } from "@perchjs/core";
 import {
+  buildIncludePlan,
+  columnPaths,
   declaredFilters,
   findModel,
   searchablePaths,
@@ -92,10 +95,13 @@ export const FILTER_PREFIX = "filter.";
  * Builds the `Query` the adapter will run, from parameters and from the schema
  * — never from the parameters alone.
  *
- * `include` is deliberately absent. The loading plan is derived from the
- * server's schema, and until columns declare what they reach the honest plan is
- * to load no relation at all. A client that asks for one is asking the wrong
- * side.
+ * `include` comes from the columns and never from the client. A column reading
+ * `author.name` is what says the query must reach the author; a parameter
+ * asking for a relation is asking the wrong side, and there is no parameter
+ * that could.
+ *
+ * One plan, merged across every column, for one query — which is the whole of
+ * invariant 7. A page of fifty rows costs the same as a page of one.
  */
 /**
  * The query, and the filters that got through, from one reading.
@@ -118,6 +124,22 @@ export function readList(
   };
 }
 
+/**
+ * The loading plan, or none.
+ *
+ * A path the IR does not have stops the boot, so a running panel never gets
+ * here with one. This still refuses to throw: a plan is how the page is loaded
+ * efficiently, not whether it can be loaded at all, and taking the list down
+ * over a typo would be out of proportion to what the plan is for.
+ */
+function planFor(model: string, ir: Ir, table: Table): IncludePlan | undefined {
+  try {
+    return buildIncludePlan(ir, model, columnPaths(table));
+  } catch {
+    return undefined;
+  }
+}
+
 export function readQuery(
   model: string,
   ir: Ir,
@@ -135,6 +157,8 @@ export function readQuery(
   const sort = sortOf(model, ir, raw.sort, table);
   const search = searchOf(model, ir, raw.search, table);
   const clauses = [...accepted.values()].map((one) => one.clause);
+  // Built from the columns, once, for the whole page.
+  const include = table === undefined ? undefined : planFor(model, ir, table);
 
   return {
     model,
@@ -142,6 +166,7 @@ export function readQuery(
     take: perPage,
     ...(sort === undefined ? {} : { sort: [sort] }),
     ...(search === undefined ? {} : { search }),
+    ...(include === undefined ? {} : { include }),
     ...(clauses.length === 0 ? {} : { clauses }),
   };
 }

@@ -66,6 +66,7 @@ export type {
 export type { FilterState } from "./filter.js";
 export { Filter, SelectFilter, TextFilter } from "./filter.js";
 export {
+  columnPaths,
   declaredFilters,
   searchablePaths,
   serialiseTable,

@@ -297,3 +297,76 @@ describe("an upload pointed at a disk nobody gave", () => {
     await moduleRef.close();
   });
 });
+
+describe("a column reading a path the model does not have", () => {
+  const IR = {
+    models: [
+      {
+        name: "Post",
+        dbName: "Post",
+        primaryKey: { name: "id", kind: "scalar", type: "Int", isId: true },
+        fields: [{ name: "id", kind: "scalar", type: "Int", isId: true }],
+        relations: [],
+        uniqueConstraints: [],
+        hasSoftDelete: false,
+        labelField: "id",
+      },
+    ],
+  } as never;
+
+  @Injectable()
+  class Adapter {
+    ir() {
+      return IR;
+    }
+  }
+
+  @PanelResource({ model: "Post", slug: "typo" })
+  class TypoResource {
+    form(): Schema {
+      return Schema.make([TextInput.make("title")]);
+    }
+    table(): Table {
+      return TableBuilder.make().columns([TextColumn.make("titel")]);
+    }
+  }
+
+  @PanelResource({ model: "Ghost", slug: "ghost" })
+  class GhostResource {
+    form(): Schema {
+      return Schema.make([TextInput.make("title")]);
+    }
+    table(): Table {
+      return TableBuilder.make().columns([TextColumn.make("anything")]);
+    }
+  }
+
+  const boot = async (resource: unknown): Promise<void> => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        PanelModule.forRoot({
+          path: "/admin",
+          resources: [resource as never],
+          dataAdapter: Adapter as never,
+          assets: assets(),
+        }),
+      ],
+    }).compile();
+    await moduleRef.init();
+  };
+
+  it("stops the boot, naming the path and what it could not resolve", async () => {
+    // A typo here is a column that renders blank on every row until somebody
+    // looks closely — and, since the loading plan is built from these paths, a
+    // relation that silently never loads.
+    await expect(boot(TypoResource)).rejects.toThrow(
+      "`titel` is a column on `Post` that reads nothing",
+    );
+  });
+
+  it("says nothing about a model the IR does not carry at all", async () => {
+    // That is one problem, not one per column, and the read path tolerates it
+    // the same way rather than complaining about every path.
+    await expect(boot(GhostResource)).resolves.toBeUndefined();
+  });
+});
