@@ -23,6 +23,7 @@ export type { UploadAnswer } from "./panel-upload.controller.js";
 export { PanelUploadController } from "./panel-upload.controller.js";
 export type { PanelDisks } from "./storage.token.js";
 export { PANEL_STORAGE } from "./storage.token.js";
+export { DEFAULT_STAGED_AGE_MS, PanelUploadSweep } from "./upload-sweep.js";
 export type { SaveResponse } from "./panel-save.controller.js";
 export { PanelSaveController } from "./panel-save.controller.js";
 export type { Admission, Admitted } from "./admission.js";

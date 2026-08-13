@@ -13,6 +13,7 @@ import { RouterModule } from "@nestjs/core";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
+import { PanelUploadSweep } from "./upload-sweep.js";
 import type { RedirectAfterCreate } from "./redirect.js";
 import { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
 import { PanelAssetsController } from "./panel-assets.controller.js";
@@ -129,8 +130,11 @@ export class PanelModule {
         ...(options.resources ?? []),
         ...guards,
         ResourceRegistry,
+        PanelUploadSweep,
       ],
-      exports: [ResourceRegistry],
+      // The sweep is exported because the host is the one that schedules it:
+      // a panel does not get to start a timer in a process it does not own.
+      exports: [ResourceRegistry, PanelUploadSweep],
     };
   }
 }
