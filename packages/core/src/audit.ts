@@ -14,11 +14,13 @@
 import type { Component } from "./component.js";
 import { Field } from "./field.js";
 import { Hidden } from "./fields/hidden.js";
+import { DateTimePicker } from "./fields/date-time-picker.js";
 import { Radio } from "./fields/radio.js";
 import { Select } from "./fields/select.js";
 import { SelectFilter } from "./filter.js";
 import type { Table } from "./table.js";
 import { declaredFilters } from "./table.js";
+import { isWallClock } from "./zoned.js";
 
 export interface Complaint {
   /** The field's name, or its position when it has none. */
@@ -65,6 +67,7 @@ function hiddenFields(component: Component): readonly Hidden[] {
 
 function walk(component: Component, into: Complaint[]): void {
   if (component instanceof Select) inspectSelect(component, into);
+  if (component instanceof DateTimePicker) inspectDates(component, into);
   // Every choice is on the page, so there is no relation and no window to
   // excuse an empty list: the boundary would refuse every value a reader picks.
   if (component instanceof Radio && component.state.options === undefined) {
@@ -74,6 +77,38 @@ function walk(component: Component, into: Complaint[]): void {
     });
   }
   for (const child of component.children) walk(child, into);
+}
+
+/**
+ * A bound has to be shaped like the values it bounds.
+ *
+ * They are compared as text, which is what ISO ordering is for — but only
+ * between two strings of the same shape. `"2026-06-01" >= "2026-06-01T00:00"`
+ * is false, because the shorter one is a prefix, so a date-only field bounded
+ * with a time refuses the very first day it should allow and says so with an
+ * hour the field cannot even show.
+ */
+function inspectDates(picker: DateTimePicker, into: Complaint[]): void {
+  const name = picker.name === "" ? "an unnamed DateTimePicker" : picker.name;
+  const { withTime, minDate, maxDate } = picker.state;
+  const wanted = withTime ? "YYYY-MM-DDTHH:mm" : "YYYY-MM-DD";
+
+  for (const [which, bound] of [
+    ["minDate", minDate],
+    ["maxDate", maxDate],
+  ] as const) {
+    if (bound === undefined) continue;
+    // Held before the check narrows it: `WallClock` is an alias of `string`, so
+    // the predicate leaves `never` behind on the branch that needs to name it.
+    const shown: string = bound;
+    if (isWallClock(bound, withTime)) continue;
+    into.push({
+      field: name,
+      problem:
+        `has a \`${which}\` of \`${shown}\`, which is not shaped like the values it ` +
+        `bounds — this field holds \`${wanted}\``,
+    });
+  }
 }
 
 function inspectSelect(select: Select, into: Complaint[]): void {

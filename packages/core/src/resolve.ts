@@ -126,6 +126,15 @@ export async function resolveSchema(
   const tree = walk(root);
   const flatTree = flattenWalked(tree);
   const state: Record<string, unknown> = { ...clientState };
+
+  // Normalised before anything reads it, so the cycle sees one shape whether
+  // the value came from the row or from the last round trip.
+  for (const { component } of flattenWalked(walk(root))) {
+    if (!(component instanceof Field)) continue;
+    const path = component.name;
+    if (path === "" || !(path in state)) continue;
+    state[path] = component.fromStorage(state[path]);
+  }
   const trace = new Map<string, Set<string>>(
     [...(options.previous?.trace ?? [])].map(([id, paths]) => [id, new Set(paths)]),
   );
@@ -147,7 +156,13 @@ export async function resolveSchema(
         options.record !== undefined &&
         path in options.record
       ) {
-        state[path] = options.record[path];
+        // Through the same normalisation as anything else arriving from the
+        // row. This branch fills after the pass that normalises, so without
+        // asking the field again a server-owned column would keep the driver's
+        // shape all the way to the renderer. No field is both server-owned and
+        // converting today, so nothing observes this — it is here because the
+        // two entry paths have to agree, not because a test caught it.
+        state[path] = component.fromStorage(options.record[path]);
         continue;
       }
 
@@ -243,7 +258,7 @@ export function dehydrate(
     const field = node.component;
     if (!(field instanceof Field)) continue;
     const path = field.name;
-    let value = result.state[path];
+    let value = field.toStorage(result.state[path]);
     const transform = field.state.dehydrateStateUsing;
     if (transform !== undefined) {
       value = transform(value, context(result.state, options, new Set()));

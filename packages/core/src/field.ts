@@ -128,6 +128,27 @@ export abstract class Field extends Component {
   }
 
   /**
+   * A stored value, in the shape the form works in.
+   *
+   * The page hands the whole row in as state, so a column arrives as whatever
+   * the driver returns — a `Date` for a timestamp. The cycle has to see one
+   * shape either way, or a resolver reading the path gets a `Date` on the
+   * first render and a string after the first keystroke.
+   *
+   * Applied once, on the way in, and idempotent: a value that is already in
+   * the form's shape passes through, because the second round trip carries
+   * what the first one produced.
+   */
+  fromStorage(value: unknown): unknown {
+    return value;
+  }
+
+  /** The reverse, on the way to the database. */
+  toStorage(value: unknown): unknown {
+    return value;
+  }
+
+  /**
    * Whether a client may set this field at all.
    *
    * A structural answer, not a flag: `disabled` and `readOnly` are resolvable,

@@ -12,6 +12,7 @@ import { FieldShell } from "./FieldShell.js";
 import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
+import { DateTimePicker } from "./fields/DateTimePicker.js";
 import { Placeholder } from "./fields/Placeholder.js";
 import { Radio } from "./fields/Radio.js";
 import { Textarea } from "./fields/Textarea.js";
@@ -390,6 +391,68 @@ function HiddenRenderer(): ReactNode {
 }
 
 /**
+ * The field carries one wall clock; the control works in two segments.
+ *
+ * `2026-03-29T02:30` splits on the `T` and joins back on it. No `Date` is built
+ * on either side — a `Date` carries a zone, and the whole point of the string is
+ * that it carries none.
+ */
+function splitWall(value: unknown, withTime: boolean): { date: string; time?: string } {
+  if (typeof value !== "string") return { date: "" };
+  const [date = "", time] = value.split("T");
+  return withTime && time !== undefined ? { date, time } : { date };
+}
+
+function DateTimePickerRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const props = node.props ?? {};
+  const withTime = props["withTime"] !== false;
+  const zone = props["timezone"];
+  const min = props["minDate"];
+
+  return (
+    <FieldShell
+      label={node.label ?? node.path ?? ""}
+      status={status}
+      required={node.required === true}
+      inline={node.inlineLabel === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <DateTimePicker
+          value={splitWall(value, withTime)}
+          onChange={(next) => {
+            if (node.path === undefined) return;
+            // An empty date is a cleared field, not a half-written one: sending
+            // `T14:30` would be a wall clock the boundary refuses and a value
+            // the reader cannot see was rejected.
+            const joined =
+              next.date === ""
+                ? ""
+                : withTime && next.time !== undefined && next.time !== ""
+                  ? `${next.date}T${next.time}`
+                  : next.date;
+            onChange(node.path, joined);
+          }}
+          status={status}
+          binding={binding}
+          dateOnly={!withTime}
+          {...(typeof zone === "string" ? { timeZone: zone } : {})}
+          {...(typeof min === "string" ? { min } : {})}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
+/**
  * Called once at module load. A plugin adds its own with the same function
  * (extension point E3) — there is no privileged path for the built-ins.
  */
@@ -401,6 +464,7 @@ export function registerBuiltInComponents(): void {
   registerComponent("Select", SelectRenderer);
   registerComponent("Checkbox", CheckboxRenderer);
   registerComponent("Radio", RadioRenderer);
+  registerComponent("DateTimePicker", DateTimePickerRenderer);
   registerComponent("Placeholder", PlaceholderRenderer);
   registerComponent("Hidden", HiddenRenderer);
   registerComponent("Toggle", ToggleRenderer);
