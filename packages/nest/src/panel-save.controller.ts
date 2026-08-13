@@ -25,7 +25,10 @@ import type { DataAdapter, FieldErrors, Row, SchemaPayload } from "@perchjs/core
 import { dehydrate, serialise } from "@perchjs/core";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
+import type { PanelDisks } from "./storage.token.js";
+import { PANEL_STORAGE } from "./storage.token.js";
 import { admit } from "./admission.js";
+import { commitUploads, dropReplaced, undoCommitted } from "./commit-uploads.js";
 import { withOptions } from "./relationship-options.js";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf } from "./panel-root.js";
@@ -57,17 +60,20 @@ export class PanelSaveController {
   readonly #registry: ResourceRegistry;
   readonly #users: UserResolver;
   readonly #data: DataAdapter | null;
+  readonly #disks: PanelDisks;
   readonly #redirect: RedirectAfterCreate;
 
   constructor(
     registry: ResourceRegistry,
     @Inject(PANEL_USER_RESOLVER) users: UserResolver,
     @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
+    @Inject(PANEL_STORAGE) disks: PanelDisks,
     @Inject(PANEL_REDIRECT_AFTER_CREATE) redirect: RedirectAfterCreate,
   ) {
     this.#registry = registry;
     this.#users = users;
     this.#data = data;
+    this.#disks = disks;
     this.#redirect = redirect;
   }
 
@@ -89,8 +95,24 @@ export class PanelSaveController {
     const mutate = resource.instance.mutateFormDataBeforeCreate?.bind(
       resource.instance,
     );
-    const values = (await mutate?.(written.values)) ?? written.values;
-    const record = await data.create(resource.metadata.model, { set: values });
+    const mutated = (await mutate?.(written.values)) ?? written.values;
+    // Files first, the row last (ADR 0016): a failure between them leaves a
+    // file nobody points at rather than a row pointing at nothing.
+    const { values, committed } = await commitUploads(
+      resource.instance.form(),
+      mutated,
+      null,
+      this.#disks,
+    );
+
+    let record: Row;
+    try {
+      record = await data.create(resource.metadata.model, { set: values });
+    } catch (error) {
+      await undoCommitted(committed, this.#disks);
+      throw error;
+    }
+    await dropReplaced(committed, this.#disks);
 
     const where = this.#where(resource, request, slug, data, record);
     const shown = identity(data, resource.metadata.model, record);
@@ -120,8 +142,25 @@ export class PanelSaveController {
     if ("refused" in written) return written.refused;
 
     const mutate = resource.instance.mutateFormDataBeforeSave?.bind(resource.instance);
-    const values = (await mutate?.(written.values)) ?? written.values;
-    const updated = await data.update(model, key, { set: values });
+    const mutated = (await mutate?.(written.values)) ?? written.values;
+    const { values, committed } = await commitUploads(
+      resource.instance.form(),
+      mutated,
+      record,
+      this.#disks,
+    );
+
+    let updated: Row;
+    try {
+      updated = await data.update(model, key, { set: values });
+    } catch (error) {
+      await undoCommitted(committed, this.#disks);
+      throw error;
+    }
+    // Only now: an attachment the row no longer points at, and only because it
+    // has stopped pointing at it.
+    await dropReplaced(committed, this.#disks);
+
     return { record: identity(data, model, updated) };
   }
 
