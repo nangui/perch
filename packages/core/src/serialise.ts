@@ -55,7 +55,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   Select: ["searchable", "multiple", "preload", "optionsLimit"],
   Radio: ["inline"],
   DateTimePicker: ["withTime", "timezone", "minDate", "maxDate"],
-  FileUpload: ["disk", "maxSize", "acceptedFileTypes"],
+  FileUpload: ["maxSize", "acceptedFileTypes"],
   Toggle: ["onIcon", "offIcon", "onColor"],
   Textarea: ["rows", "autosize", "maxLength"],
   Section: ["columns", "collapsible", "collapsed", "icon"],
@@ -114,6 +114,10 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     if (value === undefined || typeof value === "function") continue;
     extras[key] = value;
   }
+
+  // Resolved rather than declared, so it rides with the extras rather than
+  // beside them: one `props` on the wire, not two.
+  if (resolved.previewUrl !== undefined) extras["previewUrl"] = resolved.previewUrl;
 
   return {
     id: resolved.id,

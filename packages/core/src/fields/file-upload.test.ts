@@ -108,16 +108,85 @@ describe("on the wire", () => {
     const payload = serialise(await tree(made));
 
     expect(payload.schema.children?.[0]?.props).toEqual({
-      disk: "s3",
       maxSize: 1000,
       acceptedFileTypes: ["image/png", "image/jpeg", "image/gif", "image/webp"],
     });
   });
 
-  it("keeps the directory to itself, which is the server's business", async () => {
-    const made = FileUpload.make("cover").directory("covers");
+  it("keeps the disk and the directory to itself: both are the server's", async () => {
+    const made = FileUpload.make("cover").disk("s3").directory("covers");
     const payload = serialise(await tree(made));
 
-    expect(payload.schema.children?.[0]?.props).not.toHaveProperty("directory");
+    // Asserted against the whole payload rather than one field of it. The
+    // earlier version read a property off `props`, which only existed because
+    // the disk was in it — so it could not have failed if the directory had
+    // started crossing on its own.
+    expect(JSON.stringify(payload)).not.toContain("covers");
+    expect(JSON.stringify(payload)).not.toContain("s3");
+  });
+});
+
+describe("where a stored file can be looked at", () => {
+  type Answer = (disk: string, key: string) => string | undefined;
+
+  // Resolved from the row, so every case here has to say what the row holds.
+  const shown = async (
+    record: Record<string, unknown>,
+    state: Record<string, unknown>,
+    fileUrl?: Answer,
+  ) =>
+    serialise(
+      await resolveSchema(Schema.make([FileUpload.make("cover").disk("s3")]), state, {
+        operation: "edit",
+        record,
+        ...(fileUrl === undefined ? {} : { fileUrl }),
+      }),
+    ).schema.children?.[0]?.props?.["previewUrl"];
+
+  const KEY = "covers/1.png";
+  const ROW = { cover: KEY };
+
+  it("is what the adapter says, asked with the disk the field named", async () => {
+    const asked: string[][] = [];
+    const answer = (disk: string, key: string): string => {
+      asked.push([disk, key]);
+      return `https://cdn/${key}`;
+    };
+
+    expect(await shown(ROW, { cover: KEY }, answer)).toBe(`https://cdn/${KEY}`);
+    // The disk is the field's, not a default: a panel with two disks resolves
+    // each field against its own.
+    expect(asked).toEqual([["s3", KEY]]);
+  });
+
+  it("is absent when nobody can answer", async () => {
+    expect(await shown(ROW, { cover: KEY })).toBeUndefined();
+  });
+
+  it("is absent when the row holds nothing", async () => {
+    expect(await shown({ cover: "" }, { cover: "" }, () => "u")).toBeUndefined();
+    expect(await shown({}, {}, () => "u")).toBeUndefined();
+  });
+
+  it("is absent when the adapter declines rather than a broken address", async () => {
+    // A field naming a disk the panel was never given. No picture beats one
+    // that cannot load.
+    expect(await shown(ROW, { cover: KEY }, () => undefined)).toBeUndefined();
+  });
+
+  it("is never minted for a key the form was handed rather than the row", async () => {
+    // The whole reason it is resolved from the row. An adapter that signs URLs
+    // would otherwise sign one for wherever this page said to look.
+    expect(
+      await shown(ROW, { cover: "../../someone-elses/backup.sql" }, (_, key) => key),
+    ).toBeUndefined();
+  });
+
+  it("stops showing the old file the moment another is chosen", async () => {
+    // The form holds a staged key now. The row's picture is about to stop being
+    // true, and the browser has the new file in hand to show instead.
+    expect(await shown(ROW, { cover: "staging/7-new.png" }, (_, key) => key)).toBe(
+      undefined,
+    );
   });
 });

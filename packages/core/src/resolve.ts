@@ -9,6 +9,7 @@ import type { Component, Operation, Resolvable, ResolverContext } from "./compon
 import { isResolver } from "./component.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
+import { FileUpload } from "./fields/file-upload.js";
 import { Placeholder } from "./fields/placeholder.js";
 import { Select } from "./fields/select.js";
 import type { Option, OptionsInput } from "./option.js";
@@ -63,6 +64,15 @@ export interface ResolveOptions {
    * which is a dropdown a reader cannot choose from.
    */
   readonly loadOptions?: (request: OptionsRequest) => Promise<readonly Option[]>;
+  /**
+   * Where a stored file can be fetched.
+   *
+   * A key is not an address: the adapter decides what a key resolves to, and
+   * the domain has never heard of either. So the cycle asks, the same way it
+   * asks for a relationship's options, and a caller that cannot answer means a
+   * field with a file and no picture rather than a broken one.
+   */
+  readonly fileUrl?: (disk: string, key: string) => string | undefined;
   /** What the client changed. Absent means a first load: resolve everything. */
   readonly dirtyPath?: string;
   /**
@@ -85,6 +95,8 @@ export interface ResolvedNode {
   readonly required?: boolean;
   /** What a `Placeholder` shows. Resolved, so it may read other fields. */
   readonly content?: string;
+  /** Where a `FileUpload`'s stored file can be fetched, if it has one. */
+  readonly previewUrl?: string;
   readonly options?: readonly Option[];
   readonly children: readonly ResolvedNode[];
 }
@@ -357,6 +369,26 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       ? await value(component.state.required, rc, false, count)
       : false;
 
+  // A stored key, not an address: only the adapter can turn one into the other,
+  // so a caller that cannot answer means no picture rather than a broken one.
+  //
+  // Resolved from the row and only while the form still holds what the row
+  // does. The value on a form is the client's to set, and minting an address
+  // for a key it chose asks the server to vouch for somewhere it was pointed —
+  // with an adapter that signs URLs, that is a signature for any object in the
+  // bucket. A file just chosen is previewed by the browser, from the file it
+  // already has in hand.
+  const stored =
+    component instanceof FileUpload ? ctx.options.record?.[component.name] : undefined;
+  const previewUrl =
+    component instanceof FileUpload &&
+    ctx.options.fileUrl !== undefined &&
+    typeof stored === "string" &&
+    stored !== "" &&
+    ctx.state[component.name] === stored
+      ? ctx.options.fileUrl(component.state.disk, stored)
+      : undefined;
+
   let options: readonly Option[] | undefined;
   const declared = component instanceof Field ? component.declaredOptions : undefined;
   if (declared !== undefined) {
@@ -388,6 +420,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     ...(label === undefined ? {} : { label }),
     ...(helperText === undefined ? {} : { helperText }),
     ...(content === undefined ? {} : { content }),
+    ...(previewUrl === undefined ? {} : { previewUrl }),
     ...(placeholder === undefined ? {} : { placeholder }),
     ...(required ? { required: true } : {}),
     ...(options === undefined ? {} : { options }),
