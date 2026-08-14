@@ -230,6 +230,11 @@ function matches(row: Row, clauses: readonly Clause[] | undefined): boolean {
     if (clause.operator === "contains") {
       return text(value).toLowerCase().includes(text(clause.value).toLowerCase());
     }
+    // What an action's selection is built from. Without it the fall-through
+    // below compares a value to an array and finds nothing, every time.
+    if (clause.operator === "in") {
+      return Array.isArray(clause.value) && clause.value.includes(value);
+    }
     return value === clause.value;
   });
 }

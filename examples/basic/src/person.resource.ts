@@ -4,6 +4,7 @@ import {
   Checkbox,
   CreateAction,
   DateTimePicker,
+  DeleteAction,
   EditAction,
   FileUpload,
   Hidden,
@@ -82,7 +83,16 @@ export class PersonResource {
         SelectFilter.make("role").label("Role").options(ROLES),
         TextFilter.make("email").label("Email contains"),
       ])
-      .actions([EditAction.make()])
+      .actions([
+        EditAction.make(),
+        // Confirms by default and cannot be talked out of it: v0.1 has no
+        // restore, so a misclick here is final.
+        DeleteAction.make().requiresConfirmation({
+          heading: "Delete this person?",
+          description: "This cannot be undone.",
+          confirmLabel: "Delete",
+        }),
+      ])
       .headerActions([CreateAction.make()])
       .defaultSort("firstName");
   }
