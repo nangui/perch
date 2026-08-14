@@ -1792,6 +1792,47 @@
   border-radius: var(--perch-radius-lg);
 }
 
+/* Between the filters and the rows, where the reader's eye already is after
+   ticking something. Not a floating bar: it must not cover a row. */
+.perch-list__bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--perch-space-5);
+  margin-bottom: var(--perch-space-6);
+  padding: var(--perch-space-5) var(--perch-space-6);
+  background: var(--perch-accent-surface);
+  border: 1px solid var(--perch-accent-border);
+  border-radius: var(--perch-radius-lg);
+}
+
+.perch-list__bulk-count {
+  margin: 0;
+  margin-right: auto;
+  font-size: var(--perch-text-control);
+  font-weight: 500;
+  color: var(--perch-content);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The pairing is `flex` with a control-height minimum, which is right in a
+   form row and too tall in a table row. */
+.perch-table__pick .perch-checkbox {
+  display: inline-flex;
+  min-height: 0;
+}
+
+/* As narrow as the control it holds, so the row of data is not pushed across
+   the page by a column that carries one checkbox. */
+.perch-table__pick {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.perch-table tr[data-picked="true"] {
+  background: var(--perch-accent-surface);
+}
+
 /* Its own card rather than a lid on the table's.
    
    Seaming the two meant a rule that only holds while nothing comes between
@@ -1824,13 +1865,17 @@
   color: var(--perch-danger-content);
 }
 
-/* Flex rather than inline text: two actions in a cell ran together into one
-   word, because nothing between an anchor and a button is whitespace. */
+/* Two actions in a cell run together into one word, because nothing between an
+   anchor and a button is whitespace. Spaced with a margin rather than by making
+   the cell a flex container: `display: flex` takes a `<td>` out of the table's
+   box model, and its borders stop lining up with the row it is in. */
 .perch-table__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--perch-space-6);
+  text-align: right;
   white-space: nowrap;
+}
+
+.perch-table__actions > * + * {
+  margin-left: var(--perch-space-6);
 }
 
 .perch-table__action {
@@ -1854,6 +1899,11 @@ button.perch-table__action {
 
 .perch-table__action--danger {
   color: var(--perch-danger);
+}
+
+button.perch-table__action:disabled {
+  color: var(--perch-content-subtle);
+  cursor: not-allowed;
 }
 
 .perch-list__header {

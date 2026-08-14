@@ -25,6 +25,7 @@ const COLUMNS: ColumnTree = {
   actions: [],
   filters: [],
   headerActions: [],
+  bulkActions: [],
   columns: [
     { type: "TextColumn", path: "title", label: "Headline", sortable: true },
     { type: "TextColumn", path: "author.name", label: "Author" },

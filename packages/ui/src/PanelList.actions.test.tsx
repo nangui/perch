@@ -28,7 +28,10 @@ const REMOVE = {
   confirmation: { heading: "Delete this person?", confirmLabel: "Delete" },
 } as const;
 
-const page = (actions: RecordsPage["columns"]["actions"]): RecordsPage => ({
+const page = (
+  actions: RecordsPage["columns"]["actions"],
+  bulkActions: RecordsPage["columns"]["bulkActions"] = [],
+): RecordsPage => ({
   rows: [{ id: 1, title: "Ada" }],
   total: 1,
   page: 1,
@@ -38,6 +41,7 @@ const page = (actions: RecordsPage["columns"]["actions"]): RecordsPage => ({
     actions,
     filters: [],
     headerActions: [],
+    bulkActions,
   },
   recordKey: "id",
   resourcePath: "/admin/people",
@@ -244,6 +248,22 @@ describe("an action that declared a confirmation", () => {
 });
 
 describe("a second press while the first is in flight", () => {
+  it("says so on the row button too, not only in the bulk bar", () => {
+    // The ref already stops a second request. What is missing is telling the
+    // reader why nothing happened when they pressed again.
+    const runAction = vi.fn().mockImplementation(() => new Promise(() => undefined));
+    render(
+      <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    expect(screen.getByRole("button", { name: "Archive" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+  });
+
   it("starts nothing for an action that asks nothing first either", () => {
     // Criterion 7: an action triggered twice by a double click performs the
     // mutation once. The dialog holds itself, but a press with no dialog has
@@ -302,5 +322,190 @@ describe("an action the host cannot carry out", () => {
 
     expect(screen.getAllByRole("columnheader")).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Edit" })).toBeTruthy();
+  });
+});
+
+describe("ticking rows", () => {
+  const many = (): RecordsPage => ({
+    ...page([], [ARCHIVE]),
+    rows: [
+      { id: 1, title: "Ada" },
+      { id: 2, title: "Grace" },
+      { id: 3, title: "Alan" },
+    ],
+    total: 3,
+  });
+
+  it("offers no checkbox at all when nothing could be done with a selection", () => {
+    render(<PanelList initial={page([ARCHIVE])} title="People" runAction={vi.fn()} />);
+
+    expect(screen.queryByRole("checkbox")).toBeNull();
+  });
+
+  it("offers none either when no host would carry the action out", () => {
+    render(<PanelList initial={page([], [ARCHIVE])} title="People" />);
+
+    expect(screen.queryByRole("checkbox")).toBeNull();
+  });
+
+  it("says nothing until something is ticked", () => {
+    render(<PanelList initial={many()} title="People" runAction={vi.fn()} />);
+
+    expect(screen.queryByText(/selected/)).toBeNull();
+  });
+
+  it("counts what is ticked, and offers the action over it", () => {
+    render(<PanelList initial={many()} title="People" runAction={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select row 2" }));
+    expect(screen.getByText("1 selected")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Archive" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select row 3" }));
+    expect(screen.getByText("2 selected")).toBeTruthy();
+  });
+
+  it("sends every ticked key, not just the last one", async () => {
+    const runAction = vi.fn().mockResolvedValue({ processed: 2, refused: 0 });
+    render(<PanelList initial={many()} title="People" runAction={runAction} />);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select row 1" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select row 3" }));
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalledWith("ArchiveAction", [1, 3]);
+    });
+  });
+
+  it("ticks every row on the page at once, and unticks them again", () => {
+    render(<PanelList initial={many()} title="People" runAction={vi.fn()} />);
+    const all = screen.getByRole("checkbox", { name: "Select every row on this page" });
+
+    fireEvent.click(all);
+    expect(screen.getByText("3 selected")).toBeTruthy();
+
+    fireEvent.click(all);
+    expect(screen.queryByText(/selected/)).toBeNull();
+  });
+
+  it("says all rows are ticked only when they are", () => {
+    render(<PanelList initial={many()} title="People" runAction={vi.fn()} />);
+    const all = screen.getByRole<HTMLInputElement>("checkbox", {
+      name: "Select every row on this page",
+    });
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select row 1" }));
+
+    // Some but not all: the platform's third state, rather than a tick that
+    // would claim the other two rows were chosen.
+    expect(all.checked).toBe(false);
+    expect(all.indeterminate).toBe(true);
+  });
+
+  it("forgets the selection once the page it described is gone", async () => {
+    const runAction = vi.fn().mockResolvedValue({ processed: 1, refused: 0 });
+    const fetchPage = vi.fn().mockResolvedValue(many());
+    render(
+      <PanelList
+        initial={many()}
+        title="People"
+        runAction={runAction}
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select row 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    // The rows it named have just been acted on; keeping the ticks would offer
+    // to do it again to rows that may no longer be there.
+    await waitFor(() => {
+      expect(screen.queryByText(/selected/)).toBeNull();
+    });
+  });
+
+  it("does not leave the reader on a page the rows have left", async () => {
+    // Delete everything on page 3 of 3 and page 3 stops existing. Asking for it
+    // again answers with nothing, and the reader is looking at an empty table
+    // that says there are records.
+    const emptied: RecordsPage = { ...many(), rows: [], total: 6, page: 3, perPage: 3 };
+    const first: RecordsPage = { ...many(), total: 6, page: 2, perPage: 3 };
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce(emptied)
+      .mockResolvedValueOnce(first);
+    const runAction = vi.fn().mockResolvedValue({ processed: 3, refused: 0 });
+    render(
+      <PanelList
+        initial={{ ...many(), total: 9, page: 3, perPage: 3 }}
+        title="People"
+        runAction={runAction}
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Select every row on this page" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    await waitFor(() => {
+      expect(fetchPage).toHaveBeenCalledTimes(2);
+    });
+    expect(fetchPage.mock.calls[1]?.[0]).toMatchObject({ page: 2 });
+  });
+
+  it("takes an empty page at its word when it is the last one there is", async () => {
+    // A server saying "six records" and handing back nothing for the last page
+    // is contradicting itself. Asking again would not fix it and would spend a
+    // round trip finding that out.
+    const emptied: RecordsPage = { ...many(), rows: [], total: 6, page: 2, perPage: 3 };
+    const fetchPage = vi.fn().mockResolvedValue(emptied);
+    const runAction = vi.fn().mockResolvedValue({ processed: 3, refused: 0 });
+    render(
+      <PanelList
+        initial={{ ...many(), total: 6, page: 2, perPage: 3 }}
+        title="People"
+        runAction={runAction}
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Select every row on this page" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    await waitFor(() => {
+      expect(fetchPage).toHaveBeenCalledTimes(1);
+    });
+    expect(await screen.findByText("Nothing to show.")).toBeTruthy();
+  });
+
+  it("asks before a bulk action that declared a confirmation", async () => {
+    const runAction = vi.fn().mockResolvedValue({ processed: 2, refused: 0 });
+    render(
+      <PanelList
+        initial={{ ...many(), columns: { ...many().columns, bulkActions: [REMOVE] } }}
+        title="People"
+        runAction={runAction}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Select every row on this page" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(screen.getByText("Delete this person?")).toBeTruthy();
+    expect(runAction).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Delete" })[1] as HTMLElement,
+    );
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalledWith("DeleteAction", [1, 2, 3]);
+    });
   });
 });

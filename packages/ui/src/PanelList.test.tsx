@@ -20,6 +20,7 @@ const PAGE: RecordsPage = {
     actions: [{ type: "EditAction", name: "EditAction", trigger: "link" }],
     filters: [],
     headerActions: [{ type: "CreateAction", name: "CreateAction", trigger: "link" }],
+    bulkActions: [],
     defaultSort: { path: "title", direction: "asc" },
   },
   recordKey: "id",
@@ -86,6 +87,7 @@ describe("the list page", () => {
           filters: [],
           actions: [],
           headerActions: [],
+          bulkActions: [],
         },
       }),
     );

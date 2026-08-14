@@ -45,6 +45,18 @@ export interface DataTableProps {
    * no button.
    */
   readonly onAction?: (action: ActionNode, row: Row) => void;
+  /** Something is already running. The buttons say so rather than look live. */
+  readonly actionsBusy?: boolean;
+  /**
+   * Ticking rows. Absent means the table offers none — nothing would be done
+   * with a selection, and a checkbox that leads nowhere is furniture.
+   */
+  readonly selection?: {
+    readonly keyOf: (row: Row) => string | number | undefined;
+    readonly picked: ReadonlySet<string>;
+    readonly onPick: (key: string, picked: boolean) => void;
+    readonly onPickAll: (picked: boolean) => void;
+  };
 }
 
 export function DataTable({
@@ -56,6 +68,8 @@ export function DataTable({
   empty,
   rowHref,
   onAction,
+  actionsBusy = false,
+  selection,
 }: DataTableProps): ReactNode {
   // A link needs an address; a run needs somebody to run it. An action whose
   // kind the host cannot serve is left out rather than drawn dead.
@@ -67,6 +81,25 @@ export function DataTable({
     column,
     render: lookupColumn(column.type),
   }));
+
+  // Read once for the header rather than per row, and only over the rows this
+  // page actually holds: "all" means all of what is on screen.
+  const pickable =
+    selection === undefined
+      ? []
+      : rows.map((row) => selection.keyOf(row)).filter((key) => key !== undefined);
+  const isPicked = (row: Row): boolean => {
+    const key = selection?.keyOf(row);
+    return (
+      key !== undefined && selection !== undefined && selection.picked.has(String(key))
+    );
+  };
+  const allPicked =
+    pickable.length > 0 &&
+    pickable.every((key) => selection?.picked.has(String(key)) === true);
+  const somePicked = pickable.some(
+    (key) => selection?.picked.has(String(key)) === true,
+  );
 
   if (rows.length === 0) {
     return (
@@ -81,6 +114,34 @@ export function DataTable({
       <caption className="perch-visually-hidden">{caption}</caption>
       <thead>
         <tr>
+          {selection === undefined ? null : (
+            <th scope="col" className="perch-table__head perch-table__pick">
+              {/* The real input is transparent and the box beside it is what
+                  is seen, which is the pairing every checkbox here uses. On its
+                  own the input is invisible. */}
+              <span className="perch-checkbox">
+                <input
+                  type="checkbox"
+                  className="perch-checkbox__input"
+                  // Ticks what is on this page, and says so. It cannot speak
+                  // for rows the server has not sent.
+                  aria-label="Select every row on this page"
+                  checked={allPicked}
+                  ref={(input) => {
+                    // Some picked but not all: neither state is true, and the
+                    // platform has a third one for exactly this.
+                    if (input !== null) input.indeterminate = somePicked && !allPicked;
+                  }}
+                  onChange={(event) => {
+                    selection.onPickAll(event.target.checked);
+                  }}
+                />
+                <span className="perch-checkbox__box" aria-hidden="true">
+                  {allPicked ? "✓" : somePicked ? "–" : ""}
+                </span>
+              </span>
+            </th>
+          )}
           {rendered.map(({ column }) => (
             <th
               key={column.path}
@@ -100,7 +161,28 @@ export function DataTable({
       </thead>
       <tbody>
         {rows.map((row, index) => (
-          <tr key={rowKey(row, index)}>
+          <tr key={rowKey(row, index)} data-picked={isPicked(row)}>
+            {selection === undefined ? null : (
+              <td className="perch-table__cell perch-table__pick">
+                <span className="perch-checkbox">
+                  <input
+                    type="checkbox"
+                    className="perch-checkbox__input"
+                    aria-label={`Select row ${String(index + 1)}`}
+                    checked={isPicked(row)}
+                    disabled={selection.keyOf(row) === undefined}
+                    onChange={(event) => {
+                      const key = selection.keyOf(row);
+                      if (key !== undefined)
+                        selection.onPick(String(key), event.target.checked);
+                    }}
+                  />
+                  <span className="perch-checkbox__box" aria-hidden="true">
+                    {isPicked(row) ? "✓" : ""}
+                  </span>
+                </span>
+              </td>
+            )}
             {rendered.map(({ column, render }) => (
               <td key={column.path} className="perch-table__cell">
                 {render === undefined
@@ -110,7 +192,9 @@ export function DataTable({
             ))}
             {actions.length === 0 ? null : (
               <td className="perch-table__cell perch-table__actions">
-                {actions.map((action) => rowAction(action, row, rowHref, onAction))}
+                {actions.map((action) =>
+                  rowAction(action, row, rowHref, onAction, actionsBusy),
+                )}
               </td>
             )}
           </tr>
@@ -138,6 +222,7 @@ function rowAction(
   row: Row,
   href: ((row: Row) => string | undefined) | undefined,
   onAction: ((action: ActionNode, row: Row) => void) | undefined,
+  busy: boolean,
 ): ReactNode {
   if (action.trigger === "link") {
     const target = href?.(row);
@@ -155,6 +240,7 @@ function rowAction(
       key={action.name}
       type="button"
       className={`perch-table__action${action.danger === true ? " perch-table__action--danger" : ""}`}
+      disabled={busy}
       onClick={() => {
         onAction(action, row);
       }}

@@ -78,6 +78,7 @@ function paged(page: number) {
       actions: [],
       filters: [],
       headerActions: [],
+      bulkActions: [],
       defaultSort: { path: "title", direction: "asc" },
     },
     recordKey: "id",
@@ -325,7 +326,13 @@ describe("a shell that says too little", () => {
             total: 0,
             // What `serialiseTable` always emits, including the two lists it
             // sends even when they are empty.
-            columns: { columns: [], filters: [], actions: [], headerActions: [] },
+            columns: {
+              columns: [],
+              filters: [],
+              actions: [],
+              headerActions: [],
+              bulkActions: [],
+            },
           }),
         }),
       );
@@ -350,6 +357,7 @@ describe("a shell that says too little", () => {
         actions: [],
         filters: [],
         headerActions: [],
+        bulkActions: [],
         defaultSort: { path: "title", direction: "asc" },
       },
       recordKey: "id",

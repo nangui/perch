@@ -143,7 +143,7 @@ export function PanelList({
   const ask =
     fetchPage === undefined
       ? undefined
-      : (request: PageRequest, keepNotice = false) => {
+      : (request: PageRequest, keepNotice = false, rescue = false) => {
           const sequence = (latest.current += 1);
           setFailed(false);
           // A reader who sorts or turns a page has moved on: a notice still
@@ -151,9 +151,23 @@ export function PanelList({
           // The refresh an action asks for keeps it, because it is what the
           // notice is about.
           if (!keepNotice) setSaid(undefined);
+          // Whether the reader navigated or an action just changed the rows,
+          // what was ticked is about the page that was there before.
+          forgetPicked();
           fetchPage(request).then(
             (answer) => {
               if (sequence !== latest.current) return;
+              // An action can empty the page it was run on — delete everything
+              // on page 3 of 3 and page 3 stops existing. Asking for it again
+              // answers with nothing, and the reader is left looking at an
+              // empty table that says there are records.
+              if (rescue && answer.rows.length === 0 && answer.page > 1) {
+                const last = Math.max(1, Math.ceil(answer.total / answer.perPage));
+                if (last < answer.page) {
+                  ask?.({ ...request, page: last }, true);
+                  return;
+                }
+              }
               setPage(answer);
               onPage?.(answer);
             },
@@ -221,6 +235,30 @@ export function PanelList({
    * one can see the first in.
    */
   const running = useRef(false);
+
+  /**
+   * The rows the reader has ticked, by key as text.
+   *
+   * Text because a key is a number or a string depending on the model, and a
+   * `Set` would hold `1` and `"1"` apart. What goes back to the server is what
+   * the row carried, looked up again at that point.
+   */
+  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
+
+  const keyOf = (row: Row): string | number | undefined => {
+    const key = row[page.recordKey];
+    return typeof key === "string" || typeof key === "number" ? key : undefined;
+  };
+
+  // A selection describes rows on a page. Once the page is not that one, the
+  // ticks belong to rows the reader can no longer see.
+  const forgetPicked = (): void => {
+    setPicked((was) => (was.size === 0 ? was : new Set()));
+  };
+
+  const bulk = page.columns.bulkActions;
+  const chosen = page.rows.map(keyOf).filter((key) => key !== undefined);
+  const selected = chosen.filter((key) => picked.has(String(key)));
   const [said, setSaid] = useState<ActionAnswer["notification"] | undefined>(undefined);
 
   async function carry(action: ActionNode, ids: readonly (string | number)[]) {
@@ -262,7 +300,17 @@ export function PanelList({
         perPage: page.perPage,
       },
       true,
+      true,
     );
+  }
+
+  function pressBulk(action: ActionNode): void {
+    if (selected.length === 0) return;
+    if (action.confirmation !== undefined) {
+      setPending({ action, ids: selected });
+      return;
+    }
+    void carry(action, selected);
   }
 
   function press(action: ActionNode, row: Row): void {
@@ -292,6 +340,26 @@ export function PanelList({
       ) : null}
       {/* A wide table scrolls inside its own box; the page never scrolls
           sideways under it. */}
+      {bulk.length === 0 || runAction === undefined || selected.length === 0 ? null : (
+        <div className="perch-list__bulk" role="group" aria-label="Selected rows">
+          <p className="perch-list__bulk-count" role="status">
+            {selected.length} selected
+          </p>
+          {bulk.map((action) => (
+            <button
+              key={action.name}
+              type="button"
+              className={`perch-button${action.danger === true ? " perch-button--danger" : ""}`}
+              disabled={busy}
+              onClick={() => {
+                pressBulk(action);
+              }}
+            >
+              {action.label ?? action.type.replace(/Action$/, "")}
+            </button>
+          ))}
+        </div>
+      )}
       {said === undefined ? null : (
         // One live region for what an action answered, kept apart from the
         // paging one below: they change for different reasons, and a reader
@@ -309,7 +377,26 @@ export function PanelList({
           rowHref={(row) => href(page, row)}
           {...(sort === undefined ? {} : { sort })}
           {...(reorder === undefined ? {} : { onSort: reorder })}
-          {...(runAction === undefined ? {} : { onAction: press })}
+          {...(runAction === undefined ? {} : { onAction: press, actionsBusy: busy })}
+          {...(bulk.length === 0 || runAction === undefined
+            ? {}
+            : {
+                selection: {
+                  keyOf,
+                  picked,
+                  onPick: (key: string, on: boolean) => {
+                    setPicked((was) => {
+                      const next = new Set(was);
+                      if (on) next.add(key);
+                      else next.delete(key);
+                      return next;
+                    });
+                  },
+                  onPickAll: (on: boolean) => {
+                    setPicked(on ? new Set(chosen.map(String)) : new Set());
+                  },
+                },
+              })}
         />
       </div>
 
