@@ -17,9 +17,9 @@ const PAGE: RecordsPage = {
   perPage: 25,
   columns: {
     columns: [{ type: "TextColumn", path: "title", label: "Headline", sortable: true }],
-    actions: [{ type: "EditAction" }],
+    actions: [{ type: "EditAction", name: "EditAction" }],
     filters: [],
-    headerActions: [{ type: "CreateAction" }],
+    headerActions: [{ type: "CreateAction", name: "CreateAction" }],
     defaultSort: { path: "title", direction: "asc" },
   },
   recordKey: "id",
@@ -201,7 +201,10 @@ describe("the list page", () => {
       <PanelList
         initial={{
           ...PAGE,
-          columns: { ...PAGE.columns, headerActions: [{ type: "ImportAction" }] },
+          columns: {
+            ...PAGE.columns,
+            headerActions: [{ type: "ImportAction", name: "ImportAction" }],
+          },
         }}
         title="Posts"
       />,
@@ -215,7 +218,10 @@ describe("the list page", () => {
       <PanelList
         initial={{
           ...PAGE,
-          columns: { ...PAGE.columns, headerActions: [{ type: "ImportAction" }] },
+          columns: {
+            ...PAGE.columns,
+            headerActions: [{ type: "ImportAction", name: "ImportAction" }],
+          },
         }}
         title="Posts"
       />,

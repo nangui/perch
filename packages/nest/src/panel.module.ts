@@ -16,6 +16,7 @@ import { PANEL_STORAGE } from "./storage.token.js";
 import { PanelUploadSweep } from "./upload-sweep.js";
 import type { RedirectAfterCreate } from "./redirect.js";
 import { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
+import { PanelActionController } from "./panel-action.controller.js";
 import { PanelAssetsController } from "./panel-assets.controller.js";
 import { PanelOptionsController } from "./panel-options.controller.js";
 import { PanelUploadController } from "./panel-upload.controller.js";
@@ -99,6 +100,7 @@ export class PanelModule {
       // `assets/:file` and `api/:resource/state`.
       controllers: [
         guarded(PanelAssetsController, guards),
+        guarded(PanelActionController, guards),
         guarded(PanelStateController, guards),
         guarded(PanelOptionsController, guards),
         guarded(PanelUploadController, guards),

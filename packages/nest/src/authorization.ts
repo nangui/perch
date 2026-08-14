@@ -24,12 +24,21 @@ export interface Authorization<TUser = unknown, TRecord = unknown> {
 export type Verdict = "allowed" | "denied" | "needs-record";
 
 /**
+ * What may be asked of a resource.
+ *
+ * Wider than the form's `Operation` and deliberately kept apart from it:
+ * deleting is not a form somebody fills, so widening the shared type would put
+ * a case into the resolution cycle that can never happen there.
+ */
+export type Permission = Operation | "delete";
+
+/**
  * Absent means allowed — the panel already sits behind the guards. It is the
  * debatable half of this design and it is the documented one.
  */
 export async function authorize(
   can: Authorization | undefined,
-  operation: Operation,
+  operation: Permission,
   user: unknown,
   record?: Row,
 ): Promise<Verdict> {
@@ -45,6 +54,12 @@ export async function authorize(
       return await scoped(can.update, user, record);
     case "view":
       return await scoped(can.view, user, record);
+    case "delete":
+      // Asked of the principal rather than of a row, which is what the policy
+      // declares. A rule that turns on which row is the action's own guard,
+      // and that one is asked per record.
+      if (can.delete === undefined) return "allowed";
+      return (await can.delete(user)) ? "allowed" : "denied";
   }
 }
 

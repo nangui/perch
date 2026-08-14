@@ -93,7 +93,10 @@ describe("what a table renders", () => {
 });
 
 describe("row actions", () => {
-  const withEdit: ColumnTree = { ...COLUMNS, actions: [{ type: "EditAction" }] };
+  const withEdit: ColumnTree = {
+    ...COLUMNS,
+    actions: [{ type: "EditAction", name: "EditAction" }],
+  };
 
   it("renders a link, not a button", () => {
     // `EditAction` is navigation. An anchor is what lets a browser open it in a
@@ -123,7 +126,10 @@ describe("row actions", () => {
     // server never offered.
     render(
       <DataTable
-        columns={{ ...COLUMNS, actions: [{ type: "SomeFutureAction" }] }}
+        columns={{
+          ...COLUMNS,
+          actions: [{ type: "SomeFutureAction", name: "SomeFutureAction" }],
+        }}
         rows={ROWS}
         caption="Posts"
         rowHref={() => "/somewhere"}
