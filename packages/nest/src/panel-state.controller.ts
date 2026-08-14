@@ -22,23 +22,26 @@ import {
   Req,
 } from "@nestjs/common";
 import type {
+  Action,
   DataAdapter,
   FormState,
   Operation,
   Row,
   ResolveOptions,
+  Schema,
   SchemaPayload,
 } from "@perchjs/core";
-import { resolveSchema, serialise } from "@perchjs/core";
+import { declaredActions, resolveSchema, serialise } from "@perchjs/core";
 import { fileUrls } from "./file-urls.js";
 import { withOptions } from "./relationship-options.js";
 import { admit } from "./admission.js";
-import { authorize } from "./authorization.js";
+import { authorize, permissionFor } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
 import { recordId } from "./record-id.js";
 import { ResourceRegistry } from "./resource-registry.js";
+import type { RegisteredResource } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
 
@@ -49,6 +52,8 @@ export interface StateRequest {
   readonly dirtyPath: string;
   readonly operation: Operation;
   readonly id?: string | number;
+  /** Names a modal's schema instead of the resource's own form. */
+  readonly action?: string;
 }
 
 @Controller("api/:resource")
@@ -86,15 +91,27 @@ export class PanelStateController {
     const decoded = decode(body);
     const user = this.#users.resolve(request);
     const record = await loadRecord(this.#data, resource.metadata.model, decoded);
+
+    // A modal's schema belongs to its action, so the action's permission is
+    // what gates it — not the operation the request named. Otherwise a caller
+    // picks the operation it can pass and reads the schema of one it cannot:
+    // the form route refuses that, and a guard only one of two doors goes
+    // through is decoration.
+    const named =
+      decoded.action === undefined ? undefined : actionOf(resource, decoded.action);
     const verdict = await authorize(
       resource.instance.can,
-      decoded.operation,
+      named === undefined ? decoded.operation : permissionFor(named),
       user,
       record ?? undefined,
     );
     if (verdict !== "allowed") throw new NotFoundException();
 
-    const schema = resource.instance.form();
+    // A modal's schema is a schema like any other, so the cycle that makes a
+    // dependent `Select` work on a page works inside one. Which schema is read
+    // off the declaration, never off the request: a name nobody declared, or an
+    // action with no form, reaches nothing.
+    const schema = named === undefined ? resource.instance.form() : formOf(named);
 
     // One loader for both resolutions: memoised, so the admission passes and
     // the answer share a single query rather than repeating it.
@@ -166,10 +183,28 @@ function decode(body: unknown): StateRequest {
     throw new NotFoundException();
   }
 
+  const { action } = body as Record<string, unknown>;
+
   return {
     state: state as FormState,
     dirtyPath,
     operation: operation as Operation,
     ...(typeof id === "string" || typeof id === "number" ? { id } : {}),
+    ...(typeof action === "string" && action.length > 0 ? { action } : {}),
   };
+}
+
+/** The action a request named, and only one the table declared. */
+function actionOf(resource: RegisteredResource, name: string): Action {
+  const table = resource.instance.table?.();
+  const action = table === undefined ? undefined : declaredActions(table).get(name);
+  if (action === undefined) throw new NotFoundException();
+  return action;
+}
+
+/** The schema it collects with, or nothing at all. */
+function formOf(action: Action): Schema {
+  const schema = action.state.form;
+  if (schema === undefined) throw new NotFoundException();
+  return schema;
 }

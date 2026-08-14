@@ -19,17 +19,28 @@ import {
   Param,
   Post,
   Req,
+  UnprocessableEntityException,
 } from "@nestjs/common";
-import type { Action, DataAdapter, Id, NotificationState, Row } from "@perchjs/core";
+import type {
+  Action,
+  DataAdapter,
+  FormState,
+  Id,
+  NotificationState,
+  Row,
+  SchemaPayload,
+} from "@perchjs/core";
 import {
   DeleteAction,
   admittedRecords,
   declaredActions,
   runAction,
+  serialise,
 } from "@perchjs/core";
 import { loadSelection, readSelection } from "./action-selection.js";
-import { authorize } from "./authorization.js";
-import type { Permission } from "./authorization.js";
+import { admit } from "./admission.js";
+import { withOptions } from "./relationship-options.js";
+import { authorize, permissionFor } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
@@ -69,6 +80,42 @@ export class PanelActionController {
     @Body() body: unknown,
     @Req() request: unknown,
   ): Promise<ActionAnswer> {
+    const { action, user, model, allowed, refused } = await this.#reach(
+      slug,
+      name,
+      body,
+      request,
+    );
+
+    // What a modal collected, replayed against the schema that modal was drawn
+    // from — the same boundary form state crosses. An action with no form
+    // collects nothing, and a body that carries something anyway is dropped
+    // without a word.
+    const collected = await this.#collected(action, body, user, model);
+
+    return await this.#carry(action, model, allowed, user, refused, collected);
+  }
+
+  /**
+   * Everything both routes have to re-establish before they do anything.
+   *
+   * Pressing a button is a request like any other, so none of what the button
+   * showed is believed: the action has to be one the table declared, the
+   * principal has to be allowed the resource, and the selection has to name
+   * rows that are still there.
+   */
+  async #reach(
+    slug: string,
+    name: string,
+    body: unknown,
+    request: unknown,
+  ): Promise<{
+    action: Action;
+    user: unknown;
+    model: string;
+    allowed: readonly Row[];
+    refused: number;
+  }> {
     const data = this.#data;
     if (data === null) throw new NotFoundException();
 
@@ -120,7 +167,80 @@ export class PanelActionController {
     // caller maps what exists.
     if (allowed.length === 0) throw new NotFoundException();
 
-    return await this.#carry(data, model, action, allowed, user, refused);
+    return { action, user, model, allowed, refused };
+  }
+
+  /**
+   * What the modal sent, once it has been through stage 5.
+   *
+   * An unknown path, or one belonging to a field that is invisible, disabled or
+   * read-only, is dropped without a word. Nothing else may reach a callback:
+   * the body is the client's to write, and an author reading `data` has to be
+   * reading something the schema admitted.
+   */
+  async #collected(
+    action: Action,
+    body: unknown,
+    user: unknown,
+    model: string,
+  ): Promise<FormState> {
+    const schema = action.state.form;
+    if (schema === undefined) return {};
+
+    const { accepted, tree } = await admit({
+      schema,
+      state: readData(body),
+      operation: "create",
+      user,
+      record: null,
+      ...withOptions(this.#data, model),
+    });
+    // A form that does not validate is not run. The client showed the same
+    // tree; if it submitted anyway, the answer is a refusal rather than a
+    // half-done action.
+    if (Object.keys(tree.errors).length > 0) {
+      throw new UnprocessableEntityException({
+        message: "That form is not complete.",
+        errors: tree.errors,
+      });
+    }
+    return accepted;
+  }
+
+  /**
+   * What the modal shows.
+   *
+   * Asked for rather than sent with the table: a schema means nothing until it
+   * has been resolved against a principal, and a table is serialised once for
+   * every reader who lists.
+   *
+   * The same refusals the run goes through, because opening the modal is where
+   * a reader learns whether they may act — and learning it here rather than
+   * after filling it in is the only kindness available.
+   */
+  @Post("actions/:action/form")
+  @HttpCode(200)
+  async form(
+    @Param("resource") slug: string,
+    @Param("action") name: string,
+    @Body() body: unknown,
+    @Req() request: unknown,
+  ): Promise<SchemaPayload> {
+    const { action, user, model } = await this.#reach(slug, name, body, request);
+    const schema = action.state.form;
+    if (schema === undefined) throw new NotFoundException();
+
+    const { tree } = await admit({
+      schema,
+      state: readData(body),
+      operation: "create",
+      user,
+      // Filled once however many rows were ticked, so it answers to none of
+      // them. A field that read a record would have fifty to choose from.
+      record: null,
+      ...withOptions(this.#data, model),
+    });
+    return serialise(tree);
   }
 
   /**
@@ -129,13 +249,15 @@ export class PanelActionController {
    * what rolls back must not depend on how many were ticked.
    */
   async #carry(
-    data: DataAdapter,
-    model: string,
     action: Action,
+    model: string,
     rows: readonly Row[],
     user: unknown,
     refusedAlready: number,
+    collected: FormState,
   ): Promise<ActionAnswer> {
+    const data = this.#data;
+    if (data === null) throw new NotFoundException();
     // Read once, not once per row. `meta` is documented as resolved at
     // bootstrap and never called on a hot path, and five hundred rows is one.
     const primaryKey = data.meta(model).primaryKey.name;
@@ -154,11 +276,9 @@ export class PanelActionController {
         return { processed, refused };
       }
 
-      // Nothing from the request body reaches the callback. A modal's fields
-      // would have to be replayed against its schema first, the way form state
-      // is, and there is no modal and so no schema to replay against — so an
-      // author who reads `data` finds it empty rather than finds it trusted.
-      const outcome = await runAction({ action, records: rows, user });
+      // What reaches the callback is what the schema admitted, never what the
+      // body carried. An action with no form hands it an empty object.
+      const outcome = await runAction({ action, records: rows, user, data: collected });
       return { ...outcome, refused: outcome.refused + refusedAlready };
     });
   }
@@ -176,12 +296,12 @@ function executable(action: Action): boolean {
 }
 
 /**
- * Which policy an action is held to.
+ * The modal's fields, straight off the body and trusted by nothing.
  *
- * Deleting asks the delete policy; everything else asks the one for changing a
- * row. An action that only reads would be held to more than it needs — it has
- * no way to say so yet, and saying so is worth a method rather than a guess.
+ * Handed to `admit`, which is what decides whether any of it survives.
  */
-function permissionFor(action: Action): Permission {
-  return action instanceof DeleteAction ? "delete" : "edit";
+function readData(body: unknown): Readonly<Record<string, unknown>> {
+  const raw = (body as { data?: unknown } | null)?.data;
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return raw as Readonly<Record<string, unknown>>;
 }

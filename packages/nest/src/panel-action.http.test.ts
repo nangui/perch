@@ -26,6 +26,7 @@ import {
   EditAction,
   Notification,
   Schema as Tree,
+  Select,
   Table,
   TextColumn,
   TextInput,
@@ -44,6 +45,7 @@ let guard: ((user: unknown, record: Row) => boolean) | undefined;
 let transactions = 0;
 let queries = 0;
 let explode = false;
+let withForm = false;
 
 const ROWS: Record<number, Row> = Object.fromEntries(
   Array.from({ length: 600 }, (_, i) => [
@@ -125,6 +127,18 @@ class PostResource {
         return Notification.make().title("Archived").success();
       });
     if (guard !== undefined) archive = archive.authorize(guard);
+    if (withForm) {
+      archive = archive.form(
+        Tree.make([
+          TextInput.make("reason").required(),
+          Select.make("severity")
+            .options({ low: "Low", high: "High" })
+            // `Boolean`, not `!== ""`: an unfilled path reads as `undefined`,
+            // which is not the empty string and would have been visible.
+            .visible(({ get }) => Boolean(get("reason"))),
+        ]),
+      );
+    }
 
     let remove = DeleteAction.make();
     if (guard !== undefined) remove = remove.authorize(guard);
@@ -154,6 +168,7 @@ beforeEach(async () => {
   transactions = 0;
   queries = 0;
   explode = false;
+  withForm = false;
   policy = undefined;
   guard = undefined;
 
@@ -481,5 +496,185 @@ describe("an action that throws", () => {
     deleted = [];
     await press("ArchiveAction", { ids: [1, 2, 3] });
     expect(ran).toEqual([]);
+  });
+});
+
+describe("an action that collects something first", () => {
+  const ask = async (body: unknown) => {
+    const response = await fetch(`${url}/admin/api/posts/actions/ArchiveAction/form`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const text = await response.text();
+    return {
+      status: response.status,
+      body: text === "" ? {} : (JSON.parse(text) as Record<string, unknown>),
+    };
+  };
+
+  it("hands back a resolved schema rather than the declaration", async () => {
+    withForm = true;
+
+    const answer = await ask({ ids: [1] });
+
+    expect(answer.status).toBe(200);
+    expect(JSON.stringify(answer.body)).toContain('"path":"reason"');
+  });
+
+  it("resolves it, so a field that depends on another is already right", async () => {
+    withForm = true;
+
+    const empty = await ask({ ids: [1] });
+    const filled = await ask({ ids: [1], data: { reason: "stale" } });
+
+    // `severity` is invisible until `reason` has something in it, and an
+    // invisible field is not sent at all.
+    expect(JSON.stringify(empty.body)).not.toContain("severity");
+    expect(JSON.stringify(filled.body)).toContain("severity");
+  });
+
+  it("is a 404 for an action that collects nothing", async () => {
+    expect((await ask({ ids: [1] })).status).toBe(404);
+  });
+
+  it("goes through the same refusals the run does", async () => {
+    withForm = true;
+    policy = { update: () => false };
+
+    expect((await ask({ ids: [1] })).status).toBe(404);
+  });
+});
+
+describe("what a modal sent", () => {
+  it("reaches the callback once it has been through the boundary", async () => {
+    withForm = true;
+
+    await press("ArchiveAction", { ids: [1], data: { reason: "stale" } });
+
+    expect(ran[0]?.data).toEqual({ reason: "stale" });
+  });
+
+  it("loses whatever the schema never declared", async () => {
+    withForm = true;
+
+    await press("ArchiveAction", {
+      ids: [1],
+      data: { reason: "stale", isAdmin: true },
+    });
+
+    expect(ran[0]?.data).toEqual({ reason: "stale" });
+  });
+
+  it("loses a field the schema says is not there", async () => {
+    // `severity` is invisible while `reason` is empty, and an invisible field
+    // is never admitted — the same rule a page form is held to.
+    withForm = true;
+
+    await press("ArchiveAction", { ids: [1], data: { reason: "", severity: "high" } });
+
+    expect(ran).toEqual([]);
+  });
+
+  it("refuses a form that does not validate, rather than half-doing it", async () => {
+    withForm = true;
+
+    const answer = await press("ArchiveAction", { ids: [1], data: {} });
+
+    expect(answer.status).toBe(422);
+    expect(ran).toEqual([]);
+  });
+
+  it("is the same for fifty rows as for one, because it is filled once", async () => {
+    withForm = true;
+
+    await press("ArchiveAction", { ids: [1, 2, 3], data: { reason: "stale" } });
+
+    expect(ran.map((call) => call.data)).toEqual([
+      { reason: "stale" },
+      { reason: "stale" },
+      { reason: "stale" },
+    ]);
+  });
+});
+
+describe("a modal's own reactivity", () => {
+  const state = async (body: unknown) => {
+    const response = await fetch(`${url}/admin/api/posts/state`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const text = await response.text();
+    return { status: response.status, text };
+  };
+
+  it("resolves the action's schema when the request names one", async () => {
+    // Criterion 3: the state protocol works inside a modal. It is the same
+    // cycle, pointed at a different schema.
+    withForm = true;
+
+    const answer = await state({
+      state: { reason: "stale" },
+      dirtyPath: "reason",
+      operation: "create",
+      action: "ArchiveAction",
+    });
+
+    expect(answer.status).toBe(200);
+    expect(answer.text).toContain("severity");
+    expect(answer.text).not.toContain('"path":"title"');
+  });
+
+  it("resolves the resource's own form when it names none", async () => {
+    withForm = true;
+
+    const answer = await state({
+      state: { title: "Hello" },
+      dirtyPath: "title",
+      operation: "create",
+    });
+
+    expect(answer.text).toContain('"path":"title"');
+    expect(answer.text).not.toContain("severity");
+  });
+
+  it("holds the schema behind the same refusals the form route does", async () => {
+    // Two doors to one modal. The form route goes through every refusal; if
+    // this one does not, the guarded door is decoration.
+    withForm = true;
+    policy = { update: () => false };
+
+    const answer = await state({
+      state: {},
+      dirtyPath: "reason",
+      operation: "create",
+      action: "ArchiveAction",
+    });
+
+    expect(answer.status).toBe(404);
+  });
+
+  it("refuses a name the table never declared", async () => {
+    const answer = await state({
+      state: {},
+      dirtyPath: "reason",
+      operation: "create",
+      action: "DropDatabaseAction",
+    });
+
+    expect(answer.status).toBe(404);
+  });
+
+  it("refuses an action that collects nothing", async () => {
+    // `withForm` is false, so `ArchiveAction` has no schema to resolve.
+    const answer = await state({
+      state: {},
+      dirtyPath: "reason",
+      operation: "create",
+      action: "ArchiveAction",
+    });
+
+    expect(answer.status).toBe(404);
   });
 });

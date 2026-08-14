@@ -6,7 +6,8 @@
  * a declared one because the record is not loaded yet would be authorising at
  * render time, which is the one thing authorisation may not do.
  */
-import type { Operation, Row } from "@perchjs/core";
+import type { Action, Operation, Row } from "@perchjs/core";
+import { DeleteAction } from "@perchjs/core";
 
 export interface Authorization<TUser = unknown, TRecord = unknown> {
   /** Gates the resource itself: its routes and its navigation entry alike. */
@@ -31,6 +32,17 @@ export type Verdict = "allowed" | "denied" | "needs-record";
  * a case into the resolution cycle that can never happen there.
  */
 export type Permission = Operation | "delete";
+
+/**
+ * Which policy an action is held to.
+ *
+ * Deleting asks the delete policy; everything else asks the one for changing a
+ * row. Shared, because an action's schema is reachable by two routes and both
+ * owe it the same question — a guard only one door goes through is decoration.
+ */
+export function permissionFor(action: Action): Permission {
+  return action instanceof DeleteAction ? "delete" : "edit";
+}
 
 /**
  * Absent means allowed — the panel already sits behind the guards. It is the
