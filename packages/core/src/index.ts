@@ -49,9 +49,11 @@ export {
 // The naming rules a panel derives from a model name.
 export { defaultSlug, kebab, plural } from "./naming.js";
 
-// Row actions: the v0.1 slice of them.
-export type { ActionState } from "./action.js";
+// Actions. One class for every trigger context (ADR 0017).
+export type { ActionGuard, ActionRun, ActionState, Confirmation } from "./action.js";
 export { Action, CreateAction, EditAction } from "./action.js";
+export type { NotificationState, NotificationTone } from "./notification.js";
+export { Notification } from "./notification.js";
 
 // Tables, and the column layer.
 export type { ColumnState } from "./column.js";

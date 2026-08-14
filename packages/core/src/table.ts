@@ -7,7 +7,7 @@
  * renderer that does not exist yet, and an option that does nothing is worse
  * than an absent one.
  */
-import type { Action } from "./action.js";
+import type { Action, Confirmation } from "./action.js";
 import type { Column } from "./column.js";
 import type { Filter } from "./filter.js";
 import { SelectFilter } from "./filter.js";
@@ -48,6 +48,9 @@ export interface FilterNode {
 export interface ActionNode {
   readonly type: string;
   readonly label?: string;
+  /** Present when the reader is asked first. Its absence means it is not. */
+  readonly confirmation?: Confirmation;
+  readonly danger?: true;
 }
 
 export interface ColumnTree {
@@ -147,10 +150,22 @@ export function serialiseTable(table: Table): ColumnTree {
   };
 }
 
+/**
+ * What the client is told about an action.
+ *
+ * The callback and the guard are not on this list, and their absence is the
+ * point: a function is not serialisable, and an action's body is not the
+ * client's business (ADR 0017). What crosses is what a button needs to draw
+ * itself and what a dialog needs to ask.
+ */
 function node(action: Action): ActionNode {
   return {
     type: action.type,
     ...(action.state.label === undefined ? {} : { label: action.state.label }),
+    ...(action.state.confirmation === undefined
+      ? {}
+      : { confirmation: action.state.confirmation }),
+    ...(action.state.danger === true ? { danger: true as const } : {}),
   };
 }
 

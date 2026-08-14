@@ -189,6 +189,19 @@ export function auditTable(table: Table): readonly Complaint[] {
       });
     }
   }
+
+  // An action nobody implemented draws a button that does nothing when pressed,
+  // which is worse than no button: the reader has no way to tell it apart from
+  // one that failed silently. The ready-made ones are exempt because the route
+  // is what carries them out (ADR 0017).
+  for (const action of [...table.state.actions, ...table.state.headerActions]) {
+    if (action.state.run === undefined && !action.isBuiltIn) {
+      complaints.push({
+        field: action.state.label ?? action.type,
+        problem: "has no `action()`, so pressing it would do nothing at all",
+      });
+    }
+  }
   return complaints;
 }
 
