@@ -40,6 +40,17 @@ export interface SaveResponse {
   readonly record?: unknown;
   /** Where the server says to go now. It owns the routes; the client does not. */
   readonly redirect?: string;
+  /**
+   * What to tell the reader, worded by the server.
+   *
+   * It has to outlive the redirect above, which is the client's to carry — the
+   * navigation is its own, and the message is already in its hands.
+   */
+  readonly notification?: {
+    readonly title: string;
+    readonly body?: string;
+    readonly tone: "success" | "warning" | "danger" | "info";
+  };
 }
 
 export type TransportFailure =

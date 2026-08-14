@@ -671,3 +671,44 @@ describe("an action that collects something first", () => {
     expect(screen.queryByText("Why?")).toBeNull();
   });
 });
+
+describe("what the page that sent the reader here said", () => {
+  it("is shown on arrival", () => {
+    render(
+      <PanelList
+        initial={page([])}
+        title="People"
+        flash={{ title: "Person created", tone: "success" }}
+      />,
+    );
+
+    expect(screen.getByText("Person created")).toBeTruthy();
+  });
+
+  it("goes as soon as the reader asks for different rows", async () => {
+    // It was about the page that was there when it was written.
+    const fetchPage = vi.fn().mockResolvedValue(page([]));
+    render(
+      <PanelList
+        initial={{
+          ...page([]),
+          columns: {
+            ...page([]).columns,
+            columns: [
+              { type: "TextColumn", path: "title", label: "Headline", sortable: true },
+            ],
+          },
+        }}
+        title="People"
+        fetchPage={fetchPage}
+        flash={{ title: "Person created", tone: "success" }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Headline/ }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Person created")).toBeNull();
+    });
+  });
+});

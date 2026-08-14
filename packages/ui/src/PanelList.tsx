@@ -69,6 +69,13 @@ export interface PanelListProps {
    */
   readonly onPage?: (page: RecordsPage) => void;
   /**
+   * Something said on the page that sent the reader here.
+   *
+   * Shown where an action's own answer is shown, and cleared by the same
+   * things: it is about the rows that were there when it was written.
+   */
+  readonly flash?: ActionAnswer["notification"];
+  /**
    * Carries out an action. Absent means the table draws none that would need
    * carrying out, which is how a page renders with no host behind it.
    */
@@ -117,6 +124,7 @@ export function PanelList({
   title,
   fetchPage,
   onPage,
+  flash,
   runAction,
   actionForm,
   actionState,
@@ -286,7 +294,7 @@ export function PanelList({
   const bulk = page.columns.bulkActions;
   const chosen = page.rows.map(keyOf).filter((key) => key !== undefined);
   const selected = chosen.filter((key) => picked.has(String(key)));
-  const [said, setSaid] = useState<ActionAnswer["notification"] | undefined>(undefined);
+  const [said, setSaid] = useState<ActionAnswer["notification"] | undefined>(flash);
 
   /**
    * Opens what an action collects with, or runs it where it collects nothing.

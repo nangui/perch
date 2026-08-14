@@ -15,6 +15,7 @@ import type { FormState, SchemaPayload } from "@perchjs/core";
 import { Breadcrumb } from "./Breadcrumb.js";
 import type { SearchedOption, UploadedFile } from "./node-props.js";
 import { PanelForm } from "./PanelForm.js";
+import { keepFlash, takeFlash } from "./flash.js";
 import type { NavigationGroup } from "./PanelNav.js";
 import { PanelNav } from "./PanelNav.js";
 import type { ActionAnswer, PageRequest, RecordsPage } from "./PanelList.js";
@@ -55,12 +56,16 @@ export function mount(element: HTMLElement): void {
   const menu = <PanelNav groups={groupsOf(navigation)} />;
 
   if (operation === "list") {
+    // Read once, on the way in. Whatever was said on the page that sent the
+    // reader here, said here instead.
+    const flash = takeFlash();
     createRoot(element).render(
       <div className="perch-shell">
         {menu}
         <PanelList
           initial={JSON.parse(payload) as RecordsPage}
           title={title}
+          {...(flash === undefined ? {} : { flash })}
           fetchPage={(request) => records(api, request)}
           runAction={(name, ids, data) => runAction(api, name, ids, data)}
           actionForm={(name, ids) => actionForm(api, name, ids)}
@@ -107,6 +112,8 @@ export function mount(element: HTMLElement): void {
  * transport does not know about the browser, so the navigation happens here.
  */
 function goWhereTheServerSays(response: SaveResponse): void {
+  // Kept before the navigation, not after: `assign` does not come back.
+  if (response.notification !== undefined) keepFlash(response.notification);
   if (response.redirect !== undefined) globalThis.location.assign(response.redirect);
 }
 
