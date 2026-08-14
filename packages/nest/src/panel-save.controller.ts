@@ -29,6 +29,7 @@ import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
 import { admit } from "./admission.js";
 import { commitUploads, dropReplaced, undoCommitted } from "./commit-uploads.js";
+import { fileUrls } from "./file-urls.js";
 import { withOptions } from "./relationship-options.js";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf } from "./panel-root.js";
@@ -220,6 +221,7 @@ export class PanelSaveController {
       user,
       record,
       ...withOptions(this.#data, resource.metadata.model),
+      ...fileUrls(this.#disks),
     });
 
     // Before the write, not after: a form with errors touches nothing, and the

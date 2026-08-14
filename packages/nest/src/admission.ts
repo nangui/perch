@@ -10,7 +10,14 @@
  * field can be unlocked only by one that is itself editable — and the chain
  * starts from the record, which the client never touched.
  */
-import type { FormState, Operation, ResolveResult, Row, Schema } from "@perchjs/core";
+import type {
+  FormState,
+  Operation,
+  ResolveOptions,
+  ResolveResult,
+  Row,
+  Schema,
+} from "@perchjs/core";
 import { resolveSchema, sanitize } from "@perchjs/core";
 import type { OptionLoader } from "./relationship-options.js";
 
@@ -50,6 +57,8 @@ export interface Admission {
    * time a form comes back with an error is worse than the error.
    */
   readonly loadOptions?: OptionLoader;
+  /** Resolves a stored key to an address. Same reason as the loader above. */
+  readonly fileUrl?: ResolveOptions["fileUrl"];
 }
 
 export interface Admitted {
@@ -68,6 +77,7 @@ export async function admit(request: Admission): Promise<Admitted> {
     user: request.user,
     ...(request.record === null ? {} : { record: request.record }),
     ...(request.loadOptions === undefined ? {} : { loadOptions: request.loadOptions }),
+    ...(request.fileUrl === undefined ? {} : { fileUrl: request.fileUrl }),
   };
 
   let accepted: FormState = {};

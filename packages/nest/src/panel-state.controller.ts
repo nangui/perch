@@ -26,13 +26,17 @@ import type {
   FormState,
   Operation,
   Row,
+  ResolveOptions,
   SchemaPayload,
 } from "@perchjs/core";
 import { resolveSchema, serialise } from "@perchjs/core";
+import { fileUrls } from "./file-urls.js";
 import { withOptions } from "./relationship-options.js";
 import { admit } from "./admission.js";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
+import type { PanelDisks } from "./storage.token.js";
+import { PANEL_STORAGE } from "./storage.token.js";
 import { recordId } from "./record-id.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
@@ -52,15 +56,18 @@ export class PanelStateController {
   readonly #registry: ResourceRegistry;
   readonly #users: UserResolver;
   readonly #data: DataAdapter | null;
+  readonly #urls: Pick<ResolveOptions, "fileUrl">;
 
   constructor(
     registry: ResourceRegistry,
     @Inject(PANEL_USER_RESOLVER) users: UserResolver,
     @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
+    @Inject(PANEL_STORAGE) disks: PanelDisks,
   ) {
     this.#registry = registry;
     this.#users = users;
     this.#data = data;
+    this.#urls = fileUrls(disks);
   }
 
   @Post("state")
@@ -91,7 +98,10 @@ export class PanelStateController {
 
     // One loader for both resolutions: memoised, so the admission passes and
     // the answer share a single query rather than repeating it.
-    const options = withOptions(this.#data, resource.metadata.model);
+    const options = {
+      ...withOptions(this.#data, resource.metadata.model),
+      ...this.#urls,
+    };
 
     const { accepted, tree } = await admit({
       schema,

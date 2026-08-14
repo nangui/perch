@@ -17,16 +17,19 @@ import {
   Query,
   Req,
 } from "@nestjs/common";
-import type { DataAdapter, FormState, Row } from "@perchjs/core";
+import type { DataAdapter, FormState, ResolveOptions, Row } from "@perchjs/core";
 import { buildNavigation, PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { listRecords, resourcePath } from "./records.js";
 import { resolveSchema, serialise } from "@perchjs/core";
+import { fileUrls } from "./file-urls.js";
 import { withOptions } from "./relationship-options.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PANEL_ASSETS } from "./panel-assets.js";
 import { renderShell } from "./panel-shell.js";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
+import type { PanelDisks } from "./storage.token.js";
+import { PANEL_STORAGE } from "./storage.token.js";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf } from "./panel-root.js";
 import { recordId } from "./record-id.js";
@@ -43,6 +46,7 @@ export class PanelPageController {
   readonly #users: UserResolver;
   readonly #data: DataAdapter | null;
   readonly #groups: readonly string[];
+  readonly #urls: Pick<ResolveOptions, "fileUrl">;
 
   constructor(
     registry: ResourceRegistry,
@@ -50,12 +54,14 @@ export class PanelPageController {
     @Inject(PANEL_USER_RESOLVER) users: UserResolver,
     @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
     @Inject(PANEL_NAVIGATION_GROUPS) groups: readonly string[],
+    @Inject(PANEL_STORAGE) disks: PanelDisks,
   ) {
     this.#groups = groups;
     this.#registry = registry;
     this.#assets = assets;
     this.#users = users;
     this.#data = data;
+    this.#urls = fileUrls(disks);
   }
 
   /**
@@ -194,6 +200,7 @@ export class PanelPageController {
       user: this.#users.resolve(page.request),
       ...(page.record === undefined ? {} : { record: page.record }),
       ...withOptions(this.#data, page.resource.metadata.model),
+      ...this.#urls,
     });
 
     // The same guard, and the same function, the row actions go through.
