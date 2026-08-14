@@ -581,7 +581,12 @@ describe("what a modal sent", () => {
 
     const answer = await press("ArchiveAction", { ids: [1], data: {} });
 
-    expect(answer.status).toBe(422);
+    // Answered the way a refused save is: the reader is not done with the
+    // dialog, and the tree comes back so the errors land on their fields.
+    expect(answer.status).toBe(200);
+    expect(answer.body["errors"]).toEqual({ reason: "This field is required." });
+    expect(answer.body["payload"]).toBeDefined();
+    expect(answer.body["processed"]).toBe(0);
     expect(ran).toEqual([]);
   });
 

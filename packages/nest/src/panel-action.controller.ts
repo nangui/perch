@@ -19,7 +19,6 @@ import {
   Param,
   Post,
   Req,
-  UnprocessableEntityException,
 } from "@nestjs/common";
 import type {
   Action,
@@ -52,6 +51,16 @@ export interface ActionAnswer {
   /** How many a guard turned down. Never why. */
   readonly refused: number;
   readonly notification?: NotificationState;
+  /**
+   * A modal whose form does not validate, answered the way a refused save is.
+   *
+   * Not a 4xx: the request was well formed and the reader is not done with the
+   * dialog. The tree comes back with it so the errors land on the fields they
+   * are about, rather than as a sentence about a form the client would have to
+   * match up itself.
+   */
+  readonly errors?: Readonly<Record<string, string>>;
+  readonly payload?: SchemaPayload;
 }
 
 @Controller("api/:resource")
@@ -92,8 +101,11 @@ export class PanelActionController {
     // collects nothing, and a body that carries something anyway is dropped
     // without a word.
     const collected = await this.#collected(action, body, user, model);
+    if ("refused" in collected) {
+      return { ...collected.refused, processed: 0, refused };
+    }
 
-    return await this.#carry(action, model, allowed, user, refused, collected);
+    return await this.#carry(action, model, allowed, user, refused, collected.accepted);
   }
 
   /**
@@ -183,9 +195,11 @@ export class PanelActionController {
     body: unknown,
     user: unknown,
     model: string,
-  ): Promise<FormState> {
+  ): Promise<
+    { accepted: FormState } | { refused: Pick<ActionAnswer, "errors" | "payload"> }
+  > {
     const schema = action.state.form;
-    if (schema === undefined) return {};
+    if (schema === undefined) return { accepted: {} };
 
     const { accepted, tree } = await admit({
       schema,
@@ -195,16 +209,11 @@ export class PanelActionController {
       record: null,
       ...withOptions(this.#data, model),
     });
-    // A form that does not validate is not run. The client showed the same
-    // tree; if it submitted anyway, the answer is a refusal rather than a
-    // half-done action.
+    // A form that does not validate is not run.
     if (Object.keys(tree.errors).length > 0) {
-      throw new UnprocessableEntityException({
-        message: "That form is not complete.",
-        errors: tree.errors,
-      });
+      return { refused: { errors: tree.errors, payload: serialise(tree) } };
     }
-    return accepted;
+    return { accepted };
   }
 
   /**
