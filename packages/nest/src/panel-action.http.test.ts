@@ -15,6 +15,7 @@ import type {
   Id,
   Ir,
   ModelMeta,
+  Query,
   Row,
   Schema,
   Table as TableTree,
@@ -33,6 +34,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
+import { MAX_SELECTION } from "./action-selection.js";
 import { PanelResource } from "./resource.js";
 
 let ran: { record: Row; data: Readonly<Record<string, unknown>> }[] = [];
@@ -40,11 +42,15 @@ let deleted: readonly Id[][] = [];
 let policy: Authorization | undefined;
 let guard: ((user: unknown, record: Row) => boolean) | undefined;
 let transactions = 0;
+let queries = 0;
+let explode = false;
 
-const ROWS: Record<number, Row> = {
-  1: { id: 1, title: "First" },
-  2: { id: 2, title: "Second" },
-};
+const ROWS: Record<number, Row> = Object.fromEntries(
+  Array.from({ length: 600 }, (_, i) => [
+    i + 1,
+    { id: i + 1, title: `Row ${String(i + 1)}` },
+  ]),
+);
 
 class ArchiveAction extends Action {
   static make(): ArchiveAction {
@@ -68,8 +74,16 @@ class MemoryAdapter implements DataAdapter {
       primaryKey: { name: "id", type: "Int" },
     } as unknown as ModelMeta;
   }
-  findMany(): Promise<{ rows: readonly Row[]; total: number }> {
-    return Promise.resolve({ rows: [], total: 0 });
+  findMany(query: Query): Promise<{ rows: readonly Row[]; total: number }> {
+    // Honours the one clause the action route builds. A double that ignored it
+    // would answer every selection with every row.
+    const clause = query.clauses?.[0];
+    const wanted = Array.isArray(clause?.value) ? clause.value : [];
+    queries += 1;
+    const rows = wanted
+      .map((id) => ROWS[Number(id)])
+      .filter((row): row is Row => row !== undefined);
+    return Promise.resolve({ rows, total: rows.length });
   }
   findOne(_model: string, id: Id): Promise<Row | null> {
     return Promise.resolve(ROWS[Number(id)] ?? null);
@@ -106,6 +120,7 @@ class PostResource {
     let archive = ArchiveAction.make()
       .label("Archive")
       .action((record, data) => {
+        if (explode) throw new Error("connection string is postgres://u:p@host");
         ran = [...ran, { record, data }];
         return Notification.make().title("Archived").success();
       });
@@ -137,6 +152,8 @@ beforeEach(async () => {
   ran = [];
   deleted = [];
   transactions = 0;
+  queries = 0;
+  explode = false;
   policy = undefined;
   guard = undefined;
 
@@ -227,7 +244,7 @@ describe("what it refuses", () => {
   });
 
   it("a record that does not exist", async () => {
-    expect((await press("ArchiveAction", { id: 99 })).status).toBe(404);
+    expect((await press("ArchiveAction", { id: 9999 })).status).toBe(404);
     expect(ran).toEqual([]);
   });
 
@@ -300,6 +317,158 @@ describe("deleting", () => {
   it("runs no author callback, because it has none", async () => {
     await press("DeleteAction");
 
+    expect(ran).toEqual([]);
+  });
+});
+
+describe("a selection of many", () => {
+  it("runs the same callback once per ticked record, and counts them", async () => {
+    const answer = await press("ArchiveAction", { ids: [1, 2, 3] });
+
+    expect(answer.body["processed"]).toBe(3);
+    expect(ran.map((call) => call.record["id"])).toEqual([1, 2, 3]);
+  });
+
+  it("loads them in one query rather than one per row", async () => {
+    await press("ArchiveAction", { ids: [1, 2, 3, 4, 5] });
+
+    expect(queries).toBe(1);
+  });
+
+  it("runs the whole batch inside one transaction", async () => {
+    await press("ArchiveAction", { ids: [1, 2, 3] });
+
+    expect(transactions).toBe(1);
+  });
+
+  it("takes five hundred rows, which is what the criterion asks for", async () => {
+    const ids = Array.from({ length: 500 }, (_, i) => i + 1);
+
+    const answer = await press("ArchiveAction", { ids });
+
+    expect(answer.body).toMatchObject({ processed: 500, refused: 0 });
+    expect(transactions).toBe(1);
+    expect(queries).toBe(1);
+  });
+
+  it("refuses a selection past the ceiling rather than trimming it", async () => {
+    // Trimmed, a reader who ticked too many would get a cheerful count for part
+    // of it and no way to learn which part.
+    const ids = Array.from({ length: MAX_SELECTION + 1 }, (_, i) => i + 1);
+
+    const answer = await press("ArchiveAction", { ids });
+
+    expect(answer.status).toBe(422);
+    expect(ran).toEqual([]);
+  });
+
+  it("counts one row once, however many times it was named", async () => {
+    const answer = await press("ArchiveAction", { ids: [1, 1, 2, 1] });
+
+    expect(answer.body["processed"]).toBe(2);
+  });
+
+  it("acts on what is still there, and says how many that was", async () => {
+    // A row deleted between the tick and the press. The honest answer is the
+    // count of what was actually found.
+    const answer = await press("ArchiveAction", { ids: [1, 9999, 2] });
+
+    expect(answer.body["processed"]).toBe(2);
+  });
+
+  it("keeps going past a row the guard turns down, and reports both", async () => {
+    guard = (_user, record) => record["id"] !== 2;
+
+    const answer = await press("ArchiveAction", { ids: [1, 2, 3] });
+
+    expect(answer.body).toMatchObject({ processed: 2, refused: 1 });
+  });
+
+  it("keeps going past a row the resource policy turns down", async () => {
+    policy = { update: (_user, record) => (record as Row)["id"] !== 2 };
+
+    const answer = await press("ArchiveAction", { ids: [1, 2, 3] });
+
+    expect(answer.body).toMatchObject({ processed: 2, refused: 1 });
+    expect(ran.map((call) => call.record["id"])).toEqual([1, 3]);
+  });
+
+  it("asks a record-blind policy once, not once per row", async () => {
+    let asked = 0;
+    policy = {
+      delete: () => {
+        asked += 1;
+        return true;
+      },
+    };
+
+    await press("DeleteAction", { ids: [1, 2, 3, 4, 5] });
+
+    expect(asked).toBe(1);
+  });
+
+  it("is a 404 when the principal may touch none of them", async () => {
+    policy = { update: () => false };
+
+    expect((await press("ArchiveAction", { ids: [1, 2, 3] })).status).toBe(404);
+    expect(ran).toEqual([]);
+  });
+
+  it("is a 404 when none of the ticked rows still exist", async () => {
+    expect((await press("ArchiveAction", { ids: [9998, 9999] })).status).toBe(404);
+  });
+});
+
+describe("deleting many", () => {
+  it("goes through the adapter once, with every key it may touch", async () => {
+    const answer = await press("DeleteAction", { ids: [1, 2, 3] });
+
+    expect(answer.body).toMatchObject({ processed: 3, refused: 0 });
+    expect(deleted).toEqual([[1, 2, 3]]);
+  });
+
+  it("deletes only the rows the guard admits, in that one statement", async () => {
+    guard = (_user, record) => record["id"] !== 2;
+
+    const answer = await press("DeleteAction", { ids: [1, 2, 3] });
+
+    expect(deleted).toEqual([[1, 3]]);
+    expect(answer.body).toMatchObject({ processed: 2, refused: 1 });
+  });
+
+  it("touches nothing at all when the guard admits none", async () => {
+    guard = () => false;
+
+    expect((await press("DeleteAction", { ids: [1, 2] })).body).toMatchObject({
+      processed: 0,
+      refused: 2,
+    });
+    expect(deleted).toEqual([]);
+  });
+});
+
+describe("an action that throws", () => {
+  it("says nothing about what went wrong inside it", async () => {
+    // Never a stack trace and never the message: an author's error text is
+    // written for a log, and it says things like where the database lives.
+    explode = true;
+
+    const answer = await press("ArchiveAction", { ids: [1, 2] });
+
+    expect(answer.status).toBe(500);
+    expect(JSON.stringify(answer.body)).not.toContain("postgres://");
+    expect(JSON.stringify(answer.body)).not.toContain("connection string");
+  });
+
+  it("takes the whole batch down with it rather than half of it", async () => {
+    // One transaction. What rolled back must not depend on which row threw.
+    explode = true;
+
+    await press("DeleteAction", { ids: [1, 2, 3] });
+    expect(deleted).toEqual([[1, 2, 3]]);
+
+    deleted = [];
+    await press("ArchiveAction", { ids: [1, 2, 3] });
     expect(ran).toEqual([]);
   });
 });
