@@ -34,7 +34,7 @@ const page = (actions: RecordsPage["columns"]["actions"]): RecordsPage => ({
   page: 1,
   perPage: 25,
   columns: {
-    columns: [{ type: "TextColumn", path: "title", label: "Headline" }],
+    columns: [{ type: "TextColumn", path: "title", label: "Headline", sortable: true }],
     actions,
     filters: [],
     headerActions: [],
@@ -162,6 +162,35 @@ describe("an action that needs no confirmation", () => {
   });
 });
 
+describe("what an earlier action said", () => {
+  it("does not outlive the page it was said about", async () => {
+    // The reader archives a row, then turns a page or searches. A notice still
+    // reading "Done" describes something that is no longer on screen.
+    const runAction = vi.fn().mockResolvedValue(ANSWER);
+    const fetchPage = vi.fn().mockResolvedValue(page([ARCHIVE]));
+    render(
+      <PanelList
+        initial={page([ARCHIVE])}
+        title="People"
+        runAction={runAction}
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    expect(await screen.findByText("Done: 1 record.")).toBeTruthy();
+
+    // The sort trigger is a button inside the header. Clicking the header
+    // itself lands on nothing, which is how this test first passed for the
+    // wrong reason.
+    fireEvent.click(screen.getByRole("button", { name: /Headline/ }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Done: 1 record.")).toBeNull();
+    });
+  });
+});
+
 describe("an action that declared a confirmation", () => {
   it("asks before it does anything at all", () => {
     const runAction = vi.fn().mockResolvedValue(ANSWER);
@@ -215,6 +244,22 @@ describe("an action that declared a confirmation", () => {
 });
 
 describe("a second press while the first is in flight", () => {
+  it("starts nothing for an action that asks nothing first either", () => {
+    // Criterion 7: an action triggered twice by a double click performs the
+    // mutation once. The dialog holds itself, but a press with no dialog has
+    // nothing holding it.
+    const runAction = vi.fn().mockImplementation(() => new Promise(() => undefined));
+    render(
+      <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
+    );
+
+    const button = screen.getByRole("button", { name: "Archive" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(runAction).toHaveBeenCalledTimes(1);
+  });
+
   it("starts nothing, so a double click acts once", async () => {
     let settle: ((answer: ActionAnswer) => void) | undefined;
     const runAction = vi

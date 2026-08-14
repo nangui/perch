@@ -143,9 +143,14 @@ export function PanelList({
   const ask =
     fetchPage === undefined
       ? undefined
-      : (request: PageRequest) => {
+      : (request: PageRequest, keepNotice = false) => {
           const sequence = (latest.current += 1);
           setFailed(false);
+          // A reader who sorts or turns a page has moved on: a notice still
+          // reading "Done" would describe rows that are no longer on screen.
+          // The refresh an action asks for keeps it, because it is what the
+          // notice is about.
+          if (!keepNotice) setSaid(undefined);
           fetchPage(request).then(
             (answer) => {
               if (sequence !== latest.current) return;
@@ -208,10 +213,19 @@ export function PanelList({
    */
   const [pending, setPending] = useState<Pending | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  /**
+   * The same fact as `busy`, readable in the same tick it is set.
+   *
+   * Two clicks land before React has re-rendered anything, so both handlers
+   * read the state as it was and both start a request. A ref is what the second
+   * one can see the first in.
+   */
+  const running = useRef(false);
   const [said, setSaid] = useState<ActionAnswer["notification"] | undefined>(undefined);
 
   async function carry(action: ActionNode, ids: readonly (string | number)[]) {
-    if (runAction === undefined) return;
+    if (runAction === undefined || running.current) return;
+    running.current = true;
     setBusy(true);
     try {
       const answer = await runAction(action.name, ids);
@@ -224,7 +238,7 @@ export function PanelList({
       setPending(undefined);
       // The rows are what the action just changed, so what is on screen is out
       // of date the moment it returns.
-      turn?.(page.page);
+      refresh();
     } catch (error) {
       setSaid({
         title: error instanceof Error ? error.message : "That did not work.",
@@ -232,8 +246,23 @@ export function PanelList({
       });
       setPending(undefined);
     } finally {
+      running.current = false;
       setBusy(false);
     }
+  }
+
+  /** The page that is on screen, asked for again. Keeps what was just said. */
+  function refresh(): void {
+    ask?.(
+      {
+        ...(sort === undefined ? {} : { sort }),
+        ...(page.search === undefined ? {} : { search: page.search }),
+        ...(page.filters === undefined ? {} : { filters: page.filters }),
+        page: page.page,
+        perPage: page.perPage,
+      },
+      true,
+    );
   }
 
   function press(action: ActionNode, row: Row): void {

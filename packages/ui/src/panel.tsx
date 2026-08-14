@@ -17,7 +17,7 @@ import type { SearchedOption, UploadedFile } from "./node-props.js";
 import { PanelForm } from "./PanelForm.js";
 import type { NavigationGroup } from "./PanelNav.js";
 import { PanelNav } from "./PanelNav.js";
-import type { PageRequest, RecordsPage } from "./PanelList.js";
+import type { ActionAnswer, PageRequest, RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
 import { registerBuiltInColumns } from "./columns.js";
 import { registerBuiltInComponents } from "./renderers.js";
@@ -286,16 +286,6 @@ async function records(api: string, request: PageRequest): Promise<RecordsPage> 
   return (await response.json()) as RecordsPage;
 }
 
-export interface ActionAnswer {
-  readonly processed: number;
-  readonly refused: number;
-  readonly notification?: {
-    readonly title: string;
-    readonly body?: string;
-    readonly tone: "success" | "warning" | "danger" | "info";
-  };
-}
-
 /**
  * Pressing a button.
  *
@@ -314,16 +304,17 @@ async function runAction(
     body: JSON.stringify({ ids }),
   });
   if (!response.ok) {
-    // The server's own words when it phrased any — a selection past the ceiling
-    // says so usefully — and a flat sentence when it did not.
-    const said = (await response.json().catch(() => null)) as {
-      message?: unknown;
-    } | null;
-    throw new Error(
-      typeof said?.message === "string" && response.status < 500
-        ? said.message
-        : "That did not work. Nothing was changed.",
-    );
+    // Only the one status this route phrases on purpose: a selection past the
+    // ceiling says something a reader can act on. Every other status carries a
+    // reason phrase written for a protocol — a refusal reads "Not Found",
+    // which tells somebody looking at a row that it is not there.
+    if (response.status === 422) {
+      const said = (await response.json().catch(() => null)) as {
+        message?: unknown;
+      } | null;
+      if (typeof said?.message === "string") throw new Error(said.message);
+    }
+    throw new Error("That did not work. Nothing was changed.");
   }
   return (await response.json()) as ActionAnswer;
 }

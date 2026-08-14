@@ -273,6 +273,17 @@ describe("what it refuses", () => {
     expect(deleted).toEqual([]);
   });
 
+  it("says the same nothing whichever refusal it was", async () => {
+    // Measured rather than recalled, because the client decides from this what
+    // to put in front of a reader: a body with no useful sentence in it.
+    policy = { update: () => false };
+
+    expect((await press("ArchiveAction")).body).toEqual({
+      statusCode: 404,
+      message: "Not Found",
+    });
+  });
+
   it("says 404 rather than 403, so a caller cannot map what exists", async () => {
     policy = { update: () => false };
 
