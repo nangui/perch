@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Action, CreateAction, EditAction } from "./action.js";
 import { auditTable } from "./audit.js";
 import { Notification } from "./notification.js";
-import { Table, serialiseTable } from "./table.js";
+import { declaredActions, Table, serialiseTable } from "./table.js";
 
 /** An action a host writes, which is the only kind that carries a callback. */
 class ArchiveAction extends Action {
@@ -59,6 +59,7 @@ describe("what the client is told", () => {
       ),
     ).toEqual({
       type: "ArchiveAction",
+      name: "ArchiveAction",
       label: "Archive",
       danger: true,
       confirmation: { heading: "Sure?", confirmLabel: "Archive it" },
@@ -73,8 +74,10 @@ describe("what the client is told", () => {
     // Asserted against the serialised table rather than the node's own keys: a
     // function that survived would be dropped by `JSON.stringify` anyway, and a
     // test that only reads keys would not have noticed it was ever there.
-    expect(JSON.stringify(wire(built))).toBe('{"type":"ArchiveAction"}');
-    expect(Object.keys(wire(built) ?? {})).toEqual(["type"]);
+    expect(JSON.stringify(wire(built))).toBe(
+      '{"type":"ArchiveAction","name":"ArchiveAction"}',
+    );
+    expect(Object.keys(wire(built) ?? {})).toEqual(["type", "name"]);
   });
 
   it("says nothing about a confirmation that was never asked for", () => {
@@ -94,6 +97,37 @@ describe("the ready-made actions", () => {
   it("are what the framework carries out rather than the author", () => {
     expect(EditAction.make().isBuiltIn).toBe(true);
     expect(ArchiveAction.make().isBuiltIn).toBe(false);
+  });
+});
+
+describe("two actions under one name", () => {
+  it("says so rather than letting the wrong one run", () => {
+    // Which one a request reached would depend on the order they were written
+    // in, and the other would answer nothing for the life of the panel.
+    const table = Table.make().actions([ArchiveAction.make(), ArchiveAction.make()]);
+
+    expect(() => declaredActions(table)).toThrow(/two actions are named/);
+  });
+
+  it("counts a row action and a header action as the same namespace", () => {
+    // A request names an action, not the place it was drawn.
+    const table = Table.make()
+      .actions([ArchiveAction.make()])
+      .headerActions([ArchiveAction.make()]);
+
+    expect(() => declaredActions(table)).toThrow(/two actions are named/);
+  });
+
+  it("is happy once one of them is named apart", () => {
+    const table = Table.make().actions([
+      ArchiveAction.make(),
+      ArchiveAction.make().name("archive-hard"),
+    ]);
+
+    expect([...declaredActions(table).keys()]).toEqual([
+      "ArchiveAction",
+      "archive-hard",
+    ]);
   });
 });
 

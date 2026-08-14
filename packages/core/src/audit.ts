@@ -20,7 +20,7 @@ import { Radio } from "./fields/radio.js";
 import { Select } from "./fields/select.js";
 import { SelectFilter } from "./filter.js";
 import type { Table } from "./table.js";
-import { declaredFilters } from "./table.js";
+import { declaredActions, declaredFilters } from "./table.js";
 import { isWallClock } from "./zoned.js";
 
 export interface Complaint {
@@ -175,9 +175,10 @@ function inspectSelect(select: Select, into: Complaint[]): void {
  * appears.
  */
 export function auditTable(table: Table): readonly Complaint[] {
-  // Two filters under one name is already refused — but on the first list
-  // request, under a reader. Asking here brings it forward to the boot.
+  // Two under one name is already refused — but on the first request that names
+  // one, under a reader. Asking here brings it forward to the boot.
   declaredFilters(table);
+  declaredActions(table);
 
   const complaints: Complaint[] = [];
   for (const filter of table.state.filters) {
@@ -193,7 +194,7 @@ export function auditTable(table: Table): readonly Complaint[] {
   // An action nobody implemented draws a button that does nothing when pressed,
   // which is worse than no button: the reader has no way to tell it apart from
   // one that failed silently. The ready-made ones are exempt because the route
-  // is what carries them out (ADR 0017).
+  // is what carries them out.
   for (const action of [...table.state.actions, ...table.state.headerActions]) {
     if (action.state.run === undefined && !action.isBuiltIn) {
       complaints.push({

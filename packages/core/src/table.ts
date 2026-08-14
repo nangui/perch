@@ -47,6 +47,8 @@ export interface FilterNode {
 /** What a row action looks like on the wire. */
 export interface ActionNode {
   readonly type: string;
+  /** What a request calls it. The client sends this back, not the type. */
+  readonly name: string;
   readonly label?: string;
   /** Present when the reader is asked first. Its absence means it is not. */
   readonly confirmation?: Confirmation;
@@ -155,12 +157,13 @@ export function serialiseTable(table: Table): ColumnTree {
  *
  * The callback and the guard are not on this list, and their absence is the
  * point: a function is not serialisable, and an action's body is not the
- * client's business (ADR 0017). What crosses is what a button needs to draw
+ * client's business. What crosses is what a button needs to draw
  * itself and what a dialog needs to ask.
  */
 function node(action: Action): ActionNode {
   return {
     type: action.type,
+    name: action.state.name ?? action.type,
     ...(action.state.label === undefined ? {} : { label: action.state.label }),
     ...(action.state.confirmation === undefined
       ? {}
@@ -197,6 +200,30 @@ export function sortablePaths(table: Table): ReadonlySet<string> {
  * request — not a refusal to make per request, where it would tell a caller
  * something about a table they never asked about.
  */
+/**
+ * The actions a request may name, and the only ones.
+ *
+ * The oracle every other reachable surface here is built on: an allowlist read
+ * off the declaration, so a name nobody declared reaches nothing. Row and
+ * header actions share one namespace because a request names an action, not a
+ * place it was drawn.
+ */
+export function declaredActions(table: Table): ReadonlyMap<string, Action> {
+  const byName = new Map<string, Action>();
+
+  for (const action of [...table.state.actions, ...table.state.headerActions]) {
+    const name = action.state.name ?? action.type;
+    if (byName.has(name)) {
+      throw new Error(
+        `two actions are named ${name}; one of them can never be reached. ` +
+          `Give one a different \`.name()\`.`,
+      );
+    }
+    byName.set(name, action);
+  }
+  return byName;
+}
+
 export function declaredFilters(table: Table): ReadonlyMap<string, Filter> {
   const byName = new Map<string, Filter>();
 

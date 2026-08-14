@@ -117,14 +117,16 @@ describe("what crosses the wire", () => {
   });
 
   it("carries the actions a row offers, with the label they were given", () => {
+    // Named apart, because two of one type share a name and the second could
+    // never be reached — which `auditTable` now says at boot.
     const table = Table.make().actions([
       EditAction.make(),
-      EditAction.make().label("Open"),
+      EditAction.make().name("open").label("Open"),
     ]);
 
     expect(serialiseTable(table).actions).toEqual([
-      { type: "EditAction" },
-      { type: "EditAction", label: "Open" },
+      { type: "EditAction", name: "EditAction" },
+      { type: "EditAction", name: "open", label: "Open" },
     ]);
   });
 

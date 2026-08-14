@@ -51,8 +51,10 @@ export { defaultSlug, kebab, plural } from "./naming.js";
 
 // Actions. One class for every trigger context (ADR 0017).
 export type { ActionGuard, ActionRun, ActionState, Confirmation } from "./action.js";
-export { Action, CreateAction, EditAction } from "./action.js";
+export { Action, CreateAction, DeleteAction, EditAction } from "./action.js";
 export type { NotificationState, NotificationTone } from "./notification.js";
+export type { ActionOutcome, ActionRequest } from "./run-action.js";
+export { admittedRecords, runAction } from "./run-action.js";
 export { Notification } from "./notification.js";
 
 // Tables, and the column layer.
@@ -69,6 +71,7 @@ export type { FilterState } from "./filter.js";
 export { Filter, SelectFilter, TextFilter } from "./filter.js";
 export {
   columnPaths,
+  declaredActions,
   declaredFilters,
   searchablePaths,
   serialiseTable,
