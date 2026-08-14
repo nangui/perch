@@ -9,7 +9,12 @@
  */
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { registerBuiltInColumns, resetColumnRegistry } from "./index.js";
+import {
+  registerBuiltInColumns,
+  registerBuiltInComponents,
+  resetColumnRegistry,
+  resetRegistry,
+} from "./index.js";
 import type { ActionAnswer, RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
 
@@ -52,6 +57,9 @@ const ANSWER: ActionAnswer = { processed: 1, refused: 0 };
 beforeEach(() => {
   resetColumnRegistry();
   registerBuiltInColumns();
+  // A modal renders fields, not only cells.
+  resetRegistry();
+  registerBuiltInComponents();
   // jsdom has the element but not its modal behaviour.
   HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
     this.open = true;
@@ -73,7 +81,7 @@ describe("an action that needs no confirmation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
 
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("ArchiveAction", [1]);
+      expect(runAction).toHaveBeenCalledWith("ArchiveAction", [1], undefined);
     });
   });
 
@@ -87,7 +95,7 @@ describe("an action that needs no confirmation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
 
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("archive-hard", [1]);
+      expect(runAction).toHaveBeenCalledWith("archive-hard", [1], undefined);
     });
   });
 
@@ -225,7 +233,7 @@ describe("an action that declared a confirmation", () => {
     );
 
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("DeleteAction", [1]);
+      expect(runAction).toHaveBeenCalledWith("DeleteAction", [1], undefined);
     });
   });
 
@@ -374,7 +382,7 @@ describe("ticking rows", () => {
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
 
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("ArchiveAction", [1, 3]);
+      expect(runAction).toHaveBeenCalledWith("ArchiveAction", [1, 3], undefined);
     });
   });
 
@@ -505,7 +513,161 @@ describe("ticking rows", () => {
       screen.getAllByRole("button", { name: "Delete" })[1] as HTMLElement,
     );
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("DeleteAction", [1, 2, 3]);
+      expect(runAction).toHaveBeenCalledWith("DeleteAction", [1, 2, 3], undefined);
     });
+  });
+});
+
+describe("an action that collects something first", () => {
+  const WITH_FORM = {
+    type: "ArchiveAction",
+    name: "ArchiveAction",
+    trigger: "run",
+    label: "Archive",
+    hasForm: true,
+    confirmation: { heading: "Why?", confirmLabel: "Archive it" },
+  } as const;
+
+  const SCHEMA = {
+    schema: {
+      id: "0",
+      type: "Schema",
+      children: [{ id: "reason", type: "TextInput", path: "reason", label: "Reason" }],
+    },
+    // A resolved tree carries an entry per field. Left empty, nothing is ever
+    // marked as seen and no error the server sends can be shown.
+    state: { reason: "" },
+    errors: {},
+  };
+
+  const draw = (over: Partial<Record<string, unknown>> = {}) => {
+    const runAction = vi.fn().mockResolvedValue({ processed: 1, refused: 0 });
+    const actionForm = vi.fn().mockResolvedValue(SCHEMA);
+    render(
+      <PanelList
+        initial={page([WITH_FORM])}
+        title="People"
+        runAction={runAction}
+        actionForm={actionForm}
+        actionState={() => () => Promise.resolve({ payload: SCHEMA })}
+        {...over}
+      />,
+    );
+    return { runAction, actionForm };
+  };
+
+  it("asks the server what to show, rather than showing what the table said", () => {
+    const { actionForm } = draw();
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    expect(actionForm).toHaveBeenCalledWith("ArchiveAction", [1]);
+  });
+
+  it("runs nothing until the form is submitted", () => {
+    const { runAction } = draw();
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    expect(runAction).not.toHaveBeenCalled();
+  });
+
+  it("shows the fields the server resolved", async () => {
+    draw();
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    expect(await screen.findByLabelText("Reason")).toBeTruthy();
+  });
+
+  it("sends what was typed, with the selection it was opened for", async () => {
+    const { runAction } = draw();
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    fireEvent.change(await screen.findByLabelText("Reason"), {
+      target: { value: "stale" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Archive it" }));
+
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalledWith("ArchiveAction", [1], {
+        reason: "stale",
+      });
+    });
+  });
+
+  it("keeps the dialog open when the server would not accept the form", async () => {
+    const runAction = vi.fn().mockResolvedValue({
+      processed: 0,
+      refused: 0,
+      errors: { reason: "This field is required." },
+      payload: { ...SCHEMA, errors: { reason: "This field is required." } },
+    });
+    draw({ runAction });
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Archive it" }));
+
+    expect(await screen.findByText("This field is required.")).toBeTruthy();
+    expect(screen.getByLabelText("Reason")).toBeTruthy();
+  });
+
+  it("still closes a plain confirmation on a click outside it", () => {
+    // The other half of the rule: nothing is lost by dismissing a question, so
+    // dismissing it stays as easy as it was.
+    render(<PanelList initial={page([REMOVE])} title="People" runAction={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(document.querySelector("dialog") as HTMLElement);
+
+    expect(screen.queryByText("Delete this person?")).toBeNull();
+  });
+
+  it("does not throw away what was typed on a click outside it", async () => {
+    // A question can be dismissed by clicking away from it. A form somebody has
+    // filled in cannot: the click is as likely to be a miss as a decision.
+    draw();
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    fireEvent.change(await screen.findByLabelText("Reason"), {
+      target: { value: "stale" },
+    });
+    fireEvent.click(document.querySelector("dialog") as HTMLElement);
+
+    expect(screen.getByLabelText("Reason")).toBeTruthy();
+  });
+
+  it("is not opened when the host cannot carry its round trips either", async () => {
+    // Half a host is worse than none: the fields render and every keystroke
+    // fails, which reads as the panel being broken rather than unavailable.
+    const runAction = vi.fn();
+    const actionForm = vi.fn().mockResolvedValue(SCHEMA);
+    render(
+      <PanelList
+        initial={page([WITH_FORM])}
+        title="People"
+        runAction={runAction}
+        actionForm={actionForm}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    await waitFor(() => {
+      expect(actionForm).not.toHaveBeenCalled();
+    });
+    expect(screen.queryByText("Archive them")).toBeNull();
+  });
+
+  it("is not opened at all when the host cannot ask for the schema", () => {
+    const runAction = vi.fn();
+    render(
+      <PanelList initial={page([WITH_FORM])} title="People" runAction={runAction} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    expect(runAction).not.toHaveBeenCalled();
+    expect(screen.queryByText("Why?")).toBeNull();
   });
 });

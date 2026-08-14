@@ -23,6 +23,13 @@ export interface Confirmation {
 export interface ConfirmDialogProps {
   readonly open: boolean;
   readonly confirmation: Confirmation;
+  /**
+   * A form the reader fills instead of a yes-or-no.
+   *
+   * When present it owns the dialog's buttons — a form submits itself, and a
+   * second confirm button beside it would be two ways to do one thing.
+   */
+  readonly children?: ReactNode;
   /** Drawn as destructive, and the confirm button with it. */
   readonly danger?: boolean;
   /** Held while the request is in flight, so it cannot be pressed twice. */
@@ -34,6 +41,7 @@ export interface ConfirmDialogProps {
 export function ConfirmDialog({
   open,
   confirmation,
+  children,
   danger = false,
   busy = false,
   onConfirm,
@@ -56,6 +64,9 @@ export function ConfirmDialog({
       ref={dialog}
       className="perch-modal"
       data-danger={danger}
+      // A question and a form want different widths, and the dialog is the only
+      // thing that knows which it is holding.
+      data-form={children !== undefined}
       // Escape closes it whatever this thinks, so the state has to be told
       // rather than left believing the dialog is still open.
       onCancel={(event) => {
@@ -64,8 +75,13 @@ export function ConfirmDialog({
       }}
       // The backdrop is part of the element, so a click outside the panel lands
       // here. Anywhere inside stops at the panel below.
+      //
+      // A question can be dismissed this way; a form somebody has filled in
+      // cannot. The click is as likely to be a miss as a decision, and what it
+      // would throw away is theirs. Escape still closes either — that one is
+      // unambiguous, and a keyboard needs a way out.
       onClick={() => {
-        if (!busy) onCancel();
+        if (!busy && children === undefined) onCancel();
       }}
     >
       <div
@@ -81,25 +97,28 @@ export function ConfirmDialog({
         {confirmation.description === undefined ? null : (
           <p className="perch-modal__description">{confirmation.description}</p>
         )}
-        <div className="perch-modal__actions">
-          <button
-            type="button"
-            className="perch-button"
-            onClick={onCancel}
-            disabled={busy}
-          >
-            {confirmation.cancelLabel ?? "Cancel"}
-          </button>
-          <button
-            type="button"
-            className={`perch-button ${danger ? "perch-button--danger" : "perch-button--primary"}`}
-            onClick={onConfirm}
-            disabled={busy}
-            aria-busy={busy}
-          >
-            {busy ? "Working…" : (confirmation.confirmLabel ?? "Confirm")}
-          </button>
-        </div>
+        {children}
+        {children !== undefined ? null : (
+          <div className="perch-modal__actions">
+            <button
+              type="button"
+              className="perch-button"
+              onClick={onCancel}
+              disabled={busy}
+            >
+              {confirmation.cancelLabel ?? "Cancel"}
+            </button>
+            <button
+              type="button"
+              className={`perch-button ${danger ? "perch-button--danger" : "perch-button--primary"}`}
+              onClick={onConfirm}
+              disabled={busy}
+              aria-busy={busy}
+            >
+              {busy ? "Working…" : (confirmation.confirmLabel ?? "Confirm")}
+            </button>
+          </div>
+        )}
       </div>
     </dialog>
   );

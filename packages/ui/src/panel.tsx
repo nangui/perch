@@ -62,7 +62,11 @@ export function mount(element: HTMLElement): void {
           initial={JSON.parse(payload) as RecordsPage}
           title={title}
           fetchPage={(request) => records(api, request)}
-          runAction={(name, ids) => runAction(api, name, ids)}
+          runAction={(name, ids, data) => runAction(api, name, ids, data)}
+          actionForm={(name, ids) => actionForm(api, name, ids)}
+          actionState={(name) => (request) =>
+            send(api, "create", undefined, request, name)
+          }
           onPage={remember}
         />
       </div>,
@@ -155,6 +159,7 @@ async function send(
   operation: string,
   id: string | undefined,
   request: StateRequest,
+  action?: string,
 ): Promise<StateResponse> {
   const response = await fetch(`${api}/state`, {
     method: "POST",
@@ -163,6 +168,9 @@ async function send(
       ...request,
       operation,
       ...(id === undefined ? {} : { id }),
+      // Names a modal's schema. Absent, the route resolves the resource's own
+      // form, which is what every other caller of this wants.
+      ...(action === undefined ? {} : { action }),
     }),
     credentials: "same-origin",
   });
@@ -297,11 +305,12 @@ async function runAction(
   api: string,
   name: string,
   ids: readonly (string | number)[],
+  data?: FormState,
 ): Promise<ActionAnswer> {
   const response = await fetch(`${api}/actions/${encodeURIComponent(name)}`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ ids }),
+    body: JSON.stringify({ ids, ...(data === undefined ? {} : { data }) }),
   });
   if (!response.ok) {
     // Only the one status this route phrases on purpose: a selection past the
@@ -317,6 +326,28 @@ async function runAction(
     throw new Error("That did not work. Nothing was changed.");
   }
   return (await response.json()) as ActionAnswer;
+}
+
+/**
+ * What a modal shows, resolved against this reader.
+ *
+ * Asked for on opening rather than shipped with the table: a schema means
+ * nothing until it has been resolved, and the same refusals the run goes
+ * through are asked here — learning you may not act before filling a form in
+ * is the only kindness left.
+ */
+async function actionForm(
+  api: string,
+  name: string,
+  ids: readonly (string | number)[],
+): Promise<SchemaPayload> {
+  const response = await fetch(`${api}/actions/${encodeURIComponent(name)}/form`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!response.ok) throw new Error("That did not work. Nothing was changed.");
+  return (await response.json()) as SchemaPayload;
 }
 
 /**

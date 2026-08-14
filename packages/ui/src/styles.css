@@ -1088,6 +1088,24 @@
   box-shadow: var(--perch-shadow-popover);
 }
 
+/* A question fits in a sentence; a form does not.
+   `width`, not `max-width`: a dialog shrinks to its content, and a form whose
+   fields are as wide as their placeholders is not a form anybody wants. */
+.perch-modal[data-form="true"] {
+  width: min(34rem, calc(100vw - var(--perch-space-8) * 2));
+}
+
+/* The footer is a card on a page, where it sits on the page ground. Inside a
+   dialog it is already on a surface, and a second one reads as a box in a box. */
+.perch-modal .perch-form-actions {
+  margin-top: var(--perch-space-6);
+  padding: var(--perch-space-6) 0 0;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--perch-border-subtle);
+  border-radius: 0;
+}
+
 .perch-modal::backdrop {
   background: rgb(20 24 26 / 0.4);
 }

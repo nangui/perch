@@ -9,8 +9,16 @@
  */
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
-import type { ActionNode, ColumnTree, Row } from "@perchjs/core";
+import type {
+  ActionNode,
+  ColumnTree,
+  FormState,
+  Row,
+  SchemaPayload,
+} from "@perchjs/core";
 import { ConfirmDialog } from "./ConfirmDialog.js";
+import { PanelForm } from "./PanelForm.js";
+import type { StateRequest, StateResponse } from "./transport.js";
 import { DataTable } from "./DataTable.js";
 import type { DataTableSort } from "./DataTable.js";
 
@@ -67,7 +75,19 @@ export interface PanelListProps {
   readonly runAction?: (
     name: string,
     ids: readonly (string | number)[],
+    data?: FormState,
   ) => Promise<ActionAnswer>;
+  /**
+   * Asks for a modal's resolved schema, and for its round trips afterwards.
+   * Absent means an action that collects something cannot be opened.
+   */
+  readonly actionForm?: (
+    name: string,
+    ids: readonly (string | number)[],
+  ) => Promise<SchemaPayload>;
+  readonly actionState?: (
+    name: string,
+  ) => (request: StateRequest) => Promise<StateResponse>;
 }
 
 /** What the server answered. Counts, and whatever the action wanted to say. */
@@ -79,12 +99,17 @@ export interface ActionAnswer {
     readonly body?: string;
     readonly tone: "success" | "warning" | "danger" | "info";
   };
+  /** A modal's form the server would not accept, with the tree they belong to. */
+  readonly errors?: Readonly<Record<string, string>>;
+  readonly payload?: SchemaPayload;
 }
 
 /** An action waiting on the reader's answer, and the row it was pressed on. */
 interface Pending {
   readonly action: ActionNode;
   readonly ids: readonly (string | number)[];
+  /** The resolved schema, once the server has answered with it. */
+  readonly schema?: SchemaPayload;
 }
 
 export function PanelList({
@@ -93,6 +118,8 @@ export function PanelList({
   fetchPage,
   onPage,
   runAction,
+  actionForm,
+  actionState,
 }: PanelListProps): ReactNode {
   const [page, setPage] = useState(initial);
   const [failed, setFailed] = useState(false);
@@ -261,12 +288,58 @@ export function PanelList({
   const selected = chosen.filter((key) => picked.has(String(key)));
   const [said, setSaid] = useState<ActionAnswer["notification"] | undefined>(undefined);
 
-  async function carry(action: ActionNode, ids: readonly (string | number)[]) {
-    if (runAction === undefined || running.current) return;
+  /**
+   * Opens what an action collects with, or runs it where it collects nothing.
+   *
+   * The schema is asked for rather than held: it is resolved against this
+   * reader, and what it looks like is the server's to decide every time.
+   */
+  async function open(
+    action: ActionNode,
+    ids: readonly (string | number)[],
+  ): Promise<void> {
+    if (action.hasForm !== true) {
+      if (action.confirmation !== undefined) {
+        setPending({ action, ids });
+        return;
+      }
+      await carry(action, ids);
+      return;
+    }
+    // Both, or neither. A modal that renders and fails on every keystroke reads
+    // as the panel being broken rather than as the action being unavailable.
+    if (actionForm === undefined || actionState === undefined) return;
+
+    setPending({ action, ids });
+    setBusy(true);
+    try {
+      setPending({ action, ids, schema: await actionForm(action.name, ids) });
+    } catch (error) {
+      setSaid({
+        title: error instanceof Error ? error.message : "That did not work.",
+        tone: "danger",
+      });
+      setPending(undefined);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function carry(
+    action: ActionNode,
+    ids: readonly (string | number)[],
+    data?: FormState,
+  ): Promise<ActionAnswer | undefined> {
+    if (runAction === undefined || running.current) return undefined;
     running.current = true;
     setBusy(true);
     try {
-      const answer = await runAction(action.name, ids);
+      const answer = await runAction(action.name, ids, data);
+      // A form the server would not accept: the dialog stays, with the tree it
+      // sent back so the errors land on their fields.
+      if (answer.errors !== undefined && Object.keys(answer.errors).length > 0) {
+        return answer;
+      }
       setSaid(
         answer.notification ?? {
           title: describeOutcome(answer),
@@ -277,12 +350,14 @@ export function PanelList({
       // The rows are what the action just changed, so what is on screen is out
       // of date the moment it returns.
       refresh();
+      return answer;
     } catch (error) {
       setSaid({
         title: error instanceof Error ? error.message : "That did not work.",
         tone: "danger",
       });
       setPending(undefined);
+      return undefined;
     } finally {
       running.current = false;
       setBusy(false);
@@ -306,21 +381,13 @@ export function PanelList({
 
   function pressBulk(action: ActionNode): void {
     if (selected.length === 0) return;
-    if (action.confirmation !== undefined) {
-      setPending({ action, ids: selected });
-      return;
-    }
-    void carry(action, selected);
+    void open(action, selected);
   }
 
   function press(action: ActionNode, row: Row): void {
     const key = row[page.recordKey];
     if (typeof key !== "string" && typeof key !== "number") return;
-    if (action.confirmation !== undefined) {
-      setPending({ action, ids: [key] });
-      return;
-    }
-    void carry(action, [key]);
+    void open(action, [key]);
   }
 
   return (
@@ -414,7 +481,35 @@ export function PanelList({
           onCancel={() => {
             setPending(undefined);
           }}
-        />
+        >
+          {pending.action.hasForm !== true ? undefined : pending.schema === undefined ||
+            actionState === undefined ? (
+            <p className="perch-modal__description" role="status">
+              Loading…
+            </p>
+          ) : (
+            // The page form, in a dialog. Everything it already does — a
+            // dependent field, a validation message, a file — works here
+            // because it is the same component talking to the same cycle.
+            <PanelForm
+              key={pending.action.name}
+              initial={pending.schema}
+              send={actionState(pending.action.name)}
+              submitLabel={pending.action.confirmation?.confirmLabel ?? "Confirm"}
+              save={async ({ state }) => {
+                const answer = await carry(pending.action, pending.ids, state);
+                return answer?.errors === undefined
+                  ? {}
+                  : {
+                      errors: answer.errors,
+                      ...(answer.payload === undefined
+                        ? {}
+                        : { payload: answer.payload }),
+                    };
+              }}
+            />
+          )}
+        </ConfirmDialog>
       )}
       {pagination(page, turn)}
       {/*
