@@ -323,7 +323,9 @@ describe("a shell that says too little", () => {
           payload: JSON.stringify({
             rows: [],
             total: 0,
-            columns: { columns: [], filters: [] },
+            // What `serialiseTable` always emits, including the two lists it
+            // sends even when they are empty.
+            columns: { columns: [], filters: [], actions: [], headerActions: [] },
           }),
         }),
       );

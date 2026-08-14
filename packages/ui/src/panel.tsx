@@ -62,6 +62,7 @@ export function mount(element: HTMLElement): void {
           initial={JSON.parse(payload) as RecordsPage}
           title={title}
           fetchPage={(request) => records(api, request)}
+          runAction={(name, ids) => runAction(api, name, ids)}
           onPage={remember}
         />
       </div>,
@@ -283,6 +284,48 @@ async function records(api: string, request: PageRequest): Promise<RecordsPage> 
   if (!response.ok) throw new Error(`/records answered ${String(response.status)}`);
 
   return (await response.json()) as RecordsPage;
+}
+
+export interface ActionAnswer {
+  readonly processed: number;
+  readonly refused: number;
+  readonly notification?: {
+    readonly title: string;
+    readonly body?: string;
+    readonly tone: "success" | "warning" | "danger" | "info";
+  };
+}
+
+/**
+ * Pressing a button.
+ *
+ * The name and the selection, and nothing else. What the action does, who may
+ * do it and to which rows are all settled on the server, which is why this
+ * sends so little.
+ */
+async function runAction(
+  api: string,
+  name: string,
+  ids: readonly (string | number)[],
+): Promise<ActionAnswer> {
+  const response = await fetch(`${api}/actions/${encodeURIComponent(name)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!response.ok) {
+    // The server's own words when it phrased any — a selection past the ceiling
+    // says so usefully — and a flat sentence when it did not.
+    const said = (await response.json().catch(() => null)) as {
+      message?: unknown;
+    } | null;
+    throw new Error(
+      typeof said?.message === "string" && response.status < 500
+        ? said.message
+        : "That did not work. Nothing was changed.",
+    );
+  }
+  return (await response.json()) as ActionAnswer;
 }
 
 /**

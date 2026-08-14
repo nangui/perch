@@ -95,7 +95,7 @@ describe("what a table renders", () => {
 describe("row actions", () => {
   const withEdit: ColumnTree = {
     ...COLUMNS,
-    actions: [{ type: "EditAction", name: "EditAction" }],
+    actions: [{ type: "EditAction", name: "EditAction", trigger: "link" }],
   };
 
   it("renders a link, not a button", () => {
@@ -128,7 +128,9 @@ describe("row actions", () => {
       <DataTable
         columns={{
           ...COLUMNS,
-          actions: [{ type: "SomeFutureAction", name: "SomeFutureAction" }],
+          actions: [
+            { type: "SomeFutureAction", name: "SomeFutureAction", trigger: "run" },
+          ],
         }}
         rows={ROWS}
         caption="Posts"

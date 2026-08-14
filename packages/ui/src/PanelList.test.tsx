@@ -17,9 +17,9 @@ const PAGE: RecordsPage = {
   perPage: 25,
   columns: {
     columns: [{ type: "TextColumn", path: "title", label: "Headline", sortable: true }],
-    actions: [{ type: "EditAction", name: "EditAction" }],
+    actions: [{ type: "EditAction", name: "EditAction", trigger: "link" }],
     filters: [],
-    headerActions: [{ type: "CreateAction", name: "CreateAction" }],
+    headerActions: [{ type: "CreateAction", name: "CreateAction", trigger: "link" }],
     defaultSort: { path: "title", direction: "asc" },
   },
   recordKey: "id",
@@ -203,7 +203,9 @@ describe("the list page", () => {
           ...PAGE,
           columns: {
             ...PAGE.columns,
-            headerActions: [{ type: "ImportAction", name: "ImportAction" }],
+            headerActions: [
+              { type: "ImportAction", name: "ImportAction", trigger: "run" },
+            ],
           },
         }}
         title="Posts"
@@ -220,7 +222,9 @@ describe("the list page", () => {
           ...PAGE,
           columns: {
             ...PAGE.columns,
-            headerActions: [{ type: "ImportAction", name: "ImportAction" }],
+            headerActions: [
+              { type: "ImportAction", name: "ImportAction", trigger: "run" },
+            ],
           },
         }}
         title="Posts"

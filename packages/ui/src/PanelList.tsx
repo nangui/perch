@@ -9,7 +9,8 @@
  */
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
-import type { ColumnTree, Row } from "@perchjs/core";
+import type { ActionNode, ColumnTree, Row } from "@perchjs/core";
+import { ConfirmDialog } from "./ConfirmDialog.js";
 import { DataTable } from "./DataTable.js";
 import type { DataTableSort } from "./DataTable.js";
 
@@ -59,6 +60,31 @@ export interface PanelListProps {
    * ordering rule rather than needing its own.
    */
   readonly onPage?: (page: RecordsPage) => void;
+  /**
+   * Carries out an action. Absent means the table draws none that would need
+   * carrying out, which is how a page renders with no host behind it.
+   */
+  readonly runAction?: (
+    name: string,
+    ids: readonly (string | number)[],
+  ) => Promise<ActionAnswer>;
+}
+
+/** What the server answered. Counts, and whatever the action wanted to say. */
+export interface ActionAnswer {
+  readonly processed: number;
+  readonly refused: number;
+  readonly notification?: {
+    readonly title: string;
+    readonly body?: string;
+    readonly tone: "success" | "warning" | "danger" | "info";
+  };
+}
+
+/** An action waiting on the reader's answer, and the row it was pressed on. */
+interface Pending {
+  readonly action: ActionNode;
+  readonly ids: readonly (string | number)[];
 }
 
 export function PanelList({
@@ -66,6 +92,7 @@ export function PanelList({
   title,
   fetchPage,
   onPage,
+  runAction,
 }: PanelListProps): ReactNode {
   const [page, setPage] = useState(initial);
   const [failed, setFailed] = useState(false);
@@ -171,6 +198,54 @@ export function PanelList({
           });
         };
 
+  /**
+   * The action the reader is being asked about, and what it would touch.
+   *
+   * An action that declared no confirmation never lands here — it runs on the
+   * press. One that did stays here until they answer, and `busy` holds the
+   * dialog while the request is in flight so a second press cannot start a
+   * second one.
+   */
+  const [pending, setPending] = useState<Pending | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState<ActionAnswer["notification"] | undefined>(undefined);
+
+  async function carry(action: ActionNode, ids: readonly (string | number)[]) {
+    if (runAction === undefined) return;
+    setBusy(true);
+    try {
+      const answer = await runAction(action.name, ids);
+      setSaid(
+        answer.notification ?? {
+          title: describeOutcome(answer),
+          tone: answer.processed === 0 ? "warning" : "success",
+        },
+      );
+      setPending(undefined);
+      // The rows are what the action just changed, so what is on screen is out
+      // of date the moment it returns.
+      turn?.(page.page);
+    } catch (error) {
+      setSaid({
+        title: error instanceof Error ? error.message : "That did not work.",
+        tone: "danger",
+      });
+      setPending(undefined);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function press(action: ActionNode, row: Row): void {
+    const key = row[page.recordKey];
+    if (typeof key !== "string" && typeof key !== "number") return;
+    if (action.confirmation !== undefined) {
+      setPending({ action, ids: [key] });
+      return;
+    }
+    void carry(action, [key]);
+  }
+
   return (
     <main className="perch-list">
       <div className="perch-list__header">
@@ -188,6 +263,15 @@ export function PanelList({
       ) : null}
       {/* A wide table scrolls inside its own box; the page never scrolls
           sideways under it. */}
+      {said === undefined ? null : (
+        // One live region for what an action answered, kept apart from the
+        // paging one below: they change for different reasons, and a reader
+        // hearing both at once hears neither.
+        <p className={`perch-notice perch-notice--${said.tone}`} role="status">
+          <strong>{said.title}</strong>
+          {said.body === undefined ? null : <span>{said.body}</span>}
+        </p>
+      )}
       <div className="perch-list__table">
         <DataTable
           columns={page.columns}
@@ -196,8 +280,26 @@ export function PanelList({
           rowHref={(row) => href(page, row)}
           {...(sort === undefined ? {} : { sort })}
           {...(reorder === undefined ? {} : { onSort: reorder })}
+          {...(runAction === undefined ? {} : { onAction: press })}
         />
       </div>
+
+      {/* Rendered only while something is pending, so the element is not in the
+          page — and not in the accessibility tree — the rest of the time. */}
+      {pending === undefined ? null : (
+        <ConfirmDialog
+          open
+          confirmation={pending.action.confirmation ?? {}}
+          danger={pending.action.danger === true}
+          busy={busy}
+          onConfirm={() => {
+            void carry(pending.action, pending.ids);
+          }}
+          onCancel={() => {
+            setPending(undefined);
+          }}
+        />
+      )}
       {pagination(page, turn)}
       {/*
         The one live region on this page: it is what changes when a page is
@@ -464,4 +566,25 @@ function headerActions(page: RecordsPage): ReactNode {
     ));
 
   return links.length === 0 ? null : <div className="perch-list__actions">{links}</div>;
+}
+
+/**
+ * What to say when the action itself said nothing.
+ *
+ * Both counts, because either alone would mislead: "3 records" hides that two
+ * were turned down, and "2 refused" hides that three went through. Never why
+ * they were refused — the server does not say, and inventing a reason here
+ * would be worse than the silence.
+ */
+function describeOutcome(answer: { processed: number; refused: number }): string {
+  const done = `${String(answer.processed)} ${plural(answer.processed, "record")}`;
+  if (answer.refused === 0) return `Done: ${done}.`;
+  if (answer.processed === 0) {
+    return `Nothing was changed: ${String(answer.refused)} ${plural(answer.refused, "record")} could not be.`;
+  }
+  return `Done: ${done}. ${String(answer.refused)} could not be.`;
+}
+
+function plural(count: number, word: string): string {
+  return count === 1 ? word : `${word}s`;
 }

@@ -1054,6 +1054,73 @@
   text-wrap: pretty;
 }
 
+/* The base reads as a problem, which is what the only earlier caller was. A
+   tone says otherwise; `--danger` is what the base already looks like. */
+.perch-notice--success {
+  border-color: var(--perch-accent-border);
+  background: var(--perch-success-surface);
+  color: var(--perch-success-content);
+}
+
+.perch-notice--warning {
+  border-color: var(--perch-pending-border);
+  background: var(--perch-warning-surface);
+  color: var(--perch-warning-content);
+}
+
+.perch-notice--info {
+  border-color: var(--perch-border);
+  background: var(--perch-surface-muted);
+  color: var(--perch-content-secondary);
+}
+
+/* ---------------------------------------------------------------- the modal */
+
+/* The platform's own element, opened with `showModal()`. The focus trap, the
+   Escape key and painting above everything else come with it. */
+.perch-modal {
+  max-width: min(28rem, calc(100vw - var(--perch-space-8) * 2));
+  padding: 0;
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-lg);
+  background: var(--perch-surface);
+  color: var(--perch-content);
+  box-shadow: var(--perch-shadow-popover);
+}
+
+.perch-modal::backdrop {
+  background: rgb(20 24 26 / 0.4);
+}
+
+.perch-modal__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--perch-space-5);
+  padding: var(--perch-space-8);
+}
+
+.perch-modal__heading {
+  margin: 0;
+  font-size: var(--perch-text-xl);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.perch-modal__description {
+  margin: 0;
+  font-size: var(--perch-text-control);
+  color: var(--perch-content-muted);
+  text-wrap: pretty;
+}
+
+/* The confirming button last, where the eye ends up, and after the way out. */
+.perch-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--perch-space-4);
+  margin-top: var(--perch-space-3);
+}
+
 .perch-empty {
   display: flex;
   flex: 1;
@@ -1757,8 +1824,12 @@
   color: var(--perch-danger-content);
 }
 
+/* Flex rather than inline text: two actions in a cell ran together into one
+   word, because nothing between an anchor and a button is whitespace. */
 .perch-table__actions {
-  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--perch-space-6);
   white-space: nowrap;
 }
 
@@ -1769,6 +1840,20 @@
 
 .perch-table__action:hover {
   text-decoration: underline;
+}
+
+/* A run action is a button; it has to look like the links beside it rather
+   than like a form control dropped into a row. */
+button.perch-table__action {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.perch-table__action--danger {
+  color: var(--perch-danger);
 }
 
 .perch-list__header {

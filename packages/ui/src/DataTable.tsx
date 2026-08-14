@@ -39,6 +39,12 @@ export interface DataTableProps {
    * to reconstruct from the API path it was handed.
    */
   readonly rowHref?: (row: Row) => string | undefined;
+  /**
+   * Runs an action against a row. Absent means the table draws no run actions —
+   * nobody would carry them out, and a button that does nothing is worse than
+   * no button.
+   */
+  readonly onAction?: (action: ActionNode, row: Row) => void;
 }
 
 export function DataTable({
@@ -49,8 +55,13 @@ export function DataTable({
   caption,
   empty,
   rowHref,
+  onAction,
 }: DataTableProps): ReactNode {
-  const actions = rowHref === undefined ? [] : columns.actions;
+  // A link needs an address; a run needs somebody to run it. An action whose
+  // kind the host cannot serve is left out rather than drawn dead.
+  const actions = columns.actions.filter((action) =>
+    action.trigger === "link" ? rowHref !== undefined : onAction !== undefined,
+  );
   // One lookup per column, before any row is touched.
   const rendered = columns.columns.map((column) => ({
     column,
@@ -97,9 +108,9 @@ export function DataTable({
                   : render(readPath(row, column.path), row, column)}
               </td>
             ))}
-            {actions.length === 0 || rowHref === undefined ? null : (
+            {actions.length === 0 ? null : (
               <td className="perch-table__cell perch-table__actions">
-                {actions.map((action) => rowAction(action, row, rowHref))}
+                {actions.map((action) => rowAction(action, row, rowHref, onAction))}
               </td>
             )}
           </tr>
@@ -110,28 +121,52 @@ export function DataTable({
 }
 
 /**
- * A row action, as a link.
+ * A row action.
  *
- * `EditAction` is navigation, so it is an anchor rather than a button: it goes
- * somewhere, and the browser's own affordances — open in a new tab, copy the
- * address — come with saying so honestly.
+ * A link is an anchor rather than a button: it goes somewhere, and the
+ * browser's own affordances — open in a new tab, copy the address — come with
+ * saying so honestly. A run is a button, because it is a request.
  *
- * A row the server gave no address for offers nothing rather than a dead link.
+ * Which of the two is the server's word, not a guess from the type name. An
+ * action added to the framework later behaves correctly here without this file
+ * having heard of it.
+ *
+ * A row the server gave no address for offers no link rather than a dead one.
  */
 function rowAction(
   action: ActionNode,
   row: Row,
-  href: (row: Row) => string | undefined,
+  href: ((row: Row) => string | undefined) | undefined,
+  onAction: ((action: ActionNode, row: Row) => void) | undefined,
 ): ReactNode {
-  if (action.type !== "EditAction") return null;
-  const target = href(row);
-  if (target === undefined) return null;
+  if (action.trigger === "link") {
+    const target = href?.(row);
+    if (target === undefined) return null;
+    return (
+      <a key={action.name} className="perch-table__action" href={target}>
+        {action.label ?? defaultLabel(action)}
+      </a>
+    );
+  }
 
+  if (onAction === undefined) return null;
   return (
-    <a key={action.type} className="perch-table__action" href={target}>
-      {action.label ?? "Edit"}
-    </a>
+    <button
+      key={action.name}
+      type="button"
+      className={`perch-table__action${action.danger === true ? " perch-table__action--danger" : ""}`}
+      onClick={() => {
+        onAction(action, row);
+      }}
+    >
+      {action.label ?? defaultLabel(action)}
+    </button>
   );
+}
+
+/** A label the author did not give. Named after the action, never blank. */
+function defaultLabel(action: ActionNode): string {
+  return action.type.replace(/Action$/, "");
 }
 
 /**
