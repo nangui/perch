@@ -21,7 +21,23 @@ import {
   TextInput,
   Toggle,
 } from "@perchjs/core";
+import { Action, Notification } from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
+
+/** An action a host writes, which is the only kind that carries a callback. */
+class ArchiveAction extends Action {
+  static make(): ArchiveAction {
+    return new ArchiveAction({});
+  }
+
+  override get type(): string {
+    return "ArchiveAction";
+  }
+
+  protected override with(state: ConstructorParameters<typeof Action>[0]): this {
+    return new ArchiveAction(state) as this;
+  }
+}
 
 /**
  * An ordinary Nest provider. The point of injecting it is that the options below
@@ -78,6 +94,31 @@ export class PersonResource {
       confirmLabel: "Delete",
     });
 
+    // An action that asks for something before it runs. The modal is a schema
+    // like any other, so the dependent field below is reactive inside it.
+    const archive = ArchiveAction.make()
+      .label("Archive")
+      .requiresConfirmation({ heading: "Archive them", confirmLabel: "Archive" })
+      .form(
+        Schema.make([
+          Select.make("reason")
+            .label("Reason")
+            .options({ left: "Left the company", inactive: "No longer active" })
+            .required()
+            .live(),
+          Textarea.make("note")
+            .label("Note")
+            .rows(3)
+            .placeholder("Anything worth recording.")
+            .visible(({ get }) => get("reason") === "left"),
+        ]),
+      )
+      .action((record) => {
+        return Notification.make()
+          .title(`Archived ${String(record["firstName"])}`)
+          .success();
+      });
+
     return Table.make()
       .columns([
         TextColumn.make("firstName").label("First name").sortable().searchable(),
@@ -92,8 +133,8 @@ export class PersonResource {
         SelectFilter.make("role").label("Role").options(ROLES),
         TextFilter.make("email").label("Email contains"),
       ])
-      .actions([EditAction.make(), remove])
-      .bulkActions([remove])
+      .actions([EditAction.make(), archive, remove])
+      .bulkActions([archive, remove])
       .headerActions([CreateAction.make()])
       .defaultSort("firstName");
   }
