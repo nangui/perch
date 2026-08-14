@@ -81,7 +81,12 @@ describe("an action that needs no confirmation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
 
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("ArchiveAction", [1], undefined);
+      expect(runAction).toHaveBeenCalledWith(
+        "ArchiveAction",
+        [1],
+        undefined,
+        expect.any(String),
+      );
     });
   });
 
@@ -95,7 +100,12 @@ describe("an action that needs no confirmation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
 
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("archive-hard", [1], undefined);
+      expect(runAction).toHaveBeenCalledWith(
+        "archive-hard",
+        [1],
+        undefined,
+        expect.any(String),
+      );
     });
   });
 
@@ -233,7 +243,12 @@ describe("an action that declared a confirmation", () => {
     );
 
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("DeleteAction", [1], undefined);
+      expect(runAction).toHaveBeenCalledWith(
+        "DeleteAction",
+        [1],
+        undefined,
+        expect.any(String),
+      );
     });
   });
 
@@ -382,7 +397,12 @@ describe("ticking rows", () => {
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
 
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("ArchiveAction", [1, 3], undefined);
+      expect(runAction).toHaveBeenCalledWith(
+        "ArchiveAction",
+        [1, 3],
+        undefined,
+        expect.any(String),
+      );
     });
   });
 
@@ -513,7 +533,12 @@ describe("ticking rows", () => {
       screen.getAllByRole("button", { name: "Delete" })[1] as HTMLElement,
     );
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("DeleteAction", [1, 2, 3], undefined);
+      expect(runAction).toHaveBeenCalledWith(
+        "DeleteAction",
+        [1, 2, 3],
+        undefined,
+        expect.any(String),
+      );
     });
   });
 });
@@ -590,9 +615,12 @@ describe("an action that collects something first", () => {
     fireEvent.click(screen.getByRole("button", { name: "Archive it" }));
 
     await waitFor(() => {
-      expect(runAction).toHaveBeenCalledWith("ArchiveAction", [1], {
-        reason: "stale",
-      });
+      expect(runAction).toHaveBeenCalledWith(
+        "ArchiveAction",
+        [1],
+        { reason: "stale" },
+        expect.any(String),
+      );
     });
   });
 
@@ -712,3 +740,119 @@ describe("what the page that sent the reader here said", () => {
     });
   });
 });
+
+describe("naming what the reader asked for", () => {
+  it("sends a key, so a replayed request is recognised", async () => {
+    const runAction = vi.fn().mockResolvedValue(ANSWER);
+    render(
+      <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalled();
+    });
+    expect(runAction.mock.calls[0]?.[3]).toEqual(expect.any(String));
+  });
+
+  it("names each press separately, because each is its own intent", async () => {
+    const runAction = vi.fn().mockResolvedValue(ANSWER);
+    render(
+      <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalledTimes(1);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalledTimes(2);
+    });
+
+    expect(runAction.mock.calls[0]?.[3]).not.toBe(runAction.mock.calls[1]?.[3]);
+  });
+
+  it("keeps the name when the request itself failed", async () => {
+    // The one case the whole mechanism is for: the request may have reached
+    // the server and been carried out, with only the answer lost. Retrying
+    // under the same name is what lets the server recognise it.
+    const runAction = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValue(ANSWER);
+    render(
+      <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalledTimes(1);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalledTimes(2);
+    });
+
+    expect(runAction.mock.calls[0]?.[3]).toBe(runAction.mock.calls[1]?.[3]);
+  });
+
+  it("keeps the name across a form the server sent back", async () => {
+    // The same intent, corrected. The server remembers nothing about a refused
+    // form, so reusing the name costs nothing and a network retry in between
+    // is still recognised.
+    const runAction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        processed: 0,
+        refused: 0,
+        errors: { reason: "This field is required." },
+        payload: { ...SCHEMA_FOR_KEY, errors: { reason: "This field is required." } },
+      })
+      .mockResolvedValue(ANSWER);
+    render(
+      <PanelList
+        initial={page([WITH_FORM_FOR_KEY])}
+        title="People"
+        runAction={runAction}
+        actionForm={vi.fn().mockResolvedValue(SCHEMA_FOR_KEY)}
+        actionState={() => () => Promise.resolve({ payload: SCHEMA_FOR_KEY })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Archive it" }));
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.change(screen.getByLabelText("Reason"), { target: { value: "stale" } });
+    fireEvent.click(screen.getByRole("button", { name: "Archive it" }));
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalledTimes(2);
+    });
+
+    // A refusal changed nothing, so the second attempt is its own intent.
+    expect(runAction.mock.calls[0]?.[3]).not.toBe(runAction.mock.calls[1]?.[3]);
+  });
+});
+
+const WITH_FORM_FOR_KEY = {
+  type: "ArchiveAction",
+  name: "ArchiveAction",
+  trigger: "run",
+  label: "Archive",
+  hasForm: true,
+  confirmation: { heading: "Why?", confirmLabel: "Archive it" },
+} as const;
+
+const SCHEMA_FOR_KEY = {
+  schema: {
+    id: "0",
+    type: "Schema",
+    children: [{ id: "reason", type: "TextInput", path: "reason", label: "Reason" }],
+  },
+  state: { reason: "" },
+  errors: {},
+};

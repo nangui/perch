@@ -83,6 +83,7 @@ export interface PanelListProps {
     name: string,
     ids: readonly (string | number)[],
     data?: FormState,
+    idempotencyKey?: string,
   ) => Promise<ActionAnswer>;
   /**
    * Asks for a modal's resolved schema, and for its round trips afterwards.
@@ -270,6 +271,14 @@ export function PanelList({
    * one can see the first in.
    */
   const running = useRef(false);
+  /**
+   * Names what the reader asked for, not the request that carries it.
+   *
+   * Made when the intent is formed and kept while it is being attempted, so a
+   * retry of the same press is recognised on the server and a fresh press is
+   * not. Cleared once something has actually happened.
+   */
+  const intent = useRef<string | undefined>(undefined);
 
   /**
    * The rows the reader has ticked, by key as text.
@@ -340,12 +349,16 @@ export function PanelList({
   ): Promise<ActionAnswer | undefined> {
     if (runAction === undefined || running.current) return undefined;
     running.current = true;
+    intent.current ??= newIntent();
     setBusy(true);
     try {
-      const answer = await runAction(action.name, ids, data);
+      const answer = await runAction(action.name, ids, data, intent.current);
       // A form the server would not accept: the dialog stays, with the tree it
       // sent back so the errors land on their fields.
       if (answer.errors !== undefined && Object.keys(answer.errors).length > 0) {
+        // Nothing was carried out, so the next attempt is a fresh intent
+        // rather than a replay of one the server would recognise.
+        intent.current = undefined;
         return answer;
       }
       setSaid(
@@ -354,6 +367,7 @@ export function PanelList({
           tone: answer.processed === 0 ? "warning" : "success",
         },
       );
+      intent.current = undefined;
       setPending(undefined);
       // The rows are what the action just changed, so what is on screen is out
       // of date the moment it returns.
@@ -806,4 +820,20 @@ function describeOutcome(answer: { processed: number; refused: number }): string
 
 function plural(count: number, word: string): string {
   return count === 1 ? word : `${word}s`;
+}
+
+/**
+ * A name for one thing the reader asked for.
+ *
+ * `randomUUID` where the platform has it — every browser this panel targets
+ * does, over HTTPS or localhost — and something unique enough where it does
+ * not. It names an intent within one minute on one server; it is not a secret
+ * and nothing is decided by it.
+ */
+function newIntent(): string {
+  const crypto = globalThis.crypto as { randomUUID?: () => string } | undefined;
+  return (
+    crypto?.randomUUID?.() ??
+    `${String(Date.now())}-${Math.random().toString(36).slice(2)}`
+  );
 }

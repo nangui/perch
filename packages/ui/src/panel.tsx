@@ -67,7 +67,7 @@ export function mount(element: HTMLElement): void {
           title={title}
           {...(flash === undefined ? {} : { flash })}
           fetchPage={(request) => records(api, request)}
-          runAction={(name, ids, data) => runAction(api, name, ids, data)}
+          runAction={(name, ids, data, key) => runAction(api, name, ids, data, key)}
           actionForm={(name, ids) => actionForm(api, name, ids)}
           actionState={(name) => (request) =>
             send(api, "create", undefined, request, name)
@@ -313,11 +313,18 @@ async function runAction(
   name: string,
   ids: readonly (string | number)[],
   data?: FormState,
+  idempotencyKey?: string,
 ): Promise<ActionAnswer> {
   const response = await fetch(`${api}/actions/${encodeURIComponent(name)}`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ ids, ...(data === undefined ? {} : { data }) }),
+    body: JSON.stringify({
+      ids,
+      ...(data === undefined ? {} : { data }),
+      // Names the intent rather than the request, so a retry of the same
+      // intent is recognised and a second press is not.
+      ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
+    }),
   });
   if (!response.ok) {
     // Only the one status this route phrases on purpose: a selection past the
