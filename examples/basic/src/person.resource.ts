@@ -69,6 +69,15 @@ export class PersonResource {
 
   /** What the list page shows, and what it lets you do from there. */
   table(): TableTree {
+    // One instance, offered in two places: the row and the ticked selection put
+    // the identical declaration through, which is the whole point of there
+    // being no separate bulk class.
+    const remove = DeleteAction.make().requiresConfirmation({
+      heading: "Delete the selected people?",
+      description: "This cannot be undone.",
+      confirmLabel: "Delete",
+    });
+
     return Table.make()
       .columns([
         TextColumn.make("firstName").label("First name").sortable().searchable(),
@@ -83,16 +92,8 @@ export class PersonResource {
         SelectFilter.make("role").label("Role").options(ROLES),
         TextFilter.make("email").label("Email contains"),
       ])
-      .actions([
-        EditAction.make(),
-        // Confirms by default and cannot be talked out of it: v0.1 has no
-        // restore, so a misclick here is final.
-        DeleteAction.make().requiresConfirmation({
-          heading: "Delete this person?",
-          description: "This cannot be undone.",
-          confirmLabel: "Delete",
-        }),
-      ])
+      .actions([EditAction.make(), remove])
+      .bulkActions([remove])
       .headerActions([CreateAction.make()])
       .defaultSort("firstName");
   }
