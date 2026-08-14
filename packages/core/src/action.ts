@@ -19,6 +19,7 @@
  */
 import type { Notification } from "./notification.js";
 import type { Row } from "./data-adapter.js";
+import type { Schema } from "./layout.js";
 
 /**
  * What an author's callback is handed, and what it may answer.
@@ -59,6 +60,8 @@ export interface ActionState {
   readonly run?: ActionRun;
   readonly authorize?: ActionGuard;
   readonly confirmation?: Confirmation;
+  /** What a modal collects before it runs. */
+  readonly form?: Schema;
   /** Drawn as destructive, and says so before it runs. */
   readonly danger?: boolean;
 }
@@ -104,6 +107,17 @@ export abstract class Action {
 
   authorize(guard: ActionGuard): this {
     return this.with({ ...this.state, authorize: guard });
+  }
+
+  /**
+   * A schema the reader fills before it runs.
+   *
+   * Resolved without a record, and filled once however many rows were ticked.
+   * The callback runs per record; this does not — a field that depended on a
+   * record would have nothing to answer for over fifty of them.
+   */
+  form(schema: Schema): this {
+    return this.with({ ...this.state, form: schema });
   }
 
   requiresConfirmation(confirmation: Confirmation = {}): this {

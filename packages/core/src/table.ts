@@ -53,6 +53,8 @@ export interface ActionNode {
   readonly name: string;
   /** A link the browser follows, or a request it makes. */
   readonly trigger: "link" | "run";
+  /** It collects something first. The schema is asked for, never sent here. */
+  readonly hasForm?: true;
   readonly label?: string;
   /** Present when the reader is asked first. Its absence means it is not. */
   readonly confirmation?: Confirmation;
@@ -188,6 +190,9 @@ function node(action: Action): ActionNode {
     type: action.type,
     name: action.state.name ?? action.type,
     trigger: action.trigger,
+    // Said, not sent: a schema has to be resolved against a principal before it
+    // means anything, and a table is serialised once for every reader.
+    ...(action.state.form === undefined ? {} : { hasForm: true as const }),
     ...(action.state.label === undefined ? {} : { label: action.state.label }),
     ...(action.state.confirmation === undefined
       ? {}

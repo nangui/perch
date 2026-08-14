@@ -206,6 +206,14 @@ export function auditTable(table: Table): readonly Complaint[] {
         problem: "has no `action()`, so pressing it would do nothing at all",
       });
     }
+    // A link is followed by the browser without asking the server anything, so
+    // no route ever resolves the schema and no dialog ever shows it.
+    if (action.state.form !== undefined && action.trigger === "link") {
+      complaints.push({
+        field: action.state.label ?? action.type,
+        problem: "collects a form but only navigates, so nothing would open it",
+      });
+    }
   }
   return complaints;
 }

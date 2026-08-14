@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Action, CreateAction, EditAction } from "./action.js";
+import { Schema } from "./layout.js";
 import { auditTable } from "./audit.js";
 import { Notification } from "./notification.js";
 import { declaredActions, Table, serialiseTable } from "./table.js";
@@ -195,5 +196,26 @@ describe("a notification", () => {
       body: "It is out of the list.",
       tone: "success",
     });
+  });
+});
+
+describe("a form on an action that only navigates", () => {
+  it("stops the boot, because nothing would ever open it", () => {
+    // A link is followed by the browser; no route is asked, so the schema is
+    // declared and unreachable.
+    const table = Table.make().headerActions([
+      CreateAction.make().form(Schema.make([])),
+    ]);
+
+    expect(auditTable(table)).toEqual([
+      {
+        field: "CreateAction",
+        problem: "collects a form but only navigates, so nothing would open it",
+      },
+    ]);
+  });
+
+  it("says nothing about a link that collects nothing", () => {
+    expect(auditTable(Table.make().actions([EditAction.make()]))).toEqual([]);
   });
 });
