@@ -683,3 +683,107 @@ describe("a modal's own reactivity", () => {
     expect(answer.status).toBe(404);
   });
 });
+
+describe("the same request arriving twice", () => {
+  it("carries it out once, and says the same thing both times", async () => {
+    const body = { ids: [1], idempotencyKey: "one-intent" };
+
+    const first = await press("ArchiveAction", body);
+    const second = await press("ArchiveAction", body);
+
+    expect(first.body).toEqual(second.body);
+    expect(ran).toHaveLength(1);
+  });
+
+  it("deletes once, however many times the request is replayed", async () => {
+    const body = { ids: [1, 2], idempotencyKey: "one-intent" };
+
+    await press("DeleteAction", body);
+    await press("DeleteAction", body);
+    await press("DeleteAction", body);
+
+    expect(deleted).toEqual([[1, 2]]);
+  });
+
+  it("is not a way past the guards for whoever sends the key next", async () => {
+    // The key is the caller's own invention. Answering from memory before
+    // anybody is authorized hands the first caller's answer to the second.
+    const body = { ids: [1], idempotencyKey: "one-intent" };
+    await press("ArchiveAction", body);
+
+    policy = { update: () => false };
+
+    expect((await press("ArchiveAction", body)).status).toBe(404);
+  });
+
+  it("is not the same intent because it reuses a name on other rows", async () => {
+    // Otherwise the second caller is told their rows were dealt with, and they
+    // were not: the answer belongs to the first caller's selection.
+    await press("ArchiveAction", { ids: [1, 2], idempotencyKey: "k" });
+
+    const answer = await press("ArchiveAction", { ids: [5], idempotencyKey: "k" });
+
+    expect(ran.map((call) => call.record["id"])).toEqual([1, 2, 5]);
+    expect(answer.body["processed"]).toBe(1);
+  });
+
+  it("is two intentions when the keys differ, and runs both", async () => {
+    // Two readers pressing once each is not a replay, and no key says it is.
+    await press("ArchiveAction", { ids: [1], idempotencyKey: "a" });
+    await press("ArchiveAction", { ids: [1], idempotencyKey: "b" });
+
+    expect(ran).toHaveLength(2);
+  });
+
+  it("runs every time when the request names no intent at all", async () => {
+    await press("ArchiveAction", { ids: [1] });
+    await press("ArchiveAction", { ids: [1] });
+
+    expect(ran).toHaveLength(2);
+  });
+
+  it("still loads the rows on a replay, which is what the guards cost", async () => {
+    // It would be cheaper to answer from memory first. It would also hand the
+    // answer to whoever sends the key next, with nobody asked whether they may
+    // have it — so a replay pays for one load and the check that comes with it.
+    const body = { ids: [1], idempotencyKey: "one-intent" };
+    await press("ArchiveAction", body);
+    const before = queries;
+
+    await press("ArchiveAction", body);
+
+    expect(queries).toBe(before + 1);
+    expect(ran).toHaveLength(1);
+  });
+
+  it("is one intent per action, not one per key", async () => {
+    // The same key sent to two actions names two intentions. Left global, the
+    // second would be answered with the first's answer.
+    const key = "one-intent";
+    await press("ArchiveAction", { ids: [1], idempotencyKey: key });
+    const answer = await press("DeleteAction", { ids: [2], idempotencyKey: key });
+
+    expect(answer.body["processed"]).toBe(1);
+    expect(deleted).toEqual([[2]]);
+  });
+
+  it("remembers nothing about a form it refused, so it can be fixed and sent", async () => {
+    withForm = true;
+    const key = "one-intent";
+
+    const refusedAnswer = await press("ArchiveAction", {
+      ids: [1],
+      idempotencyKey: key,
+    });
+    expect(refusedAnswer.body["errors"]).toBeDefined();
+
+    const fixed = await press("ArchiveAction", {
+      ids: [1],
+      idempotencyKey: key,
+      data: { reason: "stale" },
+    });
+
+    expect(fixed.body["processed"]).toBe(1);
+    expect(ran).toHaveLength(1);
+  });
+});

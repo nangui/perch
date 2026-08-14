@@ -37,6 +37,7 @@ import {
   serialise,
 } from "@perchjs/core";
 import { loadSelection, readSelection } from "./action-selection.js";
+import { ReplayGuard, readReplayKey } from "./replay-guard.js";
 import { admit } from "./admission.js";
 import { withOptions } from "./relationship-options.js";
 import { authorize, permissionFor } from "./authorization.js";
@@ -68,6 +69,11 @@ export class PanelActionController {
   readonly #registry: ResourceRegistry;
   readonly #users: UserResolver;
   readonly #data: DataAdapter | null;
+  /**
+   * One per panel, because a replay is a replay whichever resource it names.
+   * The key is the caller's; what it maps to is what this route already said.
+   */
+  readonly #replays = new ReplayGuard<ActionAnswer>();
 
   constructor(
     registry: ResourceRegistry,
@@ -96,16 +102,47 @@ export class PanelActionController {
       request,
     );
 
+    // After every refusal, never before them. The key is the caller's own
+    // invention, so answering from memory first would hand whoever sends it
+    // next the first caller's answer, with nobody asked whether they may have
+    // it. A replay costs one load; that is what correctness costs here.
+    //
+    // Scoped by what the intent actually is — this action, on these rows —
+    // rather than by the name alone. A name reused over another selection is
+    // another intent, and answering it from memory would tell that caller their
+    // rows were dealt with when they were not.
+    const key = readReplayKey(body);
+    const scoped =
+      key === undefined
+        ? undefined
+        : `${slug}/${name}/${allowed.map((row) => String(row[this.#keyName(model)])).join(",")}/${key}`;
+    const now = Date.now();
+    if (scoped !== undefined) {
+      const already = this.#replays.recall(scoped, now);
+      if (already !== undefined) return already;
+    }
+
     // What a modal collected, replayed against the schema that modal was drawn
     // from — the same boundary form state crosses. An action with no form
     // collects nothing, and a body that carries something anyway is dropped
     // without a word.
     const collected = await this.#collected(action, body, user, model);
+    // A form that did not validate changed nothing, so there is nothing to
+    // recognise later: the reader is meant to fix it and send it again.
     if ("refused" in collected) {
       return { ...collected.refused, processed: 0, refused };
     }
 
-    return await this.#carry(action, model, allowed, user, refused, collected.accepted);
+    const answer = await this.#carry(
+      action,
+      model,
+      allowed,
+      user,
+      refused,
+      collected.accepted,
+    );
+    if (scoped !== undefined) this.#replays.remember(scoped, answer, now);
+    return answer;
   }
 
   /**
@@ -257,6 +294,12 @@ export class PanelActionController {
    * leaves nothing behind. It wraps one record the same way it wraps fifty:
    * what rolls back must not depend on how many were ticked.
    */
+  /** Where the primary key lives on a row of this model. */
+  #keyName(model: string): string {
+    if (this.#data === null) throw new NotFoundException();
+    return this.#data.meta(model).primaryKey.name;
+  }
+
   async #carry(
     action: Action,
     model: string,
