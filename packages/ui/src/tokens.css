@@ -121,48 +121,15 @@
   --perch-shadow-dragging: 0 8px 18px rgb(0 0 0 / 0.6);
 }
 
-/* Follows the operating system unless an explicit theme is stamped on an
-   ancestor, so the panel is dark on a dark desktop without configuration. */
-@media (prefers-color-scheme: dark) {
-  :where(:root:not([data-perch-theme="light"])) {
-    --perch-surface-page: #0d1012;
-    --perch-surface: #14181a;
-    --perch-surface-raised: #191e21;
-    --perch-surface-muted: #1d2326;
-    --perch-surface-sunken: #232a2e;
-    --perch-surface-skeleton: #283034;
-    --perch-surface-skeleton-strong: #222a2d;
-    --perch-border-subtle: #232a2e;
-    --perch-border: #2c353a;
-    --perch-border-strong: #6b757b;
-    --perch-border-hover: #8c979d;
-    --perch-content-subtle: #8c979d;
-    --perch-content-muted: #a3adb2;
-    --perch-content-secondary: #c4cace;
-    --perch-content: #eef0f1;
-    --perch-content-inverse: #0d1012;
-    --perch-accent: #6cbfa5;
-    --perch-accent-hover: #8ed4bd;
-    --perch-accent-surface: #14231f;
-    --perch-accent-border: #24413a;
-    --perch-accent-track: #3d6b5e;
-    --perch-accent-track-border: #4e8071;
-    --perch-accent-ring: rgb(108 191 165 / 0.32);
-    --perch-danger: #e8705c;
-    --perch-danger-content: #f4a396;
-    --perch-danger-surface: #241412;
-    --perch-danger-surface-strong: #2e1a17;
-    --perch-danger-border: #4a2622;
-    --perch-warning-content: #e5c07b;
-    --perch-warning-surface: #2a2013;
-    --perch-success-content: #86d0ac;
-    --perch-success-surface: #14261d;
-    --perch-pending-border: #4a4635;
-    --perch-pending-surface: #1f1d16;
-    --perch-shadow-popover: 0 6px 16px rgb(0 0 0 / 0.5);
-    --perch-shadow-dragging: 0 8px 18px rgb(0 0 0 / 0.6);
-  }
-}
+/* The panel renders the ramp the design specified, whatever the desktop
+   prefers. Following `prefers-color-scheme` meant serving the dark ramp by
+   default — and the dark ramp is derived rather than designed, which the header
+   above says and which showed the moment somebody opened the panel on a dark
+   machine.
+
+   A host that wants it stamps `data-perch-theme="dark"` on an ancestor. That is
+   a decision somebody makes, rather than one inherited from a desktop setting
+   the design was never checked against. */
 
 :where(:root) {
   /* Type. The panel ships no font files: these are stacks, and an integrator
@@ -177,6 +144,7 @@
   --perch-text-control: 13px;
   --perch-text-lg: 14px;
   --perch-text-xl: 16px;
+  --perch-text-2xl: 20px;
 
   /* Metrics the source design states in its own header. */
   --perch-control-height: 34px;
@@ -195,6 +163,10 @@
   --perch-space-6: 12px;
   --perch-space-7: 16px;
   --perch-space-8: 20px;
+  /* Page rhythm: the gap between cards and the margin around them are a step
+     coarser than anything inside a field. */
+  --perch-space-9: 24px;
+  --perch-space-10: 32px;
 
   /* The reserved help line. This single value is why a server patch never
      shifts the layout: help and error share it, so a field is the same height

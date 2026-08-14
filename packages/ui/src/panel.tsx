@@ -78,6 +78,9 @@ export function mount(element: HTMLElement): void {
           {...(listLabel === undefined ? {} : { listLabel })}
           current={title}
         />
+        {/* The list page names itself. A form page had only the trail that led
+            to it, which says where you came from but not what you are on. */}
+        <h1 className="perch-page__title">{title}</h1>
         <PanelForm
           initial={JSON.parse(payload) as SchemaPayload}
           send={(request) => send(api, operation, id, request)}

@@ -55,54 +55,60 @@ export function DateTimePicker({
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <div className="perch-control" {...statusAttributes(status)}>
-        <input
-          {...binding}
-          className="perch-control__input perch-datetime__segment"
-          value={value.date}
-          placeholder="YYYY-MM-DD"
-          inputMode="numeric"
-          style={{ flex: "0 0 auto", width: "10ch" }}
-          onChange={(event) => {
-            onChange({ ...value, date: event.target.value });
-          }}
-        />
+      {/* The control is as wide as what it holds; the zone sits beside it. */}
+      <div className="perch-datetime">
+        <div className="perch-control" {...statusAttributes(status)}>
+          <input
+            {...binding}
+            className="perch-control__input perch-datetime__segment"
+            value={value.date}
+            placeholder="YYYY-MM-DD"
+            inputMode="numeric"
+            style={{ flex: "0 0 auto", width: "10ch" }}
+            onChange={(event) => {
+              onChange({ ...value, date: event.target.value });
+            }}
+          />
 
-        {dateOnly ? null : (
-          <>
-            <span className="perch-datetime__divider" aria-hidden="true" />
-            <input
-              className="perch-control__input perch-datetime__segment"
-              value={value.time ?? ""}
-              placeholder="HH:MM"
-              inputMode="numeric"
-              aria-label="Time"
-              aria-describedby={binding["aria-describedby"]}
-              disabled={binding.disabled}
-              readOnly={binding.readOnly}
-              style={{ flex: "0 0 auto", width: "6ch" }}
-              onChange={(event) => {
-                onChange({ ...value, time: event.target.value });
-              }}
-            />
-            {timeZone === undefined ? null : (
-              <span className="perch-datetime__zone">{timeZone}</span>
-            )}
-          </>
+          {dateOnly ? null : (
+            <>
+              <span className="perch-datetime__divider" aria-hidden="true" />
+              <input
+                className="perch-control__input perch-datetime__segment"
+                value={value.time ?? ""}
+                placeholder="HH:MM"
+                inputMode="numeric"
+                aria-label="Time"
+                aria-describedby={binding["aria-describedby"]}
+                disabled={binding.disabled}
+                readOnly={binding.readOnly}
+                style={{ flex: "0 0 auto", width: "6ch" }}
+                onChange={(event) => {
+                  onChange({ ...value, time: event.target.value });
+                }}
+              />
+            </>
+          )}
+
+          <Popover.Trigger asChild>
+            <button
+              type="button"
+              className="perch-control__affix perch-control__affix--button"
+              aria-label="Open calendar"
+              disabled={locked}
+            >
+              ▦
+            </button>
+          </Popover.Trigger>
+
+          <StatusMark status={status} />
+        </div>
+
+        {timeZone === undefined ? null : (
+          // Beside the control rather than inside it: a zone is something the
+          // field is telling you, not a third thing you can type into.
+          <span className="perch-datetime__zone">{timeZone}</span>
         )}
-
-        <StatusMark status={status} />
-
-        <Popover.Trigger asChild>
-          <button
-            type="button"
-            className="perch-control__affix perch-control__affix--button"
-            aria-label="Open calendar"
-            disabled={locked}
-          >
-            ▦
-          </button>
-        </Popover.Trigger>
       </div>
 
       <Popover.Portal>

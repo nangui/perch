@@ -627,8 +627,24 @@
   cursor: not-allowed;
 }
 
+/* Small, square, and only ever shown for a file the field is actually
+   holding — so it goes when the value goes. */
+.perch-upload__preview {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-sm);
+  object-fit: cover;
+  background: var(--perch-surface-muted);
+}
+
 .perch-upload__note {
   margin: 0;
+  /* Long filenames are the rule, not the exception. Left to itself the note
+     pushed the Remove button off the end of the row. */
+  min-width: 0;
+  overflow-wrap: anywhere;
   min-height: var(--perch-help-line-height);
   color: var(--perch-content-subtle);
   font-size: var(--perch-text-sm);
@@ -662,6 +678,10 @@
   flex-wrap: wrap;
   column-gap: var(--perch-space-6);
   align-items: center;
+  /* The block above centres along the main axis to sit a lone column of options
+     against a control-height row. Turned sideways that same rule centres the
+     options across the page, which is where they were found. */
+  justify-content: flex-start;
 }
 
 .perch-radio__option {
@@ -742,7 +762,22 @@
   margin: 0;
 }
 
+/* A label beside its control is the thing being agreed to — "On call this week"
+   — so it is set as running text. Uppercase micro-caps are for a heading over a
+   field, and beside a checkbox they read as shouting. */
+.perch-field[data-inline="true"] .perch-field__label-text {
+  font-size: var(--perch-text-control);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--perch-content);
+}
+
 .perch-field[data-inline="true"] .perch-field__help {
+  /* After the label, not before it. `order` defaults to 0, so a help line left
+     at 0 while the label asked for 2 was placed first — and, spanning both
+     columns, it opened a new row that pushed the label under the control. */
+  order: 3;
   grid-column: 1 / -1;
 }
 
@@ -985,11 +1020,17 @@
 
 /* --------------------------------------------------------------- empty state */
 
+/* The same card the sections are, so the form ends on the surface it was
+   written on rather than with a button loose on the page ground. */
 .perch-form-actions {
   display: flex;
   align-items: center;
   gap: var(--perch-space-5);
-  margin-top: var(--perch-space-6);
+  margin-top: var(--perch-space-9);
+  padding: var(--perch-space-6) var(--perch-space-8);
+  background: var(--perch-surface);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-lg);
 }
 
 .perch-form-actions__status {
@@ -1139,6 +1180,20 @@
 
 /* ----------------------------------------------------------- date and time */
 
+/* The box is the width of what it holds. Stretched across a column it read as
+   an empty field with some text loose at one end. */
+.perch-datetime {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  flex-wrap: wrap;
+}
+
+.perch-datetime > .perch-control {
+  flex: 0 0 auto;
+  width: auto;
+}
+
 .perch-datetime__segment {
   flex: none;
   font-family: var(--perch-font-mono);
@@ -1147,11 +1202,12 @@
   white-space: nowrap;
 }
 
+/* A note beside the field, in the voice the help line uses: it says which
+   clock you are reading, and it is not something to type into. */
 .perch-datetime__zone {
   flex: none;
-  font-family: var(--perch-font-mono);
   font-size: var(--perch-text-sm);
-  color: var(--perch-content-muted);
+  color: var(--perch-content-subtle);
 }
 
 .perch-datetime__divider {
@@ -1512,11 +1568,36 @@
   gap: var(--perch-space-7);
 }
 
+/* A section is a card: it is the unit a reader scans by, and on a flat page the
+   fields ran together into one long list with headings floating in it. The gap
+   between cards is a step coarser than the gap between fields inside one, so
+   the grouping reads before the content does. */
+.perch-layout--section {
+  padding: var(--perch-space-8);
+  background: var(--perch-surface);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-lg);
+}
+
+.perch-layout--schema > .perch-layout__body {
+  gap: var(--perch-space-9);
+}
+
 .perch-layout__title {
   margin-bottom: var(--perch-space-5);
   font-size: var(--perch-text-control);
   font-weight: 500;
   color: var(--perch-content);
+}
+
+/* Only where the card gives it an edge to sit against. A layout with no surface
+   of its own has nothing for the rule to divide. */
+.perch-layout--section > .perch-layout__title {
+  margin: 0 0 var(--perch-space-7);
+  padding-bottom: var(--perch-space-5);
+  border-bottom: 1px solid var(--perch-border-subtle);
+  font-size: var(--perch-text-lg);
+  font-weight: 600;
 }
 
 /* Development only: a node whose type has no registered renderer. */
@@ -1609,13 +1690,18 @@
   font-family: var(--perch-font-mono);
 }
 
+/* The same margins the form page has. Two pages of one panel that indent
+   differently read as two products. */
 .perch-list {
-  padding: var(--perch-space-7);
+  flex: 1;
+  min-width: 0;
+  padding: var(--perch-space-8) var(--perch-space-9) var(--perch-space-10);
 }
 
 .perch-list__title {
-  font-size: var(--perch-text-xl);
+  font-size: var(--perch-text-2xl);
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--perch-content);
 }
 
@@ -1629,8 +1715,26 @@
    result set rather than on a column. */
 .perch-list__search {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--perch-space-4);
-  margin-bottom: var(--perch-space-5);
+  align-items: center;
+  padding: var(--perch-space-6);
+  margin-bottom: var(--perch-space-6);
+  background: var(--perch-surface);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-lg);
+}
+
+/* Its own card rather than a lid on the table's.
+   
+   Seaming the two meant a rule that only holds while nothing comes between
+   them — and something does: the failure line is rendered right there, between
+   the filters and the rows, whenever a round trip fails. */
+.perch-list__table {
+  overflow-x: auto;
+  background: var(--perch-surface);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-lg);
 }
 
 /* A field is taller than a button everywhere else in the panel, because a
@@ -1684,6 +1788,12 @@
   padding: var(--perch-space-5) var(--perch-space-7) 0;
 }
 
+/* The page now supplies the margin. Left alone the trail was indented past the
+   cards it sits above. */
+.perch-shell__main > .perch-breadcrumb {
+  padding: 0;
+}
+
 .perch-breadcrumb__list {
   display: flex;
   gap: var(--perch-space-4);
@@ -1710,20 +1820,36 @@
 
 .perch-shell {
   display: flex;
-  align-items: flex-start;
+  /* Stretch, not flex-start: the nav is a column of the page, and left to its
+     content height it stopped under the last link with the page ground showing
+     through beneath it. */
+  align-items: stretch;
   min-height: 100vh;
 }
 
 .perch-shell__main {
   flex: 1;
   min-width: 0;
+  padding: var(--perch-space-8) var(--perch-space-9) var(--perch-space-10);
+}
+
+.perch-page__title {
+  margin: var(--perch-space-4) 0 var(--perch-space-8);
+  font-size: var(--perch-text-2xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--perch-content);
+  text-wrap: balance;
 }
 
 .perch-nav {
   flex: 0 0 auto;
   width: 15rem;
-  padding: var(--perch-space-6) var(--perch-space-5);
-  border-right: 1px solid var(--perch-border-subtle);
+  padding: var(--perch-space-8) var(--perch-space-6);
+  background: var(--perch-surface);
+  /* Against the page ground, `border-subtle` was the same value as the ground
+     itself: an edge nobody could see. */
+  border-right: 1px solid var(--perch-border);
 }
 
 .perch-nav__group + .perch-nav__group {

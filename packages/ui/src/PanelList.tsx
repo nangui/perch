@@ -186,14 +186,18 @@ export function PanelList({
           Could not reach the server. Showing what was already here.
         </p>
       ) : null}
-      <DataTable
-        columns={page.columns}
-        rows={page.rows}
-        caption={title}
-        rowHref={(row) => href(page, row)}
-        {...(sort === undefined ? {} : { sort })}
-        {...(reorder === undefined ? {} : { onSort: reorder })}
-      />
+      {/* A wide table scrolls inside its own box; the page never scrolls
+          sideways under it. */}
+      <div className="perch-list__table">
+        <DataTable
+          columns={page.columns}
+          rows={page.rows}
+          caption={title}
+          rowHref={(row) => href(page, row)}
+          {...(sort === undefined ? {} : { sort })}
+          {...(reorder === undefined ? {} : { onSort: reorder })}
+        />
+      </div>
       {pagination(page, turn)}
       {/*
         The one live region on this page: it is what changes when a page is
