@@ -458,8 +458,8 @@ describe("the columns a resource declares", () => {
         { type: "IconColumn", path: "published", boolean: true },
       ],
       filters: [],
-      actions: [{ type: "EditAction", name: "EditAction" }],
-      headerActions: [{ type: "CreateAction", name: "CreateAction" }],
+      actions: [{ type: "EditAction", name: "EditAction", trigger: "link" }],
+      headerActions: [{ type: "CreateAction", name: "CreateAction", trigger: "link" }],
       defaultSort: { path: "title", direction: "desc" },
     });
   });

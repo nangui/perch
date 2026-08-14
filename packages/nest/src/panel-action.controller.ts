@@ -172,7 +172,7 @@ export class PanelActionController {
  * browser follows them without asking the server to do anything.
  */
 function executable(action: Action): boolean {
-  return action.state.run !== undefined || action instanceof DeleteAction;
+  return action.trigger === "run";
 }
 
 /**

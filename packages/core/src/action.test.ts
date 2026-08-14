@@ -60,6 +60,7 @@ describe("what the client is told", () => {
     ).toEqual({
       type: "ArchiveAction",
       name: "ArchiveAction",
+      trigger: "run",
       label: "Archive",
       danger: true,
       confirmation: { heading: "Sure?", confirmLabel: "Archive it" },
@@ -75,9 +76,9 @@ describe("what the client is told", () => {
     // function that survived would be dropped by `JSON.stringify` anyway, and a
     // test that only reads keys would not have noticed it was ever there.
     expect(JSON.stringify(wire(built))).toBe(
-      '{"type":"ArchiveAction","name":"ArchiveAction"}',
+      '{"type":"ArchiveAction","name":"ArchiveAction","trigger":"run"}',
     );
-    expect(Object.keys(wire(built) ?? {})).toEqual(["type", "name"]);
+    expect(Object.keys(wire(built) ?? {})).toEqual(["type", "name", "trigger"]);
   });
 
   it("says nothing about a confirmation that was never asked for", () => {

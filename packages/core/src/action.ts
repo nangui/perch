@@ -115,6 +115,18 @@ export abstract class Action {
   }
 
   /**
+   * What pressing it does.
+   *
+   * A link is followed by the browser and asks the server for nothing; a run is
+   * a request. The client is told which rather than left to recognise type
+   * names, so an action added later behaves correctly in a panel whose renderer
+   * has never heard of it.
+   */
+  get trigger(): "link" | "run" {
+    return "run";
+  }
+
+  /**
    * Whether the framework carries out the action itself.
    *
    * A ready-made action has no author callback and is not inert: `EditAction`
@@ -137,6 +149,10 @@ export class CreateAction extends Action {
     return "CreateAction";
   }
 
+  override get trigger(): "link" | "run" {
+    return "link";
+  }
+
   override get isBuiltIn(): boolean {
     return true;
   }
@@ -154,6 +170,10 @@ export class EditAction extends Action {
 
   override get type(): string {
     return "EditAction";
+  }
+
+  override get trigger(): "link" | "run" {
+    return "link";
   }
 
   override get isBuiltIn(): boolean {

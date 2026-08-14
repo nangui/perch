@@ -49,6 +49,8 @@ export interface ActionNode {
   readonly type: string;
   /** What a request calls it. The client sends this back, not the type. */
   readonly name: string;
+  /** A link the browser follows, or a request it makes. */
+  readonly trigger: "link" | "run";
   readonly label?: string;
   /** Present when the reader is asked first. Its absence means it is not. */
   readonly confirmation?: Confirmation;
@@ -164,6 +166,7 @@ function node(action: Action): ActionNode {
   return {
     type: action.type,
     name: action.state.name ?? action.type,
+    trigger: action.trigger,
     ...(action.state.label === undefined ? {} : { label: action.state.label }),
     ...(action.state.confirmation === undefined
       ? {}
