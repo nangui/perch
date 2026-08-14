@@ -21,7 +21,13 @@ import {
   Post,
   Req,
 } from "@nestjs/common";
-import type { DataAdapter, FieldErrors, Row, SchemaPayload } from "@perchjs/core";
+import type {
+  DataAdapter,
+  FieldErrors,
+  NotificationState,
+  Row,
+  SchemaPayload,
+} from "@perchjs/core";
 import { dehydrate, serialise } from "@perchjs/core";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
@@ -54,6 +60,14 @@ export interface SaveResponse {
    * a client guessing them would have to know the panel's own layout.
    */
   readonly redirect?: string;
+  /**
+   * What to tell the reader. Present only when the write happened.
+   *
+   * It has to survive the redirect above, which is the client's to carry: the
+   * message is already made here, and carrying it across a navigation the
+   * client performs is not a decision it takes.
+   */
+  readonly notification?: NotificationState;
 }
 
 @Controller("api/:resource")
@@ -117,7 +131,12 @@ export class PanelSaveController {
 
     const where = this.#where(resource, request, slug, data, record);
     const shown = identity(data, resource.metadata.model, record);
-    return where === undefined ? { record: shown } : { record: shown, redirect: where };
+    // Said by the server, because the wording is the server's: a panel in
+    // another language does not want a sentence this file's caller invented.
+    const said = saved(resource, "created");
+    return where === undefined
+      ? { record: shown, notification: said }
+      : { record: shown, redirect: where, notification: said };
   }
 
   @Patch(":id")
@@ -162,7 +181,10 @@ export class PanelSaveController {
     // has stopped pointing at it.
     await dropReplaced(committed, this.#disks);
 
-    return { record: identity(data, model, updated) };
+    return {
+      record: identity(data, model, updated),
+      notification: saved(resource, "saved"),
+    };
   }
 
   /**
@@ -266,4 +288,15 @@ function readState(body: unknown): Record<string, unknown> {
  */
 function identity(data: DataAdapter, model: string, row: Row): Row {
   return projectOne(row, new Set([data.meta(model).primaryKey.name]));
+}
+
+/** What a save says when it worked. Named after the resource, not the model. */
+function saved(
+  resource: RegisteredResource,
+  what: "created" | "saved",
+): NotificationState {
+  return {
+    title: `${resource.metadata.label} ${what}`,
+    tone: "success",
+  };
 }
