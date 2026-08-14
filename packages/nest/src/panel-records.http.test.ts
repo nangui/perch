@@ -282,7 +282,13 @@ describe("listing records", () => {
       // controls from the answer rather than from what it asked for.
       page: 1,
       perPage: 25,
-      columns: { columns: [], filters: [], actions: [], headerActions: [] },
+      columns: {
+        columns: [],
+        filters: [],
+        actions: [],
+        headerActions: [],
+        bulkActions: [],
+      },
       // How a row action addresses one row, said rather than assumed.
       recordKey: "id",
       resourcePath: "/admin/posts",
@@ -460,6 +466,7 @@ describe("the columns a resource declares", () => {
       filters: [],
       actions: [{ type: "EditAction", name: "EditAction", trigger: "link" }],
       headerActions: [{ type: "CreateAction", name: "CreateAction", trigger: "link" }],
+      bulkActions: [],
       defaultSort: { path: "title", direction: "desc" },
     });
   });

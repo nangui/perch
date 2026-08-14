@@ -119,6 +119,25 @@ describe("two actions under one name", () => {
     expect(() => declaredActions(table)).toThrow(/two actions are named/);
   });
 
+  it("is happy with one action offered in two places", () => {
+    // The same instance, which is what makes "the same code" literal: a row and
+    // a ticked selection put the identical declaration through.
+    const remove = ArchiveAction.make();
+    const table = Table.make().actions([remove]).bulkActions([remove]);
+
+    expect([...declaredActions(table).keys()]).toEqual(["ArchiveAction"]);
+  });
+
+  it("is not happy with two built the same way", () => {
+    // Indistinguishable on the wire and possibly configured differently. Which
+    // one a request reached would depend on the order they were written in.
+    const table = Table.make()
+      .actions([ArchiveAction.make()])
+      .bulkActions([ArchiveAction.make()]);
+
+    expect(() => declaredActions(table)).toThrow(/two actions are named/);
+  });
+
   it("is happy once one of them is named apart", () => {
     const table = Table.make().actions([
       ArchiveAction.make(),

@@ -75,6 +75,7 @@ describe("what crosses the wire", () => {
       filters: [],
       actions: [],
       headerActions: [],
+      bulkActions: [],
       defaultSort: { path: "title", direction: "desc" },
     });
   });
@@ -113,6 +114,7 @@ describe("what crosses the wire", () => {
       filters: [],
       actions: [],
       headerActions: [],
+      bulkActions: [],
     });
   });
 

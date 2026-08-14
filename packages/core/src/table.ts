@@ -18,6 +18,8 @@ export interface TableState {
   readonly filters: readonly Filter[];
   readonly actions: readonly Action[];
   readonly headerActions: readonly Action[];
+  /** What a ticked selection may be put through. */
+  readonly bulkActions: readonly Action[];
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
 }
 
@@ -70,6 +72,8 @@ export interface ColumnTree {
   readonly actions: readonly ActionNode[];
   /** What the table offers above itself, rather than on a row. */
   readonly headerActions: readonly ActionNode[];
+  /** What it offers for a ticked selection. */
+  readonly bulkActions: readonly ActionNode[];
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
 }
 
@@ -81,7 +85,13 @@ export class Table {
   }
 
   static make(): Table {
-    return new Table({ columns: [], filters: [], actions: [], headerActions: [] });
+    return new Table({
+      columns: [],
+      filters: [],
+      actions: [],
+      headerActions: [],
+      bulkActions: [],
+    });
   }
 
   /** What a reader can narrow the table with. */
@@ -101,6 +111,16 @@ export class Table {
   /** What the table offers as a whole — creating a row, above all. */
   headerActions(list: readonly Action[]): Table {
     return new Table({ ...this.state, headerActions: [...list] });
+  }
+
+  /**
+   * What a ticked selection may be put through.
+   *
+   * The same action a row offers can be listed here — the same instance, not a
+   * second one built the same way. One action, one name, wherever it is drawn.
+   */
+  bulkActions(list: readonly Action[]): Table {
+    return new Table({ ...this.state, bulkActions: [...list] });
   }
 
   /**
@@ -148,6 +168,7 @@ export function serialiseTable(table: Table): ColumnTree {
     })),
     actions: table.state.actions.map(node),
     headerActions: table.state.headerActions.map(node),
+    bulkActions: table.state.bulkActions.map(node),
     ...(table.state.defaultSort === undefined
       ? {}
       : { defaultSort: table.state.defaultSort }),
@@ -214,12 +235,22 @@ export function sortablePaths(table: Table): ReadonlySet<string> {
 export function declaredActions(table: Table): ReadonlyMap<string, Action> {
   const byName = new Map<string, Action>();
 
-  for (const action of [...table.state.actions, ...table.state.headerActions]) {
+  const declared = [
+    ...table.state.actions,
+    ...table.state.headerActions,
+    ...table.state.bulkActions,
+  ];
+  for (const action of declared) {
     const name = action.state.name ?? action.type;
-    if (byName.has(name)) {
+    const already = byName.get(name);
+    // The same instance in two lists is one action offered in two places, which
+    // is the point: a row and a selection put it through the same code. Two
+    // instances under one name is the ambiguity this refuses.
+    if (already !== undefined && already !== action) {
       throw new Error(
         `two actions are named ${name}; one of them can never be reached. ` +
-          `Give one a different \`.name()\`.`,
+          `Give one a different \`.name()\`, or declare the same one in both ` +
+          `lists.`,
       );
     }
     byName.set(name, action);

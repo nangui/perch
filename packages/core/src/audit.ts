@@ -195,7 +195,11 @@ export function auditTable(table: Table): readonly Complaint[] {
   // which is worse than no button: the reader has no way to tell it apart from
   // one that failed silently. The ready-made ones are exempt because the route
   // is what carries them out.
-  for (const action of [...table.state.actions, ...table.state.headerActions]) {
+  for (const action of [
+    ...table.state.actions,
+    ...table.state.headerActions,
+    ...table.state.bulkActions,
+  ]) {
     if (action.state.run === undefined && !action.isBuiltIn) {
       complaints.push({
         field: action.state.label ?? action.type,
