@@ -239,3 +239,63 @@ describe("while a file is going up", () => {
     settle?.(STAGED);
   });
 });
+
+describe("the picture of what is attached", () => {
+  it("is the address the server sent, for a file the row already holds", () => {
+    draw("avatars/1.png", () => Promise.resolve(STAGED), {
+      previewUrl: "https://cdn/avatars/1.png",
+    });
+
+    expect(image()?.getAttribute("src")).toBe("https://cdn/avatars/1.png");
+  });
+
+  it("is absent when the server sent no address", () => {
+    draw("avatars/1.png", () => Promise.resolve(STAGED), {});
+
+    expect(image()).toBeNull();
+  });
+
+  it("goes when the file goes, rather than outliving what it pictured", async () => {
+    draw("avatars/1.png", () => Promise.resolve(STAGED), {
+      previewUrl: "https://cdn/avatars/1.png",
+    });
+
+    screen.getByRole("button", { name: "Remove" }).click();
+
+    await waitFor(() => {
+      expect(image()).toBeNull();
+    });
+  });
+
+  it("is the file just chosen, which the server was never asked about", async () => {
+    // The server resolves an address only for what the row holds. A fresh
+    // choice is pictured from the file itself, and the stale address the row
+    // came with must not be what is shown.
+    const made: string[] = [];
+    const url = globalThis.URL as unknown as {
+      createObjectURL: (blob: Blob) => string;
+      revokeObjectURL: (value: string) => void;
+    };
+    url.createObjectURL = () => {
+      made.push("made");
+      return "blob:fresh";
+    };
+    url.revokeObjectURL = () => undefined;
+
+    draw("avatars/1.png", () => Promise.resolve(STAGED), {
+      previewUrl: "https://cdn/avatars/1.png",
+    });
+
+    pick();
+
+    await waitFor(() => {
+      expect(image()?.getAttribute("src")).toBe("blob:fresh");
+    });
+    expect(made).toHaveLength(1);
+  });
+});
+
+/** The preview is decorative, so it is found by its class rather than a role. */
+function image(): Element | null {
+  return document.querySelector(".perch-upload__preview");
+}

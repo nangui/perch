@@ -467,6 +467,9 @@ function FileUploadRenderer({
   const path = node.path;
   const types = props["acceptedFileTypes"];
   const maxSize = props["maxSize"];
+  // Where the stored file can be fetched. The adapter decides what a key
+  // resolves to, so the server is the only side that can say.
+  const previewUrl = props["previewUrl"];
 
   // Stable per path, so the control does not see a new function each render.
   const send = useCallback(
@@ -498,6 +501,9 @@ function FileUploadRenderer({
           {...(uploadFile === undefined || path === undefined ? {} : { upload: send })}
           {...(Array.isArray(types) ? { accept: types.join(",") } : {})}
           {...(typeof maxSize === "number" ? { maxSize } : {})}
+          {...(typeof previewUrl === "string" && previewUrl !== ""
+            ? { previewUrl }
+            : {})}
         />
       )}
     </FieldShell>
