@@ -17,6 +17,7 @@ import { Hidden } from "./fields/hidden.js";
 import { DateTimePicker } from "./fields/date-time-picker.js";
 import { FileUpload } from "./fields/file-upload.js";
 import { Radio } from "./fields/radio.js";
+import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
 import { SelectFilter } from "./filter.js";
 import type { Table } from "./table.js";
@@ -78,6 +79,14 @@ function walk(component: Component, into: Complaint[]): void {
     into.push({
       field: component.name === "" ? "an unnamed Radio" : component.name,
       problem: "has no options, so it offers nothing and would refuse anything",
+    });
+  }
+  // A row is a section that happens many times; with no children it is a
+  // section that happens many times and shows nothing.
+  if (component instanceof Repeater && component.children.length === 0) {
+    into.push({
+      field: component.name === "" ? "an unnamed Repeater" : component.name,
+      problem: "has nothing to repeat, so every row it added would be blank",
     });
   }
   for (const child of component.children) walk(child, into);

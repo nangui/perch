@@ -1,0 +1,146 @@
+/**
+ * `Repeater` — a schema the reader repeats.
+ *
+ * Its value is not the rows. It is the ordered list of their keys, and that one
+ * value is both the order and the membership: the tree is resolved from it, so
+ * every `items.<key>.<field>` path exists in the map the trust boundary checks
+ * against, and a path naming a row nobody declared is refused by the rule that
+ * already refuses everything else.
+ *
+ * Which makes this the first field whose value decides what other paths mean —
+ * and the reason its own value is judged before any of them is.
+ *
+ * A key is opaque. Nothing here parses it, compares it or orders by it; what a
+ * key means at write time is decided by the record, where the children that
+ * were actually loaded are the only ones an update can reach.
+ *
+ * The fields one row holds are its children, set by the `.schema([])` every
+ * layout already has. A row is a section that happens many times.
+ */
+import { configured } from "../component.js";
+import type { FieldState, ValidationRule, ValueRefusal } from "../field.js";
+import { baseFieldState, Field, isUnset } from "../field.js";
+
+/**
+ * How long a key may be.
+ *
+ * It is a map key, a path segment and a piece of every payload the row appears
+ * in. Nothing reads it, so nothing needs it long — and a client that may invent
+ * paths does not also get to decide how much of a request one of them takes.
+ */
+export const MAX_ROW_KEY_LENGTH = 64;
+
+export interface RepeaterState extends FieldState {
+  /** The relation the rows are written to. */
+  readonly relationship?: string;
+  readonly minItems?: number;
+  readonly maxItems?: number;
+}
+
+export class Repeater extends Field {
+  declare readonly state: RepeaterState;
+
+  override get type(): string {
+    return "Repeater";
+  }
+
+  protected override with(patch: Partial<RepeaterState>): this {
+    return super.with(patch);
+  }
+
+  /** Adding or removing a row is a decision, not typing: it commits at once. */
+  protected override get defaultDebounce(): number {
+    return 0;
+  }
+
+  static make(name: string): Repeater {
+    return configured(new Repeater(baseFieldState(name)));
+  }
+
+  relationship(name: string): this {
+    return this.with({ relationship: name });
+  }
+
+  minItems(count: number): this {
+    return this.with({ minItems: count });
+  }
+
+  maxItems(count: number): this {
+    return this.with({ maxItems: count });
+  }
+
+  /**
+   * The list, and nothing but a list.
+   *
+   * `maxItems` is checked here rather than only in validation, and that is the
+   * difference between a rule and a boundary: a rejected value is still a value
+   * the tree gets resolved from, so a list of ten thousand keys would build ten
+   * thousand sub-trees before anything got round to complaining about it.
+   */
+  override admits(value: unknown): ValueRefusal | undefined {
+    if (isUnset(value)) return undefined;
+    if (!Array.isArray(value)) return "wrong-shape";
+
+    const { maxItems } = this.state;
+    if (maxItems !== undefined && value.length > maxItems) return "undeclared-value";
+
+    const seen = new Set<string>();
+    for (const key of value) {
+      if (typeof key !== "string") return "wrong-shape";
+      if (key === "" || key.length > MAX_ROW_KEY_LENGTH) return "wrong-shape";
+      // Two rows under one key is one row, twice — and whichever is written
+      // second would silently be the one that survived.
+      if (seen.has(key)) return "undeclared-value";
+      seen.add(key);
+    }
+    return undefined;
+  }
+
+  /**
+   * `minItems` and `maxItems`, as rules that say so.
+   *
+   * `minItems` is the one a reader meets: too few rows is a state the boundary
+   * has no reason to refuse, so the rule is what reports it.
+   *
+   * `maxItems` is different, and the difference is worth knowing. The boundary
+   * refuses the whole list before this ever runs, so the rule fires for nobody
+   * — the value it would judge never reaches the state. It is declared anyway
+   * because a rule that exists only in one of the two places is how the two
+   * drift apart, and because the client is what keeps a reader from getting
+   * there: it stops offering another row at the limit.
+   */
+  override get declaredRules(): readonly ValidationRule[] {
+    const { minItems, maxItems } = this.state;
+    const rules: ValidationRule[] = [];
+
+    if (minItems !== undefined) {
+      rules.push((value) =>
+        count(value) >= minItems
+          ? true
+          : `Add at least ${String(minItems)} ${plural(minItems, "row")}.`,
+      );
+    }
+    if (maxItems !== undefined) {
+      rules.push((value) =>
+        count(value) <= maxItems
+          ? true
+          : `Keep this to ${String(maxItems)} ${plural(maxItems, "row")}.`,
+      );
+    }
+    return rules;
+  }
+
+  /** A repeater with no rows is a repeater nobody filled in. */
+  override satisfiesRequired(value: unknown): boolean {
+    return count(value) > 0;
+  }
+}
+
+/** An unset repeater has no rows, which is not the same as an unknown number. */
+function count(value: unknown): number {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function plural(n: number, word: string): string {
+  return n === 1 ? word : `${word}s`;
+}

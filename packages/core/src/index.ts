@@ -146,6 +146,8 @@ export { Placeholder } from "./fields/placeholder.js";
 
 export type { RadioState } from "./fields/radio.js";
 export { Radio } from "./fields/radio.js";
+export type { RepeaterState } from "./fields/repeater.js";
+export { MAX_ROW_KEY_LENGTH, Repeater } from "./fields/repeater.js";
 
 export type { TextareaState } from "./fields/textarea.js";
 export { Textarea } from "./fields/textarea.js";
