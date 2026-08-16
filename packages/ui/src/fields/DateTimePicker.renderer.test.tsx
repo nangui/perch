@@ -116,3 +116,55 @@ describe("a date-only field", () => {
     expect(onChange).toHaveBeenCalledWith("publishedAt", "2026-07-01");
   });
 });
+
+describe("the bounds a field declared", () => {
+  const openCalendar = (props: Record<string, unknown>): void => {
+    draw("2026-06-15", { withTime: false, ...props });
+    fireEvent.click(screen.getByRole("button", { name: "Open calendar" }));
+  };
+
+  /**
+   * A day by the number it shows. Its accessible name is a written-out date —
+   * "Tuesday, 9 June 2026" — so the number alone will not find it.
+   */
+  const day = (shown: string): HTMLButtonElement => {
+    const found = [...document.querySelectorAll(".perch-calendar__day")].find(
+      (element) =>
+        element.textContent === shown &&
+        element.getAttribute("data-outside") === "false",
+    );
+    if (found === undefined) throw new Error(`no day showing ${shown}`);
+    return found as HTMLButtonElement;
+  };
+
+  it("closes the days before the floor", () => {
+    openCalendar({ minDate: "2026-06-10" });
+
+    expect(day("9").disabled).toBe(true);
+    expect(day("10").disabled).toBe(false);
+  });
+
+  it("closes the days past the ceiling", () => {
+    // The server refuses one either side; before this, only the floor was
+    // shown, so a reader picked a date the save then turned down.
+    openCalendar({ maxDate: "2026-06-20" });
+
+    expect(day("20").disabled).toBe(false);
+    expect(day("21").disabled).toBe(true);
+  });
+
+  it("closes both when a field declared both", () => {
+    openCalendar({ minDate: "2026-06-10", maxDate: "2026-06-20" });
+
+    expect(day("9").disabled).toBe(true);
+    expect(day("15").disabled).toBe(false);
+    expect(day("21").disabled).toBe(true);
+  });
+
+  it("leaves every day open where a field declared neither", () => {
+    openCalendar({});
+
+    expect(day("1").disabled).toBe(false);
+    expect(day("28").disabled).toBe(false);
+  });
+});

@@ -417,6 +417,7 @@ function DateTimePickerRenderer({
   const withTime = props["withTime"] !== false;
   const zone = props["timezone"];
   const min = props["minDate"];
+  const max = props["maxDate"];
 
   return (
     <FieldShell
@@ -447,6 +448,7 @@ function DateTimePickerRenderer({
           dateOnly={!withTime}
           {...(typeof zone === "string" ? { timeZone: zone } : {})}
           {...(typeof min === "string" ? { min } : {})}
+          {...(typeof max === "string" ? { max } : {})}
         />
       )}
     </FieldShell>

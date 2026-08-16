@@ -33,8 +33,9 @@ export interface DateTimePickerProps {
   readonly dateOnly?: boolean;
   /** Displayed beside the time, never inferred from the browser. */
   readonly timeZone?: string;
-  /** ISO date; days before it are not selectable. */
+  /** ISO dates; days outside the pair are not selectable. */
   readonly min?: string;
+  readonly max?: string;
   readonly today?: string;
 }
 
@@ -48,6 +49,7 @@ export function DateTimePicker({
   dateOnly = false,
   timeZone,
   min,
+  max,
   today,
 }: DateTimePickerProps): ReactNode {
   const locked = isLocked(status);
@@ -120,6 +122,7 @@ export function DateTimePicker({
           <Calendar
             selected={value.date}
             {...(min === undefined ? {} : { min })}
+            {...(max === undefined ? {} : { max })}
             {...(today === undefined ? {} : { today })}
             onSelect={(date) => {
               onChange({ ...value, date });
@@ -168,6 +171,7 @@ interface CalendarProps {
   readonly selected: string;
   readonly onSelect: (date: string) => void;
   readonly min?: string;
+  readonly max?: string;
   readonly today?: string;
 }
 
@@ -176,7 +180,13 @@ interface CalendarProps {
  * trailing days come from the neighbouring months so the grid never reflows
  * between months — the same reason the help line is reserved.
  */
-export function Calendar({ selected, onSelect, min, today }: CalendarProps): ReactNode {
+export function Calendar({
+  selected,
+  onSelect,
+  min,
+  max,
+  today,
+}: CalendarProps): ReactNode {
   const anchor = parseIso(selected) ?? parseIso(today ?? "") ?? { y: 2026, m: 1, d: 1 };
   const [view, setView] = useState({ y: anchor.y, m: anchor.m });
 
@@ -256,7 +266,9 @@ export function Calendar({ selected, onSelect, min, today }: CalendarProps): Rea
           tabindex — an open decision, not done here. */}
       <div className="perch-calendar__grid" role="group" aria-label={monthLabel}>
         {cells.map((cell) => {
-          const disabled = min !== undefined && cell.iso < min;
+          const disabled =
+            (min !== undefined && cell.iso < min) ||
+            (max !== undefined && cell.iso > max);
           return (
             <button
               key={cell.iso}
