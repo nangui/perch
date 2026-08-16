@@ -36,10 +36,13 @@ export interface SanitizeResult {
 }
 
 export function sanitize(previous: ResolveResult, incoming: FormState): SanitizeResult {
+  // Keyed by where the value lives, not by what the field is called: the same
+  // declaration stands for a field in every row of a repeater, and only the
+  // path tells those apart.
   const fields = new Map(
     previous.nodes
-      .filter((node) => node.component instanceof Field)
-      .map((node) => [(node.component as Field).name, node]),
+      .filter((node) => node.component instanceof Field && node.path !== "")
+      .map((node) => [node.path, node]),
   );
 
   const state: Record<string, unknown> = {};

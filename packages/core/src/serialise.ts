@@ -122,8 +122,8 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
   return {
     id: resolved.id,
     type: component.type,
-    ...(component instanceof Field && component.name !== ""
-      ? { path: component.name }
+    ...(component instanceof Field && resolved.path !== ""
+      ? { path: resolved.path }
       : {}),
     ...(resolved.label === undefined ? {} : { label: resolved.label }),
     ...(resolved.helperText === undefined ? {} : { helperText: resolved.helperText }),

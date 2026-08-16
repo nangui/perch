@@ -204,3 +204,133 @@ describe("a repeater with nothing to repeat", () => {
     expect(auditSchema(Schema.make([made]))).toEqual([]);
   });
 });
+
+describe("the rows the state names", () => {
+  const made = () =>
+    Repeater.make("items").schema([TextInput.make("label"), TextInput.make("note")]);
+
+  const resolved = async (state: Record<string, unknown>) =>
+    await resolveSchema(Schema.make([made()]), state, { operation: "create" });
+
+  it("is one sub-tree per key, in the order the list gives", async () => {
+    const tree = await resolved({ items: ["r1", "r2"] });
+    const paths = tree.nodes
+      .filter((node) => node.path !== "" && node.path !== "items")
+      .map((node) => node.path);
+
+    expect(paths).toEqual([
+      "items.r1.label",
+      "items.r1.note",
+      "items.r2.label",
+      "items.r2.note",
+    ]);
+  });
+
+  it("is nothing at all where the list is empty", async () => {
+    const tree = await resolved({ items: [] });
+
+    expect(tree.nodes.filter((node) => node.path.startsWith("items."))).toEqual([]);
+  });
+
+  it("is nothing where the value is not a list, rather than throwing", async () => {
+    // The walk runs before the boundary judges: it has to survive whatever the
+    // state holds, because building the tree is how the boundary gets one.
+    const tree = await resolved({ items: "not a list" });
+
+    expect(tree.nodes.filter((node) => node.path.startsWith("items."))).toEqual([]);
+  });
+
+  it("follows the list when a row is dropped", async () => {
+    const tree = await resolved({ items: ["r2"] });
+    const paths = tree.nodes
+      .map((node) => node.path)
+      .filter((p) => p.startsWith("items."));
+
+    expect(paths).toEqual(["items.r2.label", "items.r2.note"]);
+  });
+
+  it("keeps a row's values on that row when the order changes", async () => {
+    // The whole reason the key is stable rather than an index: reordering
+    // moves no path, so nothing lands on the neighbouring row.
+    const state = {
+      items: ["r2", "r1"],
+      "items.r1.label": "first",
+      "items.r2.label": "second",
+    };
+    const tree = await resolved(state);
+    const values = tree.nodes
+      .filter((node) => node.path.endsWith(".label"))
+      .map((node) => [node.path, tree.state[node.path]]);
+
+    expect(values).toEqual([
+      ["items.r2.label", "second"],
+      ["items.r1.label", "first"],
+    ]);
+  });
+
+  it("stops at the ceiling even where nothing has judged the list yet", async () => {
+    // The guarantee is local rather than the caller's discipline: whoever
+    // resolves, a list past the limit does not build sub-trees past it.
+    const bounded = Repeater.make("items")
+      .maxItems(2)
+      .schema([TextInput.make("label")]);
+    const many = Array.from({ length: 500 }, (_, i) => `r${String(i)}`);
+    const tree = await resolveSchema(
+      Schema.make([bounded]),
+      { items: many },
+      {
+        operation: "create",
+      },
+    );
+
+    expect(tree.nodes.filter((node) => node.path.startsWith("items."))).toHaveLength(2);
+  });
+});
+
+describe("a row's fields at the boundary", () => {
+  const made = Repeater.make("items").schema([TextInput.make("label")]);
+
+  it("are admitted once the list naming them has been", async () => {
+    const tree = await resolveSchema(
+      Schema.make([made]),
+      { items: ["r1"] },
+      {
+        operation: "create",
+      },
+    );
+
+    expect(sanitize(tree, { "items.r1.label": "Intro" }).state).toEqual({
+      "items.r1.label": "Intro",
+    });
+  });
+
+  it("are refused for a row the list never named", async () => {
+    // The path does not exist, so it is refused by the rule that refuses every
+    // path nobody declared. Nothing about repeaters was added to say so.
+    const tree = await resolveSchema(
+      Schema.make([made]),
+      { items: ["r1"] },
+      {
+        operation: "create",
+      },
+    );
+
+    expect(sanitize(tree, { "items.smuggled.label": "x" }).rejected).toEqual([
+      { path: "items.smuggled.label", reason: "unknown-path" },
+    ]);
+  });
+
+  it("are refused for a field the row does not have", async () => {
+    const tree = await resolveSchema(
+      Schema.make([made]),
+      { items: ["r1"] },
+      {
+        operation: "create",
+      },
+    );
+
+    expect(sanitize(tree, { "items.r1.secret": "x" }).rejected).toEqual([
+      { path: "items.r1.secret", reason: "unknown-path" },
+    ]);
+  });
+});

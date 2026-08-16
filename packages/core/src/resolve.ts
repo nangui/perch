@@ -11,6 +11,7 @@ import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
 import { FileUpload } from "./fields/file-upload.js";
 import { Placeholder } from "./fields/placeholder.js";
+import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
 import type { Option, OptionsInput } from "./option.js";
 import { normaliseOptions } from "./option.js";
@@ -86,6 +87,8 @@ export interface ResolveOptions {
 export interface ResolvedNode {
   readonly id: string;
   readonly component: Component;
+  /** Where its value lives. `items.r1.label` for a field inside a row. */
+  readonly path: string;
   readonly visible: boolean;
   readonly disabled: boolean;
   readonly readOnly: boolean;
@@ -135,15 +138,14 @@ export async function resolveSchema(
   clientState: FormState,
   options: ResolveOptions,
 ): Promise<ResolveResult> {
-  const tree = walk(root);
+  const tree = walk(root, clientState);
   const flatTree = flattenWalked(tree);
   const state: Record<string, unknown> = { ...clientState };
 
   // Normalised before anything reads it, so the cycle sees one shape whether
   // the value came from the row or from the last round trip.
-  for (const { component } of flattenWalked(walk(root))) {
+  for (const { component, path } of flattenWalked(walk(root, clientState))) {
     if (!(component instanceof Field)) continue;
-    const path = component.name;
     if (path === "" || !(path in state)) continue;
     state[path] = component.fromStorage(state[path]);
   }
@@ -155,9 +157,8 @@ export async function resolveSchema(
 
   // HYDRATE — a first load fills the blanks from `default()`.
   if (options.dirtyPath === undefined) {
-    for (const { id, component } of flatTree) {
+    for (const { id, component, path } of flatTree) {
       if (!(component instanceof Field)) continue;
-      const path = component.name;
       if (path === "" || path in state) continue;
 
       // The row first, for a field no client is allowed to echo back. On an
@@ -199,10 +200,10 @@ export async function resolveSchema(
 
     // HOOKS — a hook may `set()` other paths, which become dirty in turn.
     const touched = new Set<string>();
-    for (const { component } of flatTree) {
+    for (const { component, path } of flatTree) {
       if (!(component instanceof Field)) continue;
       const hook = component.state.afterStateUpdated;
-      if (hook === undefined || !changed.has(component.name)) continue;
+      if (hook === undefined || path === "" || !changed.has(path)) continue;
       await hook({
         ...context(state, options, new Set()),
         set: (path, value) => {
@@ -210,7 +211,7 @@ export async function resolveSchema(
           state[path] = value;
           touched.add(path);
         },
-        value: state[component.name],
+        value: state[path],
       });
     }
 
@@ -288,21 +289,83 @@ export function dehydrate(
 interface WalkedNode {
   readonly id: string;
   readonly component: Component;
+  /**
+   * Where this node's value lives in the state. Empty for a layout.
+   *
+   * A field's own name for everything declared once. Inside a repeater it is
+   * the row's key that makes it unique — `items.r1.label` — because the same
+   * declaration stands for a field in every row.
+   */
+  readonly path: string;
   readonly children: readonly WalkedNode[];
 }
 
-/** Identity is `key`, else the field name, else the position in the tree. */
-function walk(component: Component, prefix = "", index = 0): WalkedNode {
-  const id =
-    component.state.key ??
-    (component instanceof Field && component.name !== ""
-      ? component.name
-      : `${prefix}${String(index)}`);
+/**
+ * The tree as it stands for this state.
+ *
+ * Static everywhere except a repeater, which has as many rows as the state
+ * says. Its own value is read here and nowhere else, which is what makes the
+ * ordering the record describes real: the list has to have been admitted for
+ * the paths under it to exist at all, and admission runs in waves for exactly
+ * this kind of reason.
+ */
+function walk(
+  component: Component,
+  state: FormState,
+  prefix = "",
+  index = 0,
+  under = "",
+): WalkedNode {
+  const own =
+    component instanceof Field && component.name !== ""
+      ? `${under}${component.name}`
+      : "";
+  const id = component.state.key ?? (own !== "" ? own : `${prefix}${String(index)}`);
+
+  if (component instanceof Repeater && own !== "") {
+    return {
+      id,
+      component,
+      path: own,
+      children: rowKeys(state[own], component.state.maxItems).flatMap((key) =>
+        component.children.map((child, i) =>
+          walk(child, state, `${id}/${key}/`, i, `${own}.${key}.`),
+        ),
+      ),
+    };
+  }
+
   return {
     id,
     component,
-    children: component.children.map((child, i) => walk(child, `${id}/`, i)),
+    path: own,
+    children: component.children.map((child, i) =>
+      walk(child, state, `${id}/`, i, under),
+    ),
   };
+}
+
+/**
+ * The keys a repeater's value names, and nothing else.
+ *
+ * Read defensively rather than trusted: this runs on the state as it is, and
+ * the boundary needs a tree to judge against, so this is what builds it — which
+ * puts it before the judging rather than after.
+ *
+ * `maxItems` is applied here as well as at the boundary, and not because the
+ * boundary is unreliable. It is because the guarantee should not depend on
+ * which caller resolved: `admit` resolves an empty state first and so never
+ * hands this an unjudged list, but that is its discipline, not this function's,
+ * and a caller who resolves raw client state is one refactor away.
+ */
+function rowKeys(value: unknown, maxItems: number | undefined): readonly string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  for (const key of value) {
+    if (maxItems !== undefined && seen.size >= maxItems) break;
+    if (typeof key === "string" && key !== "" && !seen.has(key)) seen.add(key);
+  }
+  return [...seen];
 }
 
 interface PassContext {
@@ -379,13 +442,13 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
   // bucket. A file just chosen is previewed by the browser, from the file it
   // already has in hand.
   const stored =
-    component instanceof FileUpload ? ctx.options.record?.[component.name] : undefined;
+    component instanceof FileUpload ? ctx.options.record?.[node.path] : undefined;
   const previewUrl =
     component instanceof FileUpload &&
     ctx.options.fileUrl !== undefined &&
     typeof stored === "string" &&
     stored !== "" &&
-    ctx.state[component.name] === stored
+    ctx.state[node.path] === stored
       ? ctx.options.fileUrl(component.state.disk, stored)
       : undefined;
 
@@ -401,7 +464,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
   ) {
     // A declared list wins over a relation: a field that says both meant the
     // list, and querying anyway would spend a round trip to be overruled.
-    const selected = ctx.state[component.name];
+    const selected = ctx.state[node.path];
     options = await ctx.options.loadOptions({
       relationship: component.state.relationship,
       limit: component.state.optionsLimit,
@@ -414,6 +477,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
   return {
     id: node.id,
     component,
+    path: node.path,
     visible,
     disabled,
     readOnly,
