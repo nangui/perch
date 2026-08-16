@@ -23,6 +23,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0015](adr/0015-cli-command-names-and-layout.md) | The command is `perch panel`, and the CLI writes under `src/admin/` |
 | [0016](adr/0016-file-storage-port.md) | Uploads go up on selection, through a storage port, and the row is written last |
 | [0017](adr/0017-what-an-action-receives.md) | An action's callback takes one record; a bulk trigger runs it per record in one transaction |
+| [0018](adr/0018-how-a-repeater-addresses-its-rows.md) | A repeater's rows are flat paths under a stable key, and its own path holds their order |
 
 ## Perch — a UI framework for NestJS
 
