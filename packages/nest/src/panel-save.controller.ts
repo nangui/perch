@@ -26,8 +26,10 @@ import type {
   FieldErrors,
   NotificationState,
   Row,
+  WriteTree,
   SchemaPayload,
 } from "@perchjs/core";
+import type { DehydratedWrite } from "@perchjs/core";
 import { dehydrate, serialise } from "@perchjs/core";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
@@ -110,7 +112,9 @@ export class PanelSaveController {
     const mutate = resource.instance.mutateFormDataBeforeCreate?.bind(
       resource.instance,
     );
-    const mutated = (await mutate?.(written.values)) ?? written.values;
+    // The hook and the upload commit both deal in columns. A repeater's rows
+    // are not columns, so they ride alongside rather than through.
+    const mutated = (await mutate?.({ ...written.write.set })) ?? written.write.set;
     // Files first, the row last (ADR 0016): a failure between them leaves a
     // file nobody points at rather than a row pointing at nothing.
     const { values, committed } = await commitUploads(
@@ -122,7 +126,10 @@ export class PanelSaveController {
 
     let record: Row;
     try {
-      record = await data.create(resource.metadata.model, { set: values });
+      record = await data.create(resource.metadata.model, {
+        set: values,
+        ...relationsOf(written.write),
+      });
     } catch (error) {
       await undoCommitted(committed, this.#disks);
       throw error;
@@ -162,7 +169,7 @@ export class PanelSaveController {
     if ("refused" in written) return written.refused;
 
     const mutate = resource.instance.mutateFormDataBeforeSave?.bind(resource.instance);
-    const mutated = (await mutate?.(written.values)) ?? written.values;
+    const mutated = (await mutate?.({ ...written.write.set })) ?? written.write.set;
     const { values, committed } = await commitUploads(
       resource.instance.form(),
       mutated,
@@ -172,7 +179,10 @@ export class PanelSaveController {
 
     let updated: Row;
     try {
-      updated = await data.update(model, key, { set: values });
+      updated = await data.update(model, key, {
+        set: values,
+        ...relationsOf(written.write),
+      });
     } catch (error) {
       await undoCommitted(committed, this.#disks);
       throw error;
@@ -234,7 +244,7 @@ export class PanelSaveController {
     body: unknown,
     user: unknown,
     record: Row | null,
-  ): Promise<{ refused: SaveResponse } | { values: Record<string, unknown> }> {
+  ): Promise<{ refused: SaveResponse } | { write: DehydratedWrite }> {
     const operation = record === null ? "create" : "edit";
     const { tree } = await admit({
       schema: resource.instance.form(),
@@ -253,7 +263,7 @@ export class PanelSaveController {
     }
 
     return {
-      values: dehydrate(tree, {
+      write: dehydrate(tree, {
         operation,
         user,
         ...(record === null ? {} : { record }),
@@ -299,4 +309,9 @@ function saved(
     title: `${resource.metadata.label} ${what}`,
     tone: "success",
   };
+}
+
+/** The rows a repeater asked for, where it asked for any. */
+function relationsOf(write: DehydratedWrite): Pick<WriteTree, "relations"> {
+  return write.relations === undefined ? {} : { relations: write.relations };
 }

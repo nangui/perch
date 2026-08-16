@@ -10,7 +10,7 @@ const tree = (state: Record<string, unknown> = {}, made = field()) =>
   resolveSchema(Schema.make([made]), state, { operation: "create" });
 
 const written = async (state: Record<string, unknown>, made = field()) =>
-  dehydrate(await tree(state, made), { operation: "create" })["publishedAt"];
+  dehydrate(await tree(state, made), { operation: "create" }).set["publishedAt"];
 
 describe("the acceptance criterion, end to end", () => {
   it("a summer date is stored as the instant it names", async () => {

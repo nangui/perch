@@ -44,7 +44,9 @@ describe("what it shows", () => {
 
 describe("what it saves", () => {
   it("nothing at all", async () => {
-    expect(dehydrate(await resolve({ price: 100 }), { operation: "create" })).toEqual({
+    expect(
+      dehydrate(await resolve({ price: 100 }), { operation: "create" }).set,
+    ).toEqual({
       price: 100,
     });
   });
@@ -78,6 +80,6 @@ describe("even when something put a value in its state", () => {
     const settled = await resolveSchema(defaulted, {}, { operation: "create" });
 
     expect(settled.state["note"]).toBe("filled");
-    expect(dehydrate(settled, { operation: "create" })).toEqual({});
+    expect(dehydrate(settled, { operation: "create" }).set).toEqual({});
   });
 });

@@ -33,6 +33,8 @@ export const MAX_ROW_KEY_LENGTH = 64;
 export interface RepeaterState extends FieldState {
   /** The relation the rows are written to. */
   readonly relationship?: string;
+  /** Where a loaded row keeps its key. `id` unless a model says otherwise. */
+  readonly rowKey?: string;
   readonly minItems?: number;
   readonly maxItems?: number;
 }
@@ -59,6 +61,18 @@ export class Repeater extends Field {
 
   relationship(name: string): this {
     return this.with({ relationship: name });
+  }
+
+  /**
+   * Where a loaded row keeps the key an update is addressed by.
+   *
+   * `id` unless a model says otherwise. Getting this wrong is not a small
+   * mistake: an update that cannot find its row becomes a create, so every
+   * save duplicates instead of editing — which is why a relation that comes
+   * back with rows and none of this key is an error rather than a shrug.
+   */
+  rowKey(name: string): this {
+    return this.with({ rowKey: name });
   }
 
   minItems(count: number): this {

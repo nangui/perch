@@ -195,10 +195,10 @@ describe("validation runs on visible fields only", () => {
 describe("dehydrate — what reaches the database", () => {
   it("writes visible fields and skips the invisible one", async () => {
     const result = await resolveSchema(a1(), { countryId: "fr", cityId: 1 }, CREATE);
-    expect(dehydrate(result, CREATE)).toEqual({ countryId: "fr", cityId: 1 });
+    expect(dehydrate(result, CREATE).set).toEqual({ countryId: "fr", cityId: 1 });
 
     const hidden = await resolveSchema(a1(), {}, CREATE);
-    expect(dehydrate(hidden, CREATE)).toEqual({});
+    expect(dehydrate(hidden, CREATE).set).toEqual({});
   });
 
   it("leaves a field nobody filled out of the write entirely", async () => {
@@ -208,14 +208,14 @@ describe("dehydrate — what reaches the database", () => {
     const form = Schema.make([TextInput.make("title"), TextInput.make("body")]);
     const result = await resolveSchema(form, { title: "b" }, CREATE);
 
-    expect(Object.keys(dehydrate(result, CREATE))).toEqual(["title"]);
+    expect(Object.keys(dehydrate(result, CREATE).set)).toEqual(["title"]);
   });
 
   it("keeps a value that was cleared on purpose", async () => {
     const form = Schema.make([TextInput.make("title"), TextInput.make("body")]);
     const result = await resolveSchema(form, { title: "b", body: null }, CREATE);
 
-    expect(dehydrate(result, CREATE)).toHaveProperty("body", null);
+    expect(dehydrate(result, CREATE).set).toHaveProperty("body", null);
   });
 
   it("skips a readOnly field, which is not persisted", async () => {
@@ -224,16 +224,16 @@ describe("dehydrate — what reaches the database", () => {
       TextInput.make("title"),
     ]);
     const result = await resolveSchema(form, { slug: "a", title: "b" }, CREATE);
-    expect(dehydrate(result, CREATE)).toEqual({ title: "b" });
+    expect(dehydrate(result, CREATE).set).toEqual({ title: "b" });
   });
 
   it("skips a blank password rather than overwriting the hash", async () => {
     const form = Schema.make([TextInput.make("password").password()]);
     const blank = await resolveSchema(form, { password: "" }, CREATE);
-    expect(dehydrate(blank, CREATE)).toEqual({});
+    expect(dehydrate(blank, CREATE).set).toEqual({});
 
     const filled = await resolveSchema(form, { password: "hunter2" }, CREATE);
-    expect(dehydrate(filled, CREATE)).toEqual({ password: "hunter2" });
+    expect(dehydrate(filled, CREATE).set).toEqual({ password: "hunter2" });
   });
 });
 

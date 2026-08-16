@@ -44,7 +44,7 @@ describe("what survives to the database", () => {
     const clean = sanitize(await full(), { title: "Ada", authorId: 999 });
     const settled = await full(clean.state);
 
-    expect(dehydrate(settled, { operation: "create" })).toEqual({
+    expect(dehydrate(settled, { operation: "create" }).set).toEqual({
       title: "Ada",
       authorId: 7,
     });
@@ -64,13 +64,13 @@ describe("what survives to the database", () => {
       record,
     });
 
-    expect(dehydrate(settled, { operation: "edit", record })["authorId"]).toBe(2);
+    expect(dehydrate(settled, { operation: "edit", record }).set["authorId"]).toBe(2);
   });
 
   it("a default only where there is no row to ask", async () => {
     const settled = await resolveSchema(SCHEMA, {}, { operation: "create" });
 
-    expect(dehydrate(settled, { operation: "create" })["authorId"]).toBe(7);
+    expect(dehydrate(settled, { operation: "create" }).set["authorId"]).toBe(7);
   });
 });
 

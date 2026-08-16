@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { auditSchema } from "../audit.js";
 import { Schema } from "../layout.js";
-import { resolveSchema } from "../resolve.js";
+import { dehydrate, resolveSchema } from "../resolve.js";
 import { sanitize } from "../sanitize.js";
 import { TextInput } from "./text-input.js";
 import { MAX_ROW_KEY_LENGTH, Repeater } from "./repeater.js";
@@ -332,5 +332,199 @@ describe("a row's fields at the boundary", () => {
     expect(sanitize(tree, { "items.r1.secret": "x" }).rejected).toEqual([
       { path: "items.r1.secret", reason: "unknown-path" },
     ]);
+  });
+});
+
+describe("what a repeater writes", () => {
+  const made = () =>
+    Repeater.make("items")
+      .relationship("sections")
+      // Two fields, deliberately. With one, a row and a field are the same
+      // thing — and every test below passes while each field writes its own
+      // row, which is what happened.
+      .schema([TextInput.make("label"), TextInput.make("note")]);
+
+  const written = async (
+    state: Record<string, unknown>,
+    record?: Record<string, unknown>,
+  ) => {
+    const options = {
+      operation: "edit" as const,
+      ...(record === undefined ? {} : { record }),
+    };
+    const tree = await resolveSchema(Schema.make([made()]), state, options);
+    return dehydrate(tree, options);
+  };
+
+  it("names the relation it was told to write, not the field", async () => {
+    const out = await written({ items: ["r1"], "items.r1.label": "Intro" });
+
+    expect(Object.keys(out.relations ?? {})).toEqual(["sections"]);
+  });
+
+  it("creates a row the record never had", async () => {
+    const out = await written({ items: ["new1"], "items.new1.label": "Intro" });
+
+    expect(out.relations?.["sections"]).toEqual({
+      create: [{ set: { label: "Intro" } }],
+    });
+  });
+
+  it("writes one row per key, however many fields the row holds", async () => {
+    const out = await written({
+      items: ["r1"],
+      "items.r1.label": "Intro",
+      "items.r1.note": "hello",
+    });
+
+    expect(out.relations?.["sections"]).toEqual({
+      create: [{ set: { label: "Intro", note: "hello" } }],
+    });
+  });
+
+  it("keeps two rows apart, field for field", async () => {
+    const out = await written({
+      items: ["a", "b"],
+      "items.a.label": "First",
+      "items.a.note": "one",
+      "items.b.label": "Second",
+      "items.b.note": "two",
+    });
+
+    expect(out.relations?.["sections"]).toEqual({
+      create: [
+        { set: { label: "First", note: "one" } },
+        { set: { label: "Second", note: "two" } },
+      ],
+    });
+  });
+
+  it("updates a row the record did have, by the id it was loaded with", async () => {
+    const record = { sections: [{ id: 7, label: "Old" }] };
+    const out = await written({ items: ["7"], "items.7.label": "New" }, record);
+
+    expect(out.relations?.["sections"]).toEqual({
+      update: [{ id: 7, data: { set: { label: "New" } } }],
+    });
+  });
+
+  it("deletes a row the record has and the list does not", async () => {
+    const record = {
+      sections: [
+        { id: 7, label: "Old" },
+        { id: 8, label: "Other" },
+      ],
+    };
+    const out = await written({ items: ["7"], "items.7.label": "Old" }, record);
+
+    expect(out.relations?.["sections"]).toEqual({
+      update: [{ id: 7, data: { set: { label: "Old" } } }],
+      delete: [8],
+    });
+  });
+
+  it("creates rather than updates for a key that resembles somebody's id", async () => {
+    // Decision 4: what a key means is decided by the record, never by the key.
+    // A client inventing "7" against a record that loaded no such child makes
+    // a row; it cannot reach one.
+    const record = { sections: [{ id: 99, label: "Theirs" }] };
+    const out = await written({ items: ["7"], "items.7.label": "Mine" }, record);
+
+    expect(out.relations?.["sections"]).toEqual({
+      create: [{ set: { label: "Mine" } }],
+      delete: [99],
+    });
+  });
+
+  it("creates every row where the record loaded none at all", async () => {
+    const out = await written(
+      { items: ["1", "2"], "items.1.label": "a", "items.2.label": "b" },
+      {
+        sections: undefined,
+      },
+    );
+
+    expect(out.relations?.["sections"]).toEqual({
+      create: [{ set: { label: "a" } }, { set: { label: "b" } }],
+    });
+  });
+
+  it("keeps a row's own fields out of the parent's columns", async () => {
+    const out = await written({ items: ["r1"], "items.r1.label": "Intro" });
+
+    expect(out.set).toEqual({});
+  });
+
+  it("says nothing about a relation where the repeater was never filled", async () => {
+    const out = await written({});
+
+    expect(out.relations?.["sections"]).toEqual({});
+  });
+});
+
+describe("where a loaded row keeps its key", () => {
+  const write = async (
+    made: Repeater,
+    state: Record<string, unknown>,
+    record: Record<string, unknown>,
+  ) => {
+    const options = { operation: "edit" as const, record };
+    return dehydrate(await resolveSchema(Schema.make([made]), state, options), options);
+  };
+
+  const keyed = (rowKey?: string) => {
+    const made = Repeater.make("items")
+      .relationship("sections")
+      .schema([TextInput.make("label")]);
+    return rowKey === undefined ? made : made.rowKey(rowKey);
+  };
+
+  it("is `id` where nothing says otherwise", async () => {
+    const out = await write(
+      keyed(),
+      { items: ["7"], "items.7.label": "New" },
+      {
+        sections: [{ id: 7, label: "Old" }],
+      },
+    );
+
+    expect(out.relations?.["sections"]).toEqual({
+      update: [{ id: 7, data: { set: { label: "New" } } }],
+    });
+  });
+
+  it("is whatever the field named", async () => {
+    const out = await write(
+      keyed("uuid"),
+      { items: ["abc"], "items.abc.label": "New" },
+      {
+        sections: [{ uuid: "abc", label: "Old" }],
+      },
+    );
+
+    expect(out.relations?.["sections"]).toEqual({
+      update: [{ id: "abc", data: { set: { label: "New" } } }],
+    });
+  });
+
+  it("stops the save when the rows have no such key at all", async () => {
+    // Left alone this is silent: every row becomes a create, so the save
+    // duplicates the relation instead of editing it — once per save, for as
+    // long as nobody counts the rows.
+    await expect(
+      write(keyed(), { items: ["abc"] }, { sections: [{ uuid: "abc", label: "Old" }] }),
+    ).rejects.toThrow(/have no `id`/);
+  });
+
+  it("says nothing where the relation came back empty, which is not a mismatch", async () => {
+    const out = await write(
+      keyed(),
+      { items: ["new"], "items.new.label": "a" },
+      {
+        sections: [],
+      },
+    );
+
+    expect(out.relations?.["sections"]).toEqual({ create: [{ set: { label: "a" } }] });
   });
 });

@@ -7,6 +7,7 @@
  */
 import type { Component, Operation, Resolvable, ResolverContext } from "./component.js";
 import { isResolver } from "./component.js";
+import type { Id, RelationWrite, Row, WriteTree } from "./data-adapter.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
 import { FileUpload } from "./fields/file-upload.js";
@@ -261,17 +262,54 @@ export async function resolveSchema(
   };
 }
 
-/** The write set: what `isDehydrated` lets through, after `dehydrateStateUsing`. */
+/**
+ * What is written, from what survived.
+ *
+ * Walks the tree rather than the flat node list, because a repeater's rows are
+ * its children and grouping them is the whole job. Everything else is what it
+ * always was: `isDehydrated` decides, `dehydrateStateUsing` shapes.
+ */
+export interface DehydratedWrite extends WriteTree {
+  /** Always present, so a caller reads an answer rather than an absence. */
+  readonly set: Readonly<Record<string, unknown>>;
+}
+
 export function dehydrate(
   result: ResolveResult,
   options: ResolveOptions,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const node of result.nodes) {
+): DehydratedWrite {
+  const written = branch(result.root.children, result, options, options.record);
+  return { ...written, set: written.set ?? {} };
+}
+
+function branch(
+  nodes: readonly ResolvedNode[],
+  result: ResolveResult,
+  options: ResolveOptions,
+  record: Row | undefined,
+): WriteTree {
+  const set: Record<string, unknown> = {};
+  const relations: Record<string, RelationWrite> = {};
+
+  for (const node of nodes) {
     const field = node.component;
-    if (!(field instanceof Field)) continue;
-    const path = field.name;
-    let value = field.toStorage(result.state[path]);
+    if (!(field instanceof Field)) {
+      // A layout holds fields without being one, so its children belong to
+      // whatever it sits in rather than to it.
+      const inner = branch(node.children, result, options, record);
+      Object.assign(set, inner.set);
+      Object.assign(relations, inner.relations);
+      continue;
+    }
+
+    if (field instanceof Repeater) {
+      const written = rowsOf(field, node, result, options, record);
+      if (written !== undefined)
+        relations[field.state.relationship ?? field.name] = written;
+      continue;
+    }
+
+    let value = field.toStorage(result.state[node.path]);
     const transform = field.state.dehydrateStateUsing;
     if (transform !== undefined) {
       value = transform(value, context(result.state, options, new Set()));
@@ -281,9 +319,125 @@ export function dehydrate(
     // present and empty. `null` is how a column is cleared; `undefined` would
     // leave every adapter to guess which of the two was meant.
     if (value === undefined) continue;
-    out[path] = value;
+    set[field.name] = value;
   }
-  return out;
+
+  // `set` always, even empty: a write of no columns is a write of no columns,
+  // and a caller that has to tell that from "no write at all" would be reading
+  // an absence rather than an answer. `relations` only where there are some.
+  return {
+    set,
+    ...(Object.keys(relations).length === 0 ? {} : { relations }),
+  };
+}
+
+/**
+ * A repeater's rows, as creates, updates and deletes.
+ *
+ * What a key means is decided here, and by the record rather than by the key:
+ * the children that were actually loaded are the only ones an update can
+ * reach, and every other key is a create whatever it looks like. A client
+ * inventing a key that resembles somebody else's id makes a row; it cannot
+ * touch one.
+ *
+ * A child the record has and the list does not is gone, because the list is
+ * the membership.
+ */
+function rowsOf(
+  field: Repeater,
+  node: ResolvedNode,
+  result: ResolveResult,
+  options: ResolveOptions,
+  record: Row | undefined,
+): RelationWrite | undefined {
+  if (!isDehydrated(field, flagsOf(node), result.state[node.path])) return undefined;
+
+  const existing = loadedRows(record, field);
+  const create: WriteTree[] = [];
+  const update: { id: Id; data: WriteTree }[] = [];
+  const kept = new Set<string>();
+
+  // Grouped by the key in the path, which is what the walk put there. The
+  // walk flattens the rows — its children are every field of every row — so
+  // the grouping happens here or a row with two fields becomes two rows.
+  const byRow = new Map<string, ResolvedNode[]>();
+  for (const child of node.children) {
+    const key = rowKeyOf(node.path, child.path);
+    if (key === undefined) continue;
+    const group = byRow.get(key);
+    if (group === undefined) byRow.set(key, [child]);
+    else group.push(child);
+  }
+
+  for (const [key, fields] of byRow) {
+    const data = branch(fields, result, options, existing.get(key));
+    const id = existing.get(key)?.[field.state.rowKey ?? DEFAULT_ROW_KEY];
+    if (id === undefined) {
+      create.push(data);
+      continue;
+    }
+    kept.add(key);
+    update.push({ id: id as Id, data });
+  }
+
+  const remove = [...existing]
+    .filter(([key]) => !kept.has(key))
+    .map(([, row]) => row[field.state.rowKey ?? DEFAULT_ROW_KEY] as Id);
+
+  return {
+    ...(create.length === 0 ? {} : { create }),
+    ...(update.length === 0 ? {} : { update }),
+    ...(remove.length === 0 ? {} : { delete: remove }),
+  };
+}
+
+/** Where a loaded child keeps its key, unless the repeater says otherwise. */
+const DEFAULT_ROW_KEY = "id";
+
+/**
+ * The children the record actually carried, by the key they are addressed as.
+ *
+ * The only rows an update may reach. A record with nothing loaded for the
+ * relation has no updatable rows, which makes every key a create — the honest
+ * reading of "the server never saw one".
+ */
+function loadedRows(record: Row | undefined, field: Repeater): Map<string, Row> {
+  const relation = field.state.relationship ?? field.name;
+  const held = record?.[relation];
+  if (!Array.isArray(held)) return new Map();
+
+  const key = field.state.rowKey ?? DEFAULT_ROW_KEY;
+  const rows = new Map<string, Row>();
+  for (const row of held) {
+    if (typeof row !== "object" || row === null) continue;
+    const id = (row as Row)[key];
+    if (typeof id !== "string" && typeof id !== "number") continue;
+    rows.set(String(id), row as Row);
+  }
+
+  // Rows came back — and there were some — and not one of them has the key an
+  // update is addressed by. An empty relation is not that: it is a record with
+  // no children, which is ordinary.
+  //
+  // Left alone this is silent: every row becomes a create, so the save
+  // duplicates the relation instead of editing it, once per save, for as long
+  // as nobody counts the rows.
+  if (rows.size === 0 && held.length > 0) {
+    throw new Error(
+      `\`${field.name}\` writes \`${relation}\`, whose rows have no ` +
+        `\`${key}\`. Name the key with \`.rowKey()\`, or an update would be ` +
+        `written as a create and duplicate every row it meant to edit.`,
+    );
+  }
+  return rows;
+}
+
+/** `items.r1.label` under `items` is `r1`. */
+function rowKeyOf(parent: string, path: string): string | undefined {
+  if (!path.startsWith(`${parent}.`)) return undefined;
+  const rest = path.slice(parent.length + 1);
+  const dot = rest.indexOf(".");
+  return dot === -1 ? undefined : rest.slice(0, dot);
 }
 
 interface WalkedNode {

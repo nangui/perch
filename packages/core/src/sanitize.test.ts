@@ -85,7 +85,7 @@ describe("a forged state reaches neither the tree nor the write", () => {
       dirtyPath: "title",
       previous,
     });
-    expect(dehydrate(next, EDIT)).toEqual({ title: "Hello" });
+    expect(dehydrate(next, EDIT).set).toEqual({ title: "Hello" });
   });
 });
 

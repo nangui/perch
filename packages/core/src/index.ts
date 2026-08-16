@@ -170,6 +170,7 @@ export type {
   ResolveOptions,
   ResolveResult,
 } from "./resolve.js";
+export type { DehydratedWrite } from "./resolve.js";
 export { dehydrate, ResolutionCycleError, resolveSchema } from "./resolve.js";
 
 // What a form promises and cannot keep. Read once, at boot.
