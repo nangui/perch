@@ -141,3 +141,31 @@ describe("changing which rows there are", () => {
     expect(onChange.mock.calls.every(([path]) => path === "items")).toBe(true);
   });
 });
+
+describe("a row with nothing in it", () => {
+  it("says so, because the server will not write it", () => {
+    // The difference between a row that will be saved and one that looks
+    // identical and will not.
+    draw(["filled", "blank"], { "items.filled.label": "Something" });
+    const rows = document.querySelectorAll(".perch-repeater__item");
+
+    expect(rows[0]?.getAttribute("data-pending")).toBe("false");
+    expect(rows[1]?.getAttribute("data-pending")).toBe("true");
+  });
+
+  it("stops saying so as soon as any one field has something", () => {
+    draw(["r1"], { "items.r1.note": "just this" });
+
+    expect(
+      document.querySelector(".perch-repeater__item")?.getAttribute("data-pending"),
+    ).toBe("false");
+  });
+
+  it("counts an empty string as nothing, which is what a cleared field holds", () => {
+    draw(["r1"], { "items.r1.label": "", "items.r1.note": "" });
+
+    expect(
+      document.querySelector(".perch-repeater__item")?.getAttribute("data-pending"),
+    ).toBe("true");
+  });
+});

@@ -50,6 +50,15 @@ export interface NodeProps {
    */
   readonly uploadFile?:
     ((path: string, file: File) => Promise<UploadedFile>) | undefined;
+  /**
+   * The value at any path, for the few nodes whose own value is not enough.
+   *
+   * A repeater has to know whether a row has anything in it — the server will
+   * not write one that has not — and that lives under its children's paths. A
+   * function rather than the state itself: a node reads what it names, and one
+   * that names nothing reads nothing.
+   */
+  readonly valueAt: (path: string) => unknown;
   /** Renders a child node. Passed down so no component imports the renderer. */
   readonly renderChild: (child: SchemaNode) => React.ReactNode;
 }

@@ -38,6 +38,10 @@ export function SchemaRenderer({
    * render defeats this from the outside, which is why it is a Set and not a
    * literal in the props.
    */
+  // Memoised for the same reason `render` is: a fresh function on every render
+  // is a changed prop on every node, and the memoisation below stops holding.
+  const valueAt = useCallback((at: string): unknown => payload.state[at], [payload]);
+
   const render = useCallback(
     function renderNode(node: SchemaNode): ReactNode {
       return (
@@ -51,11 +55,12 @@ export function SchemaRenderer({
           onChange={onChange}
           searchOptions={searchOptions}
           uploadFile={uploadFile}
+          valueAt={valueAt}
           renderChild={renderNode}
         />
       );
     },
-    [payload, onChange, pending, inFlight, searchOptions, uploadFile],
+    [payload, onChange, pending, inFlight, searchOptions, uploadFile, valueAt],
   );
 
   return render(payload.schema);
@@ -75,6 +80,7 @@ const RenderedNode = memo(function RenderedNode({
   onChange,
   searchOptions,
   uploadFile,
+  valueAt,
   renderChild,
 }: {
   readonly node: SchemaNode;
@@ -85,6 +91,7 @@ const RenderedNode = memo(function RenderedNode({
   readonly onChange: (path: string, value: unknown) => void;
   readonly searchOptions?: NodeProps["searchOptions"];
   readonly uploadFile?: NodeProps["uploadFile"];
+  readonly valueAt: NodeProps["valueAt"];
   readonly renderChild: (child: SchemaNode) => ReactNode;
 }): ReactNode {
   const Renderer = lookupComponent(node.type);
@@ -99,6 +106,7 @@ const RenderedNode = memo(function RenderedNode({
       onChange={onChange}
       searchOptions={searchOptions}
       uploadFile={uploadFile}
+      valueAt={valueAt}
       renderChild={renderChild}
     />
   );

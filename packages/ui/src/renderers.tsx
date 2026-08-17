@@ -535,6 +535,7 @@ function RepeaterRenderer({
   error,
   onChange,
   renderChild,
+  valueAt,
 }: NodeProps): ReactNode {
   const path = node.path;
   const keys = Array.isArray(value) ? value.filter(isKey) : [];
@@ -551,7 +552,15 @@ function RepeaterRenderer({
 
   // In the order the value gives, not the order the payload arrived in: the
   // list is what says where a row sits.
-  const items = keys.map((key) => ({ id: key }));
+  //
+  // A row with nothing in any of its fields is marked pending, because that is
+  // what the server does with it: it is not written until something is filled
+  // in. Saying so is the difference between a row that will be saved and one
+  // that looks identical and will not.
+  const items = keys.map((key) => ({
+    id: key,
+    ...(isBlankRow(rows.get(key), valueAt) ? { pending: true } : {}),
+  }));
 
   return (
     <div className="perch-field" data-error={error !== undefined}>
@@ -584,6 +593,17 @@ function RepeaterRenderer({
       </div>
     </div>
   );
+}
+
+/** Nothing typed in any of the row's fields, which is what "pending" means. */
+function isBlankRow(
+  fields: readonly SchemaNode[] | undefined,
+  valueAt: (path: string) => unknown,
+): boolean {
+  return (fields ?? []).every((node) => {
+    const held = node.path === undefined ? undefined : valueAt(node.path);
+    return held === undefined || held === null || held === "";
+  });
 }
 
 function isKey(value: unknown): value is string {
