@@ -386,7 +386,7 @@ describe("Repeater", () => {
 
   it("offers keyboard reordering on the handle, not mouse only", () => {
     renderRepeater();
-    const handle = screen.getByRole("button", { name: /reorder item 1/i });
+    const handle = screen.getByRole("button", { name: /move item 1\. alt/i });
     expect(handle.getAttribute("aria-label")).toMatch(/arrow keys/i);
   });
 

@@ -4,8 +4,8 @@
  * Two rules the design states, and both are behavioural rather than visual:
  *
  *   - *"Reordering is a pure UI action until you release: one PATCH with the
- *     final order, not one per step."* Order therefore lives in the pure-UI zone
- *     while dragging, and crosses into the canonical zone once.
+ *     final order, not one per step."* One move is one patch here, which is the
+ *     same promise from the other end: there is no drag to accumulate.
  *   - *"New item — nothing is sent until a name and an email are filled."* An
  *     item that has never been valid is `pending`, styled differently, and
  *     excluded from the patch.
@@ -13,9 +13,18 @@
  * Keyboard reordering is not an enhancement here. A drag handle that only
  * responds to a mouse makes the field unusable for part of the audience, and the
  * design lists the shortcuts as part of the component.
+ *
+ * Dragging with a pointer is not built, and no longer pretends to be. It was
+ * drawn — a grip, and a row that marked itself as dragging while the button was
+ * held — with nothing behind it: no drop, no reorder, the row back where it
+ * started. An affordance that promises a gesture it does not perform is worse
+ * than one that never offered it, because the reader concludes the panel is
+ * broken rather than that the feature is absent.
+ *
+ * So the grip is what it always was underneath: the control that takes Alt with
+ * the arrow keys, beside two buttons that do the same in one press.
  */
 import type { KeyboardEvent, ReactNode } from "react";
-import { useState } from "react";
 
 export interface RepeaterItem {
   readonly id: string;
@@ -51,9 +60,6 @@ export function Repeater<T extends RepeaterItem>({
   emptyTitle,
   emptyBody,
 }: RepeaterProps<T>): ReactNode {
-  // Order while dragging is pure UI state: it never leaves this component until
-  // release, which is what keeps a five-step drag to one patch.
-  const [dragging, setDragging] = useState<string | null>(null);
   const atMax = max !== undefined && items.length >= max;
 
   function move(id: string, by: number): void {
@@ -140,21 +146,14 @@ export function Repeater<T extends RepeaterItem>({
             className="perch-repeater__item"
             data-invalid={item.error === undefined ? "false" : "true"}
             data-pending={item.pending === true ? "true" : "false"}
-            data-dragging={dragging === item.id ? "true" : "false"}
           >
             <div className="perch-repeater__row">
               <button
                 type="button"
                 className="perch-repeater__handle"
-                aria-label={`Reorder item ${String(index + 1)}. Alt with arrow keys to move.`}
+                aria-label={`Move item ${String(index + 1)}. Alt with the arrow keys.`}
                 onKeyDown={(event) => {
                   onHandleKeyDown(event, item.id);
-                }}
-                onPointerDown={() => {
-                  setDragging(item.id);
-                }}
-                onPointerUp={() => {
-                  setDragging(null);
                 }}
               >
                 <span aria-hidden="true">⠿</span>

@@ -167,7 +167,7 @@ describe("2.5.7 Dragging Movements — a pointer alternative to every drag", () 
     renderRepeater();
     expect(
       screen
-        .getByRole("button", { name: /reorder item 1/i })
+        .getByRole("button", { name: /move item 1\. alt/i })
         .getAttribute("aria-label"),
     ).toMatch(/arrow keys/i);
   });
