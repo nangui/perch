@@ -126,10 +126,16 @@ export class PanelSaveController {
 
     let record: Row;
     try {
-      record = await data.create(resource.metadata.model, {
-        set: values,
-        ...relationsOf(written.write),
-      });
+      // In a transaction, because a row and its repeater's rows are one write.
+      // Prisma's nested write is already one statement and would roll back on
+      // its own; asking here is what makes the guarantee the adapter's contract
+      // rather than a property one adapter happens to have.
+      record = await data.transaction(async (tx) =>
+        tx.create(resource.metadata.model, {
+          set: values,
+          ...relationsOf(written.write),
+        }),
+      );
     } catch (error) {
       await undoCommitted(committed, this.#disks);
       throw error;
@@ -179,10 +185,9 @@ export class PanelSaveController {
 
     let updated: Row;
     try {
-      updated = await data.update(model, key, {
-        set: values,
-        ...relationsOf(written.write),
-      });
+      updated = await data.transaction(async (tx) =>
+        tx.update(model, key, { set: values, ...relationsOf(written.write) }),
+      );
     } catch (error) {
       await undoCommitted(committed, this.#disks);
       throw error;
