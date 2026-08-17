@@ -49,6 +49,17 @@ const TEAM: ModelMeta = {
   labelField: "name",
 };
 
+const NOTE: ModelMeta = {
+  name: "Note",
+  dbName: "Note",
+  primaryKey: scalar("id", "Int"),
+  fields: [scalar("id", "Int"), scalar("body", "String"), scalar("personId", "Int")],
+  relations: [],
+  uniqueConstraints: [["id"]],
+  hasSoftDelete: false,
+  labelField: "body",
+};
+
 const PERSON: ModelMeta = {
   name: "Person",
   dbName: "Person",
@@ -70,6 +81,15 @@ const PERSON: ModelMeta = {
     scalar("tenantId", "Int"),
   ],
   relations: [
+    {
+      name: "notes",
+      type: "many",
+      targetModel: "Note",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
     {
       name: "team",
       type: "one",
@@ -144,8 +164,15 @@ export class MemoryAdapter implements DataAdapter {
   ];
   #nextId = 4;
 
+  /** The rows a repeater writes. A child model, kept beside its parent. */
+  #notes: Row[] = [
+    { id: 1, body: "Wrote the first compiler.", personId: 1 },
+    { id: 2, body: "Coined the term debugging.", personId: 2 },
+  ];
+  #nextNoteId = 3;
+
   ir(): Ir {
-    return { models: [PERSON, TEAM] };
+    return { models: [PERSON, NOTE, TEAM] };
   }
 
   meta(): ModelMeta {
@@ -187,14 +214,18 @@ export class MemoryAdapter implements DataAdapter {
     });
   }
 
+  /** The children come with the row: they are the only ones an update reaches. */
   findOne(_model: string, id: Id, include?: IncludePlan): Promise<Row | null> {
     const row = this.#rows.find((one) => one["id"] === id);
-    return Promise.resolve(row === undefined ? null : join(row, include));
+    if (row === undefined) return Promise.resolve(null);
+    const notes = this.#notes.filter((note) => note["personId"] === row["id"]);
+    return Promise.resolve({ ...join(row, include), notes });
   }
 
   create(_model: string, data: WriteTree): Promise<Row> {
     const row: Row = { id: this.#nextId++, ...data.set };
     this.#rows.push(row);
+    this.#writeRelations(row["id"] as number, data);
     return Promise.resolve(row);
   }
 
@@ -203,7 +234,33 @@ export class MemoryAdapter implements DataAdapter {
     if (index === -1) throw new Error(`no Person ${String(id)}`);
     const row = { ...this.#rows[index], ...data.set } as Row;
     this.#rows[index] = row;
+    this.#writeRelations(id as number, data);
     return Promise.resolve(row);
+  }
+
+  /**
+   * A repeater's rows, as the engine asked for them.
+   *
+   * A key it has never issued is a create; the rows it did issue are the only
+   * ones an update reaches; anything the list stopped naming goes.
+   */
+  #writeRelations(personId: number, data: WriteTree): void {
+    const write = data.relations?.["notes"];
+    if (write === undefined) return;
+
+    for (const nested of write.create ?? []) {
+      const body = nested.set?.["body"];
+      // A row with nothing in it is a row somebody added and did not fill.
+      if (typeof body !== "string" || body === "") continue;
+      this.#notes.push({ id: this.#nextNoteId++, body, personId });
+    }
+    for (const { id, data: patch } of write.update ?? []) {
+      const at = this.#notes.findIndex((note) => note["id"] === id);
+      if (at !== -1) this.#notes[at] = { ...this.#notes[at], ...patch.set };
+    }
+    for (const id of write.delete ?? []) {
+      this.#notes = this.#notes.filter((note) => note["id"] !== id);
+    }
   }
 
   delete(_model: string, ids: readonly Id[]): Promise<number> {
@@ -213,8 +270,22 @@ export class MemoryAdapter implements DataAdapter {
   }
 
   /** No rollback to speak of, which is the honest limit of a variable. */
-  transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
-    return fn(this);
+  /**
+   * A copy, and the copy back.
+   *
+   * The honest limit of a variable used to be that it could not roll back, so
+   * a repeater's rows would survive a save that failed halfway. They are two
+   * arrays; putting them back is cheap and it is what the milestone claims.
+   */
+  async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
+    const before = { rows: [...this.#rows], notes: [...this.#notes] };
+    try {
+      return await fn(this);
+    } catch (error) {
+      this.#rows = before.rows;
+      this.#notes = before.notes;
+      throw error;
+    }
   }
 }
 

@@ -10,6 +10,7 @@ import {
   Hidden,
   Placeholder,
   Radio,
+  Repeater,
   Schema,
   Section,
   Select,
@@ -207,6 +208,16 @@ export class PersonResource {
                 }`,
             ),
         ]),
+
+      Section.make("Notes").schema([
+        // The repeater, and milestone A3: adding, editing, reordering and
+        // deleting rows in one transaction. Its value is the ordered list of
+        // row keys; the fields below are what one row holds.
+        Repeater.make("noteRows")
+          .relationship("notes")
+          .maxItems(5)
+          .schema([TextInput.make("body").label("Note").required()]),
+      ]),
 
       Section.make("Photo").schema([
         FileUpload.make("avatar")
