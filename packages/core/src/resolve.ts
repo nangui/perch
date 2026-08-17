@@ -139,13 +139,19 @@ export async function resolveSchema(
   clientState: FormState,
   options: ResolveOptions,
 ): Promise<ResolveResult> {
-  const tree = walk(root, clientState);
+  // A repeater's list first, and before the walk, because the walk builds the
+  // rows from it. Nothing else in the cycle has an order that matters; this one
+  // does, and getting it wrong is not subtle: the form shows no rows, so the
+  // client sends none, so the save reads that as "delete them all".
+  const seeded = seedRows(root, clientState, options);
+
+  const tree = walk(root, seeded);
   const flatTree = flattenWalked(tree);
-  const state: Record<string, unknown> = { ...clientState };
+  const state: Record<string, unknown> = { ...seeded };
 
   // Normalised before anything reads it, so the cycle sees one shape whether
   // the value came from the row or from the last round trip.
-  for (const { component, path } of flattenWalked(walk(root, clientState))) {
+  for (const { component, path } of flatTree) {
     if (!(component instanceof Field)) continue;
     if (path === "" || !(path in state)) continue;
     state[path] = component.fromStorage(state[path]);
@@ -440,6 +446,50 @@ function rowKeyOf(parent: string, path: string): string | undefined {
   return dot === -1 ? undefined : rest.slice(0, dot);
 }
 
+/**
+ * The rows a record already has, where the client said nothing about them.
+ *
+ * On a first load there is no list, and without one the walk builds no rows —
+ * so the form would show none of the children the record carries, the client
+ * would send none back, and the save would read that as an instruction to
+ * delete every one of them.
+ *
+ * Only where the client is silent. Once it has sent a list, that list is what
+ * the reader is looking at, and an empty one means they removed the rows.
+ */
+function seedRows(
+  root: Component,
+  clientState: FormState,
+  options: ResolveOptions,
+): FormState {
+  const record = options.record;
+  if (record === undefined) return clientState;
+
+  const seeded: Record<string, unknown> = { ...clientState };
+  for (const { component, path } of flattenWalked(walk(root, {}))) {
+    if (!(component instanceof Repeater) || path === "" || path in seeded) continue;
+
+    const held = record[component.state.relationship ?? component.name];
+    if (!Array.isArray(held)) continue;
+
+    const key = component.state.rowKey ?? DEFAULT_ROW_KEY;
+    const keys: string[] = [];
+    for (const row of held) {
+      if (typeof row !== "object" || row === null) continue;
+      const id = (row as Row)[key];
+      if (typeof id !== "string" && typeof id !== "number") continue;
+      keys.push(String(id));
+      // The row's own fields, addressed the way the tree will address them.
+      for (const [name, value] of Object.entries(row as Row)) {
+        const at = `${path}.${String(id)}.${name}`;
+        if (!(at in seeded)) seeded[at] = value;
+      }
+    }
+    seeded[path] = keys;
+  }
+  return seeded;
+}
+
 interface WalkedNode {
   readonly id: string;
   readonly component: Component;
@@ -655,7 +705,12 @@ async function validate(
   for (const node of nodes) {
     const field = node.component;
     if (!(field instanceof Field) || !node.visible) continue;
-    const path = field.name;
+    // The node's path, not the field's name: one declaration stands for a field
+    // in every row of a repeater, and keying on the name collapses all of them
+    // onto one error — reported against a path that holds nothing, so it fires
+    // for rows that are perfectly filled in.
+    const path = node.path;
+    if (path === "") continue;
     const current = state[path];
     const ctx = context(state, options, new Set());
 

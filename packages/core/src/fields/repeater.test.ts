@@ -528,3 +528,75 @@ describe("where a loaded row keeps its key", () => {
     expect(out.relations?.["sections"]).toEqual({ create: [{ set: { label: "a" } }] });
   });
 });
+
+describe("a rule inside a row", () => {
+  const made = () =>
+    Repeater.make("items")
+      .relationship("sections")
+      .schema([TextInput.make("label").required()]);
+
+  const errorsFor = async (state: Record<string, unknown>) =>
+    (await resolveSchema(Schema.make([made()]), state, { operation: "create" })).errors;
+
+  it("is reported against the row it is about", async () => {
+    // Keyed on the field's declared name, every row collapses onto one error —
+    // reported at a path that holds nothing, so it fires for rows that are
+    // perfectly filled in and never for the row that is not.
+    const errors = await errorsFor({
+      items: ["a", "b"],
+      "items.a.label": "Filled",
+      "items.b.label": "",
+    });
+
+    expect(errors).toEqual({ "items.b.label": "This field is required." });
+  });
+
+  it("says nothing where every row is filled", async () => {
+    const errors = await errorsFor({
+      items: ["a", "b"],
+      "items.a.label": "One",
+      "items.b.label": "Two",
+    });
+
+    expect(errors).toEqual({});
+  });
+
+  it("reports each row that needs it, not just the first", async () => {
+    const errors = await errorsFor({ items: ["a", "b"], "items.a.label": "" });
+
+    expect(Object.keys(errors).sort()).toEqual(["items.a.label", "items.b.label"]);
+  });
+});
+
+describe("the rows a record already has", () => {
+  const made = () =>
+    Repeater.make("items")
+      .relationship("sections")
+      .schema([TextInput.make("label")]);
+
+  const loaded = async (record: Record<string, unknown>, state = {}) =>
+    await resolveSchema(Schema.make([made()]), state, { operation: "edit", record });
+
+  it("are on the form without the client having asked for them", async () => {
+    // Without this the form shows no rows, so the client sends none back, and
+    // the save reads that as an instruction to delete every one of them.
+    const tree = await loaded({ sections: [{ id: 1, label: "First" }] });
+
+    expect(tree.state["items"]).toEqual(["1"]);
+    expect(tree.state["items.1.label"]).toBe("First");
+  });
+
+  it("give way to what the client sent, once it has sent anything", async () => {
+    // An empty list from a client is a reader who removed the rows, not a
+    // client that has not spoken yet.
+    const tree = await loaded({ sections: [{ id: 1, label: "First" }] }, { items: [] });
+
+    expect(tree.state["items"]).toEqual([]);
+  });
+
+  it("are nothing where the record carries no such relation", async () => {
+    const tree = await loaded({ id: 1 });
+
+    expect(tree.state["items"]).toBeUndefined();
+  });
+});
