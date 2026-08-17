@@ -15,6 +15,7 @@ import { Checkbox } from "./fields/Checkbox.js";
 import { DateTimePicker } from "./fields/DateTimePicker.js";
 import { FileUpload } from "./fields/FileUpload.js";
 import { Placeholder } from "./fields/Placeholder.js";
+import { Repeater } from "./fields/Repeater.js";
 import { Radio } from "./fields/Radio.js";
 import { Textarea } from "./fields/Textarea.js";
 import { Toggle } from "./fields/Toggle.js";
@@ -516,6 +517,107 @@ function FileUploadRenderer({
  * Called once at module load. A plugin adds its own with the same function
  * (extension point E3) — there is no privileged path for the built-ins.
  */
+/**
+ * A repeater, and its rows.
+ *
+ * The payload's children are flat — every field of every row — because the
+ * server addresses them that way. Grouping them back is this file's job, and
+ * the key is read off the path rather than tracked: the server already put it
+ * there, and anything this remembered could disagree with what came back.
+ *
+ * The value is the ordered list of keys. Adding, removing and reordering are
+ * all writes to that one path, which is why none of them needs a route of its
+ * own.
+ */
+function RepeaterRenderer({
+  node,
+  value,
+  error,
+  onChange,
+  renderChild,
+}: NodeProps): ReactNode {
+  const path = node.path;
+  const keys = Array.isArray(value) ? value.filter(isKey) : [];
+  const max = node.props?.["maxItems"];
+
+  const rows = new Map<string, SchemaNode[]>();
+  for (const child of node.children ?? []) {
+    const key = rowKeyOf(path, child.path);
+    if (key === undefined) continue;
+    const group = rows.get(key);
+    if (group === undefined) rows.set(key, [child]);
+    else group.push(child);
+  }
+
+  // In the order the value gives, not the order the payload arrived in: the
+  // list is what says where a row sits.
+  const items = keys.map((key) => ({ id: key }));
+
+  return (
+    <div className="perch-field" data-error={error !== undefined}>
+      <Repeater
+        title={node.label ?? path ?? ""}
+        items={items}
+        {...(typeof max === "number" ? { max } : {})}
+        onAdd={() => {
+          if (path !== undefined) onChange(path, [...keys, newRowKey()]);
+        }}
+        onRemove={(id) => {
+          if (path !== undefined)
+            onChange(
+              path,
+              keys.filter((key) => key !== id),
+            );
+        }}
+        onReorder={(ids) => {
+          // Trusted only as far as it names what is already there: a reorder
+          // moves rows, it does not invent or drop them.
+          if (path === undefined) return;
+          const known = ids.filter((id) => keys.includes(id));
+          if (known.length === keys.length) onChange(path, known);
+        }}
+      >
+        {(item) => (rows.get(item.id) ?? []).map(renderChild)}
+      </Repeater>
+      <div className="perch-field__help" data-error={error !== undefined} role="status">
+        {error ?? ""}
+      </div>
+    </div>
+  );
+}
+
+function isKey(value: unknown): value is string {
+  return typeof value === "string" && value !== "";
+}
+
+/** `items.r1.label` under `items` is `r1`. */
+function rowKeyOf(
+  parent: string | undefined,
+  path: string | undefined,
+): string | undefined {
+  if (parent === undefined || path === undefined) return undefined;
+  if (!path.startsWith(`${parent}.`)) return undefined;
+  const rest = path.slice(parent.length + 1);
+  const dot = rest.indexOf(".");
+  return dot === -1 ? undefined : rest.slice(0, dot);
+}
+
+/**
+ * A name for a row that has just been added.
+ *
+ * It only has to be unlike every other key in this list — the server decides
+ * what it means, and a key it has never seen is a create whatever it looks
+ * like. `randomUUID` where the platform has it, and something unique enough
+ * where it does not.
+ */
+function newRowKey(): string {
+  const crypto = globalThis.crypto as { randomUUID?: () => string } | undefined;
+  return (
+    crypto?.randomUUID?.() ??
+    `new-${String(Date.now())}-${Math.random().toString(36).slice(2)}`
+  );
+}
+
 export function registerBuiltInComponents(): void {
   registerComponent("Schema", LayoutRenderer);
   registerComponent("Section", LayoutRenderer);
@@ -530,4 +632,5 @@ export function registerBuiltInComponents(): void {
   registerComponent("Hidden", HiddenRenderer);
   registerComponent("Toggle", ToggleRenderer);
   registerComponent("Textarea", TextareaRenderer);
+  registerComponent("Repeater", RepeaterRenderer);
 }

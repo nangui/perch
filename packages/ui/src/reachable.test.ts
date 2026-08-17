@@ -21,7 +21,6 @@ import { describe, expect, it } from "vitest";
  * entry in the registry — the two things that make it reachable.
  */
 const NOT_YET_CONNECTED: Readonly<Record<string, string>> = {
-  Repeater: "v0.2 — milestone A3, and the WriteTree it needs is unspent",
   CodeEditor: "v0.3 — outside the v0.1 catalogue entirely",
 };
 
