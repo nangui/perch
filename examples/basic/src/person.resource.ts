@@ -214,6 +214,7 @@ export class PersonResource {
         // deleting rows in one transaction. Its value is the ordered list of
         // row keys; the fields below are what one row holds.
         Repeater.make("noteRows")
+          .label("Notes")
           .relationship("notes")
           .maxItems(5)
           .schema([TextInput.make("body").label("Note").required()]),

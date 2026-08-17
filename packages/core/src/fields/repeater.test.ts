@@ -3,6 +3,7 @@ import { auditSchema } from "../audit.js";
 import { Schema } from "../layout.js";
 import { dehydrate, resolveSchema } from "../resolve.js";
 import { sanitize } from "../sanitize.js";
+import { serialise } from "../serialise.js";
 import { TextInput } from "./text-input.js";
 import { MAX_ROW_KEY_LENGTH, Repeater } from "./repeater.js";
 
@@ -598,5 +599,28 @@ describe("the rows a record already has", () => {
     const tree = await loaded({ id: 1 });
 
     expect(tree.state["items"]).toBeUndefined();
+  });
+});
+
+describe("a repeater always asks the server", () => {
+  const wire = async () => {
+    const made = Repeater.make("items").schema([TextInput.make("label")]);
+    return serialise(
+      await resolveSchema(Schema.make([made]), {}, { operation: "create" }),
+    );
+  };
+
+  it("says so on the wire without anybody having declared it", async () => {
+    // Not a preference. Its value is what says which rows exist, so a row
+    // added without a round trip is a row the tree has never heard of — drawn
+    // with no fields in it, for as long as nothing else on the form asks.
+    expect((await wire()).schema.children?.[0]?.live).toEqual({
+      debounce: 0,
+      onBlur: false,
+    });
+  });
+
+  it("commits at once, because adding a row is a decision and not typing", async () => {
+    expect((await wire()).schema.children?.[0]?.live?.debounce).toBe(0);
   });
 });

@@ -55,8 +55,21 @@ export class Repeater extends Field {
     return 0;
   }
 
+  /**
+   * Live by construction, not by declaration.
+   *
+   * Every other field asks the server because its author wanted something to
+   * follow it. This one has to, whatever anybody wanted: its value is what
+   * says which rows exist, so a row added without a round trip is a row the
+   * tree has never heard of — drawn with no fields in it, for as long as
+   * nothing else on the form happens to ask.
+   */
   static make(name: string): Repeater {
-    return configured(new Repeater(baseFieldState(name)));
+    const state: RepeaterState = {
+      ...baseFieldState(name),
+      live: { debounce: 0, onBlur: false },
+    };
+    return configured(new Repeater(state));
   }
 
   relationship(name: string): this {
