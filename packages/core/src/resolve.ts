@@ -379,6 +379,10 @@ function rowsOf(
     const data = branch(fields, result, options, existing.get(key));
     const id = existing.get(key)?.[field.state.rowKey ?? DEFAULT_ROW_KEY];
     if (id === undefined) {
+      // A row somebody added and never filled in. Writing it makes a child of
+      // nothing, which the reader then has to find and delete — so pressing
+      // "add" and changing your mind costs nothing, which is what it should.
+      if (isEmptyRow(data)) continue;
       create.push(data);
       continue;
     }
@@ -436,6 +440,21 @@ function loadedRows(record: Row | undefined, field: Repeater): Map<string, Row> 
     );
   }
   return rows;
+}
+
+/**
+ * A row with nothing in it, at any depth.
+ *
+ * Nothing set and no relation asked for. A row holding only another repeater
+ * that is itself empty is empty too, which is why this recurses rather than
+ * counting keys.
+ */
+function isEmptyRow(data: WriteTree): boolean {
+  if (Object.keys(data.set ?? {}).length > 0) return false;
+  for (const write of Object.values(data.relations ?? {})) {
+    if (Object.keys(write).length > 0) return false;
+  }
+  return true;
 }
 
 /** `items.r1.label` under `items` is `r1`. */

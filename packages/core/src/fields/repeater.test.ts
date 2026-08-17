@@ -602,6 +602,62 @@ describe("the rows a record already has", () => {
   });
 });
 
+describe("a row somebody added and never filled", () => {
+  const made = () =>
+    Repeater.make("items")
+      .relationship("sections")
+      .schema([TextInput.make("label"), TextInput.make("note")]);
+
+  const written = async (
+    state: Record<string, unknown>,
+    record?: Record<string, unknown>,
+  ) => {
+    const options = {
+      operation: "edit" as const,
+      ...(record === undefined ? {} : { record }),
+    };
+    return dehydrate(
+      await resolveSchema(Schema.make([made()]), state, options),
+      options,
+    );
+  };
+
+  it("is not written, so changing your mind costs nothing", async () => {
+    // Written, it makes a child of nothing that the reader then has to find
+    // and delete.
+    const out = await written({ items: ["fresh"] });
+
+    expect(out.relations?.["sections"]).toEqual({});
+  });
+
+  it("is not written even beside a row that was filled", async () => {
+    const out = await written({ items: ["a", "blank"], "items.a.label": "Kept" });
+
+    expect(out.relations?.["sections"]).toEqual({
+      create: [{ set: { label: "Kept" } }],
+    });
+  });
+
+  it("is written as soon as any one of its fields has something", async () => {
+    const out = await written({ items: ["fresh"], "items.fresh.note": "just this" });
+
+    expect(out.relations?.["sections"]).toEqual({
+      create: [{ set: { note: "just this" } }],
+    });
+  });
+
+  it("is a different matter for a row the record already has", async () => {
+    // Emptying an existing row is an edit, not an absence: it is written, and
+    // the row stays.
+    const record = { sections: [{ id: 7, label: "Was here" }] };
+    const out = await written({ items: ["7"], "items.7.label": "" }, record);
+
+    expect(out.relations?.["sections"]).toEqual({
+      update: [{ id: 7, data: { set: { label: "" } } }],
+    });
+  });
+});
+
 describe("a repeater always asks the server", () => {
   const wire = async () => {
     const made = Repeater.make("items").schema([TextInput.make("label")]);
