@@ -1574,6 +1574,17 @@
   box-shadow: var(--perch-focus-ring);
 }
 
+/* Beside the grip, where the number is: the two together say which row this
+   is, one by position and one by what is in it. */
+.perch-repeater__label {
+  font-size: var(--perch-text-control);
+  font-weight: 500;
+  color: var(--perch-content-secondary);
+  align-self: center;
+  margin-right: var(--perch-space-5);
+  overflow-wrap: anywhere;
+}
+
 .perch-repeater__index {
   font-family: var(--perch-font-mono);
   font-size: var(--perch-text-xs);

@@ -15,6 +15,7 @@ import { Checkbox } from "./fields/Checkbox.js";
 import { DateTimePicker } from "./fields/DateTimePicker.js";
 import { FileUpload } from "./fields/FileUpload.js";
 import { Placeholder } from "./fields/Placeholder.js";
+import type { RepeaterItem } from "./fields/Repeater.js";
 import { Repeater } from "./fields/Repeater.js";
 import { Radio } from "./fields/Radio.js";
 import { Textarea } from "./fields/Textarea.js";
@@ -557,10 +558,15 @@ function RepeaterRenderer({
   // what the server does with it: it is not written until something is filled
   // in. Saying so is the difference between a row that will be saved and one
   // that looks identical and will not.
-  const items = keys.map((key) => ({
-    id: key,
-    ...(isBlankRow(rows.get(key), valueAt) ? { pending: true } : {}),
-  }));
+  const labels = node.props?.["itemLabels"];
+  const items: RepeaterItem[] = keys.map((key) => {
+    const named = labelOf(labels, key);
+    return {
+      id: key,
+      ...(isBlankRow(rows.get(key), valueAt) ? { pending: true } : {}),
+      ...(named === undefined ? {} : { label: named }),
+    };
+  });
 
   return (
     <div className="perch-field" data-error={error !== undefined}>
@@ -593,6 +599,13 @@ function RepeaterRenderer({
       </div>
     </div>
   );
+}
+
+/** What the server called this row, if the field said how to name one. */
+function labelOf(labels: unknown, key: string): string | undefined {
+  if (typeof labels !== "object" || labels === null) return undefined;
+  const held = (labels as Record<string, unknown>)[key];
+  return typeof held === "string" ? held : undefined;
 }
 
 /** Nothing typed in any of the row's fields, which is what "pending" means. */

@@ -36,6 +36,7 @@ function draw(
   keys: readonly string[],
   state: Record<string, unknown> = {},
   arrived: readonly string[] = keys,
+  props?: Record<string, unknown>,
 ): ReturnType<typeof vi.fn> {
   const onChange = vi.fn();
   const payload: SchemaPayload = {
@@ -48,6 +49,7 @@ function draw(
           type: "Repeater",
           path: "items",
           label: "Sections",
+          ...(props === undefined ? {} : { props }),
           children: arrived.flatMap((key) => [
             field(key, "label", "Label"),
             field(key, "note", "Note"),
@@ -167,5 +169,35 @@ describe("a row with nothing in it", () => {
     expect(
       document.querySelector(".perch-repeater__item")?.getAttribute("data-pending"),
     ).toBe("true");
+  });
+});
+
+describe("what the server called a row", () => {
+  it("is shown, so a row is not only a number", () => {
+    draw(["a", "b"], {}, ["a", "b"], { itemLabels: { a: "Intro", b: "Body" } });
+
+    expect(screen.getByText("Intro")).toBeTruthy();
+    expect(screen.getByText("Body")).toBeTruthy();
+  });
+
+  it("follows the row when the order changes, not the position", () => {
+    draw(["b", "a"], {}, ["a", "b"], { itemLabels: { a: "Intro", b: "Body" } });
+    const shown = [...document.querySelectorAll(".perch-repeater__label")].map(
+      (el) => el.textContent,
+    );
+
+    expect(shown).toEqual(["Body", "Intro"]);
+  });
+
+  it("shows nothing for a row it named nothing", () => {
+    draw(["a", "b"], {}, ["a", "b"], { itemLabels: { a: "Intro" } });
+
+    expect(document.querySelectorAll(".perch-repeater__label")).toHaveLength(1);
+  });
+
+  it("shows nothing at all where no field asked for a name", () => {
+    draw(["a"]);
+
+    expect(document.querySelectorAll(".perch-repeater__label")).toHaveLength(0);
   });
 });

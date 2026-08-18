@@ -28,6 +28,14 @@ import type { KeyboardEvent, ReactNode } from "react";
 
 export interface RepeaterItem {
   readonly id: string;
+  /**
+   * What this row is called, where the field said how to name one.
+   *
+   * Rows are otherwise told apart by their position, which changes the moment
+   * anything is reordered — so a reader looking for the one they were editing
+   * has to read every row to find it.
+   */
+  readonly label?: string;
   /** Never sent: no field has been filled yet. */
   readonly pending?: boolean;
   readonly error?: string;
@@ -159,6 +167,10 @@ export function Repeater<T extends RepeaterItem>({
                 <span aria-hidden="true">⠿</span>
                 <span className="perch-repeater__index">{index + 1}</span>
               </button>
+
+              {item.label === undefined ? null : (
+                <span className="perch-repeater__label">{item.label}</span>
+              )}
 
               {children(item, index)}
 
