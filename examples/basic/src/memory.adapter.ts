@@ -9,6 +9,11 @@
  * clauses a filter produced, the search and its paths, and the include a
  * relation column asked for. A demo that drew a filter box and then ignored the
  * clause would be showing something that does not work.
+ *
+ * Everything written here lives as long as the process does. Restarting comes
+ * back to the rows below, which is what a variable is — but it looks exactly
+ * like the panel having lost the save, so the boot says so out loud rather than
+ * leaving somebody to wonder which of the two they are looking at.
  */
 import { Injectable } from "@nestjs/common";
 import type {
