@@ -76,53 +76,47 @@ export function Repeater<T extends RepeaterItem>({
   const atMax = max !== undefined && items.length >= max;
 
   /**
-   * The order while a row is in the air, and the row that is.
+   * The gesture, while it is happening.
    *
-   * The design's rule: *"reordering is a pure UI action until you release: one
-   * PATCH with the final order, not one per step."* So this holds the order
-   * locally through the whole gesture and calls `onReorder` once, on release —
-   * dragging a row past four others is one round trip, not four.
+   * The rows stay where they are in the document and move by transform, so
+   * every step is something CSS can animate — reordering the nodes themselves
+   * would be a jump no transition can smooth, because a moved node has no
+   * "before" to travel from.
+   *
+   * `boxes` is measured once, at the start. Transforms are part of what
+   * `getBoundingClientRect` reports, so measuring again mid-gesture would feed
+   * the drag its own displacement.
    */
-  const [drag, setDrag] = useState<{ id: string; order: readonly string[] } | null>(
-    null,
-  );
+  const [drag, setDrag] = useState<Drag | null>(null);
   const rows = useRef(new Map<string, HTMLElement>());
-
-  // What is on screen: the dragged order while dragging, the given one after.
-  const shown =
-    drag === null
-      ? items
-      : drag.order
-          .map((id) => items.find((item) => item.id === id))
-          .filter((item): item is T => item !== undefined);
 
   function startDrag(id: string, event: ReactPointerEvent<HTMLButtonElement>): void {
     // The pointer is captured so the gesture survives leaving the handle, which
     // it does immediately: the row moves out from under the finger.
     event.currentTarget.setPointerCapture(event.pointerId);
-    setDrag({ id, order: items.map((item) => item.id) });
+    const order = items.map((item) => item.id);
+    setDrag({
+      id,
+      order,
+      from: order.indexOf(id),
+      at: order.indexOf(id),
+      grabbedAt: event.clientY,
+      y: event.clientY,
+      boxes: measureRows(rows.current, order),
+    });
   }
 
   function moveDrag(event: ReactPointerEvent<HTMLButtonElement>): void {
     if (drag === null) return;
-    const over = rowAt(rows.current, drag.order, event.clientY);
-    if (over === undefined) return;
-
-    const from = drag.order.indexOf(drag.id);
-    if (from === -1 || from === over) return;
-    const order = [...drag.order];
-    const [moved] = order.splice(from, 1);
-    if (moved === undefined) return;
-    order.splice(over, 0, moved);
-    setDrag({ id: drag.id, order });
+    const over = rowAt(drag.boxes, drag.order, event.clientY);
+    setDrag({ ...drag, y: event.clientY, at: over ?? drag.at });
   }
 
   function endDrag(): void {
     if (drag === null) return;
     // Only where it landed somewhere else. A press that moved nothing is a
     // press, and it should cost no round trip.
-    const before = items.map((item) => item.id);
-    if (drag.order.some((id, at) => before[at] !== id)) onReorder(drag.order);
+    if (drag.at !== drag.from) onReorder(reordered(drag));
     setDrag(null);
   }
 
@@ -216,7 +210,7 @@ export function Repeater<T extends RepeaterItem>({
         style={{ listStyle: "none", margin: 0 }}
         aria-label={title}
       >
-        {shown.map((item, index) => (
+        {items.map((item, index) => (
           <li
             key={item.id}
             ref={(element) => {
@@ -227,6 +221,7 @@ export function Repeater<T extends RepeaterItem>({
             data-invalid={item.error === undefined ? "false" : "true"}
             data-pending={item.pending === true ? "true" : "false"}
             data-dragging={drag?.id === item.id ? "true" : "false"}
+            style={shift(drag, index)}
           >
             <div className="perch-repeater__row">
               <button
@@ -355,6 +350,78 @@ export const REPEATER_SHORTCUTS: readonly {
 ];
 
 /**
+ * One gesture: which row, where it started, where it is now.
+ *
+ * `at` is the index it would land on if released this instant. `y` is the
+ * pointer, which the dragged row follows so it stays under the finger.
+ */
+interface Drag {
+  readonly id: string;
+  readonly order: readonly string[];
+  readonly from: number;
+  readonly at: number;
+  readonly grabbedAt: number;
+  readonly y: number;
+  readonly boxes: readonly Box[];
+}
+
+export interface Box {
+  readonly top: number;
+  readonly height: number;
+}
+
+/** Where the rows are before anything has moved. Measured once, at the start. */
+function measureRows(
+  elements: ReadonlyMap<string, HTMLElement>,
+  order: readonly string[],
+): readonly Box[] {
+  return order.map((id) => {
+    const box = elements.get(id)?.getBoundingClientRect();
+    return { top: box?.top ?? 0, height: box?.height ?? 0 };
+  });
+}
+
+/** The order a release would produce, without producing it. */
+export function reordered(drag: {
+  readonly order: readonly string[];
+  readonly from: number;
+  readonly at: number;
+}): readonly string[] {
+  const order = [...drag.order];
+  const [moved] = order.splice(drag.from, 1);
+  if (moved === undefined) return drag.order;
+  order.splice(drag.at, 0, moved);
+  return order;
+}
+
+/**
+ * Where a row sits while a gesture is happening.
+ *
+ * The dragged one follows the pointer. Every row between where it came from
+ * and where it is now steps aside by one row's height — the direction depends
+ * on which way it is travelling, and everything else stays put.
+ */
+export function shift(
+  drag: Drag | null,
+  index: number,
+): { transform?: string } | undefined {
+  if (drag === null) return undefined;
+
+  if (index === drag.from) {
+    return { transform: `translateY(${String(drag.y - drag.grabbedAt)}px)` };
+  }
+
+  const height = drag.boxes[drag.from]?.height ?? 0;
+  if (drag.at > drag.from && index > drag.from && index <= drag.at) {
+    return { transform: `translateY(${String(-height)}px)` };
+  }
+  if (drag.at < drag.from && index < drag.from && index >= drag.at) {
+    return { transform: `translateY(${String(height)}px)` };
+  }
+  return { transform: "translateY(0px)" };
+}
+
+/**
  * Which row the pointer is over, by the middles of the rows.
  *
  * Middles rather than edges: a row gives way once the pointer passes the centre
@@ -362,16 +429,15 @@ export const REPEATER_SHORTCUTS: readonly {
  * rather than snapping between gaps.
  */
 export function rowAt(
-  elements: ReadonlyMap<string, HTMLElement>,
+  boxes: readonly Box[],
   order: readonly string[],
   y: number,
 ): number | undefined {
-  for (const [index, id] of order.entries()) {
-    const element = elements.get(id);
-    if (element === undefined) continue;
-    const box = element.getBoundingClientRect();
-    // A layout nothing has measured reports zeroes everywhere, and every row
-    // would look like a match.
+  for (const [index] of order.entries()) {
+    const box = boxes[index];
+    if (box === undefined) continue;
+    // A row that occupies nothing still reports a position, and one below the
+    // pointer would match before any row the reader can see.
     if (box.height === 0) continue;
     if (y < box.top + box.height / 2) return index;
   }

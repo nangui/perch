@@ -1532,9 +1532,27 @@
   border-color: var(--perch-danger-border);
 }
 
+/* Rows step aside rather than jump. The dragged one is excluded below: it
+   follows the pointer, and a transition on that lags behind the finger. */
+.perch-repeater__item {
+  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .perch-repeater__item {
+    transition: none;
+  }
+}
+
+/* Off the page rather than merely outlined: lifted, above its neighbours, and
+   carrying the shadow of something that is no longer lying flat. */
 .perch-repeater__item[data-dragging="true"] {
+  position: relative;
+  z-index: 1;
+  transition: none;
   border-color: var(--perch-border-strong);
   box-shadow: var(--perch-shadow-dragging);
+  background: var(--perch-surface-raised);
 }
 
 .perch-repeater__item[data-dragging="true"] .perch-repeater__handle {

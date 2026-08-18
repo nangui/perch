@@ -11,7 +11,7 @@
  * boxes here. Without them `rowAt` cannot tell one row from another, which is
  * exactly what it refuses to guess at.
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Repeater, rowAt } from "./Repeater.js";
 
@@ -64,6 +64,12 @@ const order = (): string[] =>
     (el) => el.getAttribute("data-row") ?? "",
   );
 
+/** Where each row has been moved to, which is how a drag shows itself now. */
+const shifts = (): string[] =>
+  [...document.querySelectorAll<HTMLElement>(".perch-repeater__item")].map(
+    (row) => row.style.transform,
+  );
+
 /** jsdom has no pointer capture; the component asks for it on every drag. */
 function capturable(element: HTMLElement): HTMLElement {
   element.setPointerCapture = () => undefined;
@@ -73,14 +79,42 @@ function capturable(element: HTMLElement): HTMLElement {
 
 describe("dragging a row", () => {
   it("moves it while the pointer is down, without telling anybody yet", () => {
+    // The nodes stay where they are and move by transform: a reordered node
+    // has no "before" to travel from, so nothing could animate it.
     const onReorder = draw();
     const handle = capturable(grip(0));
 
-    fireEvent.pointerDown(handle, { pointerId: 1 });
+    fireEvent.pointerDown(handle, { pointerId: 1, clientY: 5 });
     fireEvent.pointerMove(handle, { pointerId: 1, clientY: ROW_HEIGHT * 2 + 5 });
 
-    expect(order()).toEqual(["b", "c", "a"]);
+    expect(order()).toEqual(["a", "b", "c"]);
+    expect(shifts()).toEqual([
+      `translateY(${String(ROW_HEIGHT * 2)}px)`,
+      `translateY(${String(-ROW_HEIGHT)}px)`,
+      `translateY(${String(-ROW_HEIGHT)}px)`,
+    ]);
     expect(onReorder).not.toHaveBeenCalled();
+  });
+
+  it("follows the pointer with the row it is holding", () => {
+    draw();
+    const handle = capturable(grip(0));
+
+    fireEvent.pointerDown(handle, { pointerId: 1, clientY: 10 });
+    fireEvent.pointerMove(handle, { pointerId: 1, clientY: 34 });
+
+    expect(shifts()[0]).toBe("translateY(24px)");
+  });
+
+  it("steps the rows it has passed aside by exactly one row", () => {
+    draw();
+    const handle = capturable(grip(2));
+
+    fireEvent.pointerDown(handle, { pointerId: 1, clientY: ROW_HEIGHT * 2 + 5 });
+    fireEvent.pointerMove(handle, { pointerId: 1, clientY: 5 });
+
+    expect(shifts()[0]).toBe(`translateY(${String(ROW_HEIGHT)}px)`);
+    expect(shifts()[1]).toBe(`translateY(${String(ROW_HEIGHT)}px)`);
   });
 
   it("tells the host once, on release, with where it ended up", () => {
@@ -88,9 +122,8 @@ describe("dragging a row", () => {
     const onReorder = draw();
     const handle = capturable(grip(0));
 
-    fireEvent.pointerDown(handle, { pointerId: 1 });
+    fireEvent.pointerDown(handle, { pointerId: 1, clientY: 5 });
     fireEvent.pointerMove(handle, { pointerId: 1, clientY: ROW_HEIGHT + 5 });
-    measure();
     fireEvent.pointerMove(handle, { pointerId: 1, clientY: ROW_HEIGHT * 2 + 5 });
     fireEvent.pointerUp(handle, { pointerId: 1 });
 
@@ -102,24 +135,25 @@ describe("dragging a row", () => {
     const onReorder = draw();
     const handle = capturable(grip(0));
 
-    fireEvent.pointerDown(handle, { pointerId: 1 });
-    fireEvent.pointerMove(handle, { pointerId: 1, clientY: 5 });
+    fireEvent.pointerDown(handle, { pointerId: 1, clientY: 5 });
+    fireEvent.pointerMove(handle, { pointerId: 1, clientY: 8 });
     fireEvent.pointerUp(handle, { pointerId: 1 });
 
     expect(onReorder).not.toHaveBeenCalled();
   });
 
-  it("puts the rows back where the host says once it has spoken", () => {
-    // The host owns the order. What the drag showed was a proposal.
+  it("puts every row back where it was once the gesture ends", () => {
+    // The host owns the order. What the drag showed was a proposal, and the
+    // rows return to their untransformed places to wait for the answer.
     const onReorder = draw();
     const handle = capturable(grip(0));
 
-    fireEvent.pointerDown(handle, { pointerId: 1 });
+    fireEvent.pointerDown(handle, { pointerId: 1, clientY: 5 });
     fireEvent.pointerMove(handle, { pointerId: 1, clientY: ROW_HEIGHT * 2 + 5 });
     fireEvent.pointerUp(handle, { pointerId: 1 });
 
-    // The props never changed, so the given order is what shows again.
     expect(order()).toEqual(["a", "b", "c"]);
+    expect(shifts()).toEqual(["", "", ""]);
     expect(onReorder).toHaveBeenCalledWith(["b", "c", "a"]);
   });
 
@@ -141,56 +175,45 @@ describe("dragging a row", () => {
     const onReorder = draw();
     const handle = capturable(grip(0));
 
-    fireEvent.pointerDown(handle, { pointerId: 1 });
+    fireEvent.pointerDown(handle, { pointerId: 1, clientY: 5 });
     fireEvent.pointerMove(handle, { pointerId: 1, clientY: ROW_HEIGHT * 2 + 5 });
     fireEvent.pointerCancel(handle, { pointerId: 1 });
 
     expect(onReorder).not.toHaveBeenCalled();
-
-    expect(order()).toEqual(["a", "b", "c"]);
-    expect(screen.queryByText("a")).toBeTruthy();
+    expect(shifts()).toEqual(["", "", ""]);
   });
 });
 
 describe("which row a pointer is over", () => {
-  const boxed = (tops: readonly number[]): ReadonlyMap<string, HTMLElement> =>
-    new Map(
-      tops.map((top, index) => [
-        String(index),
-        {
-          getBoundingClientRect: () => ({ top, height: ROW_HEIGHT }) as DOMRect,
-        } as HTMLElement,
-      ]),
-    );
-
   const ids = ["0", "1", "2"];
-  const rows = boxed([0, 40, 80]);
+  const boxes = [
+    { top: 0, height: ROW_HEIGHT },
+    { top: 40, height: ROW_HEIGHT },
+    { top: 80, height: ROW_HEIGHT },
+  ];
 
   it("is the row whose middle the pointer has not passed", () => {
-    expect(rowAt(rows, ids, 5)).toBe(0);
-    expect(rowAt(rows, ids, 19)).toBe(0);
-    expect(rowAt(rows, ids, 21)).toBe(1);
+    expect(rowAt(boxes, ids, 5)).toBe(0);
+    expect(rowAt(boxes, ids, 19)).toBe(0);
+    expect(rowAt(boxes, ids, 21)).toBe(1);
   });
 
   it("is the last row once the pointer is past all of them", () => {
-    expect(rowAt(rows, ids, 500)).toBe(2);
+    expect(rowAt(boxes, ids, 500)).toBe(2);
   });
 
   it("is nothing where there are no rows to be over", () => {
-    expect(rowAt(new Map(), [], 10)).toBeUndefined();
+    expect(rowAt([], [], 10)).toBeUndefined();
   });
 
   it("ignores a row with no height, rather than letting it catch the pointer", () => {
     // A row that occupies nothing still reports a position, and a position
-    // below the pointer would match before any row the reader can see. The
-    // pointer here is over the second visible row; the empty one sits under it.
-    const box = (top: number, height: number) =>
-      ({ getBoundingClientRect: () => ({ top, height }) as DOMRect }) as HTMLElement;
-    const withEmpty = new Map([
-      ["0", box(0, 40)],
-      ["gone", box(100, 0)],
-      ["1", box(40, 40)],
-    ]);
+    // below the pointer would match before any row the reader can see.
+    const withEmpty = [
+      { top: 0, height: 40 },
+      { top: 100, height: 0 },
+      { top: 40, height: 40 },
+    ];
 
     expect(rowAt(withEmpty, ["0", "gone", "1"], 45)).toBe(2);
   });
