@@ -211,25 +211,26 @@ export class PersonResource {
             ),
         ]),
 
-      Section.make("Notes").schema([
-        // The repeater, and milestone A3: adding, editing, reordering and
-        // deleting rows in one transaction. Its value is the ordered list of
-        // row keys; the fields below are what one row holds.
-        Repeater.make("noteRows")
-          .label("Notes")
-          .relationship("notes")
-          .maxItems(5)
-          .collapsible()
-          // Named by what is in it, so a row is more than its position — which
-          // changes the moment anything is reordered.
-          .itemLabel(({ get }) => {
-            const body = get("body");
-            return typeof body === "string" && body !== ""
-              ? body.slice(0, 40)
-              : "New note";
-          })
-          .schema([TextInput.make("body").label("Note").required()]),
-      ]),
+      // The repeater, and milestone A3: adding, editing, reordering and
+      // deleting rows in one transaction. Its value is the ordered list of row
+      // keys; the fields below are what one row holds.
+      //
+      // Not inside a `Section`: it draws its own head, with its own name and
+      // count, so a section around it is a card in a card saying "Notes" twice.
+      Repeater.make("noteRows")
+        .label("Notes")
+        .relationship("notes")
+        .maxItems(5)
+        .collapsible()
+        // Named by what is in it, so a row is more than its position — which
+        // changes the moment anything is reordered.
+        .itemLabel(({ get }) => {
+          const body = get("body");
+          return typeof body === "string" && body !== ""
+            ? body.slice(0, 40)
+            : "New note";
+        })
+        .schema([TextInput.make("body").label("Note").required()]),
 
       Section.make("Photo").schema([
         FileUpload.make("avatar")
