@@ -37,6 +37,7 @@ function draw(
   state: Record<string, unknown> = {},
   arrived: readonly string[] = keys,
   props?: Record<string, unknown>,
+  errors: Record<string, string> = {},
 ): ReturnType<typeof vi.fn> {
   const onChange = vi.fn();
   const payload: SchemaPayload = {
@@ -58,7 +59,7 @@ function draw(
       ],
     },
     state: { items: [...keys], ...state },
-    errors: {},
+    errors,
   };
   render(<SchemaRenderer payload={payload} onChange={onChange} />);
   return onChange;
@@ -249,5 +250,72 @@ describe("folding a row away", () => {
     fireEvent.click(screen.getByRole("button", { name: /hide item 1/i }));
 
     expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("a row the server refused", () => {
+  const refused = (over: Record<string, string>, props?: Record<string, unknown>) =>
+    draw(["a", "b"], {}, ["a", "b"], props, over);
+
+  /**
+   * What the row's own line says.
+   *
+   * Read from the element rather than by text: the field's copy of the message
+   * is inside the folded container, and a text query finds hidden nodes.
+   */
+  const lines = (): string[] =>
+    [...document.querySelectorAll(".perch-repeater__note")].map((el) => el.textContent);
+
+  it("leaves the message to the field while the row is open", () => {
+    // Said on the line as well, it is said twice — once beside the control it
+    // is about and once above it.
+    refused({ "items.a.label": "This field is required." });
+
+    expect(lines()[0]).toBe("");
+    expect(screen.getByText("This field is required.")).toBeTruthy();
+  });
+
+  it("marks the row rather than the whole repeater", () => {
+    refused({ "items.b.label": "Too long." });
+    const marked = [...document.querySelectorAll(".perch-repeater__item")].map((row) =>
+      row.getAttribute("data-invalid"),
+    );
+
+    expect(marked).toEqual(["false", "true"]);
+  });
+
+  it("still says so with the row folded, which is the point", () => {
+    // A folded row hiding the reason a form will not save is a form nobody can
+    // fix without opening every row to look.
+    refused({ "items.a.label": "This field is required." }, { collapsible: true });
+    fireEvent.click(screen.getByRole("button", { name: /hide item 1/i }));
+
+    expect(lines()[0]).toBe("This field is required.");
+  });
+
+  it("says nothing on the line while the row is open", () => {
+    refused({ "items.a.label": "This field is required." }, { collapsible: true });
+
+    expect(lines()[0]).toBe("");
+  });
+
+  it("shows one message when folded, because a line has room for one", () => {
+    refused(
+      { "items.a.label": "First problem.", "items.a.note": "Second problem." },
+      { collapsible: true },
+    );
+    fireEvent.click(screen.getByRole("button", { name: /hide item 1/i }));
+
+    expect(lines()[0]).toBe("First problem.");
+  });
+
+  it("says nothing where the server refused nothing", () => {
+    refused({});
+
+    expect(
+      [...document.querySelectorAll(".perch-repeater__item")].map((row) =>
+        row.getAttribute("data-invalid"),
+      ),
+    ).toEqual(["false", "false"]);
   });
 });

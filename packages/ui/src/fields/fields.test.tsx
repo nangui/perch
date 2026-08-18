@@ -377,11 +377,23 @@ describe("Repeater", () => {
     expect(onAdd).not.toHaveBeenCalled();
   });
 
-  it("reserves a note line per item and shows the error in it", () => {
+  it("reserves a note line per item, whatever it has to say", () => {
+    // Reserved either way, so nothing below a row moves as it gains a message.
     renderRepeater();
-    const notes = screen.getAllByRole("status");
-    expect(notes).toHaveLength(items.length);
-    expect(notes[1]?.textContent).toContain("Not a valid email address");
+
+    expect(screen.getAllByRole("status")).toHaveLength(items.length);
+  });
+
+  it("marks a refused row without writing the message twice", () => {
+    // The field says it itself. The line takes over only when the row is
+    // folded and the field cannot be seen at all.
+    renderRepeater();
+    const rows = document.querySelectorAll(".perch-repeater__item");
+
+    expect(rows[1]?.getAttribute("data-invalid")).toBe("true");
+    expect(screen.getAllByRole("status")[1]?.textContent).not.toContain(
+      "Not a valid email address",
+    );
   });
 
   it("offers keyboard reordering on the handle, not mouse only", () => {

@@ -59,6 +59,13 @@ export interface NodeProps {
    * that names nothing reads nothing.
    */
   readonly valueAt: (path: string) => unknown;
+  /**
+   * The message at any path, for the same few nodes.
+   *
+   * A repeater folds its rows away, and a folded row hiding a field the server
+   * refused is a form that will not save with nothing on screen to say why.
+   */
+  readonly errorAt: (path: string) => string | undefined;
   /** Renders a child node. Passed down so no component imports the renderer. */
   readonly renderChild: (child: SchemaNode) => React.ReactNode;
 }

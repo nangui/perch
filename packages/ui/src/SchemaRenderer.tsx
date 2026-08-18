@@ -41,6 +41,10 @@ export function SchemaRenderer({
   // Memoised for the same reason `render` is: a fresh function on every render
   // is a changed prop on every node, and the memoisation below stops holding.
   const valueAt = useCallback((at: string): unknown => payload.state[at], [payload]);
+  const errorAt = useCallback(
+    (at: string): string | undefined => payload.errors[at],
+    [payload],
+  );
 
   const render = useCallback(
     function renderNode(node: SchemaNode): ReactNode {
@@ -56,11 +60,12 @@ export function SchemaRenderer({
           searchOptions={searchOptions}
           uploadFile={uploadFile}
           valueAt={valueAt}
+          errorAt={errorAt}
           renderChild={renderNode}
         />
       );
     },
-    [payload, onChange, pending, inFlight, searchOptions, uploadFile, valueAt],
+    [payload, onChange, pending, inFlight, searchOptions, uploadFile, valueAt, errorAt],
   );
 
   return render(payload.schema);
@@ -81,6 +86,7 @@ const RenderedNode = memo(function RenderedNode({
   searchOptions,
   uploadFile,
   valueAt,
+  errorAt,
   renderChild,
 }: {
   readonly node: SchemaNode;
@@ -92,6 +98,7 @@ const RenderedNode = memo(function RenderedNode({
   readonly searchOptions?: NodeProps["searchOptions"];
   readonly uploadFile?: NodeProps["uploadFile"];
   readonly valueAt: NodeProps["valueAt"];
+  readonly errorAt: NodeProps["errorAt"];
   readonly renderChild: (child: SchemaNode) => ReactNode;
 }): ReactNode {
   const Renderer = lookupComponent(node.type);
@@ -107,6 +114,7 @@ const RenderedNode = memo(function RenderedNode({
       searchOptions={searchOptions}
       uploadFile={uploadFile}
       valueAt={valueAt}
+      errorAt={errorAt}
       renderChild={renderChild}
     />
   );

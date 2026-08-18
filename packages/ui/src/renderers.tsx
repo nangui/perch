@@ -566,6 +566,7 @@ function RepeaterRenderer({
   onChange,
   renderChild,
   valueAt,
+  errorAt,
 }: NodeProps): ReactNode {
   const path = node.path;
   const keys = Array.isArray(value) ? value.filter(isKey) : [];
@@ -590,10 +591,14 @@ function RepeaterRenderer({
   const labels = node.props?.["itemLabels"];
   const items: RepeaterItem[] = keys.map((key) => {
     const named = labelOf(labels, key);
+    // The row carries what its fields were refused. A folded row would
+    // otherwise hide the reason a form will not save.
+    const refused = firstError(rows.get(key), errorAt);
     return {
       id: key,
       ...(isBlankRow(rows.get(key), valueAt) ? { pending: true } : {}),
       ...(named === undefined ? {} : { label: named }),
+      ...(refused === undefined ? {} : { error: refused }),
     };
   });
 
@@ -636,6 +641,23 @@ function labelOf(labels: unknown, key: string): string | undefined {
   if (typeof labels !== "object" || labels === null) return undefined;
   const held = (labels as Record<string, unknown>)[key];
   return typeof held === "string" ? held : undefined;
+}
+
+/**
+ * What the server refused in this row, if it refused anything.
+ *
+ * The first one: a row is a line, and a line has room for one message. The
+ * fields carry their own underneath once the row is open.
+ */
+function firstError(
+  fields: readonly SchemaNode[] | undefined,
+  errorAt: (path: string) => string | undefined,
+): string | undefined {
+  for (const node of fields ?? []) {
+    const said = node.path === undefined ? undefined : errorAt(node.path);
+    if (said !== undefined) return said;
+  }
+  return undefined;
 }
 
 /** Nothing typed in any of the row's fields, which is what "pending" means. */

@@ -43,6 +43,13 @@ export interface RepeaterItem {
   readonly label?: string;
   /** Never sent: no field has been filled yet. */
   readonly pending?: boolean;
+  /**
+   * What the server refused in this row.
+   *
+   * Marks the row either way, and is written on its line only while the row is
+   * folded: open, the field it is about says it itself, and a row that
+   * repeated it would say it twice.
+   */
   readonly error?: string;
   readonly note?: string;
 }
@@ -330,11 +337,16 @@ export function Repeater<T extends RepeaterItem>({
             {/* Reserved, like every help line in the system. */}
             <div
               className="perch-repeater__note"
-              data-error={item.error === undefined ? "false" : "true"}
+              data-error={
+                item.error !== undefined && folded.has(item.id) ? "true" : "false"
+              }
               role="status"
               aria-live="polite"
             >
-              {item.error ?? item.note ?? ""}
+              {/* The field says it itself while the row is open; repeating it
+                  here would say it twice. Folded, this is the only place it
+                  can be said at all. */}
+              {(folded.has(item.id) ? item.error : undefined) ?? item.note ?? ""}
             </div>
           </li>
         ))}
