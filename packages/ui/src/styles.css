@@ -1576,6 +1576,30 @@
 }
 
 /* Declared, not inherited: the content is a glyph and a 10 px number. */
+/* Beside the grip, and shaped like it: a small square that turns rather than a
+   button with a word in it, because a row's own controls should not outweigh
+   what is in the row. */
+.perch-repeater__fold {
+  min-width: 24px;
+  min-height: 24px;
+  align-self: start;
+  border: none;
+  background: none;
+  color: var(--perch-content-subtle);
+  cursor: pointer;
+  font-size: var(--perch-text-base);
+}
+
+.perch-repeater__fold:hover {
+  color: var(--perch-content);
+}
+
+/* The fields keep the row's width; folding takes their height, not their place
+   in the grid. */
+.perch-repeater__fields {
+  min-width: 0;
+}
+
 /* A grip that can be dragged says so under the pointer, and stops the browser
    turning the gesture into a text selection or a scroll. */
 .perch-repeater__handle {
@@ -1704,6 +1728,26 @@
 
 .perch-layout--schema > .perch-layout__body {
   gap: var(--perch-space-9);
+}
+
+/* The whole heading is the control where a section folds: a title beside a
+   small arrow is a target most people aim at and miss. */
+.perch-layout__title--folds {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.perch-layout__caret {
+  color: var(--perch-content-subtle);
 }
 
 .perch-layout__title {

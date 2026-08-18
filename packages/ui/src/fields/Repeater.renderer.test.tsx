@@ -201,3 +201,53 @@ describe("what the server called a row", () => {
     expect(document.querySelectorAll(".perch-repeater__label")).toHaveLength(0);
   });
 });
+
+describe("folding a row away", () => {
+  const folding = (keys: readonly string[]) =>
+    draw(keys, { "items.a.label": "Kept" }, keys, { collapsible: true });
+
+  it("is not offered where the field did not ask for it", () => {
+    draw(["a"]);
+
+    expect(document.querySelector(".perch-repeater__fold")).toBeNull();
+  });
+
+  it("hides the row's fields without throwing them away", () => {
+    // A folded field is still a field: still filled in, still saved. Unmounting
+    // it would lose what is in it.
+    folding(["a"]);
+    fireEvent.click(screen.getByRole("button", { name: /hide item 1/i }));
+
+    expect(
+      document.querySelector(".perch-repeater__fields")?.hasAttribute("hidden"),
+    ).toBe(true);
+    expect(screen.getByLabelText("Label")).toHaveProperty("value", "Kept");
+  });
+
+  it("folds one row without folding the others", () => {
+    folding(["a", "b"]);
+    fireEvent.click(screen.getByRole("button", { name: /hide item 1/i }));
+
+    const hidden = [...document.querySelectorAll(".perch-repeater__fields")].map((el) =>
+      el.hasAttribute("hidden"),
+    );
+    expect(hidden).toEqual([true, false]);
+  });
+
+  it("unfolds again, and says which way it goes", () => {
+    folding(["a"]);
+    fireEvent.click(screen.getByRole("button", { name: /hide item 1/i }));
+    fireEvent.click(screen.getByRole("button", { name: /show item 1/i }));
+
+    expect(
+      document.querySelector(".perch-repeater__fields")?.hasAttribute("hidden"),
+    ).toBe(false);
+  });
+
+  it("tells the server nothing, because folding is not state", () => {
+    const onChange = folding(["a"]);
+    fireEvent.click(screen.getByRole("button", { name: /hide item 1/i }));
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});

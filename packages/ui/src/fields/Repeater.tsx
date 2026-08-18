@@ -56,6 +56,8 @@ export interface RepeaterProps<T extends RepeaterItem> {
   /** Renders the item's own fields into the row's middle columns. */
   readonly children: (item: T, index: number) => ReactNode;
   readonly max?: number;
+  /** Rows can be folded away. Which are folded is this component's own. */
+  readonly collapsible?: boolean;
   readonly addLabel?: string;
   readonly emptyTitle?: string;
   readonly emptyBody?: string;
@@ -69,6 +71,7 @@ export function Repeater<T extends RepeaterItem>({
   onRemove,
   children,
   max,
+  collapsible = false,
   addLabel = "Add item",
   emptyTitle,
   emptyBody,
@@ -89,6 +92,23 @@ export function Repeater<T extends RepeaterItem>({
    */
   const [drag, setDrag] = useState<Drag | null>(null);
   const rows = useRef(new Map<string, HTMLElement>());
+
+  /**
+   * The rows the reader has folded away.
+   *
+   * Never sent anywhere. Folding changes nothing about the form — the fields
+   * are still there, still filled in, still saved — so it is the one piece of
+   * this component that is nobody's business but the reader's.
+   */
+  const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
+
+  function toggleFold(id: string): void {
+    setFolded((was) => {
+      const next = new Set(was);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
 
   function startDrag(id: string, event: ReactPointerEvent<HTMLButtonElement>): void {
     // The pointer is captured so the gesture survives leaving the handle, which
@@ -242,11 +262,36 @@ export function Repeater<T extends RepeaterItem>({
                 <span className="perch-repeater__index">{index + 1}</span>
               </button>
 
+              {!collapsible ? null : (
+                <button
+                  type="button"
+                  className="perch-repeater__fold"
+                  aria-expanded={!folded.has(item.id)}
+                  aria-controls={`${item.id}-fields`}
+                  aria-label={`${folded.has(item.id) ? "Show" : "Hide"} item ${String(index + 1)}`}
+                  onClick={() => {
+                    toggleFold(item.id);
+                  }}
+                >
+                  <span aria-hidden="true">
+                    {folded.has(item.id) ? "\u25B8" : "\u25BE"}
+                  </span>
+                </button>
+              )}
+
               {item.label === undefined ? null : (
                 <span className="perch-repeater__label">{item.label}</span>
               )}
 
-              {children(item, index)}
+              {/* Hidden rather than unmounted: an unmounted field loses what
+                  was typed in it, and folding a row is not throwing it away. */}
+              <div
+                id={`${item.id}-fields`}
+                className="perch-repeater__fields"
+                hidden={folded.has(item.id)}
+              >
+                {children(item, index)}
+              </div>
 
               <div className="perch-repeater__actions">
                 {/* Both directions: §2.5.7 wants a single-pointer alternative to

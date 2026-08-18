@@ -21,22 +21,25 @@ import { describe, expect, it } from "vitest";
  * that belongs with the feature.
  */
 const SENT_BUT_UNREAD: Readonly<Record<string, string>> = {
-  collapsible:
-    "a section that folds. Nothing renders the control, and `collapsed` is " +
-    "read only as the state it would start in",
-  minLength:
+  "TextInput.minLength":
     "the server refuses a short value and says so; the browser has nothing " +
     "to do with it until a live counter shows the floor the way `maxLength` " +
     "shows the ceiling",
-  optionsLimit:
+  "Select.optionsLimit":
     "how many a relationship query returns. A server-side bound the client " +
     "has no use for until it draws something about it",
-  preload:
+  "Select.preload":
     "fetching a searchable select's options before the reader types. The " +
     "control asks on demand, and nothing decides otherwise yet",
 };
 
-/** What `serialise.ts` puts on the wire, per component type. */
+/**
+ * What `serialise.ts` puts on the wire, as `Type.prop`.
+ *
+ * Qualified by the type it belongs to, because two components can send a prop
+ * of the same name and only one of them may have a reader — which is how a
+ * repeater's `collapsible` quietly vouched for a section's.
+ */
 function crossing(): readonly string[] {
   const source = readFileSync(
     new URL("../../core/src/serialise.ts", import.meta.url),
@@ -45,10 +48,20 @@ function crossing(): readonly string[] {
   const block = /const EXTRA_PROPS[^{]*\{([\s\S]*?)\n\};/.exec(source);
   if (block === null) throw new Error("EXTRA_PROPS is not where this expected it");
 
-  const listed = block[1] ?? "";
-  return [...new Set([...listed.matchAll(/"([a-zA-Z]+)"/g)].map((m) => m[1] ?? ""))]
-    .filter((name) => name !== "")
-    .sort();
+  const out: string[] = [];
+  for (const line of (block[1] ?? "").split("\n")) {
+    const entry = /^\s*(\w+):\s*\[([^\]]*)\]/.exec(line);
+    if (entry === null) continue;
+    for (const prop of entry[2]?.matchAll(/"(\w+)"/g) ?? []) {
+      out.push(`${entry[1] ?? ""}.${prop[1] ?? ""}`);
+    }
+  }
+  return [...new Set(out)].sort();
+}
+
+/** The prop half of `Section.collapsible`. */
+function nameOf(qualified: string): string {
+  return qualified.slice(qualified.indexOf(".") + 1);
 }
 
 /** Every word this package mentions, outside its own tests. */
@@ -69,7 +82,7 @@ describe("a prop the server sends", () => {
   it("is read by something, or listed as deliberately not", () => {
     const source = mentioned();
     const unread = crossing().filter(
-      (prop) => !new RegExp(`\\b${prop}\\b`).test(source),
+      (prop) => !new RegExp(`\\b${nameOf(prop)}\\b`).test(source),
     );
 
     expect(unread).toEqual(Object.keys(SENT_BUT_UNREAD).sort());
@@ -79,8 +92,9 @@ describe("a prop the server sends", () => {
     // An allowlist that only grows is a guard that stops guarding, quietly, on
     // the day somebody is in a hurry.
     const source = mentioned();
+    // Qualified, so one type gaining a reader does not excuse another.
     const claimed = Object.keys(SENT_BUT_UNREAD).filter((prop) =>
-      new RegExp(`\\b${prop}\\b`).test(source),
+      new RegExp(`\\b${nameOf(prop)}\\b`).test(source),
     );
 
     expect(claimed).toEqual([]);

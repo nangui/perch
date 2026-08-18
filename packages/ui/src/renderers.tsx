@@ -6,7 +6,7 @@
  * substitutable, which is what a plugin needs to replace one.
  */
 import type { ReactNode } from "react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { SchemaNode } from "@perchjs/core";
 import { FieldShell } from "./FieldShell.js";
 import type { FieldStatus } from "./field-state.js";
@@ -73,12 +73,41 @@ function columnsStyle(node: SchemaNode): Record<string, string> | undefined {
 }
 
 function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
+  const collapsible = node.props?.["collapsible"] === true;
+  // Where it starts, not where it stays: after that it is the reader's.
+  const [folded, setFolded] = useState(node.props?.["collapsed"] === true);
+  const title = node.label;
+
   return (
     <div className={`perch-layout perch-layout--${node.type.toLowerCase()}`}>
-      {node.label === undefined ? null : (
-        <div className="perch-layout__title">{node.label}</div>
+      {title === undefined ? null : collapsible ? (
+        // The whole heading is the control, because a title beside a small
+        // arrow is a target most people aim at and miss.
+        <button
+          type="button"
+          className="perch-layout__title perch-layout__title--folds"
+          aria-expanded={!folded}
+          aria-controls={`${node.id}-body`}
+          onClick={() => {
+            setFolded((was) => !was);
+          }}
+        >
+          <span className="perch-layout__caret" aria-hidden="true">
+            {folded ? "\u25B8" : "\u25BE"}
+          </span>
+          {title}
+        </button>
+      ) : (
+        <div className="perch-layout__title">{title}</div>
       )}
-      <div className="perch-layout__body" style={columnsStyle(node)}>
+      {/* Hidden rather than unmounted: a folded field is still a field, still
+          filled in and still saved, and unmounting would lose what is in it. */}
+      <div
+        id={`${node.id}-body`}
+        className="perch-layout__body"
+        style={columnsStyle(node)}
+        hidden={collapsible && folded}
+      >
         {(node.children ?? []).map(renderChild)}
       </div>
     </div>
@@ -574,6 +603,7 @@ function RepeaterRenderer({
         title={node.label ?? path ?? ""}
         items={items}
         {...(typeof max === "number" ? { max } : {})}
+        {...(node.props?.["collapsible"] === true ? { collapsible: true } : {})}
         onAdd={() => {
           if (path !== undefined) onChange(path, [...keys, newRowKey()]);
         }}

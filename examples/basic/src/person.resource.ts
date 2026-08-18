@@ -178,16 +178,18 @@ export class PersonResource {
             .helperText("Follows the country."),
         ]),
 
-      Section.make("About").schema([
-        Textarea.make("bio")
-          .label("Biography")
-          .rows(4)
-          .autosize()
-          .maxLength(280)
-          .placeholder("A line or two about them.")
-          .helperText("Counted in characters, and refused on the server too."),
-        Radio.make("role").label("Role").options(ROLES).inline(),
-      ]),
+      Section.make("About")
+        .collapsible()
+        .schema([
+          Textarea.make("bio")
+            .label("Biography")
+            .rows(4)
+            .autosize()
+            .maxLength(280)
+            .placeholder("A line or two about them.")
+            .helperText("Counted in characters, and refused on the server too."),
+          Radio.make("role").label("Role").options(ROLES).inline(),
+        ]),
 
       Section.make("Status")
         .columns(2)
@@ -217,6 +219,7 @@ export class PersonResource {
           .label("Notes")
           .relationship("notes")
           .maxItems(5)
+          .collapsible()
           // Named by what is in it, so a row is more than its position — which
           // changes the moment anything is reordered.
           .itemLabel(({ get }) => {
