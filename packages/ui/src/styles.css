@@ -1762,6 +1762,15 @@
 
 /* The whole heading is the control where a section folds: a title beside a
    small arrow is a target most people aim at and miss. */
+.perch-layout__title--folds:focus-visible {
+  outline: none;
+  border-radius: var(--perch-radius);
+  /* The panel's own ring rather than the browser's. A default outline drawn
+     around something the width of the card reads as an error box, which is
+     what it looked like. */
+  box-shadow: var(--perch-focus-ring);
+}
+
 .perch-layout__title--folds {
   display: flex;
   align-items: center;
@@ -1795,6 +1804,15 @@
   border-bottom: 1px solid var(--perch-border-subtle);
   font-size: var(--perch-text-lg);
   font-weight: 600;
+}
+
+/* A folded section is its heading and nothing else. The rule below it divides
+   the heading from what follows, and the space under it is for what follows —
+   with the body gone, both leave a card with a hole in it. */
+.perch-layout--section:has(> .perch-layout__body[hidden]) > .perch-layout__title {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 /* Development only: a node whose type has no registered renderer. */
