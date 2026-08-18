@@ -24,7 +24,12 @@
  * So the grip is what it always was underneath: the control that takes Alt with
  * the arrow keys, beside two buttons that do the same in one press.
  */
-import type { KeyboardEvent, ReactNode } from "react";
+import type {
+  KeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+} from "react";
+import { useRef, useState } from "react";
 
 export interface RepeaterItem {
   readonly id: string;
@@ -69,6 +74,69 @@ export function Repeater<T extends RepeaterItem>({
   emptyBody,
 }: RepeaterProps<T>): ReactNode {
   const atMax = max !== undefined && items.length >= max;
+
+  /**
+   * The order while a row is in the air, and the row that is.
+   *
+   * The design's rule: *"reordering is a pure UI action until you release: one
+   * PATCH with the final order, not one per step."* So this holds the order
+   * locally through the whole gesture and calls `onReorder` once, on release —
+   * dragging a row past four others is one round trip, not four.
+   */
+  const [drag, setDrag] = useState<{ id: string; order: readonly string[] } | null>(
+    null,
+  );
+  const rows = useRef(new Map<string, HTMLElement>());
+
+  // What is on screen: the dragged order while dragging, the given one after.
+  const shown =
+    drag === null
+      ? items
+      : drag.order
+          .map((id) => items.find((item) => item.id === id))
+          .filter((item): item is T => item !== undefined);
+
+  function startDrag(id: string, event: ReactPointerEvent<HTMLButtonElement>): void {
+    // The pointer is captured so the gesture survives leaving the handle, which
+    // it does immediately: the row moves out from under the finger.
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDrag({ id, order: items.map((item) => item.id) });
+  }
+
+  function moveDrag(event: ReactPointerEvent<HTMLButtonElement>): void {
+    if (drag === null) return;
+    const over = rowAt(rows.current, drag.order, event.clientY);
+    if (over === undefined) return;
+
+    const from = drag.order.indexOf(drag.id);
+    if (from === -1 || from === over) return;
+    const order = [...drag.order];
+    const [moved] = order.splice(from, 1);
+    if (moved === undefined) return;
+    order.splice(over, 0, moved);
+    setDrag({ id: drag.id, order });
+  }
+
+  function endDrag(): void {
+    if (drag === null) return;
+    // Only where it landed somewhere else. A press that moved nothing is a
+    // press, and it should cost no round trip.
+    const before = items.map((item) => item.id);
+    if (drag.order.some((id, at) => before[at] !== id)) onReorder(drag.order);
+    setDrag(null);
+  }
+
+  /**
+   * A gesture that was taken away rather than finished.
+   *
+   * The browser cancels a pointer for reasons that have nothing to do with the
+   * reader — a system gesture, a call arriving, the page losing the pointer —
+   * and none of them is a decision to move a row. So the rows go back and
+   * nobody is told, which is what "cancel" means.
+   */
+  function cancelDrag(): void {
+    setDrag(null);
+  }
 
   function move(id: string, by: number): void {
     const from = items.findIndex((item) => item.id === id);
@@ -148,12 +216,17 @@ export function Repeater<T extends RepeaterItem>({
         style={{ listStyle: "none", margin: 0 }}
         aria-label={title}
       >
-        {items.map((item, index) => (
+        {shown.map((item, index) => (
           <li
             key={item.id}
+            ref={(element) => {
+              if (element === null) rows.current.delete(item.id);
+              else rows.current.set(item.id, element);
+            }}
             className="perch-repeater__item"
             data-invalid={item.error === undefined ? "false" : "true"}
             data-pending={item.pending === true ? "true" : "false"}
+            data-dragging={drag?.id === item.id ? "true" : "false"}
           >
             <div className="perch-repeater__row">
               <button
@@ -163,6 +236,12 @@ export function Repeater<T extends RepeaterItem>({
                 onKeyDown={(event) => {
                   onHandleKeyDown(event, item.id);
                 }}
+                onPointerDown={(event) => {
+                  startDrag(item.id, event);
+                }}
+                onPointerMove={moveDrag}
+                onPointerUp={endDrag}
+                onPointerCancel={cancelDrag}
               >
                 <span aria-hidden="true">⠿</span>
                 <span className="perch-repeater__index">{index + 1}</span>
@@ -274,3 +353,27 @@ export const REPEATER_SHORTCUTS: readonly {
   { key: "⌘⌫", label: "Delete, with undo in a toast" },
   { key: "⌘↵", label: "Add an item below" },
 ];
+
+/**
+ * Which row the pointer is over, by the middles of the rows.
+ *
+ * Middles rather than edges: a row gives way once the pointer passes the centre
+ * of its neighbour, which is what makes a drag feel like it pushes rows aside
+ * rather than snapping between gaps.
+ */
+export function rowAt(
+  elements: ReadonlyMap<string, HTMLElement>,
+  order: readonly string[],
+  y: number,
+): number | undefined {
+  for (const [index, id] of order.entries()) {
+    const element = elements.get(id);
+    if (element === undefined) continue;
+    const box = element.getBoundingClientRect();
+    // A layout nothing has measured reports zeroes everywhere, and every row
+    // would look like a match.
+    if (box.height === 0) continue;
+    if (y < box.top + box.height / 2) return index;
+  }
+  return order.length === 0 ? undefined : order.length - 1;
+}
