@@ -243,7 +243,10 @@ export function Repeater<T extends RepeaterItem>({
             data-dragging={drag?.id === item.id ? "true" : "false"}
             style={shift(drag, index)}
           >
-            <div className="perch-repeater__row">
+            {/* A row is a line that names it and a body that holds it. The
+                line stays when the body is folded away, which is what makes a
+                folded row still findable. */}
+            <div className="perch-repeater__line">
               <button
                 type="button"
                 className="perch-repeater__handle"
@@ -273,25 +276,13 @@ export function Repeater<T extends RepeaterItem>({
                     toggleFold(item.id);
                   }}
                 >
-                  <span aria-hidden="true">
-                    {folded.has(item.id) ? "\u25B8" : "\u25BE"}
-                  </span>
+                  <span aria-hidden="true">{folded.has(item.id) ? "▸" : "▾"}</span>
                 </button>
               )}
 
               {item.label === undefined ? null : (
                 <span className="perch-repeater__label">{item.label}</span>
               )}
-
-              {/* Hidden rather than unmounted: an unmounted field loses what
-                  was typed in it, and folding a row is not throwing it away. */}
-              <div
-                id={`${item.id}-fields`}
-                className="perch-repeater__fields"
-                hidden={folded.has(item.id)}
-              >
-                {children(item, index)}
-              </div>
 
               <div className="perch-repeater__actions">
                 {/* Both directions: §2.5.7 wants a single-pointer alternative to
@@ -324,6 +315,16 @@ export function Repeater<T extends RepeaterItem>({
                   ×
                 </button>
               </div>
+            </div>
+
+            {/* Hidden rather than unmounted: an unmounted field loses what was
+                typed in it, and folding a row is not throwing it away. */}
+            <div
+              id={`${item.id}-fields`}
+              className="perch-repeater__fields"
+              hidden={folded.has(item.id)}
+            >
+              {children(item, index)}
             </div>
 
             {/* Reserved, like every help line in the system. */}

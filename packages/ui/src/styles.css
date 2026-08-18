@@ -1564,15 +1564,43 @@
   background: var(--perch-pending-surface);
 }
 
-/* Last track = 3 buttons × 28 px + 2 gaps × 6 px. Widen it with any button
-   added, or flex squeezes all of them under 24 px. Asserted in
+/* The line that names a row: its controls at each end, its name between them.
+   It has as many parts as the field asked for — a fold arrow only where one
+   was declared — so it is a flex row rather than fixed tracks, which is what
+   the previous grid could not survive.
+
+   The actions keep 96 px: 3 buttons × 28 px + 2 gaps × 6 px. Widen it with any
+   button added, or flex squeezes all of them under 24 px. Asserted in
    target-size.test.ts. */
-.perch-repeater__row {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 132px) 96px;
+.perch-repeater__line {
+  display: flex;
   align-items: center;
-  gap: var(--perch-space-6);
+  gap: var(--perch-space-5);
   padding: var(--perch-space-4) var(--perch-space-5);
+}
+
+/* Takes what is left between the two ends. Absent where no field named its
+   rows, which is why the actions push themselves to the end rather than
+   relying on this to do it for them. */
+.perch-repeater__label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The fields below the line, one per column the row declares. Folding takes
+   their height and leaves the line, which is how a folded row stays findable. */
+.perch-repeater__fields {
+  display: grid;
+  gap: var(--perch-space-6);
+  padding: 0 var(--perch-space-5) var(--perch-space-5);
+}
+
+/* `hidden` is `display: none` in the browser's own sheet, and a class beats it.
+   Without this the attribute is set, the arrow turns, and nothing moves. */
+.perch-repeater__fields[hidden],
+.perch-layout__body[hidden] {
+  display: none;
 }
 
 /* Declared, not inherited: the content is a glyph and a 10 px number. */
@@ -1631,9 +1659,6 @@
   font-size: var(--perch-text-control);
   font-weight: 500;
   color: var(--perch-content-secondary);
-  align-self: center;
-  margin-right: var(--perch-space-5);
-  overflow-wrap: anywhere;
 }
 
 .perch-repeater__index {
@@ -1641,10 +1666,15 @@
   font-size: var(--perch-text-xs);
 }
 
+/* Pushed to the end, and never shrunk: three buttons at 28 px with 6 px between
+   them need 96 px, and a flex item that may shrink gives that up first.
+   Asserted in target-size.test.ts. */
 .perch-repeater__actions {
   display: flex;
   gap: var(--perch-space-3);
   justify-content: flex-end;
+  margin-left: auto;
+  flex: none;
 }
 
 .perch-repeater__note {

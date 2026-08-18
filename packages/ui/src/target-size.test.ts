@@ -136,19 +136,21 @@ describe("2.5.8 Target Size — 24 × 24 CSS px minimum", () => {
   /** Asserted against the rendered row in `a11y.test.tsx`; the two move together. */
   const ROW_ACTION_BUTTONS = 3;
 
-  it("gives the repeater's action column room for every button in it", () => {
-    const row = blockFor(".perch-repeater__row");
-    // The last bare length in the template is the actions track.
-    const track = /grid-template-columns:[^;]*\s(\d+)px;/.exec(row)?.[1];
-    expect(track, "no fixed last track in the row template").toBeDefined();
+  it("keeps the repeater's actions from being shrunk to fit", () => {
+    // The row is a flex line now, so there is no track to be wide enough. The
+    // guarantee is the same one from the other side: three buttons at 28 px
+    // with 6 px between them need 96 px, and a flex item that may shrink is
+    // the first thing asked to give it up.
+    const actions = blockFor(".perch-repeater__actions");
     const button = declaredBox([".perch-button", ".perch-button--icon"]).width!;
     const needed =
       button * ROW_ACTION_BUTTONS + token("--perch-space-3") * (ROW_ACTION_BUTTONS - 1);
+
     expect(
-      Number(track),
-      `${String(ROW_ACTION_BUTTONS)} buttons need ${String(needed)} px, the track is ` +
-        `${String(track)} px — they will be squeezed under 24 px`,
-    ).toBeGreaterThanOrEqual(needed);
+      actions,
+      `${String(ROW_ACTION_BUTTONS)} buttons need ${String(needed)} px, and a ` +
+        "shrinkable row of them will be squeezed under 24 px",
+    ).toMatch(/flex:\s*none;/);
   });
 
   it("refuses to let a flex parent shrink an icon button", () => {
