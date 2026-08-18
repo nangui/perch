@@ -38,6 +38,8 @@ export interface RepeaterState extends FieldState {
   readonly rowKey?: string;
   /** Names one row. Resolved per row, reading that row's own fields. */
   readonly itemLabel?: Resolvable<string>;
+  /** Rows can be folded away. Which are folded is the reader's, not the form's. */
+  readonly collapsible?: boolean;
   readonly minItems?: number;
   readonly maxItems?: number;
 }
@@ -104,6 +106,21 @@ export class Repeater extends Field {
    */
   itemLabel(value: Resolvable<string>): this {
     return this.with({ itemLabel: value });
+  }
+
+  /**
+   * Lets a reader fold a row away.
+   *
+   * Which rows are folded is nobody's business but the reader's: it is not
+   * state, it changes nothing, and it does not survive the page. So it is
+   * declared here and decided there — the only thing the server says is that
+   * folding is offered at all.
+   *
+   * Worth having where a row is large enough that five of them are a wall.
+   * Pair it with `.itemLabel()`, or a folded row says nothing about itself.
+   */
+  collapsible(value = true): this {
+    return this.with({ collapsible: value });
   }
 
   minItems(count: number): this {
