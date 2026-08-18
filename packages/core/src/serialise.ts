@@ -118,6 +118,7 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
   // Resolved rather than declared, so it rides with the extras rather than
   // beside them: one `props` on the wire, not two.
   if (resolved.previewUrl !== undefined) extras["previewUrl"] = resolved.previewUrl;
+  if (resolved.itemLabels !== undefined) extras["itemLabels"] = resolved.itemLabels;
 
   return {
     id: resolved.id,

@@ -18,6 +18,7 @@
  * layout already has. A row is a section that happens many times.
  */
 import { configured } from "../component.js";
+import type { Resolvable } from "../component.js";
 import type { FieldState, ValidationRule, ValueRefusal } from "../field.js";
 import { baseFieldState, Field, isUnset } from "../field.js";
 
@@ -35,6 +36,8 @@ export interface RepeaterState extends FieldState {
   readonly relationship?: string;
   /** Where a loaded row keeps its key. `id` unless a model says otherwise. */
   readonly rowKey?: string;
+  /** Names one row. Resolved per row, reading that row's own fields. */
+  readonly itemLabel?: Resolvable<string>;
   readonly minItems?: number;
   readonly maxItems?: number;
 }
@@ -86,6 +89,21 @@ export class Repeater extends Field {
    */
   rowKey(name: string): this {
     return this.with({ rowKey: name });
+  }
+
+  /**
+   * What one row is called.
+   *
+   * Resolved once per row, and reading that row's fields by their own names:
+   * `({ get }) => get("body")` means this row's body. An author cannot write
+   * the absolute path, because the key that would complete it is invented at
+   * the moment the row is added.
+   *
+   * Rows are otherwise told apart by their position, which changes the moment
+   * anything is reordered.
+   */
+  itemLabel(value: Resolvable<string>): this {
+    return this.with({ itemLabel: value });
   }
 
   minItems(count: number): this {

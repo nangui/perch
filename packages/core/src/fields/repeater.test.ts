@@ -658,6 +658,61 @@ describe("a row somebody added and never filled", () => {
   });
 });
 
+describe("what one row is called", () => {
+  const named = (label: Parameters<Repeater["itemLabel"]>[0]) =>
+    Repeater.make("items")
+      .schema([TextInput.make("body")])
+      .itemLabel(label);
+
+  const labels = async (made: Repeater, state: Record<string, unknown>) =>
+    (await resolveSchema(Schema.make([made]), state, { operation: "edit" })).nodes.find(
+      (node) => node.path === "items",
+    )?.itemLabels;
+
+  it("reads that row's fields by their own names", async () => {
+    // The author cannot write the absolute path: the key that would complete
+    // it is invented when the row is added.
+    const made = named(({ get }) => String(get("body")));
+
+    expect(
+      await labels(made, {
+        items: ["a", "b"],
+        "items.a.body": "First",
+        "items.b.body": "Second",
+      }),
+    ).toEqual({ a: "First", b: "Second" });
+  });
+
+  it("is resolved once per row, so two rows differ", async () => {
+    const made = named(({ get }) => `#${String(String(get("body")).length)}`);
+
+    expect(
+      await labels(made, {
+        items: ["a", "b"],
+        "items.a.body": "xx",
+        "items.b.body": "xxxx",
+      }),
+    ).toEqual({ a: "#2", b: "#4" });
+  });
+
+  it("takes a plain string as readily as a resolver", async () => {
+    expect(await labels(named("Note"), { items: ["a"] })).toEqual({ a: "Note" });
+  });
+
+  it("says nothing for a row it named with nothing", async () => {
+    // An empty label is not a label; a row falls back to its position.
+    const made = named(({ get }) => (get("body") === undefined ? "" : "named"));
+
+    expect(await labels(made, { items: ["a"] })).toEqual({});
+  });
+
+  it("is absent entirely where no field asked for one", async () => {
+    const made = Repeater.make("items").schema([TextInput.make("body")]);
+
+    expect(await labels(made, { items: ["a"] })).toBeUndefined();
+  });
+});
+
 describe("a repeater always asks the server", () => {
   const wire = async () => {
     const made = Repeater.make("items").schema([TextInput.make("label")]);

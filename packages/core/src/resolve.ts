@@ -101,6 +101,8 @@ export interface ResolvedNode {
   readonly content?: string;
   /** Where a `FileUpload`'s stored file can be fetched, if it has one. */
   readonly previewUrl?: string;
+  /** What each of a repeater's rows is called, by row key. */
+  readonly itemLabels?: Readonly<Record<string, string>>;
   readonly options?: readonly Option[];
   readonly children: readonly ResolvedNode[];
 }
@@ -443,6 +445,46 @@ function loadedRows(record: Row | undefined, field: Repeater): Map<string, Row> 
 }
 
 /**
+ * One label per row, resolved in that row's own terms.
+ *
+ * The reads are recorded against the repeater's node, so a label that follows
+ * a field is recomputed when that field changes — the same targeting every
+ * other resolver gets, at the granularity the tree actually has.
+ */
+async function rowLabels(
+  field: Repeater,
+  node: WalkedNode,
+  ctx: PassContext,
+  count: () => void,
+): Promise<Record<string, string>> {
+  const labels: Record<string, string> = {};
+  for (const key of rowKeys(ctx.state[node.path], field.state.maxItems)) {
+    const reads = new Set<string>();
+    const scoped = scopedContext(ctx, `${node.path}.${key}.`, reads);
+    const label = await value(field.state.itemLabel, scoped, undefined, count);
+    if (typeof label === "string" && label !== "") labels[key] = label;
+    for (const read of reads) ctx.trace.get(node.id)?.add(read);
+  }
+  return labels;
+}
+
+/**
+ * A context that reads inside one row.
+ *
+ * `get("body")` becomes `get("items.r1.body")`. What it records is still the
+ * absolute path, because that is what the dependency trace and the client's
+ * dirty path both speak.
+ */
+function scopedContext(
+  ctx: PassContext,
+  prefix: string,
+  reads: Set<string>,
+): ResolverContext {
+  const inner = context(ctx.state, ctx.options, reads);
+  return { ...inner, get: (path) => inner.get(`${prefix}${path}`) };
+}
+
+/**
  * A row with nothing in it, at any depth.
  *
  * Nothing set and no relation asked for. A row holding only another repeater
@@ -638,6 +680,14 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
   // Resolved every pass, not hydrated once: a computed line that tracks another
   // field has to be recomputed when that field changes, and `default()` fills a
   // blank exactly once.
+  // One label per row, each resolved against its own row: a resolver written
+  // `get("body")` means this row's body, because the key that would complete
+  // the absolute path is invented when the row is added.
+  const itemLabels =
+    component instanceof Repeater && component.state.itemLabel !== undefined
+      ? await rowLabels(component, node, ctx, count)
+      : undefined;
+
   const content =
     component instanceof Placeholder
       ? await value(component.state.content, rc, undefined, count)
@@ -708,6 +758,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     ...(helperText === undefined ? {} : { helperText }),
     ...(content === undefined ? {} : { content }),
     ...(previewUrl === undefined ? {} : { previewUrl }),
+    ...(itemLabels === undefined ? {} : { itemLabels }),
     ...(placeholder === undefined ? {} : { placeholder }),
     ...(required ? { required: true } : {}),
     ...(options === undefined ? {} : { options }),

@@ -217,6 +217,14 @@ export class PersonResource {
           .label("Notes")
           .relationship("notes")
           .maxItems(5)
+          // Named by what is in it, so a row is more than its position — which
+          // changes the moment anything is reordered.
+          .itemLabel(({ get }) => {
+            const body = get("body");
+            return typeof body === "string" && body !== ""
+              ? body.slice(0, 40)
+              : "New note";
+          })
           .schema([TextInput.make("body").label("Note").required()]),
       ]),
 
