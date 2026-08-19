@@ -15,6 +15,7 @@ import type { FormState, SchemaPayload } from "@perchjs/core";
 import { Breadcrumb } from "./Breadcrumb.js";
 import type { SearchedOption, UploadedFile } from "./node-props.js";
 import { PanelForm } from "./PanelForm.js";
+import { PanelView } from "./PanelView.js";
 import { keepFlash, takeFlash } from "./flash.js";
 import type { NavigationGroup } from "./PanelNav.js";
 import { PanelNav } from "./PanelNav.js";
@@ -79,7 +80,9 @@ export function mount(element: HTMLElement): void {
     return;
   }
 
-  createRoot(element).render(
+  // The trail, the heading and the shell are the same on both: what differs is
+  // whether the page can be changed.
+  const framed = (body: ReactNode): ReactNode => (
     <div className="perch-shell">
       {menu}
       <div className="perch-shell__main">
@@ -91,19 +94,34 @@ export function mount(element: HTMLElement): void {
         {/* The list page names itself. A form page had only the trail that led
             to it, which says where you came from but not what you are on. */}
         <h1 className="perch-page__title">{title}</h1>
-        <PanelForm
-          initial={JSON.parse(payload) as SchemaPayload}
-          send={(request) => send(api, operation, id, request)}
-          save={(request) => save(api, operation, id, request)}
-          onSaved={goWhereTheServerSays}
-          renderFailure={renderFailure}
-          searchOptions={(path, term, state) =>
-            askOptions(api, operation, id, path, term, state)
-          }
-          uploadFile={(path, file, state) => sendFile(api, id, path, file, state)}
-        />
+        {body}
       </div>
-    </div>,
+    </div>
+  );
+
+  // Read once and drawn once. No store to create, because there is no state to
+  // keep and nothing to send back.
+  if (operation === "view") {
+    createRoot(element).render(
+      framed(<PanelView payload={JSON.parse(payload) as SchemaPayload} />),
+    );
+    return;
+  }
+
+  createRoot(element).render(
+    framed(
+      <PanelForm
+        initial={JSON.parse(payload) as SchemaPayload}
+        send={(request) => send(api, operation, id, request)}
+        save={(request) => save(api, operation, id, request)}
+        onSaved={goWhereTheServerSays}
+        renderFailure={renderFailure}
+        searchOptions={(path, term, state) =>
+          askOptions(api, operation, id, path, term, state)
+        }
+        uploadFile={(path, file, state) => sendFile(api, id, path, file, state)}
+      />,
+    ),
   );
 }
 

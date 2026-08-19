@@ -653,6 +653,24 @@
 /* A reading, in the shape of a control: it sits in a column of fields and the
    eye reads that column as a column. Not a control, so nothing here suggests
    there is something to do to it. */
+/*
+ * A value that is read, not a control. No border and no box: those say the
+ * thing is yours to change, and on this page nothing is.
+ */
+.perch-entry {
+  display: flex;
+  align-items: center;
+  min-height: var(--perch-control-height);
+  margin: 0;
+  color: var(--perch-content);
+  font-size: var(--perch-text-control);
+}
+
+/* Nothing there, said plainly rather than left as a blank line to puzzle over. */
+.perch-entry[data-empty="true"] {
+  color: var(--perch-content-secondary);
+}
+
 .perch-placeholder {
   display: flex;
   align-items: center;

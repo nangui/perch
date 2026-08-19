@@ -23,6 +23,7 @@ import { Toggle } from "./fields/Toggle.js";
 import { MultiSelect } from "./fields/MultiSelect.js";
 import { SearchableSelect } from "./fields/SearchableSelect.js";
 import { TextInput } from "./fields/TextInput.js";
+import { TextEntry } from "./entries/TextEntry.js";
 import type { TextFlavour } from "./fields/TextInput.js";
 import type { NodeProps } from "./node-props.js";
 import { registerComponent } from "./registry.js";
@@ -389,6 +390,26 @@ function TextareaRenderer({
   );
 }
 
+function TextEntryRenderer({ node }: NodeProps): ReactNode {
+  // No status: an entry is never disabled, never in flight and never in error.
+  // Passing a resting one would say those states exist for it.
+  return (
+    <FieldShell
+      label={node.label ?? ""}
+      status={{ lifecycle: "rest" }}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <TextEntry
+          value={node.value}
+          describedBy={binding.id}
+          {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
 function PlaceholderRenderer({ node, error, pending, inFlight }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
 
@@ -718,4 +739,5 @@ export function registerBuiltInComponents(): void {
   registerComponent("Toggle", ToggleRenderer);
   registerComponent("Textarea", TextareaRenderer);
   registerComponent("Repeater", RepeaterRenderer);
+  registerComponent("TextEntry", TextEntryRenderer);
 }
