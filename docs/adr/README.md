@@ -25,12 +25,13 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0011](0011-admission-in-waves.md) | Client state is admitted in waves, not in one pass | accepted |
 | [0012](0012-ir-at-build-time.md) | The IR is produced at build time, by a Prisma generator | accepted |
 | [0013](0013-what-read-only-names.md) | `isReadOnly` names the database owning a value, not a relation | accepted |
-| [0014](0014-soft-delete-in-v01.md) | `hasSoftDelete` describes the schema; deletion stays hard until v0.2 | accepted |
+| [0014](0014-soft-delete-in-v01.md) | `hasSoftDelete` describes the schema; deletion stays hard until v0.2 | superseded by [0020](0020-what-a-soft-delete-does.md) |
 | [0015](0015-cli-command-names-and-layout.md) | The command is `perch panel`, and the CLI writes under `src/admin/` | accepted |
 | [0016](0016-file-storage-port.md) | Uploads go up on selection, through a storage port, and the row is written last | accepted |
 | [0017](0017-what-an-action-receives.md) | An action's callback takes one record; a bulk trigger runs it per record in one transaction | accepted |
 | [0018](0018-how-a-repeater-addresses-its-rows.md) | A repeater's rows are flat paths under a stable key, and its own path holds their order | accepted |
 | [0019](0019-what-an-infolist-resolves-against.md) | An entry reads the record by a path and never enters the state map, so an infolist admits nothing | accepted |
+| [0020](0020-what-a-soft-delete-does.md) | `delete` marks and `forceDelete` destroys; reads exclude marked rows at every depth, and nothing cascades | accepted |
 
 ## Format
 
