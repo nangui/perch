@@ -89,7 +89,7 @@ This contract is **identical** everywhere: table row, header, Edit page, bulk, n
 | Progress tracking | v0.3 | a progress bar on a long action |
 | Cancellation | out of scope | — |
 
-**Security**: `authorize()` is checked **on the server at execution time**, not only when the button is rendered. A hidden button is not a protection. Explicit test: calling the endpoint of an unauthorized action returns 403 and mutates nothing.
+**Security**: `authorize()` is checked **on the server at execution time**, not only when the button is rendered. A hidden button is not a protection. Explicit test: calling the endpoint of an unauthorized action returns 404 and mutates nothing — the same answer an action that does not exist gets, as the error taxonomy in `docs/12-ARCH-backend.md` §7 requires.
 
 ## 7. Notifications
 
@@ -123,7 +123,7 @@ Notification.make()
 ## 8. Acceptance criteria
 
 1. An action with confirmation + a modal form + a success notification works as a row action, a bulk action and a header action, **with the same code**.
-2. `authorize()` refused → the endpoint returns 403, no mutation, no information about the reason.
+2. `authorize()` refused → the endpoint returns 404, no mutation, no information about the reason. Never 403: telling the two apart is what lets a caller map what exists, and `docs/03-PRD-protocol-renderer.md` §3.2 names that as the mitigation for resource enumeration.
 3. A modal containing a dependent `Select` is reactive (the state protocol works inside a modal).
 4. A bulk action over 500 rows runs in one transaction and reports the number of items processed.
 5. An action that fails shows a readable error notification — never a stack trace, never silence.
