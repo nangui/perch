@@ -43,22 +43,3 @@ export abstract class Entry extends Component {
     return this.with({ placeholder: value });
   }
 }
-
-/**
- * Every record path an infolist reads, deduplicated.
- *
- * What `columnPaths` is to a table, and for the same two jobs: the loading plan
- * is built from these, so a relation an entry names costs one `include` rather
- * than a query, and the boot checks each of them against the IR.
- */
-export function entryPaths(root: Component): readonly string[] {
-  const paths: string[] = [];
-  const walk = (component: Component): void => {
-    if (component instanceof Entry && component.recordPath !== "") {
-      paths.push(component.recordPath);
-    }
-    for (const child of component.children) walk(child);
-  };
-  walk(root);
-  return [...new Set(paths)];
-}

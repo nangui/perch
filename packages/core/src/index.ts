@@ -51,7 +51,9 @@ export { defaultSlug, kebab, plural } from "./naming.js";
 
 // Infolists. An entry reads the record by a path and never holds state.
 export type { EntryState } from "./entry.js";
-export { Entry, entryPaths } from "./entry.js";
+export { Entry } from "./entry.js";
+export { entryPaths, entryRelations } from "./entry-paths.js";
+export { RepeatableEntry } from "./entries/repeatable-entry.js";
 export type {
   EntryFormat,
   EntryTone,

@@ -29,7 +29,14 @@ import type {
 } from "@perchjs/core";
 import { buildNavigation, PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { listRecords, resourcePath } from "./records.js";
-import { buildIncludePlan, entryPaths, resolveSchema, serialise } from "@perchjs/core";
+import {
+  buildIncludePlan,
+  entryPaths,
+  entryRelations,
+  findModel,
+  resolveSchema,
+  serialise,
+} from "@perchjs/core";
 import { fileUrls } from "./file-urls.js";
 import { withOptions } from "./relationship-options.js";
 import type { PanelAssets } from "./panel-assets.js";
@@ -317,10 +324,26 @@ function titleOf(meta: ModelMeta, record: Row): string | undefined {
  */
 function includeFor(ir: Ir, model: string, infolist: Schema): IncludePlan | undefined {
   try {
-    return buildIncludePlan(ir, model, entryPaths(infolist));
+    const plan = { ...buildIncludePlan(ir, model, entryPaths(infolist)) };
+    // A to-many is asked for by name. It cannot be part of a path — one note is
+    // not one column of the person — so the plan builder never sees it, and the
+    // paths its rows read are resolved against the note's own model.
+    for (const { relation, paths } of entryRelations(infolist)) {
+      const target = relationTarget(ir, model, relation);
+      const inner =
+        target === undefined ? undefined : buildIncludePlan(ir, target, paths);
+      plan[relation] = inner ?? true;
+    }
+    return Object.keys(plan).length === 0 ? undefined : plan;
   } catch {
     return undefined;
   }
+}
+
+/** Which model a relation leads to, or nothing where it is not one. */
+function relationTarget(ir: Ir, model: string, relation: string): string | undefined {
+  return findModel(ir, model)?.relations.find((one) => one.name === relation)
+    ?.targetModel;
 }
 
 function entry(assets: PanelAssets, name: string): string {

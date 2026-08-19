@@ -209,6 +209,60 @@ describe("a value drawn as a badge", () => {
   });
 });
 
+const rows = (children: NonNullable<SchemaPayload["schema"]["children"]>) =>
+  render(
+    <PanelView
+      payload={payload([
+        { id: "r", type: "RepeatableEntry", label: "Notes", children },
+      ])}
+    />,
+  ).container;
+
+describe("the rows of a relation", () => {
+  it("draws one group per row, each holding its own values", () => {
+    const container = rows([
+      {
+        id: "r/0",
+        type: "Schema",
+        children: [{ id: "r/0/0", type: "TextEntry", label: "Note", value: "First" }],
+      },
+      {
+        id: "r/1",
+        type: "Schema",
+        children: [{ id: "r/1/0", type: "TextEntry", label: "Note", value: "Second" }],
+      },
+    ]);
+
+    const drawn = [...container.querySelectorAll(".perch-rows__row")];
+    expect(drawn.length).toBe(2);
+    expect(drawn.map((row) => row.querySelector(".perch-entry")?.textContent)).toEqual([
+      "First",
+      "Second",
+    ]);
+  });
+
+  it("says there is nothing rather than leaving an empty box", () => {
+    // An empty box reads as a page that failed to load, not as a relation with
+    // nothing in it.
+    const container = rows([]);
+
+    expect(container.querySelector(".perch-rows__empty")).not.toBeNull();
+    expect(container.querySelectorAll(".perch-rows__row").length).toBe(0);
+  });
+
+  it("offers nothing to add, reorder or remove", () => {
+    const container = rows([
+      {
+        id: "r/0",
+        type: "Schema",
+        children: [{ id: "a", type: "TextEntry", value: "x" }],
+      },
+    ]);
+
+    expect(container.querySelectorAll("button").length).toBe(0);
+  });
+});
+
 describe("what the page does not offer", () => {
   const page = (): HTMLElement =>
     render(

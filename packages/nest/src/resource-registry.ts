@@ -21,6 +21,7 @@ import {
   auditTable,
   columnPaths,
   entryPaths,
+  entryRelations,
   describeComplaints,
   findModel,
   FileUpload,
@@ -158,6 +159,9 @@ export class ResourceRegistry implements OnModuleInit {
         ...(infolist === undefined
           ? []
           : this.#unreadablePaths(metadata.model, entryPaths(infolist), "entry")),
+        ...(infolist === undefined
+          ? []
+          : this.#unreadableRows(metadata.model, infolist)),
       ];
       if (complaints.length > 0) {
         throw new Error(describeComplaints(`Resource "${metadata.slug}"`, complaints));
@@ -178,6 +182,39 @@ export class ResourceRegistry implements OnModuleInit {
     table: Table,
   ): readonly { field: string; problem: string }[] {
     return this.#unreadablePaths(model, columnPaths(table), "column");
+  }
+
+  /**
+   * A repeatable entry naming something that is not a to-many relation, and the
+   * paths its rows read judged against the row's own model.
+   *
+   * Two mistakes with the same look on screen — an empty section — and neither
+   * reported by anything: a relation the model does not have, and a column that
+   * is on the record rather than on one of its rows.
+   */
+  #unreadableRows(
+    model: string,
+    infolist: Schema,
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const ir = this.#data.ir();
+    const owner = findModel(ir, model);
+    if (owner === undefined) return [];
+
+    return entryRelations(infolist).flatMap(({ relation, paths }) => {
+      const found = owner.relations.find((one) => one.name === relation);
+      if (found === undefined || !found.isList) {
+        return [
+          {
+            field: relation,
+            problem:
+              `is a repeatable entry on \`${model}\`, which has no to-many ` +
+              `relation by that name — it reads rows, so it needs one`,
+          },
+        ];
+      }
+      return this.#unreadablePaths(found.targetModel, paths, "entry");
+    });
   }
 
   /** Shared, because a column and an entry speak the same path language. */

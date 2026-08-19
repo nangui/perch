@@ -656,6 +656,39 @@
 /* ------------------------------------------------------------------- view */
 
 /*
+ * The rows of a relation, read. Stacked rather than tabulated: a row here has a
+ * handful of labelled values, not a line of columns, and a table of two would
+ * be a table pretending to be a list.
+ */
+.perch-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--perch-space-3);
+}
+
+.perch-rows__title {
+  margin: 0;
+  font-size: var(--perch-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--perch-content-muted);
+}
+
+.perch-rows__row {
+  padding: var(--perch-space-4);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-space-2);
+}
+
+/* Said, not left blank: an empty box reads as a page that failed to load. */
+.perch-rows__empty {
+  margin: 0;
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+}
+
+/*
  * The help line is reserved on a form so an error appearing cannot make the
  * page jump. Nothing here can be in error — there is no state to validate — so
  * an empty one is empty space, and eight of them are a page of it.

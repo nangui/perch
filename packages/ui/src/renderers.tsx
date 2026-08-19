@@ -415,6 +415,41 @@ function entryFormat(node: SchemaNode): {
   return out;
 }
 
+/**
+ * The rows of a to-many relation.
+ *
+ * Each child is one row, already a group, so this stacks them and does not have
+ * to know what is inside one. Nothing to add, nothing to reorder, nothing to
+ * delete: those belong to the repeater, which is a control.
+ */
+function RepeatableEntryRenderer({ node, renderChild }: NodeProps): ReactNode {
+  const rows = node.children ?? [];
+
+  return (
+    <section
+      className="perch-rows"
+      // Named only when there is a name. An empty one leaves a region with no
+      // accessible name, which is worse than a plain group.
+      {...(node.label === undefined ? {} : { "aria-label": node.label })}
+    >
+      {node.label === undefined ? null : (
+        <h3 className="perch-rows__title">{node.label}</h3>
+      )}
+      {/* Said rather than left as an empty box, which reads as a page that
+          failed to load rather than as a relation with nothing in it. */}
+      {rows.length === 0 ? (
+        <p className="perch-rows__empty">Nothing yet</p>
+      ) : (
+        rows.map((row) => (
+          <div className="perch-rows__row" key={row.id}>
+            {renderChild(row)}
+          </div>
+        ))
+      )}
+    </section>
+  );
+}
+
 function TextEntryRenderer({ node }: NodeProps): ReactNode {
   // No status: an entry is never disabled, never in flight and never in error.
   // Passing a resting one would say those states exist for it.
@@ -767,4 +802,5 @@ export function registerBuiltInComponents(): void {
   registerComponent("Textarea", TextareaRenderer);
   registerComponent("Repeater", RepeaterRenderer);
   registerComponent("TextEntry", TextEntryRenderer);
+  registerComponent("RepeatableEntry", RepeatableEntryRenderer);
 }

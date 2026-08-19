@@ -16,6 +16,7 @@ import {
   Placeholder,
   Radio,
   Repeater,
+  RepeatableEntry,
   Schema,
   Section,
   Select,
@@ -189,6 +190,12 @@ export class PersonResource {
           .badge()
           .color((value) => ROLE_TONES[String(value)])
           .placeholder("None"),
+      ]),
+
+      // The relation, read. One `include` with the row, one group per note, and
+      // each note's entry reading that note.
+      Section.make("Notes").schema([
+        RepeatableEntry.make("notes").schema([TextEntry.make("body").label("Note")]),
       ]),
 
       Section.make("Status")

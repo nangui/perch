@@ -9,6 +9,8 @@ import type { Component, Operation, Resolvable, ResolverContext } from "./compon
 import { isResolver } from "./component.js";
 import type { Id, RelationWrite, Row, WriteTree } from "./data-adapter.js";
 import { Entry } from "./entry.js";
+import { Schema } from "./layout.js";
+import { RepeatableEntry } from "./entries/repeatable-entry.js";
 import { TextEntry } from "./entries/text-entry.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
@@ -163,7 +165,9 @@ export async function resolveSchema(
   // client sends none, so the save reads that as "delete them all".
   const seeded = seedRows(root, clientState, options);
 
-  const tree = walk(root, seeded);
+  // With the record, because a repeatable entry's rows come from it rather
+  // than from anything a client sent.
+  const tree = walk(root, seeded, "", 0, "", options.record);
   const flatTree = flattenWalked(tree);
   const state: Record<string, unknown> = { ...seeded };
 
@@ -614,6 +618,15 @@ interface WalkedNode {
    * declaration stands for a field in every row.
    */
   readonly path: string;
+  /**
+   * Which record this node's entries read.
+   *
+   * Absent everywhere but inside a `RepeatableEntry`, where it is the row. An
+   * entry resolves against the record it was given, and the whole difference
+   * between a repeatable entry and an entry somebody put in a form's repeater
+   * is that this one hands each row its own.
+   */
+  readonly record?: Row;
   readonly children: readonly WalkedNode[];
 }
 
@@ -632,12 +645,36 @@ function walk(
   prefix = "",
   index = 0,
   under = "",
+  record?: Row,
 ): WalkedNode {
   const own =
     component instanceof Field && component.name !== ""
       ? `${under}${component.name}`
       : "";
   const id = component.state.key ?? (own !== "" ? own : `${prefix}${String(index)}`);
+
+  // One group per row the record carried, in the order it carried them. A
+  // `Schema` rather than something invented for this: a row is a set of entries
+  // read together, which is what a layout already is and already draws.
+  if (component instanceof RepeatableEntry) {
+    const rows = carriedRows(record, component.recordPath);
+    return {
+      id,
+      component,
+      path: "",
+      ...(record === undefined ? {} : { record }),
+      children: rows.map((row, at) =>
+        walk(
+          Schema.make(component.children),
+          state,
+          `${id}/${String(at)}/`,
+          at,
+          under,
+          row,
+        ),
+      ),
+    };
+  }
 
   if (component instanceof Repeater && own !== "") {
     return {
@@ -646,7 +683,7 @@ function walk(
       path: own,
       children: rowKeys(state[own], component.state.maxItems).flatMap((key) =>
         component.children.map((child, i) =>
-          walk(child, state, `${id}/${key}/`, i, `${own}.${key}.`),
+          walk(child, state, `${id}/${key}/`, i, `${own}.${key}.`, record),
         ),
       ),
     };
@@ -656,10 +693,18 @@ function walk(
     id,
     component,
     path: own,
+    ...(record === undefined ? {} : { record }),
     children: component.children.map((child, i) =>
-      walk(child, state, `${id}/`, i, under),
+      walk(child, state, `${id}/`, i, under, record),
     ),
   };
+}
+
+/** The rows a record carried for a relation, and nothing invented for it. */
+function carriedRows(record: Row | undefined, relation: string): readonly Row[] {
+  const held = record?.[relation];
+  if (!Array.isArray(held)) return [];
+  return held.filter((row): row is Row => typeof row === "object" && row !== null);
 }
 
 /**
@@ -749,9 +794,12 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
   // `readPath` is the reader a relation column already uses: it stops at an
   // intermediate null rather than throwing, because a customer with no address
   // is ordinary and a page that dies over it is not.
+  // The record this node was walked against, which inside a repeatable entry is
+  // the row rather than the thing that holds it.
+  const from = node.record ?? ctx.options.record;
   const entryValue =
-    component instanceof Entry
-      ? readPath(ctx.options.record, component.recordPath)
+    component instanceof Entry && !(component instanceof RepeatableEntry)
+      ? readPath(from, component.recordPath)
       : undefined;
 
   // From the value it decorates, on the server. The map from a value to a
