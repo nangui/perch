@@ -55,10 +55,13 @@ model Post {
   comments Comment[]
 }
 
+// Soft-deleting, and a child: the one shape that shows whether a nested delete
+// marks or destroys, which no double can answer.
 model Comment {
-  id     Int    @id @default(autoincrement())
-  body   String @db.Text
-  postId Int
+  id        Int       @id @default(autoincrement())
+  body      String    @db.Text
+  postId    Int
+  deletedAt DateTime?
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 }

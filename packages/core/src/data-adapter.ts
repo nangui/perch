@@ -71,6 +71,8 @@ export interface Query {
   readonly skip?: number;
   readonly take?: number;
   readonly include?: IncludePlan;
+  /** Which rows to read. `without` where nothing says otherwise. */
+  readonly deleted?: DeletedRows;
   /**
    * A term, and the paths it may reach.
    *
@@ -80,6 +82,24 @@ export interface Query {
    * the declaration is read, not where the query is built.
    */
   readonly search?: Search;
+}
+
+/**
+ * Which rows a read is asking for.
+ *
+ * `without` is the default everywhere, and it is named rather than assumed:
+ * "show me the deleted ones" is a question a reader asks, and a default that
+ * changed with the caller would be one nobody could predict.
+ *
+ * It reaches the relations too. A page that filters its own rows and loads a
+ * relation that does not has filtered nothing that matters — the deleted
+ * children arrive inside the parents.
+ */
+export type DeletedRows = "without" | "with" | "only";
+
+export interface ReadOptions {
+  readonly include?: IncludePlan;
+  readonly deleted?: DeletedRows;
 }
 
 export interface Page {
@@ -119,16 +139,34 @@ export interface DataAdapter {
    * because it is the adapter that knows what the database guarantees.
    */
   findMany(query: Query): Promise<Page>;
-  findOne(model: string, id: Id, include?: IncludePlan): Promise<Row | null>;
+  findOne(model: string, id: Id, options?: ReadOptions): Promise<Row | null>;
   create(model: string, data: WriteTree): Promise<Row>;
   update(model: string, id: Id, data: WriteTree): Promise<Row>;
   /**
-   * Destroys the rows. Unconditional in v0.1, on every model — a model whose
-   * `hasSoftDelete` is true is deleted exactly like any other. Soft
-   * delete arrives in v0.2 with the restore and force-delete it needs to be
-   * usable, and it changes what this method means.
+   * Marks the rows deleted on a soft-deleting model, and destroys them on every
+   * other one.
+   *
+   * The verb a panel offers means what a reader means by it, and destroying is
+   * a second decision with a name of its own. A model with no `deletedAt` has
+   * nothing to mark, so this is what it always was.
    */
   delete(model: string, ids: readonly Id[]): Promise<number>;
+  /**
+   * Destroys the rows, on every model, marked or not.
+   *
+   * Where a cascade happens: the database follows its own, because this one is
+   * a real delete. Nothing follows a mark.
+   */
+  forceDelete(model: string, ids: readonly Id[]): Promise<number>;
+  /**
+   * Clears the mark. Answers how many rows it lifted, which is not how many
+   * were asked for — one already live was never marked.
+   *
+   * May fail on a unique column: an address a hidden row still holds can have
+   * been taken while it was hidden. That is a constraint error to report, not
+   * one to work around.
+   */
+  restore(model: string, ids: readonly Id[]): Promise<number>;
   /** Must roll back entirely if any nested write fails (milestone A3). */
   transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T>;
 }

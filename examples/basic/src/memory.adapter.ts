@@ -273,6 +273,14 @@ export class MemoryAdapter implements DataAdapter {
     this.#rows = this.#rows.filter((row) => !ids.includes(row["id"] as Id));
     return Promise.resolve(before - this.#rows.length);
   }
+  /** Not exercised here: a double that answered zero would let a test
+   * pass with nothing having happened. */
+  forceDelete(): Promise<number> {
+    throw new Error("not needed here");
+  }
+  restore(): Promise<number> {
+    throw new Error("not needed here");
+  }
 
   /** No rollback to speak of, which is the honest limit of a variable. */
   /**

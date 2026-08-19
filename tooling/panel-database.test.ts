@@ -70,6 +70,9 @@ class AppAdapter implements DataAdapter {
   create: DataAdapter["create"] = (model, data) => adapter.create(model, data);
   update: DataAdapter["update"] = (model, id, data) => adapter.update(model, id, data);
   delete: DataAdapter["delete"] = (model, ids) => adapter.delete(model, ids);
+  forceDelete: DataAdapter["forceDelete"] = (model, ids) =>
+    adapter.forceDelete(model, ids);
+  restore: DataAdapter["restore"] = (model, ids) => adapter.restore(model, ids);
   transaction: DataAdapter["transaction"] = (fn) => adapter.transaction(fn);
 }
 

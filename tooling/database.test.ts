@@ -84,10 +84,13 @@ beforeAll(async () => {
   client = new PrismaClient({ adapter: new PrismaPg(pool) }) as never;
   adapter = new PrismaDataAdapter({ client: client as never, ir: IR });
 
-  await adapter.delete("Comment", await ids("Comment"));
-  await adapter.delete("Post", await ids("Post"));
-  await adapter.delete("Author", await ids("Author"));
-  await adapter.delete("Country", await ids("Country"));
+  // `forceDelete`, because this means destroy: `delete` marks a soft-deleting
+  // model now, and a wipe that left the rows behind would collide with its own
+  // unique names on the next run.
+  await adapter.forceDelete("Comment", await ids("Comment"));
+  await adapter.forceDelete("Post", await ids("Post"));
+  await adapter.forceDelete("Author", await ids("Author"));
+  await adapter.forceDelete("Country", await ids("Country"));
 }, 120_000);
 
 afterAll(async () => {
@@ -95,8 +98,9 @@ afterAll(async () => {
   await pool?.end();
 });
 
+/** Marked ones included: a wipe that skipped them would leave them forever. */
 async function ids(model: string): Promise<Id[]> {
-  const page = await adapter.findMany({ model });
+  const page = await adapter.findMany({ model, deleted: "with" });
   return page.rows.map((row) => row["id"] as Id);
 }
 
@@ -276,16 +280,89 @@ withDatabase("writing, against a real database", () => {
     expect(after.rows[0]).toMatchObject({ title: "Kept", published: true });
   });
 
-  it("destroys the row of a soft-deleting model, rather than marking it", async () => {
-    // Pinned, not endorsed. Soft delete is v0.2, and until the
-    // restore and force-delete that make it usable exist, `delete()` means one
-    // thing on every model. A test is what makes v0.2 changing that visible.
+  it("marks the row of a soft-deleting model, and the row is still there", async () => {
+    // What the pin here used to assert. It said `delete` destroyed and checked
+    // that the row read back as null — which both behaviours satisfy, since
+    // marking it makes the default read skip it. So the pin never fired. The
+    // difference is only visible by asking for the deleted ones.
     const country = await adapter.create("Country", { set: { name: "Atlantis" } });
     const id = country["id"] as Id;
 
     expect(adapter.meta("Country").hasSoftDelete).toBe(true);
     expect(await adapter.delete("Country", [id])).toBe(1);
+
     expect(await adapter.findOne("Country", id)).toBeNull();
+    expect(await adapter.findOne("Country", id, { deleted: "with" })).toMatchObject({
+      name: "Atlantis",
+    });
+  });
+
+  it("brings a marked row back, and answers what it lifted", async () => {
+    const country = await adapter.create("Country", { set: { name: "Lemuria" } });
+    const id = country["id"] as Id;
+    await adapter.delete("Country", [id]);
+
+    expect(await adapter.restore("Country", [id])).toBe(1);
+    expect(await adapter.findOne("Country", id)).toMatchObject({ name: "Lemuria" });
+    // Already live: nothing moved, and saying zero is not the same as failing.
+    expect(await adapter.restore("Country", [id])).toBe(0);
+  });
+
+  it("destroys it for good when asked to force it", async () => {
+    const country = await adapter.create("Country", { set: { name: "Mu" } });
+    const id = country["id"] as Id;
+
+    expect(await adapter.forceDelete("Country", [id])).toBe(1);
+    expect(await adapter.findOne("Country", id, { deleted: "with" })).toBeNull();
+  });
+
+  it("leaves a marked row out of a page and out of its total", async () => {
+    const kept = await adapter.create("Country", { set: { name: "Kept" } });
+    const gone = await adapter.create("Country", { set: { name: "Gone" } });
+    await adapter.delete("Country", [gone["id"] as Id]);
+
+    const page = await adapter.findMany({
+      model: "Country",
+      clauses: [{ path: "id", operator: "in", value: [kept["id"], gone["id"]] }],
+    });
+
+    expect(page.rows.map((row) => row["name"])).toEqual(["Kept"]);
+    expect(page.total).toBe(1);
+  });
+
+  it("marks a child a nested write removed, rather than destroying it", async () => {
+    // The route a reader uses most — a row taken out of a repeater. Only the
+    // database says whether it is still in the table afterwards, which is why
+    // this cannot be settled against a double.
+    const author = await adapter.create("Author", {
+      set: { email: "nested@example.com", name: "Nested" },
+    });
+    const post = await adapter.create("Post", {
+      set: { title: "Held" },
+      relations: {
+        author: { connect: [author["id"] as Id] },
+        comments: { create: [{ set: { body: "Removed later" } }] },
+      },
+    });
+
+    const [comment] = (
+      await adapter.findMany({
+        model: "Comment",
+        clauses: [{ path: "postId", operator: "equals", value: post["id"] }],
+      })
+    ).rows;
+    expect(comment).toBeDefined();
+
+    await adapter.update("Post", post["id"] as Id, {
+      set: {},
+      relations: { comments: { delete: [comment?.["id"] as Id] } },
+    });
+
+    // Gone from an ordinary read, still in the table.
+    expect(await adapter.findOne("Comment", comment?.["id"] as Id)).toBeNull();
+    expect(
+      await adapter.findOne("Comment", comment?.["id"] as Id, { deleted: "with" }),
+    ).toMatchObject({ body: "Removed later" });
   });
 
   it("rolls the whole tree back when a nested write fails", async () => {

@@ -4,17 +4,19 @@
  * The client is described structurally rather than imported: `@prisma/client` is
  * a peer dependency and its types only exist once somebody has generated them,
  * so a package that named them could not compile on its own. What is named here
- * is the six delegate methods this adapter calls, and `$transaction`.
+ * is the delegate methods this adapter calls, and `$transaction`.
  */
 import type {
   DataAdapter,
   Clause,
+  DeletedRows,
   Id,
   IncludePlan,
   Ir,
   ModelMeta,
   Page,
   Query,
+  ReadOptions,
   RelationMeta,
   RelationWrite,
   Row,
@@ -22,7 +24,7 @@ import type {
   Sort,
   WriteTree,
 } from "@perchjs/core";
-import { findModel } from "@perchjs/core";
+import { findModel, SOFT_DELETE_FIELD } from "@perchjs/core";
 
 export interface PrismaDelegate {
   findMany: (args: Record<string, unknown>) => Promise<unknown[]>;
@@ -30,6 +32,7 @@ export interface PrismaDelegate {
   count: (args: Record<string, unknown>) => Promise<number>;
   create: (args: Record<string, unknown>) => Promise<unknown>;
   update: (args: Record<string, unknown>) => Promise<unknown>;
+  updateMany: (args: Record<string, unknown>) => Promise<{ count: number }>;
   deleteMany: (args: Record<string, unknown>) => Promise<{ count: number }>;
 }
 
@@ -68,7 +71,7 @@ export class PrismaDataAdapter implements DataAdapter {
 
   async findMany(query: Query): Promise<Page> {
     const delegate = this.#delegate(query.model);
-    const where = whereOf(query);
+    const where = both(whereOf(query), this.#liveness(query.model, query.deleted));
 
     // One query for the page and one for the count, never one per row.
     const [rows, total] = await Promise.all([
@@ -77,7 +80,7 @@ export class PrismaDataAdapter implements DataAdapter {
         orderBy: orderOf(query.sort, this.meta(query.model).primaryKey.name),
         ...(query.skip === undefined ? {} : { skip: query.skip }),
         ...(query.take === undefined ? {} : { take: query.take }),
-        ...includeOf(query.include),
+        ...this.#includeOf(query.model, query.include, query.deleted),
       }),
       delegate.count(Object.keys(where).length === 0 ? {} : { where }),
     ]);
@@ -85,12 +88,17 @@ export class PrismaDataAdapter implements DataAdapter {
     return { rows: rows as Row[], total };
   }
 
-  async findOne(model: string, id: Id, include?: IncludePlan): Promise<Row | null> {
-    const row = await this.#delegate(model).findUnique({
+  async findOne(model: string, id: Id, options?: ReadOptions): Promise<Row | null> {
+    const row = (await this.#delegate(model).findUnique({
       where: { [this.meta(model).primaryKey.name]: id },
-      ...includeOf(include),
-    });
-    return (row as Row | null) ?? null;
+      ...this.#includeOf(model, options?.include, options?.deleted),
+    })) as Row | null;
+
+    // Filtered after the read, not in the `where`: `findUnique` takes only a
+    // unique field, so the liveness clause cannot go in it. One row is already
+    // in hand, so this costs nothing.
+    if (row === null) return null;
+    return this.#wanted(model, row, options?.deleted) ? row : null;
   }
 
   async create(model: string, data: WriteTree): Promise<Row> {
@@ -107,11 +115,103 @@ export class PrismaDataAdapter implements DataAdapter {
   }
 
   async delete(model: string, ids: readonly Id[]): Promise<number> {
+    if (!this.meta(model).hasSoftDelete) return await this.forceDelete(model, ids);
+    return await this.#mark(model, ids, new Date());
+  }
+
+  async forceDelete(model: string, ids: readonly Id[]): Promise<number> {
     const key = this.meta(model).primaryKey.name;
     const { count } = await this.#delegate(model).deleteMany({
       where: { [key]: { in: [...ids] } },
     });
     return count;
+  }
+
+  async restore(model: string, ids: readonly Id[]): Promise<number> {
+    // Nothing to lift on a model with no mark, and answering zero says so
+    // without pretending a row changed.
+    if (!this.meta(model).hasSoftDelete) return 0;
+    return await this.#mark(model, ids, null);
+  }
+
+  /** Sets or clears the tombstone, and answers how many rows moved. */
+  async #mark(model: string, ids: readonly Id[], at: Date | null): Promise<number> {
+    const key = this.meta(model).primaryKey.name;
+    const { count } = await this.#delegate(model).updateMany({
+      where: {
+        [key]: { in: [...ids] },
+        // Only the ones that are not already where they are being put, so the
+        // count is rows that moved rather than rows that were named.
+        [SOFT_DELETE_FIELD]: at === null ? { not: null } : null,
+      },
+      data: { [SOFT_DELETE_FIELD]: at },
+    });
+    return count;
+  }
+
+  /**
+   * The clause that leaves marked rows out, or nothing.
+   *
+   * Nothing on a model with no tombstone: a `where` on a column the table has
+   * not got is an error, not a filter that matches everything.
+   */
+  #liveness(model: string, deleted: DeletedRows | undefined): Record<string, unknown> {
+    if (!this.meta(model).hasSoftDelete) return {};
+    if (deleted === "with") return {};
+    return { [SOFT_DELETE_FIELD]: deleted === "only" ? { not: null } : null };
+  }
+
+  /** Whether a row already in hand is one this read asked for. */
+  #wanted(model: string, row: Row, deleted: DeletedRows | undefined): boolean {
+    if (!this.meta(model).hasSoftDelete || deleted === "with") return true;
+    const marked =
+      row[SOFT_DELETE_FIELD] !== null && row[SOFT_DELETE_FIELD] !== undefined;
+    return deleted === "only" ? marked : !marked;
+  }
+
+  /**
+   * The include map, with the same liveness clause at every depth.
+   *
+   * A page that filters its own rows and loads a relation that does not has
+   * filtered nothing that matters — the deleted children arrive inside the
+   * parents. Which model each branch leads to comes from the IR, because the
+   * plan carries relation names and nothing else.
+   */
+  #includeOf(
+    model: string,
+    plan: IncludePlan | undefined,
+    deleted: DeletedRows | undefined,
+  ): Record<string, unknown> {
+    const map = this.#includeMap(model, plan, deleted);
+    return map === undefined ? {} : { include: map };
+  }
+
+  #includeMap(
+    model: string,
+    plan: IncludePlan | undefined,
+    deleted: DeletedRows | undefined,
+  ): Record<string, unknown> | undefined {
+    if (plan === undefined || Object.keys(plan).length === 0) return undefined;
+
+    const relations = this.meta(model).relations;
+    const map: Record<string, unknown> = {};
+    for (const [name, nested] of Object.entries(plan)) {
+      const target = relations.find((one) => one.name === name)?.targetModel;
+      // A relation the IR does not carry is the boot's to complain about; here
+      // it is loaded plainly rather than filtered against a model nobody found.
+      const where = target === undefined ? {} : this.#liveness(target, deleted);
+      const inner =
+        target === undefined
+          ? undefined
+          : this.#includeMap(target, nested === true ? undefined : nested, deleted);
+
+      const branch = {
+        ...(Object.keys(where).length === 0 ? {} : { where }),
+        ...(inner === undefined ? {} : { include: inner }),
+      };
+      map[name] = Object.keys(branch).length === 0 ? true : branch;
+    }
+    return map;
   }
 
   /** Nested writes run inside it, so a half-written tree never survives. */
@@ -191,7 +291,20 @@ export class PrismaDataAdapter implements DataAdapter {
       );
     }
     if (write.delete !== undefined) {
-      out["delete"] = shape(write.delete.map(byKey), "delete");
+      // A row taken out of a repeater is a row somebody deleted, and `delete`
+      // marks a soft-deleting model. Emitting Prisma's nested `delete` here
+      // would destroy through the route a reader uses most while the action
+      // route only hid — the same word meaning two things one click apart.
+      if (this.meta(model).hasSoftDelete) {
+        out["updateMany"] = [
+          {
+            where: { [key]: { in: write.delete.map((id) => id) } },
+            data: { [SOFT_DELETE_FIELD]: new Date() },
+          },
+        ];
+      } else {
+        out["delete"] = shape(write.delete.map(byKey), "delete");
+      }
     }
     return out;
   }
@@ -209,6 +322,22 @@ export class PrismaDataAdapter implements DataAdapter {
 /** Prisma names its delegates after the model, first letter lowered. */
 export function delegateName(model: string): string {
   return model.charAt(0).toLowerCase() + model.slice(1);
+}
+
+/**
+ * Two `where`s, without one losing to the other.
+ *
+ * Spreading them looks equivalent and is not: a declared filter on the
+ * tombstone column would be overwritten by the liveness clause under the same
+ * key, and silently — a filter somebody wrote that stops doing anything.
+ */
+function both(
+  left: Record<string, unknown>,
+  right: Record<string, unknown>,
+): Record<string, unknown> {
+  if (Object.keys(right).length === 0) return left;
+  if (Object.keys(left).length === 0) return right;
+  return { AND: [left, right] };
 }
 
 function whereOf(query: Query): Record<string, unknown> {
@@ -288,23 +417,4 @@ function nestedOrder(path: string, direction: string): Record<string, unknown> {
     [head ?? path]:
       rest.length === 0 ? direction : nestedOrder(rest.join("."), direction),
   };
-}
-
-function includeOf(plan: IncludePlan | undefined): Record<string, unknown> {
-  const map = includeMap(plan);
-  return map === undefined ? {} : { include: map };
-}
-
-/** The map itself, so nesting wraps it once rather than once per level. */
-function includeMap(
-  plan: IncludePlan | undefined,
-): Record<string, unknown> | undefined {
-  if (plan === undefined || Object.keys(plan).length === 0) return undefined;
-
-  const map: Record<string, unknown> = {};
-  for (const [relation, nested] of Object.entries(plan)) {
-    const inner = nested === true ? undefined : includeMap(nested);
-    map[relation] = inner === undefined ? true : { include: inner };
-  }
-  return map;
 }

@@ -24,6 +24,8 @@ const adapter: DataAdapter = {
   create: () => Promise.reject(new Error("not needed")),
   update: () => Promise.reject(new Error("not needed")),
   delete: () => Promise.reject(new Error("not needed")),
+  forceDelete: () => Promise.reject(new Error("not needed")),
+  restore: () => Promise.reject(new Error("not needed")),
   transaction: <T>(fn: (tx: DataAdapter) => Promise<T>) => fn(adapter),
 };
 

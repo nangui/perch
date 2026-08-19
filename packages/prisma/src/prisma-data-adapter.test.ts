@@ -25,6 +25,7 @@ function recorder(rows: unknown[] = [], total = 0): Recorder {
     count: vi.fn(() => Promise.resolve(total)),
     create: vi.fn((args: { data: unknown }) => Promise.resolve(args.data)),
     update: vi.fn((args: { data: unknown }) => Promise.resolve(args.data)),
+    updateMany: vi.fn(() => Promise.resolve({ count: 0 })),
     deleteMany: vi.fn(() => Promise.resolve({ count: 2 })),
   };
   const client = {
@@ -244,6 +245,94 @@ describe("reading a page", () => {
   });
 });
 
+describe("what a read leaves out", () => {
+  it("leaves marked rows out without being asked", async () => {
+    // The default everywhere, and named rather than assumed: a default that
+    // changed with the caller is one nobody could predict.
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "Note" });
+
+    expect(argsOf(calls.findMany)).toMatchObject({ where: { deletedAt: null } });
+  });
+
+  it("brings them back when a reader asks for them", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "Note", deleted: "with" });
+
+    expect(JSON.stringify(argsOf(calls.findMany))).not.toContain("deletedAt");
+  });
+
+  it("shows only those when that is the question", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "Note", deleted: "only" });
+
+    expect(argsOf(calls.findMany)).toMatchObject({
+      where: { deletedAt: { not: null } },
+    });
+  });
+
+  it("says nothing about a model with no such column", async () => {
+    // A `where` on a column the table has not got is an error, not a filter
+    // that matches everything.
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "User" });
+
+    expect(JSON.stringify(argsOf(calls.findMany))).not.toContain("deletedAt");
+  });
+
+  it("keeps a declared filter on the tombstone rather than overwriting it", async () => {
+    // Under the same key, a spread would have replaced it — silently, which is
+    // a filter somebody wrote that stops doing anything.
+    const { adapter, calls } = recorder();
+    await adapter.findMany({
+      model: "Note",
+      clauses: [{ path: "deletedAt", operator: "equals", value: null }],
+    });
+
+    const where = argsOf(calls.findMany)["where"] as { AND?: unknown[] };
+    expect(where.AND).toHaveLength(2);
+  });
+
+  it("counts what it reads, not what it left out", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "Note" });
+
+    expect(argsOf(calls.count)).toMatchObject({ where: { deletedAt: null } });
+  });
+});
+
+describe("what a read leaves out of a relation", () => {
+  it("filters the rows it loads inside the parents", async () => {
+    // The reason this is its own decision: a page that filters its own rows and
+    // loads a relation that does not has filtered nothing that matters — the
+    // deleted children arrive inside the parents.
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "User", include: { notes: true } });
+
+    expect(argsOf(calls.findMany)).toMatchObject({
+      include: { notes: { where: { deletedAt: null } } },
+    });
+  });
+
+  it("asks for a relation with nothing to mark plainly", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({ model: "Post", include: { author: true } });
+
+    expect(argsOf(calls.findMany)).toMatchObject({ include: { author: true } });
+  });
+
+  it("carries the reader's question down with it", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({
+      model: "User",
+      include: { notes: true },
+      deleted: "with",
+    });
+
+    expect(JSON.stringify(argsOf(calls.findMany))).not.toContain("deletedAt");
+  });
+});
+
 describe("reading one row", () => {
   it("looks it up by the key the model declares", async () => {
     const { adapter, calls } = recorder([{ id: 3 }]);
@@ -361,31 +450,105 @@ describe("writing", () => {
     ).rejects.toThrow(/no relation named nope/);
   });
 
-  it("deletes a soft-deleting model exactly like any other", async () => {
-    // Pinned, not endorsed. `hasSoftDelete` describes the schema in v0.1 and
-    // promises nothing about deletion; v0.2 changes that, and this test is what
-    // makes the change show up in a diff rather than start quietly.
+  it("marks a soft-deleting model rather than destroying it", async () => {
+    // What the pin here used to assert, changed on purpose: the record that
+    // held deletion hard said this test was what would make the change legible
+    // in a diff rather than let it start quietly.
     const { adapter, calls } = recorder();
 
     expect(adapter.meta("Note").hasSoftDelete).toBe(true);
     await adapter.delete("Note", [4]);
 
-    expect(calls.deleteMany).toHaveBeenCalledTimes(1);
-    expect(argsOf(calls.deleteMany)).toEqual({ where: { id: { in: [4] } } });
-    expect(calls.update).not.toHaveBeenCalled();
+    expect(calls.deleteMany).not.toHaveBeenCalled();
+    const args = argsOf(calls.updateMany) as {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    };
+    expect(args.where["id"]).toEqual({ in: [4] });
+    // Only the ones not already marked, so the count is rows that moved.
+    expect(args.where["deletedAt"]).toBeNull();
+    expect(args.data["deletedAt"]).toBeInstanceOf(Date);
   });
 
-  it("deletes a soft-deleting child of a nested write just as plainly", async () => {
-    // The other half of the same promise: `delete()` and
-    // `WriteTree.relations.*.delete` both destroy, and a v0.2 that changed only
-    // one of them would slip past a pin that watched the other.
+  it("destroys a model that has nothing to mark", async () => {
+    const { adapter, calls } = recorder();
+
+    expect(adapter.meta("User").hasSoftDelete).toBe(false);
+    await adapter.delete("User", [4]);
+
+    expect(argsOf(calls.deleteMany)).toEqual({ where: { id: { in: [4] } } });
+    expect(calls.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("destroys a soft-deleting model when asked to force it", async () => {
+    const { adapter, calls } = recorder();
+
+    await adapter.forceDelete("Note", [4]);
+
+    expect(argsOf(calls.deleteMany)).toEqual({ where: { id: { in: [4] } } });
+    expect(calls.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("clears the mark on a restore, and only where there is one", async () => {
+    const { adapter, calls } = recorder();
+
+    await adapter.restore("Note", [4]);
+
+    const args = argsOf(calls.updateMany) as {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    };
+    expect(args.where["deletedAt"]).toEqual({ not: null });
+    expect(args.data["deletedAt"]).toBeNull();
+  });
+
+  it("restores nothing on a model with no mark, rather than pretending", async () => {
+    const { adapter, calls } = recorder();
+
+    expect(await adapter.restore("User", [4])).toBe(0);
+    expect(calls.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("marks a soft-deleting child a nested write removed", async () => {
+    // The same word one click apart: a row taken out of a repeater and a row a
+    // delete action removes are both a row somebody deleted. Before this, the
+    // repeater destroyed and the action only hid.
+    const { adapter, calls } = recorder();
+
+    await adapter.update("User", 1, { set: {}, relations: { notes: { delete: [7] } } });
+
+    const data = (argsOf(calls.update) as { data: Record<string, unknown> }).data;
+    const notes = data["notes"] as Record<string, unknown>;
+    expect(notes["delete"]).toBeUndefined();
+    expect(notes["updateMany"]).toMatchObject([{ where: { id: { in: [7] } } }]);
+  });
+
+  it("still destroys a child with nothing to mark", async () => {
+    const { adapter, calls } = recorder();
+
+    await adapter.update("User", 1, { set: {}, relations: { posts: { delete: [7] } } });
+
+    const data = (argsOf(calls.update) as { data: Record<string, unknown> }).data;
+    expect((data["posts"] as Record<string, unknown>)["delete"]).toEqual([{ id: 7 }]);
+  });
+
+  it("removes a child the way the port removes a row, not another way", async () => {
+    // What this pin was watching for, and it worked: it said a version that
+    // changed `delete()` and left `WriteTree.relations.*.delete` alone would
+    // slip past a pin looking at only one of them. That version was written.
+    // Both mark now, so the two routes cannot drift again without one of these
+    // two assertions failing.
     const { adapter, calls } = recorder();
     await adapter.update("User", 1, {
       set: {},
       relations: { notes: { delete: [4] } },
     });
 
-    expect(argsOf(calls.update)["data"]).toEqual({ notes: { delete: [{ id: 4 }] } });
+    const nested = (argsOf(calls.update)["data"] as Record<string, unknown>)["notes"];
+    expect(Object.keys(nested as object)).toEqual(["updateMany"]);
+
+    await adapter.delete("Note", [4]);
+    expect(calls.deleteMany).not.toHaveBeenCalled();
   });
 
   it("deletes by key and answers how many went", async () => {

@@ -139,6 +139,14 @@ class MemoryAdapter implements DataAdapter {
   delete(): Promise<number> {
     throw new Error("not needed here");
   }
+  /** Not exercised here: a double that answered zero would let a test
+   * pass with nothing having happened. */
+  forceDelete(): Promise<number> {
+    throw new Error("not needed here");
+  }
+  restore(): Promise<number> {
+    throw new Error("not needed here");
+  }
   transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     return fn(this);
   }
