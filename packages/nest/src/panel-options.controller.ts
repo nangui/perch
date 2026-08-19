@@ -99,7 +99,7 @@ export class PanelOptionsController {
     // relationship select on the form and throw all of them away — on every
     // keystroke.
     const { tree } = await admit({
-      schema: resource.instance.form(),
+      schema: this.#registry.formFor(resource),
       state: decoded.state,
       operation: decoded.operation,
       user,

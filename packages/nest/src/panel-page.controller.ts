@@ -195,13 +195,17 @@ export class PanelPageController {
     record?: Row;
   }): Promise<string> {
     const root = rootOf(page.request, page.suffix);
-    const resolved = await resolveSchema(page.resource.instance.form(), page.state, {
-      operation: page.operation,
-      user: this.#users.resolve(page.request),
-      ...(page.record === undefined ? {} : { record: page.record }),
-      ...withOptions(this.#data, page.resource.metadata.model),
-      ...this.#urls,
-    });
+    const resolved = await resolveSchema(
+      this.#registry.formFor(page.resource),
+      page.state,
+      {
+        operation: page.operation,
+        user: this.#users.resolve(page.request),
+        ...(page.record === undefined ? {} : { record: page.record }),
+        ...withOptions(this.#data, page.resource.metadata.model),
+        ...this.#urls,
+      },
+    );
 
     // The same guard, and the same function, the row actions go through.
     const list = resourcePath(root, page.resource.metadata.slug);

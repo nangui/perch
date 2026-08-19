@@ -111,7 +111,8 @@ export class PanelStateController {
     // dependent `Select` work on a page works inside one. Which schema is read
     // off the declaration, never off the request: a name nobody declared, or an
     // action with no form, reaches nothing.
-    const schema = named === undefined ? resource.instance.form() : formOf(named);
+    const schema =
+      named === undefined ? this.#registry.formFor(resource) : formOf(named);
 
     // One loader for both resolutions: memoised, so the admission passes and
     // the answer share a single query rather than repeating it.

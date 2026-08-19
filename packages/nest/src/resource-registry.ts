@@ -14,7 +14,7 @@ import type { OnModuleInit } from "@nestjs/common";
 import { Inject, Injectable } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
 import type { Component } from "@perchjs/core";
-import type { DataAdapter, Table } from "@perchjs/core";
+import type { DataAdapter, Schema, Table } from "@perchjs/core";
 import {
   auditSchema,
   auditTable,
@@ -26,6 +26,8 @@ import {
 } from "@perchjs/core";
 import type { PanelResource, ResourceMetadata } from "./resource.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
+import type { SchemaHook } from "./schema-hook.js";
+import { PANEL_SCHEMA_HOOKS } from "./schema-hook.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
 import { resourceMetadata } from "./resource.js";
@@ -51,16 +53,19 @@ export class ResourceRegistry implements OnModuleInit {
   readonly #moduleRef: ModuleRef;
   readonly #disks: PanelDisks;
   readonly #data: DataAdapter | null;
+  readonly #hooks: readonly SchemaHook[];
 
   constructor(
     @Inject(PANEL_RESOURCE_TYPES) types: readonly ResourceClass[],
     moduleRef: ModuleRef,
     @Inject(PANEL_STORAGE) disks: PanelDisks,
     @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
+    @Inject(PANEL_SCHEMA_HOOKS) hooks: readonly SchemaHook[],
   ) {
     this.#moduleRef = moduleRef;
     this.#disks = disks;
     this.#data = data;
+    this.#hooks = hooks;
 
     for (const type of types) {
       const metadata = resourceMetadata(type);
@@ -93,21 +98,42 @@ export class ResourceRegistry implements OnModuleInit {
   }
 
   /**
+   * The form a resource shows, with everything that extends it.
+   *
+   * One place, because eight routes read a form and a field that one of them
+   * knows about and another does not is a field that shows and will not save.
+   *
+   * Evaluated on each call, like `form()` itself. A route needing the same
+   * form twice reads it once and carries it, rather than asking twice and
+   * hoping somebody else's function answers the same thing both times.
+   */
+  formFor(resource: RegisteredResource): Schema {
+    return this.#hooks.reduce(
+      (schema, extend) => extend(resource.metadata, schema),
+      resource.instance.form(),
+    );
+  }
+
+  /**
    * Every form is read once, here, and a form that cannot work stops the boot.
    *
    * Not in the constructor: the instances come from the container, and asking
    * for them before it has finished building would depend on the order it
    * happens to build providers in.
    *
-   * Loud, and at boot, because these are lines of somebody own form rather
+   * Loud, and at boot, because these are lines of somebody's own form rather
    * than anything a client sent. A field that promises what it cannot do
    * otherwise fails at the one moment nobody is watching for it — under a
    * reader, in production, with no error at all.
    */
   onModuleInit(): void {
-    for (const { metadata, instance } of this.all()) {
+    for (const registered of this.all()) {
+      const { metadata, instance } = registered;
       const table = instance.table?.();
-      const form = instance.form();
+      // Audited as it will be served: a field a hook adds is somebody's code
+      // too, and one that cannot work should stop this boot rather than the
+      // first reader.
+      const form = this.formFor(registered);
       const complaints = [
         ...auditSchema(form),
         ...(table === undefined ? [] : auditTable(table)),

@@ -26,6 +26,7 @@ import type {
   FieldErrors,
   NotificationState,
   Row,
+  Schema,
   WriteTree,
   SchemaPayload,
 } from "@perchjs/core";
@@ -106,7 +107,11 @@ export class PanelSaveController {
       throw new NotFoundException();
     }
 
-    const written = await this.#write(resource, body, user, null);
+    // One evaluation, read twice: what may be written and which files go with
+    // it have to be decided by the same form. Two reads of an extension that
+    // is not a pure function of its inputs commit a file nothing validated.
+    const form = this.#registry.formFor(resource);
+    const written = await this.#write(resource, form, body, user, null);
     if ("refused" in written) return written.refused;
 
     const mutate = resource.instance.mutateFormDataBeforeCreate?.bind(
@@ -117,12 +122,7 @@ export class PanelSaveController {
     const mutated = (await mutate?.({ ...written.write.set })) ?? written.write.set;
     // Files first, the row last (ADR 0016): a failure between them leaves a
     // file nobody points at rather than a row pointing at nothing.
-    const { values, committed } = await commitUploads(
-      resource.instance.form(),
-      mutated,
-      null,
-      this.#disks,
-    );
+    const { values, committed } = await commitUploads(form, mutated, null, this.#disks);
 
     let record: Row;
     try {
@@ -171,13 +171,14 @@ export class PanelSaveController {
       throw new NotFoundException();
     }
 
-    const written = await this.#write(resource, body, user, record);
+    const form = this.#registry.formFor(resource);
+    const written = await this.#write(resource, form, body, user, record);
     if ("refused" in written) return written.refused;
 
     const mutate = resource.instance.mutateFormDataBeforeSave?.bind(resource.instance);
     const mutated = (await mutate?.({ ...written.write.set })) ?? written.write.set;
     const { values, committed } = await commitUploads(
-      resource.instance.form(),
+      form,
       mutated,
       record,
       this.#disks,
@@ -246,13 +247,14 @@ export class PanelSaveController {
   /** Errors, or the values the engine says may be written. */
   async #write(
     resource: RegisteredResource,
+    schema: Schema,
     body: unknown,
     user: unknown,
     record: Row | null,
   ): Promise<{ refused: SaveResponse } | { write: DehydratedWrite }> {
     const operation = record === null ? "create" : "edit";
     const { tree } = await admit({
-      schema: resource.instance.form(),
+      schema,
       state: readState(body),
       operation,
       user,

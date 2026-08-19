@@ -13,6 +13,8 @@ import { RouterModule } from "@nestjs/core";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
+import type { SchemaHook } from "./schema-hook.js";
+import { PANEL_SCHEMA_HOOKS } from "./schema-hook.js";
 import { PanelUploadSweep } from "./upload-sweep.js";
 import type { RedirectAfterCreate } from "./redirect.js";
 import { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
@@ -51,6 +53,14 @@ export interface PanelModuleOptions {
    * and then the audit says so at boot.
    */
   readonly disks?: PanelDisks;
+  /**
+   * Modules that extend forms they do not own (milestone A4).
+   *
+   * Applied in the order given, to every resource, on every route that reads a
+   * form — which is the whole point: a field one route knows about and another
+   * does not is a field that shows and will not save.
+   */
+  readonly extend?: readonly SchemaHook[];
   /**
    * Modules whose providers the resources inject. Resources are instantiated
    * here, so their dependencies have to be visible here.
@@ -128,6 +138,11 @@ export class PanelModule {
         {
           provide: PANEL_REDIRECT_AFTER_CREATE,
           useValue: options.redirectAfterCreate ?? "edit",
+        },
+        {
+          // Empty is the ordinary case: most panels extend nothing.
+          provide: PANEL_SCHEMA_HOOKS,
+          useValue: options.extend ?? [],
         },
         ...(options.resources ?? []),
         ...guards,

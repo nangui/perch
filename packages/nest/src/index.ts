@@ -21,6 +21,8 @@ export type { OptionsAnswer, OptionsBody } from "./panel-options.controller.js";
 export { PanelOptionsController } from "./panel-options.controller.js";
 export type { UploadAnswer } from "./panel-upload.controller.js";
 export { PanelUploadController } from "./panel-upload.controller.js";
+export type { SchemaHook } from "./schema-hook.js";
+export { PANEL_SCHEMA_HOOKS } from "./schema-hook.js";
 export type { PanelDisks } from "./storage.token.js";
 export { PANEL_STORAGE } from "./storage.token.js";
 export { DEFAULT_STAGED_AGE_MS, PanelUploadSweep } from "./upload-sweep.js";

@@ -123,7 +123,7 @@ export class PanelUploadController {
     // invisible to an empty tree, and the reader looking straight at the
     // control would be told the field does not exist.
     const { tree } = await admit({
-      schema: resource.instance.form(),
+      schema: this.#registry.formFor(resource),
       state: body.state,
       operation: record === null ? "create" : "edit",
       user,
