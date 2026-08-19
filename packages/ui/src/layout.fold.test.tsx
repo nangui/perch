@@ -116,3 +116,35 @@ describe("a section that starts folded", () => {
     expect(body()?.hasAttribute("hidden")).toBe(false);
   });
 });
+
+describe("a section that was given an icon", () => {
+  it("draws it beside the title", () => {
+    // Sent since layouts existed, read by nothing until the props guard was
+    // asked where a prop is read rather than whether the word appears.
+    draw({ icon: "\u{1F5C2}" });
+
+    expect(document.querySelector(".perch-layout__icon")?.textContent).toBe(
+      "\u{1F5C2}",
+    );
+  });
+
+  it("draws it on one that folds too, where the heading is a button", () => {
+    draw({ icon: "\u{1F5C2}", collapsible: true });
+
+    const button = screen.getByRole("button", { name: /About/ });
+    expect(button.querySelector(".perch-layout__icon")).not.toBeNull();
+  });
+
+  it("keeps it out of the name a screen reader reads", () => {
+    // Decoration beside the words, never instead of them.
+    draw({ icon: "\u{1F5C2}", collapsible: true });
+
+    expect(screen.getByRole("button", { name: "About" })).toBeDefined();
+  });
+
+  it("draws none where none was given", () => {
+    draw();
+
+    expect(document.querySelector(".perch-layout__icon")).toBeNull();
+  });
+});

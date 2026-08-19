@@ -1874,6 +1874,13 @@
   cursor: pointer;
 }
 
+/* Beside the words, never in their place: it is hidden from a screen reader. */
+.perch-layout__icon {
+  flex: none;
+  font-size: var(--perch-text-lg);
+  line-height: 1;
+}
+
 .perch-layout__caret {
   color: var(--perch-content-subtle);
 }

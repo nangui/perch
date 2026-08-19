@@ -94,6 +94,9 @@ function code(source: string): string {
  * beside it — `entryFormat` is not inside `TextEntryRenderer` and reads four of
  * them. The component files by name, because that is where a mention meant for
  * one type used to answer for another.
+ *
+ * Not the column registry: nothing with extra props is drawn from there, so
+ * including it would only let one more file answer for every type.
  */
 function mentioned(qualified: string): string {
   const type = qualified.slice(0, qualified.indexOf("."));
@@ -105,7 +108,6 @@ function mentioned(qualified: string): string {
       (name.endsWith(".ts") || name.endsWith(".tsx")) &&
       !name.includes(".test.") &&
       (name === "renderers.tsx" ||
-        name === "columns.tsx" ||
         name.replace(/^.*\//, "").replace(/\.tsx?$/, "") === type),
   );
   return files

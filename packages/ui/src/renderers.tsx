@@ -78,6 +78,16 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
   // Where it starts, not where it stays: after that it is the reader's.
   const [folded, setFolded] = useState(node.props?.["collapsed"] === true);
   const title = node.label;
+  // Decoration beside the title, never instead of it: hidden from a screen
+  // reader, which already has the words.
+  const icon =
+    typeof node.props?.["icon"] === "string" ? node.props["icon"] : undefined;
+  const mark =
+    icon === undefined ? null : (
+      <span className="perch-layout__icon" aria-hidden="true">
+        {icon}
+      </span>
+    );
 
   return (
     <div className={`perch-layout perch-layout--${node.type.toLowerCase()}`}>
@@ -96,10 +106,14 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
           <span className="perch-layout__caret" aria-hidden="true">
             {folded ? "\u25B8" : "\u25BE"}
           </span>
+          {mark}
           {title}
         </button>
       ) : (
-        <div className="perch-layout__title">{title}</div>
+        <div className="perch-layout__title">
+          {mark}
+          {title}
+        </div>
       )}
       {/* Hidden rather than unmounted: a folded field is still a field, still
           filled in and still saved, and unmounting would lose what is in it. */}
