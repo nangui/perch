@@ -9,10 +9,10 @@ An open-source UI framework for **NestJS**. Define a resource in TypeScript, get
 |---|---|
 | Stack | NestJS · Prisma · PostgreSQL · React |
 | License | MIT (core) |
-| Status | in implementation — documentation settled, six packages building |
+| Status | v0.1 complete — its four acceptance criteria pass, six packages building |
 | npm scope | `@perchjs/*` — npm organization created |
-| Milestone **A1** | reactive dependent select, zero user JavaScript — passing over HTTP, inside its p95 budget |
-| Decisions | 14 records in [`docs/adr/`](docs/adr/README.md), each with the rule that would reopen it |
+| Milestones | **A1** dependent select, zero user JavaScript · **A2** relation column, filter, bulk action · **A3** nested repeater in one transaction · **A4** a third-party module extending a form it does not own |
+| Decisions | 18 records in [`docs/adr/`](docs/adr/README.md), each with the rule that would reopen it |
 
 ## Documentation
 
