@@ -43,15 +43,15 @@ function fresh(): void {
 describe("a file chosen and saved", () => {
   it("moves out of staging and the value becomes its final key", async () => {
     fresh();
-    const { values, committed } = await commitUploads(
+    const { write, committed } = await commitUploads(
       form,
-      { title: "Ada", cover: "staging/7" },
+      { set: { title: "Ada", cover: "staging/7" } },
       null,
       disks,
     );
 
     expect(moved).toEqual([{ key: "staging/7", directory: "covers" }]);
-    expect(values["cover"]).toBe("covers/7");
+    expect(write.set?.["cover"]).toBe("covers/7");
     expect(committed.fresh).toEqual([{ disk: "default", key: "covers/7" }]);
   });
 
@@ -59,7 +59,7 @@ describe("a file chosen and saved", () => {
     // A save refused further along must not have quietly rewritten its input.
     fresh();
     const given = { title: "Ada", cover: "staging/7" };
-    await commitUploads(form, given, null, disks);
+    await commitUploads(form, { set: given }, null, disks);
 
     expect(given.cover).toBe("staging/7");
   });
@@ -67,10 +67,15 @@ describe("a file chosen and saved", () => {
   it("touches nothing where the form carries no upload", async () => {
     fresh();
     const plain = Schema.make([TextInput.make("title")]);
-    const { values } = await commitUploads(plain, { title: "Ada" }, null, disks);
+    const { write } = await commitUploads(
+      plain,
+      { set: { title: "Ada" } },
+      null,
+      disks,
+    );
 
     expect(moved).toEqual([]);
-    expect(values).toEqual({ title: "Ada" });
+    expect(write.set).toEqual({ title: "Ada" });
   });
 });
 
@@ -78,15 +83,15 @@ describe("a value that was already final", () => {
   it("is not moved again", async () => {
     // The second save of a row whose attachment nobody touched.
     fresh();
-    const { values, committed } = await commitUploads(
+    const { write, committed } = await commitUploads(
       form,
-      { cover: "covers/7" },
+      { set: { cover: "covers/7" } },
       { cover: "covers/7" },
       disks,
     );
 
     expect(moved).toEqual([]);
-    expect(values["cover"]).toBe("covers/7");
+    expect(write.set?.["cover"]).toBe("covers/7");
     expect(committed.replaced).toEqual([]);
   });
 });
@@ -96,7 +101,7 @@ describe("an attachment replaced by another", () => {
     fresh();
     const { committed } = await commitUploads(
       form,
-      { cover: "staging/9" },
+      { set: { cover: "staging/9" } },
       { cover: "covers/7" },
       disks,
     );
@@ -113,7 +118,7 @@ describe("an attachment replaced by another", () => {
     fresh();
     const { committed } = await commitUploads(
       form,
-      { cover: "" },
+      { set: { cover: "" } },
       { cover: "covers/7" },
       disks,
     );
@@ -128,7 +133,7 @@ describe("a row that never landed", () => {
     fresh();
     const { committed } = await commitUploads(
       form,
-      { cover: "staging/9" },
+      { set: { cover: "staging/9" } },
       null,
       disks,
     );
@@ -141,7 +146,7 @@ describe("a row that never landed", () => {
     fresh();
     const { committed } = await commitUploads(
       form,
-      { cover: "staging/9" },
+      { set: { cover: "staging/9" } },
       { cover: "covers/7" },
       disks,
     );
@@ -169,7 +174,7 @@ describe("a row that never landed", () => {
     };
     const { committed } = await commitUploads(
       form,
-      { cover: "staging/9" },
+      { set: { cover: "staging/9" } },
       null,
       angry,
     );
@@ -184,15 +189,15 @@ describe("a disk the panel does not have", () => {
     // to invent a store.
     fresh();
     const elsewhere = Schema.make([FileUpload.make("cover").disk("s3")]);
-    const { values } = await commitUploads(
+    const { write } = await commitUploads(
       elsewhere,
-      { cover: "staging/1" },
+      { set: { cover: "staging/1" } },
       null,
       disks,
     );
 
     expect(moved).toEqual([]);
-    expect(values["cover"]).toBe("staging/1");
+    expect(write.set?.["cover"]).toBe("staging/1");
   });
 });
 

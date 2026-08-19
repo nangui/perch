@@ -27,7 +27,6 @@ import type {
   NotificationState,
   Row,
   Schema,
-  WriteTree,
   SchemaPayload,
 } from "@perchjs/core";
 import type { DehydratedWrite } from "@perchjs/core";
@@ -117,12 +116,17 @@ export class PanelSaveController {
     const mutate = resource.instance.mutateFormDataBeforeCreate?.bind(
       resource.instance,
     );
-    // The hook and the upload commit both deal in columns. A repeater's rows
-    // are not columns, so they ride alongside rather than through.
+    // The hook deals in columns; a repeater's rows are not columns, so they ride
+    // alongside it rather than through it.
     const mutated = (await mutate?.({ ...written.write.set })) ?? written.write.set;
-    // Files first, the row last: a failure between them leaves a
-    // file nobody points at rather than a row pointing at nothing.
-    const { values, committed } = await commitUploads(form, mutated, null, this.#disks);
+    // Files first, the row last: a failure between them leaves a file nobody
+    // points at rather than a row pointing at nothing.
+    const { write, committed } = await commitUploads(
+      form,
+      { ...written.write, set: mutated },
+      null,
+      this.#disks,
+    );
 
     let record: Row;
     try {
@@ -131,10 +135,7 @@ export class PanelSaveController {
       // its own; asking here is what makes the guarantee the adapter's contract
       // rather than a property one adapter happens to have.
       record = await data.transaction(async (tx) =>
-        tx.create(resource.metadata.model, {
-          set: values,
-          ...relationsOf(written.write),
-        }),
+        tx.create(resource.metadata.model, write),
       );
     } catch (error) {
       await undoCommitted(committed, this.#disks);
@@ -177,18 +178,16 @@ export class PanelSaveController {
 
     const mutate = resource.instance.mutateFormDataBeforeSave?.bind(resource.instance);
     const mutated = (await mutate?.({ ...written.write.set })) ?? written.write.set;
-    const { values, committed } = await commitUploads(
+    const { write, committed } = await commitUploads(
       form,
-      mutated,
+      { ...written.write, set: mutated },
       record,
       this.#disks,
     );
 
     let updated: Row;
     try {
-      updated = await data.transaction(async (tx) =>
-        tx.update(model, key, { set: values, ...relationsOf(written.write) }),
-      );
+      updated = await data.transaction(async (tx) => tx.update(model, key, write));
     } catch (error) {
       await undoCommitted(committed, this.#disks);
       throw error;
@@ -316,9 +315,4 @@ function saved(
     title: `${resource.metadata.label} ${what}`,
     tone: "success",
   };
-}
-
-/** The rows a repeater asked for, where it asked for any. */
-function relationsOf(write: DehydratedWrite): Pick<WriteTree, "relations"> {
-  return write.relations === undefined ? {} : { relations: write.relations };
 }

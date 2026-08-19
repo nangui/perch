@@ -404,7 +404,14 @@ function rowsOf(
 }
 
 /** Where a loaded child keeps its key, unless the repeater says otherwise. */
-const DEFAULT_ROW_KEY = "id";
+/**
+ * What a repeater's rows are addressed by unless `.rowKey()` says otherwise.
+ *
+ * Exported because the upload commit reads a loaded row by the same key when it
+ * drops the attachment of a row that was deleted. Two spellings of "id" in two
+ * packages is one rename away from a file nobody removes.
+ */
+export const DEFAULT_ROW_KEY = "id";
 
 /**
  * The children the record actually carried, by the key they are addressed as.
