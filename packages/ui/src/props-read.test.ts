@@ -29,11 +29,12 @@ const SENT_BUT_UNREAD: Readonly<Record<string, string>> = {
     "how many a relationship query returns. A server-side bound the client " +
     "has no use for until it draws something about it",
   "TextInput.step":
-    "nothing applies it, on either side. The control is deliberately not " +
-    '`type="number"` — spinners, silent locale parsing, a scroll-wheel trap — ' +
-    "and `step` means nothing on anything else; the server does not enforce it " +
-    "either. It needs a validation rule before the declaration is true, and " +
-    "until then `.numeric(0.5)` promises what nobody keeps",
+    "enforced on the server, which is where it can be. The control is " +
+    'deliberately not `type="number"` — spinners, silent locale parsing, a ' +
+    "scroll-wheel trap — and `step` means nothing on anything else, so no " +
+    "browser could apply it. It crosses for the reader to be told the grain " +
+    "before they are refused for missing it, which is a line under the field " +
+    "that nobody has drawn yet",
   "Select.preload":
     "fetching a searchable select's options before the reader types. The " +
     "control asks on demand, and nothing decides otherwise yet",

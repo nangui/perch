@@ -20,6 +20,7 @@ import { FileUpload } from "./fields/file-upload.js";
 import { Radio } from "./fields/radio.js";
 import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
+import { TextInput } from "./fields/text-input.js";
 import { SelectFilter } from "./filter.js";
 import type { Table } from "./table.js";
 import { declaredActions, declaredFilters } from "./table.js";
@@ -81,6 +82,19 @@ export function auditInfolist(root: Component): readonly Complaint[] {
   return complaints;
 }
 
+function inspectStep(input: TextInput, into: Complaint[]): void {
+  const { step } = input.state;
+  if (step === undefined) return;
+  if (Number.isFinite(step) && step > 0) return;
+
+  into.push({
+    field: input.name === "" ? "an unnamed TextInput" : input.name,
+    problem:
+      `has a step of \`${String(step)}\`, which is not a grain a value can ` +
+      "come in — a step has to be a positive number",
+  });
+}
+
 function anyHook(component: Component): boolean {
   if (component instanceof Field && component.state.afterStateUpdated !== undefined) {
     return true;
@@ -98,6 +112,10 @@ function hiddenFields(component: Component): readonly Hidden[] {
 function walk(component: Component, into: Complaint[]): void {
   if (component instanceof Select) inspectSelect(component, into);
   if (component instanceof DateTimePicker) inspectDates(component, into);
+  // A step of zero divides; a negative one has no meaning. Either way the rule
+  // it implies would answer `true` to everything, which is a limit that reads
+  // as declared and refuses nothing.
+  if (component instanceof TextInput) inspectStep(component, into);
   // A media type nothing can match is a filter that refuses everything, and a
   // reader whose file is turned away is told only that it was.
   if (component instanceof FileUpload) inspectUpload(component, into);
