@@ -55,10 +55,11 @@ function crossing(): readonly string[] {
   const block = /const EXTRA_PROPS[^{]*\{([\s\S]*?)\n\};/.exec(source);
   if (block === null) throw new Error("EXTRA_PROPS is not where this expected it");
 
+  // Across lines, not one line each. A list long enough for the formatter to
+  // wrap used to vanish from here — and with it every prop of that type, read
+  // or not. A guard that goes quiet when a line gets long is worse than none.
   const out: string[] = [];
-  for (const line of (block[1] ?? "").split("\n")) {
-    const entry = /^\s*(\w+):\s*\[([^\]]*)\]/.exec(line);
-    if (entry === null) continue;
+  for (const entry of (block[1] ?? "").matchAll(/(\w+):\s*\[([\s\S]*?)\]/g)) {
     for (const prop of entry[2]?.matchAll(/"(\w+)"/g) ?? []) {
       out.push(`${entry[1] ?? ""}.${prop[1] ?? ""}`);
     }
@@ -134,6 +135,28 @@ describe("a prop the server sends", () => {
     );
 
     expect(claimed).toEqual([]);
+  });
+
+  it("watches every type the wire carries, however the file is laid out", () => {
+    // The formatter wrapped one list across lines and the parser stopped seeing
+    // it — silently, along with every prop of that type. Named here so the next
+    // long list cannot do the same.
+    const types = new Set(crossing().map((prop) => prop.slice(0, prop.indexOf("."))));
+
+    expect([...types].sort()).toEqual([
+      "DateTimePicker",
+      "FileUpload",
+      "Grid",
+      "Radio",
+      "Repeater",
+      "Schema",
+      "Section",
+      "Select",
+      "TextEntry",
+      "TextInput",
+      "Textarea",
+      "Toggle",
+    ]);
   });
 
   it("is still on the wire at all", () => {
