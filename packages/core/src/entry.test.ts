@@ -7,7 +7,7 @@
  * not because a rule was written to refuse infolists.
  */
 import { describe, expect, it } from "vitest";
-import { auditSchema } from "./audit.js";
+import { auditInfolist, auditSchema } from "./audit.js";
 import { Section, Schema } from "./layout.js";
 import { Repeater } from "./fields/repeater.js";
 import { Entry } from "./entry.js";
@@ -175,6 +175,34 @@ describe("an entry somebody put inside a repeater", () => {
 
   it("says nothing about an entry that is not in one", () => {
     expect(auditSchema(Schema.make([TextEntry.make("title")]))).toEqual([]);
+  });
+});
+
+describe("a field somebody put in an infolist", () => {
+  it("stops the boot, because nothing on that page could ever save it", () => {
+    // Measured before this existed: it drew an editable box, empty — the View
+    // page sends no state — that a reader can type into and nothing collects.
+    const complaints = auditInfolist(
+      Schema.make([TextEntry.make("title"), TextInput.make("title")]),
+    );
+
+    expect(complaints).toEqual([
+      { field: "title", problem: expect.stringContaining("field in an infolist") },
+    ]);
+  });
+
+  it("finds one nested in a layout, which is where it would actually be", () => {
+    const complaints = auditInfolist(
+      Schema.make([Section.make("Details").schema([TextInput.make("title")])]),
+    );
+
+    expect(complaints.length).toBe(1);
+  });
+
+  it("says nothing about an infolist made of entries", () => {
+    expect(
+      auditInfolist(Schema.make([Section.make("D").schema([TextEntry.make("title")])])),
+    ).toEqual([]);
   });
 });
 

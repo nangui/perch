@@ -22,6 +22,7 @@ import type {
   FormState,
   IncludePlan,
   Ir,
+  ModelMeta,
   ResolveOptions,
   Row,
   Schema,
@@ -229,7 +230,10 @@ export class PanelPageController {
       suffix: `${slug}/${id}`,
       operation: "view",
       id,
-      title: `${resource.metadata.label} ${id}`,
+      // What a reader calls the row, where the model says which column that is.
+      // `Post 1` names the URL back at them; the label names the thing.
+      title:
+        titleOf(this.#data.meta(model), record) ?? `${resource.metadata.label} ${id}`,
       // Nothing: an entry reads the record, and the state map is what a client
       // may write to.
       state: {},
@@ -296,6 +300,12 @@ export class PanelPageController {
       styleFile: entry(this.#assets, "panel.css"),
     });
   }
+}
+
+/** The row's own label, where it has one that is text. */
+function titleOf(meta: ModelMeta, record: Row): string | undefined {
+  const label = record[meta.labelField];
+  return typeof label === "string" && label !== "" ? label : undefined;
 }
 
 /**

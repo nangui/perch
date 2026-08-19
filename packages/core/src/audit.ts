@@ -54,6 +54,33 @@ export function auditSchema(root: Component): readonly Complaint[] {
   return complaints;
 }
 
+/**
+ * What an infolist promises and cannot keep.
+ *
+ * Separate from `auditSchema`, which a form goes through too and where a field
+ * is the whole point. Here one is a control on a page with nowhere to send it:
+ * measured before this existed, a `TextInput` in an infolist drew an empty
+ * editable box — empty because the View page sends no state — that a reader can
+ * type into and that nothing will ever save.
+ */
+export function auditInfolist(root: Component): readonly Complaint[] {
+  const complaints: Complaint[] = [];
+  const walk = (component: Component): void => {
+    if (component instanceof Field) {
+      complaints.push({
+        field: component.name === "" ? `an unnamed ${component.type}` : component.name,
+        problem:
+          "is a field in an infolist, so it would draw a control on a page " +
+          "with nothing to save it — an entry is what shows a value",
+      });
+      return;
+    }
+    for (const child of component.children) walk(child);
+  };
+  walk(root);
+  return complaints;
+}
+
 function anyHook(component: Component): boolean {
   if (component instanceof Field && component.state.afterStateUpdated !== undefined) {
     return true;

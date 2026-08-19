@@ -16,6 +16,7 @@ import { ModuleRef } from "@nestjs/core";
 import type { Component } from "@perchjs/core";
 import type { DataAdapter, Schema, Table } from "@perchjs/core";
 import {
+  auditInfolist,
   auditSchema,
   auditTable,
   columnPaths,
@@ -150,7 +151,7 @@ export class ResourceRegistry implements OnModuleInit {
       const infolist = this.infolistFor(registered);
       const complaints = [
         ...auditSchema(form),
-        ...(infolist === undefined ? [] : auditSchema(infolist)),
+        ...(infolist === undefined ? [] : auditInfolist(infolist)),
         ...(table === undefined ? [] : auditTable(table)),
         ...this.#unknownDisks(form),
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),

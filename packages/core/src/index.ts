@@ -186,7 +186,7 @@ export {
 
 // What a form promises and cannot keep. Read once, at boot.
 export type { Complaint } from "./audit.js";
-export { auditSchema, auditTable, describeComplaints } from "./audit.js";
+export { auditInfolist, auditSchema, auditTable, describeComplaints } from "./audit.js";
 
 // Stage 5, the trust boundary.
 export type { RejectedPath, RejectionReason, SanitizeResult } from "./sanitize.js";

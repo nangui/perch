@@ -182,6 +182,12 @@ describe("the View page", () => {
     expect((await page("/admin/posts/1")).body).toContain('data-operation="view"');
   });
 
+  it("is named by the row rather than by the address", async () => {
+    // `Post 1` reads the URL back at the reader. The label field is what a
+    // human calls the thing.
+    expect((await page("/admin/posts/1")).body).toContain("<title>Ada");
+  });
+
   it("sends no state, because an entry reads the record", async () => {
     const { body } = await page("/admin/posts/1");
 
