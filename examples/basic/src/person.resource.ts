@@ -174,13 +174,19 @@ export class PersonResource {
         .schema([
           TextEntry.make("firstName").label("First name"),
           TextEntry.make("lastName").label("Last name"),
-          TextEntry.make("email").label("Email"),
+          // What a reader most often does with an address on a detail page is
+          // write to it or paste it somewhere.
+          TextEntry.make("email")
+            .label("Email")
+            .url((value) => `mailto:${String(value)}`)
+            .copyable(),
           TextEntry.make("team.name").label("Team").placeholder("Unassigned"),
         ]),
 
       Section.make("About").schema([
         TextEntry.make("bio")
           .label("Biography")
+          .limit(60)
           .placeholder("Nothing written about them yet."),
         // A value from a closed set, so the shape says so before the word is
         // read. It is still the stored code: a badge colours a value, it does

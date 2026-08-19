@@ -39,6 +39,8 @@ export interface SchemaNode {
   readonly value?: unknown;
   /** Which of the panel's colours it takes, already chosen. */
   readonly tone?: string;
+  /** Where it links to. Built and checked on the server; never the raw value. */
+  readonly href?: string;
   /**
    * Absent means the field never triggers a round trip. Present, it carries the
    * debounce set per field type — the client cannot invent it.
@@ -66,7 +68,15 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   DateTimePicker: ["withTime", "timezone", "minDate", "maxDate"],
   FileUpload: ["maxSize", "acceptedFileTypes"],
   Toggle: ["onIcon", "offIcon", "onColor"],
-  TextEntry: ["format", "timezone", "currency", "decimals", "badge"],
+  TextEntry: [
+    "format",
+    "timezone",
+    "currency",
+    "decimals",
+    "badge",
+    "copyable",
+    "limit",
+  ],
   Textarea: ["rows", "autosize", "maxLength"],
   Section: ["columns", "collapsible", "collapsed", "icon"],
   Grid: ["columns"],
@@ -143,6 +153,7 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     ...(resolved.content === undefined ? {} : { content: resolved.content }),
     ...(resolved.value === undefined ? {} : { value: resolved.value }),
     ...(resolved.tone === undefined ? {} : { tone: resolved.tone }),
+    ...(resolved.href === undefined ? {} : { href: resolved.href }),
     ...(resolved.required === true ? { required: true } : {}),
     ...(component instanceof Field && component.state.inlineLabel
       ? { inlineLabel: true as const }

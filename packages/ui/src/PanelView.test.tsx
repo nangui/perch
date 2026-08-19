@@ -6,7 +6,7 @@
  * What it must not have is as much of the point as what it shows: nothing to
  * type into, nothing to submit, and no round trip to make.
  */
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { SchemaPayload } from "@perchjs/core";
 import { beforeAll, describe, expect, it } from "vitest";
 import { PanelView } from "./PanelView.js";
@@ -217,6 +217,156 @@ const rows = (children: NonNullable<SchemaPayload["schema"]["children"]>) =>
       ])}
     />,
   ).container;
+
+describe("a value with more to it than is shown", () => {
+  it("is shortened, and says so", () => {
+    expect(entry({ limit: 5 }, "Wrote the first algorithm")).toBe("Wrote\u2026");
+  });
+
+  it("keeps the whole of it a hover away", () => {
+    const container = render(
+      <PanelView
+        payload={payload([
+          { id: "a", type: "TextEntry", value: "Wrote the first", props: { limit: 5 } },
+        ])}
+      />,
+    ).container;
+
+    expect(container.querySelector(".perch-entry")?.getAttribute("title")).toBe(
+      "Wrote the first",
+    );
+  });
+
+  it("counts the way a reader counts, not the way a string does", () => {
+    // A family emoji is seven code points. Cut by code unit it leaves a box.
+    expect(entry({ limit: 2 }, "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}ab")).toBe(
+      "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}a\u2026",
+    );
+  });
+
+  it("says nothing about a value that already fits", () => {
+    const container = render(
+      <PanelView
+        payload={payload([
+          { id: "a", type: "TextEntry", value: "Ada", props: { limit: 10 } },
+        ])}
+      />,
+    ).container;
+
+    expect(container.querySelector(".perch-entry")?.getAttribute("title")).toBeNull();
+  });
+});
+
+describe("a value that can be copied", () => {
+  /** jsdom has no clipboard, which is the case the button checks for. */
+  const withClipboard = (): { written: string[] } => {
+    const written: string[] = [];
+    Object.defineProperty(globalThis.navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          written.push(text);
+          return Promise.resolve();
+        },
+      },
+    });
+    return { written };
+  };
+
+  const copyable = (props: Record<string, unknown>, value: unknown): HTMLElement =>
+    render(
+      <PanelView
+        payload={payload([
+          { id: "a", type: "TextEntry", value, props: { copyable: true, ...props } },
+        ])}
+      />,
+    ).container;
+
+  it("offers none where the browser has no clipboard to write to", () => {
+    // A button that cannot do its one job is worse than no button: the reader
+    // presses it and nothing happens.
+    expect(
+      copyable({}, "ada@example.com").querySelector(".perch-entry__copy"),
+    ).toBeNull();
+  });
+
+  it("copies the whole value, not the shortened one", async () => {
+    const { written } = withClipboard();
+    const container = copyable({ limit: 3 }, "ada@example.com");
+
+    fireEvent.click(container.querySelector(".perch-entry__copy") as HTMLElement);
+    await waitFor(() => {
+      expect(written).toEqual(["ada@example.com"]);
+    });
+  });
+
+  it("offers a button naming what it copies", () => {
+    withClipboard();
+    const container = render(
+      <PanelView
+        payload={payload([
+          {
+            id: "a",
+            type: "TextEntry",
+            value: "ada@example.com",
+            props: { copyable: true },
+          },
+        ])}
+      />,
+    ).container;
+
+    expect(
+      container.querySelector(".perch-entry__copy")?.getAttribute("aria-label"),
+    ).toBe("Copy ada@example.com");
+  });
+
+  it("offers none where there is nothing to copy", () => {
+    withClipboard();
+    const container = render(
+      <PanelView
+        payload={payload([{ id: "a", type: "TextEntry", props: { copyable: true } }])}
+      />,
+    ).container;
+
+    expect(container.querySelector(".perch-entry__copy")).toBeNull();
+  });
+});
+
+describe("a value the server made an address of", () => {
+  it("is a link to what the server built", () => {
+    const container = render(
+      <PanelView
+        payload={payload([
+          {
+            id: "a",
+            type: "TextEntry",
+            value: "ada@example.com",
+            href: "mailto:ada@example.com",
+          },
+        ])}
+      />,
+    ).container;
+
+    const link = container.querySelector("a");
+    expect(link?.getAttribute("href")).toBe("mailto:ada@example.com");
+    expect(link?.textContent).toBe("ada@example.com");
+  });
+
+  it("is words where the server built none", () => {
+    const container = render(
+      <PanelView
+        payload={payload([
+          { id: "a", type: "TextEntry", value: "javascript:alert(1)" },
+        ])}
+      />,
+    ).container;
+
+    expect(container.querySelector("a")).toBeNull();
+    expect(container.querySelector(".perch-entry")?.textContent).toBe(
+      "javascript:alert(1)",
+    );
+  });
+});
 
 describe("the rows of a relation", () => {
   it("draws one group per row, each holding its own values", () => {

@@ -418,6 +418,8 @@ function entryFormat(node: SchemaNode): {
     currency?: string;
     decimals?: number;
     badge?: boolean;
+    copyable?: boolean;
+    limit?: number;
   } = {};
 
   for (const key of ["format", "timezone", "currency"] as const) {
@@ -425,7 +427,9 @@ function entryFormat(node: SchemaNode): {
     if (typeof value === "string") out[key] = value;
   }
   if (typeof props["decimals"] === "number") out.decimals = props["decimals"];
+  if (typeof props["limit"] === "number") out.limit = props["limit"];
   if (props["badge"] === true) out.badge = true;
+  if (props["copyable"] === true) out.copyable = true;
   return out;
 }
 
@@ -479,6 +483,7 @@ function TextEntryRenderer({ node }: NodeProps): ReactNode {
           describedBy={binding.id}
           {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
           {...(node.tone === undefined ? {} : { tone: node.tone })}
+          {...(node.href === undefined ? {} : { href: node.href })}
           {...entryFormat(node)}
         />
       )}

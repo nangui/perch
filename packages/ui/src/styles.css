@@ -715,6 +715,43 @@
   color: var(--perch-content-secondary);
 }
 
+/* The value keeps its line; the button sits at the end of it. */
+.perch-entry {
+  gap: var(--perch-space-2);
+}
+
+.perch-entry__link {
+  color: var(--perch-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/*
+ * Quiet until wanted. A copy button beside every value on a dense page is a
+ * column of icons competing with the values themselves.
+ */
+.perch-entry__copy {
+  flex: none;
+  padding: 0 var(--perch-space-1);
+  border: 0;
+  background: none;
+  color: var(--perch-content-subtle);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.perch-entry:hover .perch-entry__copy,
+.perch-entry__copy:focus-visible {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .perch-entry__copy {
+    transition: none;
+  }
+}
+
 /* A colour without a pill colours the words. The same four names either way. */
 .perch-entry[data-tone="success"] {
   color: var(--perch-success-content);

@@ -11,7 +11,7 @@ import type { Id, RelationWrite, Row, WriteTree } from "./data-adapter.js";
 import { Entry } from "./entry.js";
 import { Schema } from "./layout.js";
 import { RepeatableEntry } from "./entries/repeatable-entry.js";
-import { TextEntry } from "./entries/text-entry.js";
+import { safeHref, TextEntry } from "./entries/text-entry.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
 import { FileUpload } from "./fields/file-upload.js";
@@ -117,6 +117,8 @@ export interface ResolvedNode {
    * value — and the wire format carries no functions.
    */
   readonly tone?: string;
+  /** Where an entry links to, already built and already checked. */
+  readonly href?: string;
   /** Where a `FileUpload`'s stored file can be fetched, if it has one. */
   readonly previewUrl?: string;
   /** What each of a repeater's rows is called, by row key. */
@@ -806,6 +808,15 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
   const tone =
     typeof declaredTone === "function" ? declaredTone(entryValue) : declaredTone;
 
+  // Built here and checked here. A stored value put straight into an `href` is
+  // how `javascript:` becomes somebody else's script, and the browser is not
+  // the place to find that out.
+  const declaredUrl = component instanceof TextEntry ? component.state.url : undefined;
+  const href =
+    declaredUrl === undefined
+      ? undefined
+      : safeHref(declaredUrl === true ? entryValue : declaredUrl(entryValue));
+
   // Resolved here rather than copied from the state: both accept a resolver,
   // and a `required` the server enforces but never sends is an error the user
   // could not have seen coming.
@@ -872,6 +883,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     ...(content === undefined ? {} : { content }),
     ...(entryValue === undefined ? {} : { value: entryValue }),
     ...(tone === undefined ? {} : { tone }),
+    ...(href === undefined ? {} : { href }),
     ...(previewUrl === undefined ? {} : { previewUrl }),
     ...(itemLabels === undefined ? {} : { itemLabels }),
     ...(placeholder === undefined ? {} : { placeholder }),

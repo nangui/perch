@@ -15,6 +15,7 @@
  * taking the page down over one entry.
  */
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 export interface TextEntryProps {
   /** Whatever the record held. Absent, null and empty all read as nothing. */
@@ -30,6 +31,12 @@ export interface TextEntryProps {
   readonly badge?: boolean;
   /** Which of the panel's colours, already chosen by the server. */
   readonly tone?: string;
+  /** Where it links to, already built and already checked by the server. */
+  readonly href?: string;
+  /** A button beside it that copies the whole value, not the shown one. */
+  readonly copyable?: boolean;
+  /** How much to show. The rest is still there to hover over and to copy. */
+  readonly limit?: number;
   /** Points the shell's help line at this, so the two are read together. */
   readonly describedBy: string;
 }
@@ -100,21 +107,96 @@ function formatted(props: TextEntryProps): string | undefined {
 /** Only the ones the stylesheet has. An unknown name is not a colour. */
 const TONES = new Set(["neutral", "success", "warning", "danger"]);
 
+// Built once: a segmenter per render per entry is not free.
+const GRAPHEMES = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+/**
+ * The first `limit` characters, counted the way a reader counts them.
+ *
+ * Graphemes, not code units: a family emoji is seven code points, and a cut
+ * through one leaves a box on the page. The same count `.maxLength()` uses.
+ */
+function shorten(text: string, limit: number): string {
+  if (limit <= 0) return text;
+  const kept: string[] = [];
+  for (const { segment } of GRAPHEMES.segment(text)) {
+    if (kept.length === limit) return `${kept.join("")}\u2026`;
+    kept.push(segment);
+  }
+  return text;
+}
+
+/**
+ * Copies the whole value, and says so.
+ *
+ * Not rendered where there is no clipboard to write to — an insecure origin, an
+ * old browser. A button that cannot do its one job is worse than no button,
+ * because the reader tries it.
+ */
+function CopyButton({ value }: { readonly value: string }): ReactNode {
+  const [copied, setCopied] = useState(false);
+  // `in`, not a comparison: the DOM types say the clipboard is always there and
+  // an insecure origin says otherwise, so this asks the object rather than the
+  // type.
+  if (typeof navigator === "undefined" || !("clipboard" in navigator)) return null;
+
+  return (
+    <button
+      type="button"
+      className="perch-entry__copy"
+      // Named for what it copies: a page of buttons all called "Copy" is a list
+      // of identical controls to anybody not reading it by eye.
+      aria-label={`Copy ${value}`}
+      onClick={() => {
+        void navigator.clipboard.writeText(value).then(
+          () => {
+            setCopied(true);
+          },
+          () => {
+            // Said nowhere: the value is still on the page to select by hand,
+            // and a failure notice on a read page is noise about nothing lost.
+          },
+        );
+      }}
+    >
+      <span aria-hidden="true">{copied ? "\u2713" : "\u29C9"}</span>
+    </button>
+  );
+}
+
 export function TextEntry(props: TextEntryProps): ReactNode {
   const shown = formatted(props) ?? plain(props.value);
   const empty = shown === undefined;
-  const text = shown ?? props.placeholder ?? "—";
+  const whole = shown ?? props.placeholder ?? "—";
+  const text = props.limit === undefined || empty ? whole : shorten(whole, props.limit);
+  const cut = text !== whole;
+
+  // The whole value, never the shortened one: copying an ellipsis is worse than
+  // having no button.
+  const copy = props.copyable === true && !empty ? <CopyButton value={whole} /> : null;
   // Unknown names fall back rather than becoming a class the stylesheet has not
   // got: a pill with no background reads as a rendering fault.
   const tone =
     props.tone !== undefined && TONES.has(props.tone) ? props.tone : undefined;
+
+  // Linked or not, the same text: the address was built and checked on the
+  // server, and an entry with none is words.
+  const body =
+    props.href === undefined || empty ? (
+      text
+    ) : (
+      <a className="perch-entry__link" href={props.href} rel="noreferrer">
+        {text}
+      </a>
+    );
 
   // Nothing there is nothing to badge. A pill around an em dash draws the eye
   // to the one place on the page with the least in it.
   if (props.badge === true && !empty) {
     return (
       <p className="perch-entry" id={props.describedBy} data-empty="false">
-        <span className={`perch-badge perch-badge--${tone ?? "neutral"}`}>{text}</span>
+        <span className={`perch-badge perch-badge--${tone ?? "neutral"}`}>{body}</span>
+        {copy}
       </p>
     );
   }
@@ -128,8 +210,10 @@ export function TextEntry(props: TextEntryProps): ReactNode {
       id={props.describedBy}
       data-empty={empty}
       {...(tone === undefined || empty ? {} : { "data-tone": tone })}
+      {...(cut ? { title: whole } : {})}
     >
-      {text}
+      {body}
+      {copy}
     </p>
   );
 }
