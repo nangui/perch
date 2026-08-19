@@ -403,6 +403,7 @@ function entryFormat(node: SchemaNode): {
     timezone?: string;
     currency?: string;
     decimals?: number;
+    badge?: boolean;
   } = {};
 
   for (const key of ["format", "timezone", "currency"] as const) {
@@ -410,6 +411,7 @@ function entryFormat(node: SchemaNode): {
     if (typeof value === "string") out[key] = value;
   }
   if (typeof props["decimals"] === "number") out.decimals = props["decimals"];
+  if (props["badge"] === true) out.badge = true;
   return out;
 }
 
@@ -427,6 +429,7 @@ function TextEntryRenderer({ node }: NodeProps): ReactNode {
           value={node.value}
           describedBy={binding.id}
           {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+          {...(node.tone === undefined ? {} : { tone: node.tone })}
           {...entryFormat(node)}
         />
       )}

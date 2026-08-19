@@ -682,6 +682,23 @@
   color: var(--perch-content-secondary);
 }
 
+/* A colour without a pill colours the words. The same four names either way. */
+.perch-entry[data-tone="success"] {
+  color: var(--perch-success-content);
+}
+
+.perch-entry[data-tone="warning"] {
+  color: var(--perch-warning-content);
+}
+
+.perch-entry[data-tone="danger"] {
+  color: var(--perch-danger-content);
+}
+
+.perch-entry[data-tone="neutral"] {
+  color: var(--perch-content-secondary);
+}
+
 .perch-placeholder {
   display: flex;
   align-items: center;
@@ -1023,9 +1040,14 @@
   color: var(--perch-content-subtle);
 }
 
+/*
+ * A value from a closed set: the shape says "one of a few things" before the
+ * word is read. Written for a header that never used it; this is its first
+ * reader, so the layout it was carrying for that header is gone.
+ */
 .perch-badge {
-  flex: none;
-  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
   padding: var(--perch-space-1) var(--perch-space-3);
   border-radius: var(--perch-space-1);
   font-size: var(--perch-text-sm);
@@ -1045,6 +1067,11 @@
 .perch-badge--warning {
   color: var(--perch-warning-content);
   background: var(--perch-warning-surface);
+}
+
+.perch-badge--danger {
+  color: var(--perch-danger-content);
+  background: var(--perch-danger-surface);
 }
 
 /* --------------------------------------------------------------- empty state */

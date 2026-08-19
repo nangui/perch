@@ -138,6 +138,77 @@ describe("a rule the value does not fit", () => {
   });
 });
 
+const pill = (props: Record<string, unknown>, node: Record<string, unknown> = {}) =>
+  render(
+    <PanelView
+      payload={payload([
+        { id: "a", type: "TextEntry", label: "Role", value: "lead", props, ...node },
+      ])}
+    />,
+  ).container.querySelector(".perch-badge");
+
+describe("a value drawn as a badge", () => {
+  it("is a pill rather than a line of text", () => {
+    expect(pill({ badge: true })?.textContent).toBe("lead");
+  });
+
+  it("wears the colour the server chose", () => {
+    expect(pill({ badge: true }, { tone: "success" })?.className).toContain(
+      "perch-badge--success",
+    );
+  });
+
+  it("falls back to neutral rather than to a class the stylesheet has not got", () => {
+    // A tone from a panel built against a newer core. An unknown name is not a
+    // colour, and a pill with no background reads as a rendering fault.
+    expect(pill({ badge: true }, { tone: "chartreuse" })?.className).toContain(
+      "perch-badge--neutral",
+    );
+  });
+
+  it("colours the words where no pill was asked for", () => {
+    // `.badge()` and `.color()` are separate options. A tone that drew nothing
+    // without the other would be a declaration nothing acts on.
+    const container = render(
+      <PanelView
+        payload={payload([
+          { id: "a", type: "TextEntry", label: "Role", value: "lead", tone: "success" },
+        ])}
+      />,
+    ).container;
+
+    expect(container.querySelector(".perch-badge")).toBeNull();
+    expect(container.querySelector('[data-tone="success"]')).not.toBeNull();
+  });
+
+  it("colours nothing where there is nothing to colour", () => {
+    const container = render(
+      <PanelView
+        payload={payload([
+          { id: "a", type: "TextEntry", label: "Role", tone: "danger" },
+        ])}
+      />,
+    ).container;
+
+    expect(container.querySelector("[data-tone]")).toBeNull();
+  });
+
+  it("is not drawn around nothing", () => {
+    // A pill around an em dash draws the eye to the one place on the page with
+    // the least in it.
+    const container = render(
+      <PanelView
+        payload={payload([
+          { id: "a", type: "TextEntry", label: "Role", props: { badge: true } },
+        ])}
+      />,
+    ).container;
+
+    expect(container.querySelector(".perch-badge")).toBeNull();
+    expect(container.querySelector('[data-empty="true"]')).not.toBeNull();
+  });
+});
+
 describe("what the page does not offer", () => {
   const page = (): HTMLElement =>
     render(

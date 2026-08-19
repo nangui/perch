@@ -58,6 +58,47 @@ function registered(): ReadonlySet<string> {
   );
 }
 
+/** The tone names core declares, read off its own union. */
+function tones(): readonly string[] {
+  const source = readFileSync(new URL("entries/text-entry.ts", CORE), "utf8");
+  const union = /export type EntryTone =([^;]*);/.exec(source);
+  if (union === null) throw new Error("EntryTone is not where this expected it");
+  return [...(union[1] ?? "").matchAll(/"(\w+)"/g)]
+    .flatMap((m) => (m[1] === undefined ? [] : [m[1]]))
+    .sort();
+}
+
+/** The ones the renderer will actually draw, off its own list. */
+function drawn(): readonly string[] {
+  const source = readFileSync(
+    new URL("./entries/TextEntry.tsx", import.meta.url),
+    "utf8",
+  );
+  const set = /const TONES = new Set\(\[([^\]]*)\]\)/.exec(source);
+  if (set === null) throw new Error("TONES is not where this expected it");
+  return [...(set[1] ?? "").matchAll(/"(\w+)"/g)]
+    .flatMap((m) => (m[1] === undefined ? [] : [m[1]]))
+    .sort();
+}
+
+describe("the colours an entry may take", () => {
+  it("are the same list in both packages", () => {
+    // Two spellings in two packages is one addition away from a tone the server
+    // sends and the browser quietly turns into `neutral`.
+    expect(drawn()).toEqual(tones());
+  });
+
+  it("each have a rule in the stylesheet, as a pill and as words", () => {
+    const styles = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
+    const missing = tones().flatMap((tone) => [
+      ...(styles.includes(`.perch-badge--${tone}`) ? [] : [`badge:${tone}`]),
+      ...(styles.includes(`[data-tone="${tone}"]`) ? [] : [`text:${tone}`]),
+    ]);
+
+    expect(missing).toEqual([]);
+  });
+});
+
 describe("what a schema can carry", () => {
   it("has a renderer for every one of it, or an explanation", () => {
     const known = registered();

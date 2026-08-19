@@ -9,6 +9,7 @@ import type { Component, Operation, Resolvable, ResolverContext } from "./compon
 import { isResolver } from "./component.js";
 import type { Id, RelationWrite, Row, WriteTree } from "./data-adapter.js";
 import { Entry } from "./entry.js";
+import { TextEntry } from "./entries/text-entry.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
 import { FileUpload } from "./fields/file-upload.js";
@@ -107,6 +108,13 @@ export interface ResolvedNode {
    * which is what keeps one authorization removed out of the payload.
    */
   readonly value?: unknown;
+  /**
+   * Which of the panel's colours an entry takes.
+   *
+   * Resolved rather than sent as a prop, because it may be chosen from the
+   * value — and the wire format carries no functions.
+   */
+  readonly tone?: string;
   /** Where a `FileUpload`'s stored file can be fetched, if it has one. */
   readonly previewUrl?: string;
   /** What each of a repeater's rows is called, by row key. */
@@ -746,6 +754,13 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       ? readPath(ctx.options.record, component.recordPath)
       : undefined;
 
+  // From the value it decorates, on the server. The map from a value to a
+  // meaning is a rule somebody wrote, and the browser cannot know it.
+  const declaredTone =
+    component instanceof TextEntry ? component.state.color : undefined;
+  const tone =
+    typeof declaredTone === "function" ? declaredTone(entryValue) : declaredTone;
+
   // Resolved here rather than copied from the state: both accept a resolver,
   // and a `required` the server enforces but never sends is an error the user
   // could not have seen coming.
@@ -811,6 +826,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     ...(helperText === undefined ? {} : { helperText }),
     ...(content === undefined ? {} : { content }),
     ...(entryValue === undefined ? {} : { value: entryValue }),
+    ...(tone === undefined ? {} : { tone }),
     ...(previewUrl === undefined ? {} : { previewUrl }),
     ...(itemLabels === undefined ? {} : { itemLabels }),
     ...(placeholder === undefined ? {} : { placeholder }),

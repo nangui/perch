@@ -52,7 +52,12 @@ export { defaultSlug, kebab, plural } from "./naming.js";
 // Infolists. An entry reads the record by a path and never holds state.
 export type { EntryState } from "./entry.js";
 export { Entry, entryPaths } from "./entry.js";
-export type { EntryFormat, TextEntryState } from "./entries/text-entry.js";
+export type {
+  EntryFormat,
+  EntryTone,
+  TextEntryState,
+  ToneChoice,
+} from "./entries/text-entry.js";
 export { TextEntry } from "./entries/text-entry.js";
 
 // Actions. One class per trigger context, so a callback takes one record and

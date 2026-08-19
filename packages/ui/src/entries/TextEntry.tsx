@@ -26,6 +26,10 @@ export interface TextEntryProps {
   readonly timezone?: string;
   readonly currency?: string;
   readonly decimals?: number;
+  /** Drawn as a pill rather than as a line of text. */
+  readonly badge?: boolean;
+  /** Which of the panel's colours, already chosen by the server. */
+  readonly tone?: string;
   /** Points the shell's help line at this, so the two are read together. */
   readonly describedBy: string;
 }
@@ -93,12 +97,39 @@ function formatted(props: TextEntryProps): string | undefined {
   return undefined;
 }
 
+/** Only the ones the stylesheet has. An unknown name is not a colour. */
+const TONES = new Set(["neutral", "success", "warning", "danger"]);
+
 export function TextEntry(props: TextEntryProps): ReactNode {
   const shown = formatted(props) ?? plain(props.value);
+  const empty = shown === undefined;
+  const text = shown ?? props.placeholder ?? "—";
+  // Unknown names fall back rather than becoming a class the stylesheet has not
+  // got: a pill with no background reads as a rendering fault.
+  const tone =
+    props.tone !== undefined && TONES.has(props.tone) ? props.tone : undefined;
 
+  // Nothing there is nothing to badge. A pill around an em dash draws the eye
+  // to the one place on the page with the least in it.
+  if (props.badge === true && !empty) {
+    return (
+      <p className="perch-entry" id={props.describedBy} data-empty="false">
+        <span className={`perch-badge perch-badge--${tone ?? "neutral"}`}>{text}</span>
+      </p>
+    );
+  }
+
+  // A colour with no pill colours the words. The two are separate options and
+  // a tone that drew nothing without the other would be a declaration nothing
+  // acts on — which is what this codebase spends most of its guards catching.
   return (
-    <p className="perch-entry" id={props.describedBy} data-empty={shown === undefined}>
-      {shown ?? props.placeholder ?? "—"}
+    <p
+      className="perch-entry"
+      id={props.describedBy}
+      data-empty={empty}
+      {...(tone === undefined || empty ? {} : { "data-tone": tone })}
+    >
+      {text}
     </p>
   );
 }

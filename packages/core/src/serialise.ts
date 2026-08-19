@@ -37,6 +37,8 @@ export interface SchemaNode {
    * and nothing may ever send this one back.
    */
   readonly value?: unknown;
+  /** Which of the panel's colours it takes, already chosen. */
+  readonly tone?: string;
   /**
    * Absent means the field never triggers a round trip. Present, it carries the
    * debounce set per field type — the client cannot invent it.
@@ -64,7 +66,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   DateTimePicker: ["withTime", "timezone", "minDate", "maxDate"],
   FileUpload: ["maxSize", "acceptedFileTypes"],
   Toggle: ["onIcon", "offIcon", "onColor"],
-  TextEntry: ["format", "timezone", "currency", "decimals"],
+  TextEntry: ["format", "timezone", "currency", "decimals", "badge"],
   Textarea: ["rows", "autosize", "maxLength"],
   Section: ["columns", "collapsible", "collapsed", "icon"],
   Grid: ["columns"],
@@ -140,6 +142,7 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     ...(resolved.readOnly ? { readOnly: true } : {}),
     ...(resolved.content === undefined ? {} : { content: resolved.content }),
     ...(resolved.value === undefined ? {} : { value: resolved.value }),
+    ...(resolved.tone === undefined ? {} : { tone: resolved.tone }),
     ...(resolved.required === true ? { required: true } : {}),
     ...(component instanceof Field && component.state.inlineLabel
       ? { inlineLabel: true as const }

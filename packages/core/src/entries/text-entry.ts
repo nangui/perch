@@ -19,6 +19,28 @@ import { configured } from "../component.js";
 import type { EntryState } from "../entry.js";
 import { Entry } from "../entry.js";
 
+/**
+ * The panel's colours, by what they mean rather than by what they are.
+ *
+ * A name, not a hex: which red the panel uses is the theme's business, and an
+ * entry that named one would be the one thing on the page a theme could not
+ * change.
+ */
+export type EntryTone = "neutral" | "success" | "warning" | "danger";
+
+/**
+ * A fixed tone, or one chosen from the value.
+ *
+ * The value, not a `ResolverContext`: an entry's own value is the thing a tone
+ * depends on, and it is not in the state map that `get()` reads. Asking an
+ * author to write `({ record }) => record?.role` would be asking them to repeat
+ * the path they already declared.
+ *
+ * Synchronous on purpose. This is a lookup table, and a colour worth waiting
+ * for a query on is a column the record should be carrying.
+ */
+export type ToneChoice = EntryTone | ((value: unknown) => EntryTone | undefined);
+
 /** How the value is turned into something a person reads. */
 export type EntryFormat = "dateTime" | "numeric" | "money";
 
@@ -35,6 +57,9 @@ export interface TextEntryState extends EntryState {
   readonly currency?: string | undefined;
   /** Fixed places, for `numeric`. Unset lets the locale decide. */
   readonly decimals?: number | undefined;
+  /** Drawn as a pill rather than as a line of text. */
+  readonly badge?: true;
+  readonly color?: ToneChoice;
 }
 
 /**
@@ -92,5 +117,27 @@ export class TextEntry extends Entry {
   /** An amount, in a currency the record does not carry and the form declares. */
   money(currency: string): this {
     return this.with({ ...CLEARED, format: "money", currency });
+  }
+
+  /**
+   * Drawn as a pill.
+   *
+   * For a value from a closed set — a status, a role, a stage — where the shape
+   * says "this is one of a few things" before the word is even read. A pill
+   * around a free-text field says that and is wrong.
+   */
+  badge(): this {
+    return this.with({ badge: true });
+  }
+
+  /**
+   * Which of the panel's colours it takes, fixed or chosen from the value.
+   *
+   * Resolved on the server like everything else conditional: the map from a
+   * value to a meaning is a rule somebody wrote, and the browser has no way to
+   * know it.
+   */
+  color(tone: ToneChoice): this {
+    return this.with({ color: tone });
   }
 }

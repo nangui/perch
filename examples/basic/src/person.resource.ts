@@ -1,5 +1,10 @@
 import { Injectable } from "@nestjs/common";
-import type { Option, Schema as SchemaTree, Table as TableTree } from "@perchjs/core";
+import type {
+  EntryTone,
+  Option,
+  Schema as SchemaTree,
+  Table as TableTree,
+} from "@perchjs/core";
 import {
   Checkbox,
   CreateAction,
@@ -78,6 +83,13 @@ function name(value: unknown): string {
 const COUNTRIES = { fr: "France", be: "Belgium", ci: "Côte d'Ivoire" };
 const ROLES = { lead: "Lead", member: "Member", guest: "Guest" };
 
+/** What each role is worth saying about it, for the badge on the View page. */
+const ROLE_TONES: Readonly<Record<string, EntryTone>> = {
+  lead: "success",
+  member: "neutral",
+  guest: "warning",
+};
+
 @PanelResource({ model: "Person", slug: "people", navigationGroup: "Directory" })
 export class PersonResource {
   readonly #cities: Cities;
@@ -150,9 +162,9 @@ export class PersonResource {
    * query rather than one each.
    *
    * `country`, `city` and `role` are stored as codes and are shown as codes.
-   * Formatting shapes a value; it does not look one up. What turns `fr` into
-   * `France` is the same list the form's `Select` already holds, and reaching
-   * it from here is a decision nobody has taken.
+   * Formatting shapes a value and a badge colours one; neither looks one up.
+   * What turns `fr` into `France` is the same list the form's `Select` already
+   * holds, and reaching it from here is a decision nobody has taken.
    */
   infolist(): SchemaTree {
     return Schema.make([
@@ -169,7 +181,14 @@ export class PersonResource {
         TextEntry.make("bio")
           .label("Biography")
           .placeholder("Nothing written about them yet."),
-        TextEntry.make("role").label("Role").placeholder("None"),
+        // A value from a closed set, so the shape says so before the word is
+        // read. It is still the stored code: a badge colours a value, it does
+        // not look one up.
+        TextEntry.make("role")
+          .label("Role")
+          .badge()
+          .color((value) => ROLE_TONES[String(value)])
+          .placeholder("None"),
       ]),
 
       Section.make("Status")

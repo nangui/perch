@@ -130,6 +130,65 @@ describe("how a value is said to be read", () => {
   });
 });
 
+describe("a colour chosen from the value", () => {
+  const toned = async (entry: TextEntry, record: Record<string, unknown>) =>
+    serialise(
+      await resolveSchema(Schema.make([entry]), {}, { operation: "view", record }),
+    ).schema.children?.[0];
+
+  it("is resolved on the server, where the map that decides it lives", async () => {
+    const roles: Record<string, "success" | "warning"> = {
+      lead: "success",
+      intern: "warning",
+    };
+    const entry = TextEntry.make("role")
+      .badge()
+      .color((v) => roles[String(v)]);
+
+    expect((await toned(entry, { role: "lead" }))?.tone).toBe("success");
+    expect((await toned(entry, { role: "intern" }))?.tone).toBe("warning");
+  });
+
+  it("takes a fixed one as readily as a chosen one", async () => {
+    const node = await toned(TextEntry.make("role").color("danger"), { role: "x" });
+
+    expect(node?.tone).toBe("danger");
+  });
+
+  it("says nothing where the map has no answer for this value", async () => {
+    const entry = TextEntry.make("role").color(() => undefined);
+
+    expect((await toned(entry, { role: "unknown" }))?.tone).toBeUndefined();
+  });
+
+  it("is asked about the value it decorates, not about the state", async () => {
+    // The state map is empty on a View page. A colour resolver handed a context
+    // would have nothing to read, which is why it is handed the value.
+    let seen: unknown = "never called";
+    const entry = TextEntry.make("role").color((v) => {
+      seen = v;
+      return "neutral";
+    });
+
+    await toned(entry, { role: "lead" });
+    expect(seen).toBe("lead");
+  });
+
+  it("crosses as a resolved name, never as the function that chose it", async () => {
+    const node = await toned(
+      TextEntry.make("role")
+        .badge()
+        .color(() => "success"),
+      {
+        role: "lead",
+      },
+    );
+
+    expect(node?.props).toEqual({ badge: true });
+    expect(node?.tone).toBe("success");
+  });
+});
+
 describe("an infolist at the trust boundary", () => {
   const infolist = Schema.make([
     Section.make("Details").schema([
