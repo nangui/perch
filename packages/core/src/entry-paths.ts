@@ -32,17 +32,29 @@ export function entryPaths(root: Component): readonly string[] {
   return [...new Set(paths)];
 }
 
+/** A to-many an infolist reads, what its rows read, and what they hold in turn. */
+export interface EntryRelation {
+  readonly relation: string;
+  /** Columns on a row of it, resolved against that row's own model. */
+  readonly paths: readonly string[];
+  /** To-many relations of a row. A note's tags, read with the note. */
+  readonly relations: readonly EntryRelation[];
+}
+
 /**
- * The to-many relations an infolist reads, with what each of them reads.
+ * The to-many relations an infolist reads, as deep as they go.
  *
  * Separate from `entryPaths` because a to-many cannot be part of a path — the
  * resolver refuses one in the middle, and it is right to: `notes.body` on a
  * row-per-note relation is not one column, it is one per row.
+ *
+ * Nested, because a row may hold rows. The resolution has always handled that —
+ * a row is walked against itself — and a plan that stopped at the first level
+ * would leave the inner ones asking a database that was never told to load
+ * them, which draws as an empty section on a page that looks right.
  */
-export function entryRelations(
-  root: Component,
-): readonly { readonly relation: string; readonly paths: readonly string[] }[] {
-  const found: { relation: string; paths: readonly string[] }[] = [];
+export function entryRelations(root: Component): readonly EntryRelation[] {
+  const found: EntryRelation[] = [];
   const walk = (component: Component): void => {
     if (component instanceof RepeatableEntry) {
       if (component.recordPath !== "") {
@@ -51,6 +63,7 @@ export function entryRelations(
         found.push({
           relation: component.recordPath,
           paths: component.children.flatMap((child) => entryPaths(child)),
+          relations: component.children.flatMap((child) => entryRelations(child)),
         });
       }
       return;

@@ -22,7 +22,7 @@ import type {
   Row,
   Schema as SchemaTree,
 } from "@perchjs/core";
-import { Schema, Section, TextEntry, TextInput } from "@perchjs/core";
+import { RepeatableEntry, Schema, Section, TextEntry, TextInput } from "@perchjs/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
@@ -37,6 +37,31 @@ const AUTHOR: ModelMeta = model({
   labelField: "name",
 });
 
+const TAG: ModelMeta = model({
+  name: "Tag",
+  dbName: "Tag",
+  fields: [key(), scalar("name")],
+  labelField: "name",
+});
+
+const NOTE: ModelMeta = model({
+  name: "Note",
+  dbName: "Note",
+  fields: [key(), scalar("body")],
+  labelField: "body",
+  relations: [
+    {
+      name: "tags",
+      type: "many",
+      targetModel: "Tag",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
+  ],
+});
+
 const POST: ModelMeta = model({
   fields: [
     key(),
@@ -45,6 +70,15 @@ const POST: ModelMeta = model({
     scalar("authorId", { type: "Int" }),
   ],
   relations: [
+    {
+      name: "notes",
+      type: "many",
+      targetModel: "Note",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
     {
       name: "author",
       type: "one",
@@ -57,6 +91,12 @@ const POST: ModelMeta = model({
   ],
 });
 
+/** Twenty, which is the number the infolist criterion names. */
+const NOTES: Row[] = Array.from({ length: 20 }, (_, at) => ({
+  id: at + 1,
+  body: `Note ${String(at + 1)}`,
+}));
+
 const ROW: Row = { id: 1, title: "Ada", secret: "not on the page" };
 const AUTHOR_ROW: Row = { id: 9, name: "Grace" };
 
@@ -67,10 +107,12 @@ let policy: Authorization | undefined;
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [POST, AUTHOR] };
+    return { models: [POST, AUTHOR, NOTE, TAG] };
   }
   meta(name: string): ModelMeta {
-    return name === "Author" ? AUTHOR : POST;
+    if (name === "Author") return AUTHOR;
+    if (name === "Tag") return TAG;
+    return name === "Note" ? NOTE : POST;
   }
   findMany(): Promise<{ rows: readonly Row[]; total: number }> {
     reads.push({ model: "many" });
@@ -82,9 +124,11 @@ class MemoryAdapter implements DataAdapter {
     // Only what was asked for. A double that hands back the relation either way
     // lets a page that never planned to load it pass here and show nothing in
     // front of a reader.
-    return Promise.resolve(
-      include?.["author"] === true ? { ...ROW, author: AUTHOR_ROW } : ROW,
-    );
+    return Promise.resolve({
+      ...ROW,
+      ...(include?.["author"] === true ? { author: AUTHOR_ROW } : {}),
+      ...(include?.["notes"] === undefined ? {} : { notes: NOTES }),
+    });
   }
   create(): Promise<Row> {
     throw new Error("not needed here");
@@ -116,6 +160,12 @@ class PostResource {
         TextEntry.make("author.name").label("Author"),
         // Hidden, and therefore not in the page at all.
         TextEntry.make("secret").hidden(),
+      ]),
+      RepeatableEntry.make("notes").schema([
+        TextEntry.make("body").label("Note"),
+        // A row that holds rows. Its relation has to reach the plan too, or it
+        // draws as an empty section on a page that otherwise looks right.
+        RepeatableEntry.make("tags").schema([TextEntry.make("name").label("Tag")]),
       ]),
     ]);
   }
@@ -245,7 +295,21 @@ describe("what the page costs", () => {
   it("reads the row once, with the relations its entries name", async () => {
     await page("/admin/posts/1");
 
-    expect(reads).toEqual([{ model: "Post", include: { author: true } }]);
+    expect(reads).toEqual([
+      { model: "Post", include: { author: true, notes: { tags: true } } },
+    ]);
+  });
+
+  it("costs the same with twenty child rows as it would with one", async () => {
+    // The criterion an infolist is accepted on. A page that asked per row would
+    // still look right and would be twenty-one queries.
+    await page("/admin/posts/1");
+
+    expect(reads.length).toBe(1);
+  });
+
+  it("draws all twenty of them, so the count is not a count of nothing", async () => {
+    expect((await page("/admin/posts/1")).body).toContain("Note 20");
   });
 });
 

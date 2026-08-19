@@ -19,6 +19,7 @@ import {
 } from "@nestjs/common";
 import type {
   DataAdapter,
+  EntryRelation,
   FormState,
   IncludePlan,
   Ir,
@@ -324,20 +325,49 @@ function titleOf(meta: ModelMeta, record: Row): string | undefined {
  */
 function includeFor(ir: Ir, model: string, infolist: Schema): IncludePlan | undefined {
   try {
-    const plan = { ...buildIncludePlan(ir, model, entryPaths(infolist)) };
-    // A to-many is asked for by name. It cannot be part of a path — one note is
-    // not one column of the person — so the plan builder never sees it, and the
-    // paths its rows read are resolved against the note's own model.
-    for (const { relation, paths } of entryRelations(infolist)) {
-      const target = relationTarget(ir, model, relation);
-      const inner =
-        target === undefined ? undefined : buildIncludePlan(ir, target, paths);
-      plan[relation] = inner ?? true;
-    }
+    const plan = planFor(ir, model, infolist);
+    // Nothing to load is no plan, not an empty one: the adapter is asked for the
+    // row and nothing else.
     return Object.keys(plan).length === 0 ? undefined : plan;
   } catch {
     return undefined;
   }
+}
+
+/**
+ * One level of the plan, and the levels its rows hold.
+ *
+ * A to-many is asked for by name. It cannot be part of a path — one note is not
+ * one column of the person — so the plan builder never sees it, and the paths
+ * its rows read are resolved against the note's own model.
+ */
+function planFor(ir: Ir, model: string, schema: Schema): IncludePlan {
+  const plan: Record<string, true | IncludePlan> = {
+    ...buildIncludePlan(ir, model, entryPaths(schema)),
+  };
+  for (const relation of entryRelations(schema)) {
+    plan[relation.relation] = branchFor(ir, model, relation);
+  }
+  return plan;
+}
+
+/**
+ * One relation: what its rows read, and what their own rows read.
+ *
+ * `true` where there is nothing under it, which is what the plan means by "load
+ * this and nothing further".
+ */
+function branchFor(ir: Ir, model: string, entry: EntryRelation): true | IncludePlan {
+  const target = relationTarget(ir, model, entry.relation);
+  if (target === undefined) return true;
+
+  const inner: Record<string, true | IncludePlan> = {
+    ...buildIncludePlan(ir, target, entry.paths),
+  };
+  for (const nested of entry.relations) {
+    inner[nested.relation] = branchFor(ir, target, nested);
+  }
+  return Object.keys(inner).length === 0 ? true : inner;
 }
 
 /** Which model a relation leads to, or nothing where it is not one. */

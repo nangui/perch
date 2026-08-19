@@ -79,7 +79,7 @@ describe("what the loading plan is told", () => {
     const schema = Schema.make([TextEntry.make("title"), NOTES()]);
 
     expect(entryRelations(schema)).toEqual([
-      { relation: "notes", paths: ["body", "author.name"] },
+      { relation: "notes", paths: ["body", "author.name"], relations: [] },
     ]);
   });
 
@@ -88,6 +88,27 @@ describe("what the loading plan is told", () => {
     // record's model it would refuse a form that is right.
     expect(entryPaths(Schema.make([TextEntry.make("title"), NOTES()]))).toEqual([
       "title",
+    ]);
+  });
+
+  it("follows a relation a row holds, as deep as it goes", () => {
+    // The resolution has always handled this — a row is walked against itself.
+    // A plan that stopped at the first level would leave the inner one asking a
+    // database nobody told to load it, which draws as an empty section on a
+    // page that otherwise looks right.
+    const schema = Schema.make([
+      RepeatableEntry.make("notes").schema([
+        TextEntry.make("body"),
+        RepeatableEntry.make("tags").schema([TextEntry.make("name")]),
+      ]),
+    ]);
+
+    expect(entryRelations(schema)).toEqual([
+      {
+        relation: "notes",
+        paths: ["body"],
+        relations: [{ relation: "tags", paths: ["name"], relations: [] }],
+      },
     ]);
   });
 

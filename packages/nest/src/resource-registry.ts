@@ -13,7 +13,7 @@
 import type { OnModuleInit } from "@nestjs/common";
 import { Inject, Injectable } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
-import type { Component } from "@perchjs/core";
+import type { Component, EntryRelation, Ir } from "@perchjs/core";
 import type { DataAdapter, Schema, Table } from "@perchjs/core";
 import {
   auditInfolist,
@@ -197,23 +197,34 @@ export class ResourceRegistry implements OnModuleInit {
     infolist: Schema,
   ): readonly { field: string; problem: string }[] {
     if (this.#data === null) return [];
-    const ir = this.#data.ir();
+    return this.#rowsUnder(this.#data.ir(), model, entryRelations(infolist));
+  }
+
+  /** One level of rows, then the rows those rows hold. */
+  #rowsUnder(
+    ir: Ir,
+    model: string,
+    relations: readonly EntryRelation[],
+  ): readonly { field: string; problem: string }[] {
     const owner = findModel(ir, model);
     if (owner === undefined) return [];
 
-    return entryRelations(infolist).flatMap(({ relation, paths }) => {
-      const found = owner.relations.find((one) => one.name === relation);
+    return relations.flatMap((entry) => {
+      const found = owner.relations.find((one) => one.name === entry.relation);
       if (found === undefined || !found.isList) {
         return [
           {
-            field: relation,
+            field: entry.relation,
             problem:
               `is a repeatable entry on \`${model}\`, which has no to-many ` +
               `relation by that name — it reads rows, so it needs one`,
           },
         ];
       }
-      return this.#unreadablePaths(found.targetModel, paths, "entry");
+      return [
+        ...this.#unreadablePaths(found.targetModel, entry.paths, "entry"),
+        ...this.#rowsUnder(ir, found.targetModel, entry.relations),
+      ];
     });
   }
 
