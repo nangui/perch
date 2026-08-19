@@ -189,6 +189,92 @@ describe("a colour chosen from the value", () => {
   });
 });
 
+describe("an entry drawn as a link", () => {
+  const linked = async (entry: TextEntry, record: Record<string, unknown>) =>
+    serialise(
+      await resolveSchema(Schema.make([entry]), {}, { operation: "view", record }),
+    ).schema.children?.[0]?.href;
+
+  it("links to the value where the value is the address", async () => {
+    const node = await linked(TextEntry.make("site").url(), {
+      site: "https://example.com/a",
+    });
+
+    expect(node).toBe("https://example.com/a");
+  });
+
+  it("links to what a function built from the value", async () => {
+    const entry = TextEntry.make("email").url((v) => `mailto:${String(v)}`);
+
+    expect(await linked(entry, { email: "ada@example.com" })).toBe(
+      "mailto:ada@example.com",
+    );
+  });
+
+  it("links to a place on this panel", async () => {
+    expect(
+      await linked(TextEntry.make("path").url(), { path: "/admin/people/1" }),
+    ).toBe("/admin/people/1");
+  });
+});
+
+describe("an address the panel will not put in an href", () => {
+  const linked = async (value: unknown) =>
+    serialise(
+      await resolveSchema(
+        Schema.make([TextEntry.make("v").url()]),
+        {},
+        {
+          operation: "view",
+          record: { v: value },
+        },
+      ),
+    ).schema.children?.[0]?.href;
+
+  it("refuses a script, which is how a stored value becomes somebody's code", async () => {
+    expect(await linked("javascript:alert(1)")).toBeUndefined();
+  });
+
+  it("refuses the schemes a denylist would have missed", async () => {
+    expect(await linked("data:text/html,<script>alert(1)</script>")).toBeUndefined();
+    expect(await linked("vbscript:msgbox(1)")).toBeUndefined();
+  });
+
+  it("refuses another origin dressed as a path", async () => {
+    // `//host` is a different site to a browser, whatever it looks like.
+    expect(await linked("//evil.example.com/x")).toBeUndefined();
+  });
+
+  it("refuses one dressed as a path with a backslash", async () => {
+    // A browser reads `/\host` as `//host` for a special scheme. Refusing by
+    // shape looked like enough and let this through.
+    expect(await linked("/\\evil.example.com/x")).toBeUndefined();
+  });
+
+  it("refuses one hidden behind a character a browser strips", async () => {
+    // Tabs and newlines go before the URL is read at all, so `/⇥/host` is
+    // `//host` by the time it means anything.
+    expect(await linked("/\t/evil.example.com")).toBeUndefined();
+    expect(await linked("/\n/evil.example.com")).toBeUndefined();
+  });
+
+  it("refuses what is not an address at all, and shows the words instead", async () => {
+    const payload = serialise(
+      await resolveSchema(
+        Schema.make([TextEntry.make("v").url()]),
+        {},
+        {
+          operation: "view",
+          record: { v: "not a url" },
+        },
+      ),
+    );
+
+    expect(payload.schema.children?.[0]?.href).toBeUndefined();
+    expect(payload.schema.children?.[0]?.value).toBe("not a url");
+  });
+});
+
 describe("an infolist at the trust boundary", () => {
   const infolist = Schema.make([
     Section.make("Details").schema([

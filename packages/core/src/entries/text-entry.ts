@@ -49,6 +49,9 @@ export type EntryFormat = "dateTime" | "numeric" | "money";
  * has to be able to unset what the one before it had set, and `serialise` skips
  * an undefined value rather than putting the key on the wire.
  */
+/** Built from the value it decorates, like a tone. */
+export type UrlChoice = (value: unknown) => string | undefined;
+
 export interface TextEntryState extends EntryState {
   readonly format?: EntryFormat;
   /** Which zone a timestamp is read in. The reader's own where unset. */
@@ -60,6 +63,12 @@ export interface TextEntryState extends EntryState {
   /** Drawn as a pill rather than as a line of text. */
   readonly badge?: true;
   readonly color?: ToneChoice;
+  /** A button beside it that puts the whole value on the clipboard. */
+  readonly copyable?: true;
+  /** How much of it to show. The rest is still there to copy and to hover. */
+  readonly limit?: number;
+  /** `true` means the value is the address; a function builds one from it. */
+  readonly url?: true | UrlChoice;
 }
 
 /**
@@ -139,5 +148,93 @@ export class TextEntry extends Entry {
    */
   color(tone: ToneChoice): this {
     return this.with({ color: tone });
+  }
+
+  /**
+   * A button beside it that copies the whole value.
+   *
+   * The whole one, not the shown one: `.limit()` shortens what is read, and
+   * copying an ellipsis is worse than having no button at all.
+   */
+  copyable(): this {
+    return this.with({ copyable: true });
+  }
+
+  /**
+   * How much to show. What is cut is still there, to hover over and to copy.
+   *
+   * Shortened in the browser rather than here. A server that sent the first
+   * eighty characters would make `.copyable()` a lie and leave nothing for the
+   * title to say, and the value crosses either way.
+   */
+  limit(characters: number): this {
+    return this.with({ limit: characters });
+  }
+
+  /**
+   * Drawn as a link. No argument means the value is the address; a function
+   * builds one from it — `mailto:` and the like.
+   *
+   * The address is built and checked on the server. A stored value put straight
+   * into an `href` is how `javascript:` becomes somebody else's script, and a
+   * browser is not the place to find that out.
+   */
+  url(build?: UrlChoice): this {
+    return this.with({ url: build ?? true });
+  }
+}
+
+/**
+ * The schemes a panel will link to, and nothing else.
+ *
+ * An allowlist, like every other decision here that reads off a declaration. A
+ * denylist of `javascript:` misses `data:`, and `vbscript:`, and whatever a
+ * browser adds next.
+ */
+const SCHEMES = new Set(["http:", "https:", "mailto:", "tel:"]);
+
+/**
+ * A base nothing resolves to by accident, for asking what a browser would do.
+ *
+ * `.invalid` is reserved and resolves nowhere, so a path that comes back on
+ * this origin is a path that stays where it was.
+ */
+const NOWHERE = "https://perch.invalid";
+
+/**
+ * A path on this origin, normalised, or nothing.
+ *
+ * Asked of the same parser a browser uses rather than matched by shape. Testing
+ * for `//` looks like it covers it and does not: a browser reads `/\host` as
+ * `//host` for a special scheme, and strips tabs and newlines before it reads
+ * anything — so `/⇥/host` is another origin too. Both were accepted here.
+ */
+export function safePath(value: string): string | undefined {
+  try {
+    const url = new URL(value, NOWHERE);
+    if (url.origin !== NOWHERE) return undefined;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * An address worth putting in an `href`, or nothing.
+ *
+ * Nothing means the value is drawn as text: a link that does not link is what a
+ * reader should see, rather than one that runs something. Silent, because the
+ * value came from a row and the row may have come from anywhere.
+ */
+export function safeHref(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.trim() === "") return undefined;
+  const raw = value.trim();
+
+  if (raw.startsWith("/")) return safePath(raw);
+
+  try {
+    return SCHEMES.has(new URL(raw).protocol) ? raw : undefined;
+  } catch {
+    return undefined;
   }
 }

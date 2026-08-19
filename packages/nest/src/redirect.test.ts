@@ -41,6 +41,12 @@ describe("what may be handed to a browser", () => {
   it.each([
     ["another origin, spelled without a scheme", "//evil.com/admin/people/2/edit"],
     ["another origin, spelled with one", "https://evil.com/x"],
+    // A browser reads `/\host` as `//host` for a special scheme, and strips
+    // tabs and newlines before it reads anything. Both got past the shape check
+    // this guard used to be, and the root it judges comes from the caller's URL.
+    ["another origin, spelled with a backslash", "/\\evil.com/x"],
+    ["another origin, behind a tab a browser removes", "/\t/evil.com/x"],
+    ["another origin, behind a newline", "/\n/evil.com/x"],
     ["something relative, which resolves against the current page", "people/2/edit"],
     ["nothing at all", ""],
   ])("refuses %s", (_, where) => {

@@ -60,8 +60,9 @@ export type {
   EntryTone,
   TextEntryState,
   ToneChoice,
+  UrlChoice,
 } from "./entries/text-entry.js";
-export { TextEntry } from "./entries/text-entry.js";
+export { safeHref, safePath, TextEntry } from "./entries/text-entry.js";
 
 // Actions. One class per trigger context, so a callback takes one record and
 // a bulk run composes it.

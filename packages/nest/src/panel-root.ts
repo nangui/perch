@@ -6,6 +6,7 @@
  * the only derivation that holds in every case.
  */
 import { NotFoundException } from "@nestjs/common";
+import { safePath } from "@perchjs/core";
 
 /** Both platforms Nest supports name it, and neither shares a type. */
 export interface IncomingUrl {
@@ -39,9 +40,13 @@ function decodePath(path: string): string {
  * A place on this origin, or nothing.
  *
  * The root a redirect is built on comes from the URL that reached the route, so
- * it decides where a browser goes next. `//host` is another origin to a browser,
- * and how strictly a router normalises paths is not a security argument.
+ * it decides where a browser goes next — and that URL is the caller's to write.
+ *
+ * Refusing `//host` by shape looked like enough and was not: a browser reads
+ * `/\host` as `//host`, and strips tabs and newlines before it reads anything,
+ * so `/⇥/host` leaves the site too. Both got through. The check asks the URL
+ * parser now, which is the thing that will make the decision anyway.
  */
 export function sameOrigin(path: string): string | undefined {
-  return path.startsWith("/") && !path.startsWith("//") ? path : undefined;
+  return path.startsWith("/") ? safePath(path) : undefined;
 }
