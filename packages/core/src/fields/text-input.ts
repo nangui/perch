@@ -115,6 +115,23 @@ function numberOf(value: unknown): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+/**
+ * What the division is allowed to be out by.
+ *
+ * Sized on the error it exists to absorb: a quotient carries a few units in the
+ * last place, and thirty-two of them is room to spare. A round number instead —
+ * `1e-9` — grows past half a step once the quotient passes five hundred
+ * million, and everything above that stops being checked at all.
+ *
+ * Capped for the same reason one decade further up: proportional slack
+ * eventually swallows half a step whatever the constant, and a value exactly
+ * between two steps has to be refused at every magnitude. The cap is safe
+ * because a real multiple's quotient is out by units in the last place, which
+ * stay far below a quarter until the double is coarser than the step itself.
+ */
+const SLACK = 32 * Number.EPSILON;
+const MOST_SLACK = 0.25;
+
 function onTheStep(value: number, step: number): boolean {
   // A step that is not a positive number is a declaration the boot refuses, so
   // this never divides by one. Answering `true` is what a rule does when it has
@@ -122,5 +139,6 @@ function onTheStep(value: number, step: number): boolean {
   if (!Number.isFinite(step) || step <= 0) return true;
   const quotient = value / step;
   const nearest = Math.round(quotient);
-  return Math.abs(quotient - nearest) <= 1e-9 * Math.max(1, Math.abs(quotient));
+  const slack = Math.min(SLACK * Math.max(1, Math.abs(quotient)), MOST_SLACK);
+  return Math.abs(quotient - nearest) <= slack;
 }

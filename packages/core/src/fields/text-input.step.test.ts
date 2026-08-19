@@ -60,6 +60,36 @@ describe("a value between two steps", () => {
   });
 });
 
+describe("a value far from zero", () => {
+  it("is still judged against the grain, not waved through", async () => {
+    // A tolerance proportional to the quotient grows past half a step: with a
+    // step of one, everything above about five hundred million stopped being
+    // checked at all. What absorbs floating-point error has to be sized on
+    // floating-point error, not on a round number somebody liked.
+    expect(await saving("1000000000.5", 1)).toBe("Must be a multiple of 1.");
+    expect(await saving("1000000000", 1)).toBeUndefined();
+  });
+
+  it("is judged one decade further up, where the slack was going to swallow it", async () => {
+    // Proportional slack eventually passes half a step whatever the constant.
+    expect(await saving("1000000000000000.5", 1)).toBe("Must be a multiple of 1.");
+    expect(await saving("1000000000000000", 1)).toBeUndefined();
+  });
+
+  it("is judged against the grain and not against a comfortable margin", async () => {
+    // Off by a hundred-thousandth on a tenth grain. Slack picked as a round
+    // number rather than derived from the error accepts this; slack sized on
+    // the units in the last place a quotient actually carries refuses it.
+    expect(await saving("100000.00001", 0.1)).toBe("Must be a multiple of 0.1.");
+    expect(await saving("12345.000001", 0.01)).toBe("Must be a multiple of 0.01.");
+  });
+
+  it("is judged the same on a fine grain", async () => {
+    expect(await saving("12345678.905", 0.01)).toBe("Must be a multiple of 0.01.");
+    expect(await saving("12345678.9", 0.01)).toBeUndefined();
+  });
+});
+
 describe("what the rule stays out of", () => {
   it("says nothing where no step was declared", async () => {
     expect(await saving("2.45")).toBeUndefined();
