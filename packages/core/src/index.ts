@@ -98,7 +98,7 @@ export type {
   TableState,
 } from "./table.js";
 export type { FilterState } from "./filter.js";
-export { Filter, SelectFilter, TextFilter } from "./filter.js";
+export { Filter, SelectFilter, TextFilter, TrashedFilter } from "./filter.js";
 export {
   columnPaths,
   declaredActions,

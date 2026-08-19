@@ -12,7 +12,7 @@
  * undeclared column, and for the same reason: an error would say which filters
  * exist.
  */
-import type { Clause, ClauseOperator } from "./data-adapter.js";
+import type { Clause, ClauseOperator, DeletedRows } from "./data-adapter.js";
 import type { Option, OptionsInput } from "./option.js";
 import { normaliseOptions } from "./option.js";
 
@@ -58,6 +58,59 @@ export abstract class Filter {
    * which is different from saying it matched nothing.
    */
   abstract clause(value: string): Clause | undefined;
+
+  /**
+   * Which rows a value asks a list to show, for the one filter that decides it.
+   *
+   * Deletion is not a column a clause can name. A marked row is left out by the
+   * read itself, at the top level and inside every relation, so asking for it
+   * back is a different question from narrowing a set — and the only filter
+   * that answers it is the one below.
+   */
+  deleted(value: string): DeletedRows | undefined {
+    void value;
+    return undefined;
+  }
+}
+
+/**
+ * With deleted, only deleted, or neither — the filter that lifts the read's own
+ * exclusion rather than narrowing what it returned.
+ *
+ * A closed set of three, so `filter.trashed=<anything>` is not a way to ask a
+ * question nobody declared. The empty choice is what a list does by default,
+ * which is why it has no value of its own: putting the control back is asking
+ * for the ordinary page.
+ */
+export class TrashedFilter extends Filter {
+  static make(name = "trashed"): TrashedFilter {
+    return new TrashedFilter({ name, path: name, operator: "equals" });
+  }
+
+  override get type(): string {
+    return "TrashedFilter";
+  }
+
+  protected override with(state: FilterState): this {
+    return new TrashedFilter(state) as this;
+  }
+
+  /** Never a clause. What it decides is which rows the read returns at all. */
+  override clause(): Clause | undefined {
+    return undefined;
+  }
+
+  override deleted(value: string): DeletedRows | undefined {
+    return value === "with" || value === "only" ? value : undefined;
+  }
+
+  /** Drawn like any other closed set, so the client needs nothing new. */
+  get choices(): readonly { readonly value: string; readonly label: string }[] {
+    return [
+      { value: "with", label: "With deleted" },
+      { value: "only", label: "Only deleted" },
+    ];
+  }
 }
 
 /** A free-text match, `contains` unless told to be exact. */

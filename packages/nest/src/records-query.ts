@@ -11,6 +11,7 @@
  */
 import type {
   Clause,
+  DeletedRows,
   IncludePlan,
   Ir,
   Query,
@@ -91,6 +92,13 @@ export interface RawQuery {
 /** The prefix a filter's value arrives under. */
 export const FILTER_PREFIX = "filter.";
 
+/** What a filter contributed: a clause, a reading mode, or one of each. */
+export interface AcceptedFilter {
+  readonly value: string;
+  readonly clause?: Clause;
+  readonly deleted?: DeletedRows;
+}
+
 /**
  * Builds the `Query` the adapter will run, from parameters and from the schema
  * — never from the parameters alone.
@@ -156,7 +164,16 @@ export function readQuery(
   const skip = (page - 1) * perPage;
   const sort = sortOf(model, ir, raw.sort, table);
   const search = searchOf(model, ir, raw.search, table);
-  const clauses = [...accepted.values()].map((one) => one.clause);
+  const clauses = [...accepted.values()].flatMap((one) =>
+    one.clause === undefined ? [] : [one.clause],
+  );
+  // The one filter that lifts the read's own exclusion rather than narrowing
+  // what it returned. One per table, which the boot enforces — so the reduce
+  // below has at most one thing to find.
+  const deleted = [...accepted.values()].reduce<DeletedRows | undefined>(
+    (found, one) => one.deleted ?? found,
+    undefined,
+  );
   // Built from the columns, once, for the whole page.
   const include = table === undefined ? undefined : planFor(model, ir, table);
 
@@ -168,6 +185,7 @@ export function readQuery(
     ...(search === undefined ? {} : { search }),
     ...(include === undefined ? {} : { include }),
     ...(clauses.length === 0 ? {} : { clauses }),
+    ...(deleted === undefined ? {} : { deleted }),
   };
 }
 
@@ -194,8 +212,8 @@ export function readQuery(
 export function acceptedFilters(
   raw: Record<string, unknown>,
   table: Table | undefined,
-): ReadonlyMap<string, { readonly value: string; readonly clause: Clause }> {
-  const accepted = new Map<string, { value: string; clause: Clause }>();
+): ReadonlyMap<string, AcceptedFilter> {
+  const accepted = new Map<string, AcceptedFilter>();
   if (table === undefined) return accepted;
 
   const declared = declaredFilters(table);
@@ -208,8 +226,18 @@ export function acceptedFilters(
     const term = text(raw_)?.slice(0, MAX_TERM);
     if (filter === undefined || term === undefined) continue;
 
+    // Either contribution counts. A filter that narrows produces a clause; the
+    // one that decides which rows are read at all produces neither a clause nor
+    // nothing — treating "no clause" as "not accepted" dropped it silently.
     const clause = filter.clause(term);
-    if (clause !== undefined) accepted.set(name, { value: term, clause });
+    const deleted = filter.deleted(term);
+    if (clause !== undefined || deleted !== undefined) {
+      accepted.set(name, {
+        value: term,
+        ...(clause === undefined ? {} : { clause }),
+        ...(deleted === undefined ? {} : { deleted }),
+      });
+    }
   }
   return accepted;
 }

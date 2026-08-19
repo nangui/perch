@@ -22,6 +22,7 @@ import {
   columnPaths,
   entryPaths,
   entryRelations,
+  TrashedFilter,
   describeComplaints,
   findModel,
   FileUpload,
@@ -156,6 +157,7 @@ export class ResourceRegistry implements OnModuleInit {
         ...(table === undefined ? [] : auditTable(table)),
         ...this.#unknownDisks(form),
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
+        ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
         ...(infolist === undefined
           ? []
           : this.#unreadablePaths(metadata.model, entryPaths(infolist), "entry")),
@@ -177,6 +179,30 @@ export class ResourceRegistry implements OnModuleInit {
    * for as long as nobody looks closely — and, since the loading plan is built
    * from these paths, a relation that silently never loads.
    */
+  /**
+   * A trashed filter on a model with nothing to mark.
+   *
+   * Three states that all mean the same page: the control offers a question the
+   * table cannot answer, and answering it with the ordinary rows is worse than
+   * refusing the form.
+   */
+  #unmarkableTable(
+    model: string,
+    table: Table,
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    if (findModel(this.#data.ir(), model)?.hasSoftDelete === true) return [];
+
+    return table.state.filters
+      .filter((filter) => filter instanceof TrashedFilter)
+      .map((filter) => ({
+        field: filter.state.name,
+        problem:
+          `filters deleted rows on \`${model}\`, which has no deletion column — ` +
+          "every one of its three states shows the same page",
+      }));
+  }
+
   #unreachableColumns(
     model: string,
     table: Table,

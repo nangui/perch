@@ -621,8 +621,13 @@ function narrowing(
           return <input key={filter.name} {...shared} type="text" />;
         }
         // A choice with nothing to choose from is a control that can only be
-        // put back where it started.
-        if (filter.type === "SelectFilter" && (filter.options?.length ?? 0) > 0) {
+        // put back where it started. The trashed filter is drawn the same way:
+        // three states, one of which is the empty one, and nothing about it is
+        // the client's to know beyond that.
+        if (
+          (filter.type === "SelectFilter" || filter.type === "TrashedFilter") &&
+          (filter.options?.length ?? 0) > 0
+        ) {
           return (
             <select key={filter.name} {...shared}>
               {/* An empty choice, or the control cannot be put back. */}

@@ -4,12 +4,13 @@
  */
 import { describe, expect, it } from "vitest";
 import type { Ir, ModelMeta } from "@perchjs/core";
-import { Table, TextColumn, TextFilter } from "@perchjs/core";
+import { Table, TextColumn, TextFilter, TrashedFilter } from "@perchjs/core";
 import {
   DEFAULT_PER_PAGE,
   MAX_PER_PAGE,
   MAX_TERM,
   MAX_SKIP,
+  readList,
   readQuery,
 } from "./records-query.js";
 import { scalar } from "./__fixtures__/ir.js";
@@ -215,5 +216,53 @@ describe("a model the schema does not have", () => {
 
     expect(query).toMatchObject({ model: "Ghost", skip: 0 });
     expect(query.sort).toBeUndefined();
+  });
+});
+
+describe("the filter that decides which rows are read", () => {
+  const table = () =>
+    Table.make()
+      .columns([TextColumn.make("name")])
+      .filters([TrashedFilter.make(), TextFilter.make("name")]);
+
+  it("puts the reading mode on the query rather than in a clause", () => {
+    // Deletion is not a column a clause can name: a marked row is left out by
+    // the read itself, so asking for it back is a different question.
+    const query = readQuery("User", IR, { "filter.trashed": "with" }, table());
+
+    expect(query.deleted).toBe("with");
+    expect(query.clauses).toBeUndefined();
+  });
+
+  it("asks for those alone when that is the choice", () => {
+    expect(readQuery("User", IR, { "filter.trashed": "only" }, table()).deleted).toBe(
+      "only",
+    );
+  });
+
+  it("says nothing for a value nobody declared", () => {
+    expect(
+      readQuery("User", IR, { "filter.trashed": "everything" }, table()).deleted,
+    ).toBeUndefined();
+  });
+
+  it("is reported back as accepted, like every other filter", () => {
+    // A filter that produced no clause used to be dropped from this list, so a
+    // control the server honoured drew itself back at its default.
+    const { filters } = readList("User", IR, { "filter.trashed": "with" }, table());
+
+    expect(filters["trashed"]).toBe("with");
+  });
+
+  it("leaves the narrowing filters alone beside it", () => {
+    const query = readQuery(
+      "User",
+      IR,
+      { "filter.trashed": "only", "filter.name": "ada" },
+      table(),
+    );
+
+    expect(query.deleted).toBe("only");
+    expect(query.clauses).toHaveLength(1);
   });
 });

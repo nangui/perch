@@ -30,6 +30,7 @@ import {
   TextColumn,
   TextFilter,
   TextInput,
+  TrashedFilter,
 } from "@perchjs/core";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Authorization } from "./authorization.js";
@@ -440,6 +441,39 @@ describe("listing records", () => {
 
     expect(asked[0]?.clauses).toBeUndefined();
     expect(asked[0]?.include).toBeUndefined();
+  });
+});
+
+describe("a trashed filter on a model with nothing to mark", () => {
+  it("stops the boot rather than offering three states that mean one page", async () => {
+    @PanelResource({ model: "Post", slug: "unmarkable" })
+    class UnmarkableResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .filters([TrashedFilter.make()]);
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [UnmarkableResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/no deletion column/);
   });
 });
 

@@ -10,7 +10,7 @@
 import type { Action, Confirmation } from "./action.js";
 import type { Column } from "./column.js";
 import type { Filter } from "./filter.js";
-import { SelectFilter } from "./filter.js";
+import { SelectFilter, TrashedFilter } from "./filter.js";
 import type { SortDirection } from "./data-adapter.js";
 
 export interface TableState {
@@ -161,7 +161,7 @@ export function serialiseTable(table: Table): ColumnTree {
       ...(filter.state.label === undefined ? {} : { label: filter.state.label }),
       // Stringified: a value crosses the wire as what a control will send back,
       // and the declaration turns it into what the column holds on the way in.
-      ...(filter instanceof SelectFilter
+      ...(filter instanceof SelectFilter || filter instanceof TrashedFilter
         ? {
             options: filter.choices.map((option) => ({
               value: String(option.value),

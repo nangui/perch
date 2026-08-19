@@ -21,7 +21,7 @@ import { Radio } from "./fields/radio.js";
 import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
 import { TextInput } from "./fields/text-input.js";
-import { SelectFilter } from "./filter.js";
+import { SelectFilter, TrashedFilter } from "./filter.js";
 import type { Table } from "./table.js";
 import { declaredActions, declaredFilters } from "./table.js";
 import { isWallClock } from "./zoned.js";
@@ -258,7 +258,32 @@ export function auditTable(table: Table): readonly Complaint[] {
   declaredActions(table);
 
   const complaints: Complaint[] = [];
+
+  // Two of them under two names, which the name check above cannot see. They
+  // decide one thing between them, so a reader can set them against each other
+  // and the answer is whichever was declared last — arbitrary, and invisible.
+  const trashed = table.state.filters.filter((one) => one instanceof TrashedFilter);
+  if (trashed.length > 1) {
+    complaints.push({
+      field: trashed.map((one) => one.state.name).join(", "),
+      problem:
+        "are two filters deciding which rows the list reads, and a reader can " +
+        "set them against each other — one table has one such question",
+    });
+  }
+
   for (const filter of table.state.filters) {
+    // `.path()` names the column a filter narrows, and this one narrows none.
+    // Accepted, stored and acted on by nothing, which is how a line that reads
+    // like a decision turns out to have been one nobody kept.
+    if (filter instanceof TrashedFilter && filter.state.path !== filter.state.name) {
+      complaints.push({
+        field: filter.state.name,
+        problem:
+          `points at \`${filter.state.path}\`, and a filter for deleted rows ` +
+          "reads no column — it decides which rows are read at all",
+      });
+    }
     if (filter instanceof SelectFilter && filter.choices.length === 0) {
       complaints.push({
         field: filter.state.name,
