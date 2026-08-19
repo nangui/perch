@@ -22,15 +22,34 @@ import { Entry } from "../entry.js";
 /** How the value is turned into something a person reads. */
 export type EntryFormat = "dateTime" | "numeric" | "money";
 
+/**
+ * Explicitly `| undefined`, unlike the rest of the tree's state: a formatter
+ * has to be able to unset what the one before it had set, and `serialise` skips
+ * an undefined value rather than putting the key on the wire.
+ */
 export interface TextEntryState extends EntryState {
   readonly format?: EntryFormat;
   /** Which zone a timestamp is read in. The reader's own where unset. */
-  readonly timezone?: string;
+  readonly timezone?: string | undefined;
   /** ISO 4217, for `money`. */
-  readonly currency?: string;
+  readonly currency?: string | undefined;
   /** Fixed places, for `numeric`. Unset lets the locale decide. */
-  readonly decimals?: number;
+  readonly decimals?: number | undefined;
 }
+
+/**
+ * What every formatter starts from.
+ *
+ * The last call decides, so the settings of the one before it have to go with
+ * it. Left behind, a `timezone` rides on an amount: harmless to the renderer,
+ * which reads only what the format calls for, and a lie to anybody reading the
+ * payload to find out what this entry was told to do.
+ */
+const CLEARED = {
+  timezone: undefined,
+  currency: undefined,
+  decimals: undefined,
+} satisfies Partial<TextEntryState>;
 
 export class TextEntry extends Entry {
   declare readonly state: TextEntryState;
@@ -55,6 +74,7 @@ export class TextEntry extends Entry {
    */
   dateTime(options: { readonly timezone?: string } = {}): this {
     return this.with({
+      ...CLEARED,
       format: "dateTime",
       ...(options.timezone === undefined ? {} : { timezone: options.timezone }),
     });
@@ -63,6 +83,7 @@ export class TextEntry extends Entry {
   /** A number, grouped the way the reader's locale groups numbers. */
   numeric(options: { readonly decimals?: number } = {}): this {
     return this.with({
+      ...CLEARED,
       format: "numeric",
       ...(options.decimals === undefined ? {} : { decimals: options.decimals }),
     });
@@ -70,6 +91,6 @@ export class TextEntry extends Entry {
 
   /** An amount, in a currency the record does not carry and the form declares. */
   money(currency: string): this {
-    return this.with({ format: "money", currency });
+    return this.with({ ...CLEARED, format: "money", currency });
   }
 }

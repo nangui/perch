@@ -97,6 +97,39 @@ describe("what an entry shows", () => {
   });
 });
 
+describe("how a value is said to be read", () => {
+  const props = async (entry: TextEntry) =>
+    serialise(await read(Schema.make([entry]))).schema.children?.[0]?.props;
+
+  it("says nothing where nothing was declared", async () => {
+    expect(await props(TextEntry.make("title"))).toBeUndefined();
+  });
+
+  it("carries the zone with the rule, so the browser can apply both", async () => {
+    expect(
+      await props(TextEntry.make("title").dateTime({ timezone: "Europe/Paris" })),
+    ).toEqual({ format: "dateTime", timezone: "Europe/Paris" });
+  });
+
+  it("keeps a decimals of zero, which a falsy check would have dropped", async () => {
+    expect(await props(TextEntry.make("title").numeric({ decimals: 0 }))).toEqual({
+      format: "numeric",
+      decimals: 0,
+    });
+  });
+
+  it("takes the settings of the format it replaced with it", async () => {
+    // Measured before this: the amount went out carrying `Europe/Paris`.
+    // Harmless to a renderer that reads only what the format calls for, and a
+    // lie to anybody reading the payload to see what this entry was told to do.
+    expect(
+      await props(
+        TextEntry.make("total").dateTime({ timezone: "Europe/Paris" }).money("EUR"),
+      ),
+    ).toEqual({ format: "money", currency: "EUR" });
+  });
+});
+
 describe("an infolist at the trust boundary", () => {
   const infolist = Schema.make([
     Section.make("Details").schema([
