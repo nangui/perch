@@ -7,7 +7,7 @@
  * render time, which is the one thing authorisation may not do.
  */
 import type { Action, Operation, Row } from "@perchjs/core";
-import { DeleteAction } from "@perchjs/core";
+import { DeleteAction, ForceDeleteAction, RestoreAction } from "@perchjs/core";
 
 export interface Authorization<TUser = unknown, TRecord = unknown> {
   /** Gates the resource itself: its routes and its navigation entry alike. */
@@ -16,6 +16,13 @@ export interface Authorization<TUser = unknown, TRecord = unknown> {
   readonly create?: (user: TUser) => boolean | Promise<boolean>;
   readonly update?: (user: TUser, record: TRecord) => boolean | Promise<boolean>;
   readonly delete?: (user: TUser) => boolean | Promise<boolean>;
+  /**
+   * Lifting a mark, and destroying for good. Separate from `delete` and from
+   * each other, because being allowed to hide a row is not being allowed to
+   * bring one back, and neither is being allowed to leave nothing to bring.
+   */
+  readonly restore?: (user: TUser) => boolean | Promise<boolean>;
+  readonly forceDelete?: (user: TUser) => boolean | Promise<boolean>;
 }
 
 /**
@@ -31,7 +38,7 @@ export type Verdict = "allowed" | "denied" | "needs-record";
  * deleting is not a form somebody fills, so widening the shared type would put
  * a case into the resolution cycle that can never happen there.
  */
-export type Permission = Operation | "delete";
+export type Permission = Operation | "delete" | "restore" | "forceDelete";
 
 /**
  * Which policy an action is held to.
@@ -41,7 +48,10 @@ export type Permission = Operation | "delete";
  * owe it the same question — a guard only one door goes through is decoration.
  */
 export function permissionFor(action: Action): Permission {
-  return action instanceof DeleteAction ? "delete" : "edit";
+  if (action instanceof ForceDeleteAction) return "forceDelete";
+  if (action instanceof RestoreAction) return "restore";
+  if (action instanceof DeleteAction) return "delete";
+  return "edit";
 }
 
 /**
@@ -66,6 +76,12 @@ export async function authorize(
       return await scoped(can.update, user, record);
     case "view":
       return await scoped(can.view, user, record);
+    case "restore":
+      if (can.restore === undefined) return "allowed";
+      return (await can.restore(user)) ? "allowed" : "denied";
+    case "forceDelete":
+      if (can.forceDelete === undefined) return "allowed";
+      return (await can.forceDelete(user)) ? "allowed" : "denied";
     case "delete":
       // Asked of the principal rather than of a row, which is what the policy
       // declares. A rule that turns on which row is the action's own guard,

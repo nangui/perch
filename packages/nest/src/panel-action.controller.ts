@@ -31,6 +31,8 @@ import type {
 } from "@perchjs/core";
 import {
   DeleteAction,
+  ForceDeleteAction,
+  RestoreAction,
   admittedRecords,
   declaredActions,
   runAction,
@@ -316,15 +318,16 @@ export class PanelActionController {
     const key = (row: Row): Id => row[primaryKey] as Id;
 
     return await data.transaction(async (tx) => {
-      if (action instanceof DeleteAction) {
-        // Carried out by the framework rather than by a callback, and still
-        // asked of every record: the guard decides which rows this may touch.
-        // Fifty rows are one statement, not fifty.
+      // The three the framework carries out itself. Each is still asked of
+      // every record — the guard decides which rows it may touch — and each is
+      // one statement for fifty rows rather than fifty.
+      const port = builtIn(action);
+      if (port !== undefined) {
         const admitted = await admittedRecords(action, rows, user);
         const refused = refusedAlready + (rows.length - admitted.length);
         if (admitted.length === 0) return { processed: 0, refused };
 
-        const processed = await tx.delete(model, admitted.map(key));
+        const processed = await tx[port](model, admitted.map(key));
         return { processed, refused };
       }
 
@@ -334,6 +337,14 @@ export class PanelActionController {
       return { ...outcome, refused: outcome.refused + refusedAlready };
     });
   }
+}
+
+/** Which port method carries this action out, where the framework does. */
+function builtIn(action: Action): "delete" | "forceDelete" | "restore" | undefined {
+  if (action instanceof ForceDeleteAction) return "forceDelete";
+  if (action instanceof RestoreAction) return "restore";
+  if (action instanceof DeleteAction) return "delete";
+  return undefined;
 }
 
 /**

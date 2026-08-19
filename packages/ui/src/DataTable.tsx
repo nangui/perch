@@ -252,8 +252,13 @@ function rowAction(
 }
 
 /** A label the author did not give. Named after the action, never blank. */
+/**
+ * The type, as words. `ForceDeleteAction` is a class name and `ForceDelete` is
+ * still one — a button says "Force delete".
+ */
 function defaultLabel(action: ActionNode): string {
-  return action.type.replace(/Action$/, "");
+  const words = action.type.replace(/Action$/, "").replace(/([a-z])([A-Z])/g, "$1 $2");
+  return words.charAt(0) + words.slice(1).toLowerCase();
 }
 
 /**

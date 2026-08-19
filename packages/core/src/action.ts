@@ -218,6 +218,57 @@ export class EditAction extends Action {
 }
 
 /**
+ * Lifts the mark a delete put on a row.
+ *
+ * No confirmation. Restoring is the one operation here that undoes rather than
+ * decides — a reader who did not mean it deletes again, and nothing was lost in
+ * between. Asking first would be asking about the wrong direction.
+ */
+export class RestoreAction extends Action {
+  static make(): RestoreAction {
+    return new RestoreAction({});
+  }
+
+  override get type(): string {
+    return "RestoreAction";
+  }
+
+  override get isBuiltIn(): boolean {
+    return true;
+  }
+
+  protected override with(state: ActionState): this {
+    return new RestoreAction(state) as this;
+  }
+}
+
+/**
+ * Destroys the rows for good, marked or not. Confirms by default.
+ *
+ * The one operation the panel offers that nothing undoes. `DeleteAction` on a
+ * soft-deleting model hides a row and a restore brings it back; this leaves
+ * nothing to bring back, which is why it asks first and why the policy that
+ * allows it is not the one that allows hiding.
+ */
+export class ForceDeleteAction extends Action {
+  static make(): ForceDeleteAction {
+    return new ForceDeleteAction({ danger: true, confirmation: {} });
+  }
+
+  override get type(): string {
+    return "ForceDeleteAction";
+  }
+
+  override get isBuiltIn(): boolean {
+    return true;
+  }
+
+  protected override with(state: ActionState): this {
+    return new ForceDeleteAction(state) as this;
+  }
+}
+
+/**
  * Navigates to the row's View page, which is the infolist.
  *
  * A link like `EditAction`, so nothing is ever asked of the action route: the

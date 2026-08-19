@@ -80,6 +80,8 @@ export {
   CreateAction,
   DeleteAction,
   EditAction,
+  ForceDeleteAction,
+  RestoreAction,
   ViewAction,
 } from "./action.js";
 export type { NotificationState, NotificationTone } from "./notification.js";

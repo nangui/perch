@@ -23,6 +23,8 @@ import type {
 import {
   Action,
   DeleteAction,
+  ForceDeleteAction,
+  RestoreAction,
   EditAction,
   Notification,
   Schema as Tree,
@@ -40,6 +42,8 @@ import { PanelResource } from "./resource.js";
 
 let ran: { record: Row; data: Readonly<Record<string, unknown>> }[] = [];
 let deleted: readonly Id[][] = [];
+let destroyed: readonly Id[][] = [];
+let restored: readonly Id[][] = [];
 let policy: Authorization | undefined;
 let guard: ((user: unknown, record: Row) => boolean) | undefined;
 let transactions = 0;
@@ -100,13 +104,13 @@ class MemoryAdapter implements DataAdapter {
     deleted = [...deleted, [...ids]];
     return Promise.resolve(ids.length);
   }
-  /** Not exercised here: a double that answered zero would let a test
-   * pass with nothing having happened. */
-  forceDelete(): Promise<number> {
-    throw new Error("not needed here");
+  forceDelete(_model: string, ids: readonly Id[]): Promise<number> {
+    destroyed = [...destroyed, [...ids]];
+    return Promise.resolve(ids.length);
   }
-  restore(): Promise<number> {
-    throw new Error("not needed here");
+  restore(_model: string, ids: readonly Id[]): Promise<number> {
+    restored = [...restored, [...ids]];
+    return Promise.resolve(ids.length);
   }
   transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     transactions += 1;
@@ -153,7 +157,13 @@ class PostResource {
 
     return Table.make()
       .columns([TextColumn.make("title")])
-      .actions([EditAction.make(), archive, remove]);
+      .actions([
+        EditAction.make(),
+        archive,
+        remove,
+        RestoreAction.make(),
+        ForceDeleteAction.make(),
+      ]);
   }
 }
 
@@ -173,6 +183,8 @@ let url: string;
 beforeEach(async () => {
   ran = [];
   deleted = [];
+  destroyed = [];
+  restored = [];
   transactions = 0;
   queries = 0;
   explode = false;
@@ -793,5 +805,90 @@ describe("the same request arriving twice", () => {
 
     expect(fixed.body["processed"]).toBe(1);
     expect(ran).toHaveLength(1);
+  });
+});
+
+describe("bringing a row back and destroying one for good", () => {
+  it("lifts the mark through the port, not through a callback", async () => {
+    expect((await press("RestoreAction")).status).toBe(200);
+
+    expect(restored).toEqual([[1]]);
+    expect(deleted).toEqual([]);
+    expect(destroyed).toEqual([]);
+  });
+
+  it("destroys through the port, and does not merely mark again", async () => {
+    expect((await press("ForceDeleteAction")).status).toBe(200);
+
+    expect(destroyed).toEqual([[1]]);
+    expect(deleted).toEqual([]);
+  });
+
+  it("does each in one statement for a whole selection", async () => {
+    await press("ForceDeleteAction", { ids: [1, 2, 3] });
+
+    expect(destroyed).toEqual([[1, 2, 3]]);
+  });
+});
+
+describe("who may bring a row back, and who may destroy it", () => {
+  it("refuses a restore the restore policy turned down", async () => {
+    policy = { restore: () => false };
+
+    expect((await press("RestoreAction")).status).toBe(404);
+    expect(restored).toEqual([]);
+  });
+
+  it("refuses a force delete the force-delete policy turned down", async () => {
+    policy = { forceDelete: () => false };
+
+    expect((await press("ForceDeleteAction")).status).toBe(404);
+    expect(destroyed).toEqual([]);
+  });
+
+  it("does not let permission to hide stand in for permission to destroy", async () => {
+    // The whole reason these are three policies and not one: a reader trusted
+    // to take a row off a list is not thereby trusted to leave nothing to
+    // bring back.
+    policy = { delete: () => true, forceDelete: () => false, restore: () => false };
+
+    expect((await press("DeleteAction")).status).toBe(200);
+    expect((await press("ForceDeleteAction")).status).toBe(404);
+    expect((await press("RestoreAction")).status).toBe(404);
+  });
+
+  it("does not let permission to destroy stand in for permission to hide", async () => {
+    policy = { delete: () => false, forceDelete: () => true };
+
+    expect((await press("DeleteAction")).status).toBe(404);
+    expect((await press("ForceDeleteAction")).status).toBe(200);
+  });
+});
+
+describe("what each of the two asks first", () => {
+  it("asks before destroying, because nothing undoes it", async () => {
+    const answer = await (await fetch(`${url}/admin/api/posts/records`)).json();
+    const actions = (
+      answer as {
+        columns: {
+          actions: { type: string; confirmation?: unknown; danger?: unknown }[];
+        };
+      }
+    ).columns.actions;
+    const force = actions.find((one) => one.type === "ForceDeleteAction");
+
+    expect(force?.confirmation).toBeDefined();
+    expect(force?.danger).toBe(true);
+  });
+
+  it("asks nothing before restoring, which undoes rather than decides", async () => {
+    const answer = await (await fetch(`${url}/admin/api/posts/records`)).json();
+    const actions = (
+      answer as { columns: { actions: { type: string; confirmation?: unknown }[] } }
+    ).columns.actions;
+    const restore = actions.find((one) => one.type === "RestoreAction");
+
+    expect(restore).toBeDefined();
+    expect(restore?.confirmation).toBeUndefined();
   });
 });
