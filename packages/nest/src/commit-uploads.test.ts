@@ -2,12 +2,14 @@
  * The order files are committed in, and what each failure leaves behind.
  */
 import type { IncomingFile, StagedFile, StorageAdapter } from "@perchjs/core";
-import { FileUpload, Schema, TextInput } from "@perchjs/core";
+import { FileUpload, Repeater, Schema, TextInput } from "@perchjs/core";
 import { describe, expect, it } from "vitest";
 import { commitUploads, dropReplaced, undoCommitted } from "./commit-uploads.js";
 
 let moved: { key: string; directory: string }[] = [];
 let dropped: string[] = [];
+/** Which move fails, counted from one. Nothing fails at zero. */
+let failAt = 0;
 
 class Disk implements StorageAdapter {
   stage(): Promise<StagedFile> {
@@ -15,6 +17,7 @@ class Disk implements StorageAdapter {
   }
   commit(key: string, directory: string): Promise<string> {
     moved.push({ key, directory });
+    if (moved.length === failAt) throw new Error("the disk said no");
     return Promise.resolve(`${directory}/${key.replace("staging/", "")}`);
   }
   remove(keys: readonly string[]): Promise<void> {
@@ -38,6 +41,7 @@ const form = Schema.make([
 function fresh(): void {
   moved = [];
   dropped = [];
+  failAt = 0;
 }
 
 describe("a file chosen and saved", () => {
@@ -212,5 +216,36 @@ describe("an IncomingFile", () => {
     };
 
     expect(shape.bytes.byteLength).toBe(0);
+  });
+});
+
+describe("a move that fails part-way through", () => {
+  it("takes back the files it had already moved", async () => {
+    // A repeater turns one attachment into as many as it has rows, so this is
+    // an ordinary failure rather than a remote one. Nothing points at what was
+    // moved, and the sweep will never see it: those files left staging.
+    fresh();
+    failAt = 2;
+    const two = Schema.make([
+      Repeater.make("items").schema([FileUpload.make("file").directory("files")]),
+    ]);
+
+    await expect(
+      commitUploads(
+        two,
+        {
+          set: {},
+          relations: {
+            items: {
+              create: [{ set: { file: "staging/1" } }, { set: { file: "staging/2" } }],
+            },
+          },
+        },
+        null,
+        disks,
+      ),
+    ).rejects.toThrow("the disk said no");
+
+    expect(dropped).toEqual(["files/1"]);
   });
 });

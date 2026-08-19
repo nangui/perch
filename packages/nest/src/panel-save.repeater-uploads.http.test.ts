@@ -272,12 +272,10 @@ describe("a file replaced in a repeater row", () => {
       items: ["10"],
       "items.10.label": "First",
       "items.10.file": "staging/9",
-      // Sent, rather than left out: a repeater inside a row is not seeded from
-      // the record, so saying nothing here reads as "the reader removed them".
-      "items.10.blocks": ["100"],
-      "items.10.blocks.100.file": "blocks/old",
     });
 
+    // Exactly one move and one release: the row that changed, and nothing that
+    // did not. The row inside it was not touched, and its file stays.
     expect(events).toEqual(["commit staging/9", "remove files/old"]);
   });
 });

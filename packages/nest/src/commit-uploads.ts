@@ -53,8 +53,16 @@ export async function commitUploads(
   }
 
   const moves: Moves = { fresh: [], replaced: [] };
-  const out = await level(form, write, record ?? undefined, disks, moves);
-  return { write: out, committed: moves };
+  try {
+    const out = await level(form, write, record ?? undefined, disks, moves);
+    return { write: out, committed: moves };
+  } catch (error) {
+    // A repeater turns one attachment into as many as it has rows, so failing
+    // part-way is ordinary. What was already moved has left the staging prefix,
+    // so the sweep will never see it, and no row will ever point at it.
+    await undoCommitted(moves, disks);
+    throw error;
+  }
 }
 
 /** One row's worth: its own columns, then the relations its repeaters write. */
