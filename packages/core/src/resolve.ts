@@ -8,6 +8,7 @@
 import type { Component, Operation, Resolvable, ResolverContext } from "./component.js";
 import { isResolver } from "./component.js";
 import type { Id, RelationWrite, Row, WriteTree } from "./data-adapter.js";
+import { Entry } from "./entry.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
 import { FileUpload } from "./fields/file-upload.js";
@@ -15,6 +16,7 @@ import { Placeholder } from "./fields/placeholder.js";
 import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
 import type { Option, OptionsInput } from "./option.js";
+import { readPath } from "./path.js";
 import { normaliseOptions } from "./option.js";
 
 export type FormState = Readonly<Record<string, unknown>>;
@@ -99,6 +101,12 @@ export interface ResolvedNode {
   readonly required?: boolean;
   /** What a `Placeholder` shows. Resolved, so it may read other fields. */
   readonly content?: string;
+  /**
+   * What an `Entry` found in the record, read at this moment and never put in
+   * the state map. An entry the tree does not carry has no value read for it,
+   * which is what keeps one authorization removed out of the payload.
+   */
+  readonly value?: unknown;
   /** Where a `FileUpload`'s stored file can be fetched, if it has one. */
   readonly previewUrl?: string;
   /** What each of a repeater's rows is called, by row key. */
@@ -729,11 +737,20 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       ? await value(component.state.content, rc, undefined, count)
       : undefined;
 
+  // From the record, by the path the entry names, and not from the state map.
+  // `readPath` is the reader a relation column already uses: it stops at an
+  // intermediate null rather than throwing, because a customer with no address
+  // is ordinary and a page that dies over it is not.
+  const entryValue =
+    component instanceof Entry
+      ? readPath(ctx.options.record, component.recordPath)
+      : undefined;
+
   // Resolved here rather than copied from the state: both accept a resolver,
   // and a `required` the server enforces but never sends is an error the user
   // could not have seen coming.
   const placeholder =
-    component instanceof Field
+    component instanceof Field || component instanceof Entry
       ? await value(component.state.placeholder, rc, undefined, count)
       : undefined;
   const required =
@@ -793,6 +810,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     ...(label === undefined ? {} : { label }),
     ...(helperText === undefined ? {} : { helperText }),
     ...(content === undefined ? {} : { content }),
+    ...(entryValue === undefined ? {} : { value: entryValue }),
     ...(previewUrl === undefined ? {} : { previewUrl }),
     ...(itemLabels === undefined ? {} : { itemLabels }),
     ...(placeholder === undefined ? {} : { placeholder }),

@@ -12,7 +12,7 @@
  */
 import type { ValueRefusal } from "./field.js";
 import { acceptsClientState, Field } from "./field.js";
-import type { FormState, ResolveResult } from "./resolve.js";
+import type { FormState, ResolvedNode, ResolveResult } from "./resolve.js";
 
 export type RejectionReason =
   | "unknown-path"
@@ -39,9 +39,16 @@ export function sanitize(previous: ResolveResult, incoming: FormState): Sanitize
   // Keyed by where the value lives, not by what the field is called: the same
   // declaration stands for a field in every row of a repeater, and only the
   // path tells those apart.
+  // Narrowed rather than cast. Everything below reads `Field` members off these
+  // nodes, and an `as Field` would read them off anything that got past the
+  // filter — an `Entry` answering `undefined` to `acceptsClient` is refused by
+  // luck, and stops being refused the day something gives it one.
   const fields = new Map(
     previous.nodes
-      .filter((node) => node.component instanceof Field && node.path !== "")
+      .filter(
+        (node): node is ResolvedNode & { readonly component: Field } =>
+          node.component instanceof Field && node.path !== "",
+      )
       .map((node) => [node.path, node]),
   );
 
@@ -56,7 +63,7 @@ export function sanitize(previous: ResolveResult, incoming: FormState): Sanitize
     }
     // Asked of the kind of field before its flags, because a resolvable flag
     // is a lock whose key the form holds.
-    if (!(node.component as Field).acceptsClient) {
+    if (!node.component.acceptsClient) {
       rejected.push({ path, reason: "server-owned" });
       continue;
     }
@@ -67,7 +74,7 @@ export function sanitize(previous: ResolveResult, incoming: FormState): Sanitize
     // The value, put to the field rather than judged from here: what a field
     // can hold is the field's own answer, and a chain of `instanceof` in this
     // file would have to grow with every type added and remind nobody.
-    const wrong = (node.component as Field).admits(value, node.options);
+    const wrong = node.component.admits(value, node.options);
     if (wrong !== undefined) {
       rejected.push({ path, reason: wrong });
       continue;

@@ -32,6 +32,12 @@ export interface SchemaNode {
   /** What a `Placeholder` shows, already resolved. */
   readonly content?: string;
   /**
+   * What an `Entry` read from the record. On the node rather than in `state`,
+   * because `state` is the map a client may write to and stage 5 must judge —
+   * and nothing may ever send this one back.
+   */
+  readonly value?: unknown;
+  /**
    * Absent means the field never triggers a round trip. Present, it carries the
    * debounce set per field type — the client cannot invent it.
    */
@@ -132,6 +138,7 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     ...(resolved.disabled ? { disabled: true } : {}),
     ...(resolved.readOnly ? { readOnly: true } : {}),
     ...(resolved.content === undefined ? {} : { content: resolved.content }),
+    ...(resolved.value === undefined ? {} : { value: resolved.value }),
     ...(resolved.required === true ? { required: true } : {}),
     ...(component instanceof Field && component.state.inlineLabel
       ? { inlineLabel: true as const }

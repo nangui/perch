@@ -49,6 +49,11 @@ export {
 // The naming rules a panel derives from a model name.
 export { defaultSlug, kebab, plural } from "./naming.js";
 
+// Infolists. An entry reads the record by a path and never holds state.
+export type { EntryState } from "./entry.js";
+export { Entry } from "./entry.js";
+export { TextEntry } from "./entries/text-entry.js";
+
 // Actions. One class per trigger context, so a callback takes one record and
 // a bulk run composes it.
 export type { ActionGuard, ActionRun, ActionState, Confirmation } from "./action.js";
