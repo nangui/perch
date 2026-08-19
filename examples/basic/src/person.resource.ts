@@ -19,6 +19,7 @@ import {
   Textarea,
   TextColumn,
   TextFilter,
+  TextEntry,
   TextInput,
   Toggle,
 } from "@perchjs/core";
@@ -138,6 +139,44 @@ export class PersonResource {
       .bulkActions([archive, remove])
       .headerActions([CreateAction.make()])
       .defaultSort("firstName");
+  }
+
+  /**
+   * The View page, at `{path}/people/:id`.
+   *
+   * Entries, not fields: nothing here is typed into and nothing is saved. The
+   * relation is named as a path, so the row and the team come back in one
+   * query rather than one each.
+   *
+   * `country`, `city` and `role` are stored as codes and are shown as codes.
+   * What turns `fr` into `France` is a formatting option an entry does not have
+   * yet, and a lookup written here would be one this page alone knows about.
+   */
+  infolist(): SchemaTree {
+    return Schema.make([
+      Section.make("Identity")
+        .columns(2)
+        .schema([
+          TextEntry.make("firstName").label("First name"),
+          TextEntry.make("lastName").label("Last name"),
+          TextEntry.make("email").label("Email"),
+          TextEntry.make("team.name").label("Team").placeholder("Unassigned"),
+        ]),
+
+      Section.make("About").schema([
+        TextEntry.make("bio")
+          .label("Biography")
+          .placeholder("Nothing written about them yet."),
+        TextEntry.make("role").label("Role").placeholder("None"),
+      ]),
+
+      Section.make("Status")
+        .columns(2)
+        .schema([
+          TextEntry.make("city").label("City").placeholder("Not given"),
+          TextEntry.make("startsAt").label("Starts at").placeholder("Not scheduled"),
+        ]),
+    ]);
   }
 
   form(): SchemaTree {
