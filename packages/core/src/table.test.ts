@@ -127,8 +127,14 @@ describe("what crosses the wire", () => {
     ]);
 
     expect(serialiseTable(table).actions).toEqual([
-      { type: "EditAction", name: "EditAction", trigger: "link" },
-      { type: "EditAction", name: "open", trigger: "link", label: "Open" },
+      { type: "EditAction", name: "EditAction", trigger: "link", page: "edit" },
+      {
+        type: "EditAction",
+        name: "open",
+        trigger: "link",
+        page: "edit",
+        label: "Open",
+      },
     ]);
   });
 

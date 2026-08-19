@@ -33,6 +33,9 @@ import type { Schema } from "./layout.js";
    writable. Disabled as a block rather than for the next line: the union is
    four lines below the declaration it belongs to. */
 /* eslint-disable @typescript-eslint/no-invalid-void-type */
+/** The pages one row has. `undefined` for an action that is not a link. */
+export type RecordPage = "edit" | "view" | undefined;
+
 export type ActionRun = (
   record: Row,
   data: Readonly<Record<string, unknown>>,
@@ -141,6 +144,17 @@ export abstract class Action {
   }
 
   /**
+   * For a link, which of the record's pages it leads to.
+   *
+   * A page, not an address: where a panel is mounted and how a row is keyed are
+   * the client's to compose, and a domain that spelled out `/edit` would be
+   * naming a route it has no business knowing.
+   */
+  get page(): RecordPage {
+    return undefined;
+  }
+
+  /**
    * Whether the framework carries out the action itself.
    *
    * A ready-made action has no author callback and is not inert: `EditAction`
@@ -178,6 +192,10 @@ export class CreateAction extends Action {
 
 /** Navigates to the row's edit page. Declared as a row action. */
 export class EditAction extends Action {
+  override get page(): RecordPage {
+    return "edit";
+  }
+
   static make(): EditAction {
     return new EditAction({});
   }
@@ -196,6 +214,38 @@ export class EditAction extends Action {
 
   protected override with(state: ActionState): this {
     return new EditAction(state) as this;
+  }
+}
+
+/**
+ * Navigates to the row's View page, which is the infolist.
+ *
+ * A link like `EditAction`, so nothing is ever asked of the action route: the
+ * browser follows it and the page decides for itself who may read it.
+ */
+export class ViewAction extends Action {
+  static make(): ViewAction {
+    return new ViewAction({});
+  }
+
+  override get type(): string {
+    return "ViewAction";
+  }
+
+  override get trigger(): "link" | "run" {
+    return "link";
+  }
+
+  override get page(): RecordPage {
+    return "view";
+  }
+
+  override get isBuiltIn(): boolean {
+    return true;
+  }
+
+  protected override with(state: ActionState): this {
+    return new ViewAction(state) as this;
   }
 }
 

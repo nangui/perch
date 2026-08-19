@@ -53,6 +53,8 @@ export interface ActionNode {
   readonly name: string;
   /** A link the browser follows, or a request it makes. */
   readonly trigger: "link" | "run";
+  /** For a link: which of the row's pages. The address is the client's to build. */
+  readonly page?: "edit" | "view";
   /** It collects something first. The schema is asked for, never sent here. */
   readonly hasForm?: true;
   readonly label?: string;
@@ -190,6 +192,7 @@ function node(action: Action): ActionNode {
     type: action.type,
     name: action.state.name ?? action.type,
     trigger: action.trigger,
+    ...(action.page === undefined ? {} : { page: action.page }),
     // Said, not sent: a schema has to be resolved against a principal before it
     // means anything, and a table is serialised once for every reader.
     ...(action.state.form === undefined ? {} : { hasForm: true as const }),

@@ -340,7 +340,12 @@ describe("an action the host cannot carry out", () => {
   });
 
   it("keeps the column when something in it can still be drawn", () => {
-    const link = { type: "EditAction", name: "EditAction", trigger: "link" } as const;
+    const link = {
+      type: "EditAction",
+      name: "EditAction",
+      trigger: "link",
+      page: "edit",
+    } as const;
     render(<PanelList initial={page([ARCHIVE, link])} title="People" />);
 
     expect(screen.getAllByRole("columnheader")).toHaveLength(2);

@@ -107,7 +107,7 @@ describe("row actions", () => {
         columns={withEdit}
         rows={ROWS}
         caption="Posts"
-        rowHref={(row) => `/admin/posts/${String(row["id"])}/edit`}
+        rowHref={(_action, row) => `/admin/posts/${String(row["id"])}/edit`}
       />,
     );
 

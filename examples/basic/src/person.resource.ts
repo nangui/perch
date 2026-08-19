@@ -22,6 +22,7 @@ import {
   TextEntry,
   TextInput,
   Toggle,
+  ViewAction,
 } from "@perchjs/core";
 import { Action, Notification } from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
@@ -135,7 +136,7 @@ export class PersonResource {
         SelectFilter.make("role").label("Role").options(ROLES),
         TextFilter.make("email").label("Email contains"),
       ])
-      .actions([EditAction.make(), archive, remove])
+      .actions([ViewAction.make(), EditAction.make(), archive, remove])
       .bulkActions([archive, remove])
       .headerActions([CreateAction.make()])
       .defaultSort("firstName");

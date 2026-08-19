@@ -56,8 +56,20 @@ export { TextEntry } from "./entries/text-entry.js";
 
 // Actions. One class per trigger context, so a callback takes one record and
 // a bulk run composes it.
-export type { ActionGuard, ActionRun, ActionState, Confirmation } from "./action.js";
-export { Action, CreateAction, DeleteAction, EditAction } from "./action.js";
+export type {
+  ActionGuard,
+  ActionRun,
+  ActionState,
+  Confirmation,
+  RecordPage,
+} from "./action.js";
+export {
+  Action,
+  CreateAction,
+  DeleteAction,
+  EditAction,
+  ViewAction,
+} from "./action.js";
 export type { NotificationState, NotificationTone } from "./notification.js";
 export type { ActionOutcome, ActionRequest } from "./run-action.js";
 export { admittedRecords, runAction } from "./run-action.js";

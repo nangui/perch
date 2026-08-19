@@ -17,7 +17,9 @@ const PAGE: RecordsPage = {
   perPage: 25,
   columns: {
     columns: [{ type: "TextColumn", path: "title", label: "Headline", sortable: true }],
-    actions: [{ type: "EditAction", name: "EditAction", trigger: "link" }],
+    actions: [
+      { type: "EditAction", name: "EditAction", trigger: "link", page: "edit" },
+    ],
     filters: [],
     headerActions: [{ type: "CreateAction", name: "CreateAction", trigger: "link" }],
     bulkActions: [],

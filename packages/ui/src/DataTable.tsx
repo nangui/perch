@@ -38,7 +38,8 @@ export interface DataTableProps {
    * — because the panel's own root is the server's to know, not the browser's
    * to reconstruct from the API path it was handed.
    */
-  readonly rowHref?: (row: Row) => string | undefined;
+  /** Asked per action: two links on one row lead to two different pages. */
+  readonly rowHref?: (action: ActionNode, row: Row) => string | undefined;
   /**
    * Runs an action against a row. Absent means the table draws no run actions —
    * nobody would carry them out, and a button that does nothing is worse than
@@ -220,12 +221,12 @@ export function DataTable({
 function rowAction(
   action: ActionNode,
   row: Row,
-  href: ((row: Row) => string | undefined) | undefined,
+  href: ((action: ActionNode, row: Row) => string | undefined) | undefined,
   onAction: ((action: ActionNode, row: Row) => void) | undefined,
   busy: boolean,
 ): ReactNode {
   if (action.trigger === "link") {
-    const target = href?.(row);
+    const target = href?.(action, row);
     if (target === undefined) return null;
     return (
       <a key={action.name} className="perch-table__action" href={target}>

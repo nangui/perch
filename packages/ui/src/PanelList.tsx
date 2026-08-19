@@ -463,7 +463,7 @@ export function PanelList({
           columns={page.columns}
           rows={page.rows}
           caption={title}
-          rowHref={(row) => href(page, row)}
+          rowHref={(action, row) => href(page, action, row)}
           {...(sort === undefined ? {} : { sort })}
           {...(reorder === undefined ? {} : { onSort: reorder })}
           {...(runAction === undefined ? {} : { onAction: press, actionsBusy: busy })}
@@ -761,18 +761,27 @@ function PageButton({
   );
 }
 
+/** Which page of a row an action leads to, as a path suffix. */
+const SUFFIX: Readonly<Record<string, string>> = { edit: "/edit", view: "" };
+
 /**
- * The address of one row's edit page.
+ * The address of one row's page, for the action asking.
  *
- * Built from what the server sent — the key's name and the path its pages live
- * under — rather than from a convention. A model keyed on `uuid` is addressed
- * by `uuid`, and a panel behind a prefix keeps it.
+ * Built from what the server sent — the key's name, the path its pages live
+ * under, and which page this action leads to — rather than from a convention.
+ * A model keyed on `uuid` is addressed by `uuid`, and a panel behind a prefix
+ * keeps it.
+ *
+ * A link whose page this does not know gets no address, so it draws nothing
+ * rather than a link that goes somewhere wrong.
  */
-function href(page: RecordsPage, row: Row): string | undefined {
-  if (page.resourcePath === undefined) return undefined;
+function href(page: RecordsPage, action: ActionNode, row: Row): string | undefined {
+  if (page.resourcePath === undefined || action.page === undefined) return undefined;
+  const suffix = SUFFIX[action.page];
+  if (suffix === undefined) return undefined;
   const key = row[page.recordKey];
   if (typeof key !== "string" && typeof key !== "number") return undefined;
-  return `${page.resourcePath}/${encodeURIComponent(String(key))}/edit`;
+  return `${page.resourcePath}/${encodeURIComponent(String(key))}${suffix}`;
 }
 
 /**
