@@ -5,7 +5,7 @@
  * Standalone rather than a Nest schematic, and reading the IR rather than the
  * DMMF. That second choice is the one that matters: `@perchjs/prisma-generator`
  * already turned the schema into an intermediate representation at
- * `prisma generate` (ADR 0012), and reading it again here would be a second
+ * `prisma generate`, and reading it again here would be a second
  * reading that can disagree with the panel's.
  */
 import { parseArgs } from "node:util";

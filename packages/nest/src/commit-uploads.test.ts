@@ -1,5 +1,5 @@
 /**
- * The order ADR 0016 decided, and what each failure leaves behind.
+ * The order files are committed in, and what each failure leaves behind.
  */
 import type { IncomingFile, StagedFile, StorageAdapter } from "@perchjs/core";
 import { FileUpload, Schema, TextInput } from "@perchjs/core";
@@ -152,7 +152,7 @@ describe("a row that never landed", () => {
 
   it("does not throw when the undo itself fails", async () => {
     // The original failure is the one worth reporting; what is left is the
-    // residue ADR 0016 names.
+    // a staged file the sweep collects.
     fresh();
     // Written out rather than spread from an instance: spreading a class keeps
     // no prototype, so the methods this does not name would simply be absent —

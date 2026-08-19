@@ -41,7 +41,7 @@ export type ActionRun = (
 
 /**
  * Asked per record and at execution time, never only when the button is drawn.
- * A hidden button is not a protection (invariant 8).
+ * A hidden button is not a protection.
  */
 export type ActionGuard = (user: unknown, record: Row) => boolean | Promise<boolean>;
 

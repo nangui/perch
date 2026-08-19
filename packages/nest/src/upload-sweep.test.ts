@@ -1,5 +1,6 @@
 /**
- * The debt ADR 0016 wrote down: the framework provides the sweep.
+ * The framework provides the sweep, rather than leaving it to whoever
+ * implements a disk.
  *
  * Until this existed, `sweepStaged` was a port method nobody called — the
  * common leftover, a file chosen and never saved, accumulated without limit

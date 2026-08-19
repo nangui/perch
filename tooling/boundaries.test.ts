@@ -115,7 +115,8 @@ describe("architecture boundaries", () => {
   });
 
   it("rejects an npm package imported by the domain", () => {
-    // CLAUDE.md invariant 2, the headline one. `vitest/config` is used because a
+    // The headline rule: the domain imports nothing. `vitest/config` is used
+    // because a
     // root devDependency is reachable from a package by directory walk-up, so
     // the import resolves and the architecture rule is what stops it — rather
     // than resolution failing first, which is what happens for any package not
@@ -179,7 +180,7 @@ describe("architecture boundaries", () => {
   });
 
   it("rejects the nest adapter importing the renderer it now declares", () => {
-    // ADR 0007 §2. Before the dependency existed this was caught by resolution,
+    // Before the dependency existed this was caught by resolution,
     // which is a weaker guarantee than it looked: declaring the package removes
     // that accident, and only the architecture rule is left standing.
     plant("nest", `export { PanelForm } from "@perchjs/ui";\n`);

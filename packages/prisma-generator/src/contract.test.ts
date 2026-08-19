@@ -44,7 +44,7 @@ describe("the DMMF Prisma really emits", () => {
   });
 
   it("carries what the IR is made of, not just names and types", () => {
-    // The failure that started ADR 0012: Prisma 7 stripped the runtime DMMF to
+    // The failure this whole generator exists for: Prisma 7 stripped the DMMF to
     // name/kind/type. Asserting a few of the survivors names the loss directly.
     const user = generated.models.find((model) => model.name === "User");
     const email = user?.fields.find((field) => field.name === "email");

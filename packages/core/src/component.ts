@@ -2,7 +2,8 @@
  * The declarative component tree. One root class for forms, infolists and
  * layout, so the DSL cannot split into four dialects.
  *
- * Everything conditional is a `Resolver` evaluated on the server (ADR 0003).
+ * Everything conditional is a `Resolver` evaluated on the server, so the
+ * browser is never the place a rule is decided.
  */
 
 export type Operation = "create" | "edit" | "view";

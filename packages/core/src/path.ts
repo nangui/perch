@@ -4,7 +4,7 @@
  * Three jobs, and they are deliberately separate:
  *   - validate the path against the IR, with an error that names what went wrong
  *   - turn it into an include plan, so a relation column costs one query and not
- *     one per row (CLAUDE.md invariant 7)
+ *     one per row
  *   - read the value without throwing on an intermediate null
  *
  * Depth is capped at three segments in v0.1. Past that the query planner starts

@@ -2,7 +2,7 @@
  * `POST {path}/api/:resource/upload`.
  *
  * The one route in the panel whose body is not JSON. A file goes up when it is
- * chosen (ADR 0016), lands in the staging prefix, and answers with a key the
+ * chosen, lands in the staging prefix, and answers with a key the
  * form carries like any other string — so the resolution cycle never holds a
  * byte, and the trust boundary judges a handle rather than an attachment.
  *

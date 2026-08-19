@@ -20,7 +20,7 @@ import { join } from "node:path";
 import type { PanelAssets } from "./panel-assets.js";
 import { PANEL_ASSETS } from "./panel-assets.js";
 
-/** Safe only because the names are content-hashed (ADR 0009). */
+/** Safe only because the names are content-hashed. */
 const IMMUTABLE = "public, max-age=31536000, immutable";
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {

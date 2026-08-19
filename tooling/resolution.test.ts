@@ -1,12 +1,12 @@
 /**
- * The one boundary dependency-cruiser cannot hold — ADR 0007 §5.
+ * The one boundary dependency-cruiser cannot hold.
  *
  * `@perchjs/nest` declares `@perchjs/ui` so `PanelModule` can serve its built
  * assets, and may import none of its modules. dependency-cruiser enforces the
  * second half: an `import` trips `no-adapter-to-adapter`, which the boundary
  * suite proves. But the permitted route — resolve the package root, then read
- * `dist/` off the filesystem — creates no dependency edge at all. The ADR
- * measured that: `require.resolve()` of a declared dependency produces no edge.
+ * `dist/` off the filesystem — creates no dependency edge at all. Measured:
+ * `require.resolve()` of a declared dependency produces none.
  *
  * So the permission gets its own guard. Every module specifier `nest` resolves
  * at runtime must be one of the two the exports map of `@perchjs/ui` declares
@@ -36,9 +36,9 @@ import ts from "typescript";
 const NEST_SRC = fileURLToPath(new URL("../packages/nest/src", import.meta.url));
 
 /**
- * ADR 0007 §3 permitted the package root alone; ADR 0009 §3 adds the manifest,
- * because resolving the root throws under CommonJS and this package publishes
- * both formats. Two entries, and every other specifier still refused.
+ * The package root alone, plus the manifest — resolving the root throws under
+ * CommonJS and this package publishes both formats. Two entries, and every
+ * other specifier still refused.
  */
 const ALLOWED = new Set(["@perchjs/ui", "@perchjs/ui/manifest.json"]);
 
@@ -219,7 +219,7 @@ function planted(source: string): string {
   return dir;
 }
 
-describe("what @perchjs/nest may resolve — ADR 0007 §5", () => {
+describe("what @perchjs/nest may resolve", () => {
   it("passes on the workspace as committed", () => {
     expect(offences()).toEqual([]);
   });
@@ -234,8 +234,8 @@ describe("what @perchjs/nest may resolve — ADR 0007 §5", () => {
   });
 
   it("allows the manifest, which the exports map declares", () => {
-    // ADR 0009 §3. Widened by exactly one specifier, and only because resolving
-    // the package root throws under CommonJS.
+    // Widened by exactly one specifier, and only because resolving the package
+    // root throws under CommonJS.
     const dir = planted(
       `export const p = require.resolve("@perchjs/ui/manifest.json");\n`,
     );
@@ -329,7 +329,7 @@ describe("what @perchjs/nest may resolve — ADR 0007 §5", () => {
   });
 });
 
-describe("what @perchjs/nest may reach by path — ADR 0007, consequence 5", () => {
+describe("what @perchjs/nest may reach by path", () => {
   it("passes on the workspace as committed", () => {
     expect(escapes()).toEqual([]);
   });

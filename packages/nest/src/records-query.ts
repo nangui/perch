@@ -100,8 +100,8 @@ export const FILTER_PREFIX = "filter.";
  * asking for a relation is asking the wrong side, and there is no parameter
  * that could.
  *
- * One plan, merged across every column, for one query — which is the whole of
- * invariant 7. A page of fifty rows costs the same as a page of one.
+ * One plan, merged across every column, for one query. A page of fifty rows
+ * costs the same as a page of one.
  */
 /**
  * The query, and the filters that got through, from one reading.

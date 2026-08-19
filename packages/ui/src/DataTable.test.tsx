@@ -188,7 +188,7 @@ describe("sorting from the keyboard", () => {
   });
 });
 
-describe("the flat rendering invariant 6 calls non-negotiable", () => {
+describe("flat rendering, which is non-negotiable", () => {
   it("looks a renderer up once per column, not once per cell", async () => {
     // The wall Filament hit, and the assertion that actually catches it.
     // Counting render calls would not: a `<Cell>` component per cell produces

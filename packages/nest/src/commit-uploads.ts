@@ -1,5 +1,5 @@
 /**
- * Moving staged files into place, in the order ADR 0016 decided.
+ * Moving staged files into place, in the order a failure is survivable in.
  *
  * A file goes up when it is chosen and lands in a staging prefix. The save is
  * what makes it permanent, and the row is written *after* — so a failure leaves
@@ -87,7 +87,7 @@ export async function dropReplaced(
  * After the row did not land: the files this save had already moved.
  *
  * Best effort by construction — if this throws too, the original failure is the
- * one worth reporting, and what is left is the residue ADR 0016 names.
+ * one worth reporting, and what is left is a staged file the sweep collects.
  */
 export async function undoCommitted(
   committed: Committed,

@@ -120,7 +120,7 @@ export class PanelSaveController {
     // The hook and the upload commit both deal in columns. A repeater's rows
     // are not columns, so they ride alongside rather than through.
     const mutated = (await mutate?.({ ...written.write.set })) ?? written.write.set;
-    // Files first, the row last (ADR 0016): a failure between them leaves a
+    // Files first, the row last: a failure between them leaves a
     // file nobody points at rather than a row pointing at nothing.
     const { values, committed } = await commitUploads(form, mutated, null, this.#disks);
 

@@ -2,10 +2,9 @@
  * The budget: main bundle under 250 KB gzip, measured in CI, blocking.
  *
  * The panel bundle carries React, ReactDOM, Radix and the renderer, because
- * ADR 0009 puts them there rather than asking a browser to resolve bare
- * specifiers. That decision is only affordable while this number holds — and
- * the first reopening rule of ADR 0009 is this test failing with no split left
- * to make.
+ * they are bundled rather than left for a browser to resolve as bare
+ * specifiers. That decision is only affordable while this number holds, and
+ * reopening it starts with this test failing with no split left to make.
  *
  * The manifest is checked alongside, because a budget met by a file nobody
  * serves proves nothing.
@@ -89,7 +88,7 @@ describe("the panel bundle", () => {
     expect(
       size,
       `panel.js is ${(size / 1024).toFixed(1)} KB gzip (${String(statSync(join(DIST, js!)).size)} B raw), ` +
-        `against a ${String(BUDGET_BYTES / 1024)} KB budget. ADR 0009 reopens if no split brings it back.`,
+        `against a ${String(BUDGET_BYTES / 1024)} KB budget. Bundling reopens if no split brings it back.`,
     ).toBeLessThan(BUDGET_BYTES);
   });
 

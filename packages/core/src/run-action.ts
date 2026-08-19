@@ -17,7 +17,10 @@ import type { NotificationState } from "./notification.js";
 export interface ActionOutcome {
   /** Records the callback ran against, to the end, without throwing. */
   readonly processed: number;
-  /** Records a guard turned down. Never why — invariant 8. */
+  /**
+   * Records a guard turned down. Never why: that would answer a question about
+   * a record the reader was not allowed to see.
+   */
   readonly refused: number;
   /**
    * What to show, when the action said something.

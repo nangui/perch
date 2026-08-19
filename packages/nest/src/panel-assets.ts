@@ -1,10 +1,10 @@
 /**
  * What `PanelModule` is allowed to serve, and nothing else.
  *
- * ADR 0007 §3 lets this package resolve `@perchjs/ui` and read files from it,
- * never import a module of it. ADR 0009 §3 names the manifest in the exports map
- * rather than beside the entry, because resolving the package root throws under
- * CommonJS and this package publishes both formats.
+ * This package may resolve `@perchjs/ui` and read files from it, never import a
+ * module of it. The manifest is named in the exports map rather than sitting
+ * beside the entry, because resolving the package root throws under CommonJS
+ * and this package publishes both formats.
  */
 import { createRequire } from "node:module";
 import { readFileSync, statSync } from "node:fs";
@@ -27,8 +27,8 @@ export interface PanelAssets {
 }
 
 /**
- * Under lockstep versioning (ADR 0008) a version mismatch is a broken install
- * rather than a supported combination, so the message says `pnpm install`.
+ * Every package here moves in lockstep, so a version mismatch is a broken
+ * install rather than a supported combination: the message says `pnpm install`.
  */
 export function loadPanelAssets(manifestPath = resolveManifest()): PanelAssets {
   const directory = dirname(manifestPath);

@@ -1,7 +1,7 @@
 /**
  * How a module extends a form it does not own.
  *
- * Milestone A4, and the one thing PRD 11 says cannot be retrofitted: an
+ * Milestone A4, and the one thing that cannot be retrofitted: an
  * architecture that did not plan for extension never becomes extensible, it
  * gets forked. So the contract exists in v0.1 even though the plugin API
  * around it does not.

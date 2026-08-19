@@ -1,6 +1,5 @@
 /**
- * The p95 budget CLAUDE.md lists on `/records`, which could not exist until the
- * route did.
+ * The p95 budget on `/records`, which could not exist until the route did.
  *
  * The adapter here answers from memory, so what is measured is the panel's own
  * cost: routing, the guard, the user resolver, authorisation, building the query

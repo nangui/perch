@@ -57,7 +57,7 @@ describe("the list page", () => {
   });
 
   it("asks the server to reorder rather than sorting what it holds", async () => {
-    // Invariant 1. Sorting in the browser would be a second implementation of
+    // Sorting in the browser would be a second implementation of
     // the ordering, and one that cannot see past the page it holds.
     const fetchPage = vi.fn(() =>
       Promise.resolve({ ...PAGE, rows: [{ id: 2, title: "Grace" }], total: 1 }),
@@ -266,7 +266,7 @@ describe("turning a page", () => {
   });
 
   it("asks the server for the next page rather than slicing what it holds", async () => {
-    // Invariant 1, the same reason sorting is a round trip: the client cannot
+    // The same reason sorting is a round trip: the client cannot
     // see past the page it was given.
     const fetchPage = vi.fn(() => Promise.resolve(paged(3)));
     render(<PanelList initial={paged(2)} title="Posts" fetchPage={fetchPage} />);
@@ -484,7 +484,7 @@ describe("searching", () => {
   });
 
   it("asks the server rather than filtering what it holds", () => {
-    // Invariant 1 again: the rows on screen are one page of many, so filtering
+    // Again: the rows on screen are one page of many, so filtering
     // them here would search the page instead of the table.
     const fetchPage = vi.fn(() => Promise.resolve(searchable()));
     render(<PanelList initial={searchable()} title="Posts" fetchPage={fetchPage} />);

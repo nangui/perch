@@ -1,7 +1,7 @@
 /**
- * The p95 budget CLAUDE.md makes a stopping condition: "if A1 is not elegant or
- * exceeds 150 ms p95, stop and redesign the protocol". Nothing measured it, so
- * nothing could trigger that stop.
+ * The p95 budget that is a stopping condition rather than a target: past
+ * 150 ms the protocol gets redesigned rather than built on. Nothing measured
+ * it, so nothing could trigger that stop.
  *
  * Measured here is the server half of a `/state` round trip — sanitize,
  * resolve, serialise. The HTTP that will wrap it is not, and the 150 ms covers
@@ -133,16 +133,16 @@ describe("`/state` round trip, server side", () => {
 
     /**
      * Measured around 0.18 ms, so this fires on a catastrophe and nothing
-     * smaller. It is asserted anyway: it is the number CLAUDE.md stops on, and
-     * it becomes a real guard the day the HTTP half lands under it. The test
+     * smaller. It is asserted anyway: it is the number the protocol stops on,
+     * and it becomes a real guard the day the HTTP half lands under it. The test
      * below is what watches for the ordinary regression.
      */
     const p95 = percentile(samples, 95);
     expect(
       p95,
       `p95 is ${p95.toFixed(2)} ms over ${String(ITERATIONS)} round trips, ` +
-        `against a ${String(BUDGET_MS)} ms budget. CLAUDE.md: stop and redesign ` +
-        `the protocol rather than building A2 on this.`,
+        `against a ${String(BUDGET_MS)} ms budget: stop and redesign the ` +
+        `protocol rather than building the next milestone on this.`,
     ).toBeLessThan(BUDGET_MS);
   });
 

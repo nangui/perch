@@ -6,7 +6,7 @@
  * options at all until its parent is chosen. On its own that would refuse
  * every city ever sent alongside its country, which is A1.
  *
- * Admission in waves (ADR 0011) is what saves it: the first pass takes the
+ * Admission in waves is what saves it: the first pass takes the
  * country, the resolution that follows gives the city its options, and the
  * second pass takes the city. This is the test that would fail if either half
  * were changed without the other in mind.

@@ -76,8 +76,8 @@ describe("Prisma itself", () => {
   });
 
   it("catches a major Perch has not been checked against", () => {
-    // The DMMF is not a stable API of Prisma; ADR 0012 exists because a major
-    // changed it under us and nothing noticed for a whole version.
+    // The DMMF is not a stable API of Prisma: a major changed it under us and
+    // nothing noticed for a whole version, which is why this check exists.
     expect(titles({ prismaVersion: "6.4.0" })[0]).toMatch(
       /Prisma 6\.4\.0 is installed/,
     );

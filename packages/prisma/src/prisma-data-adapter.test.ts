@@ -102,7 +102,7 @@ describe("reading a page", () => {
   });
 
   it("nests a filter that reaches through a relation", async () => {
-    // The alternative is a query per row, which invariant 7 forbids.
+    // The alternative is a query per row, which nothing here may cost.
     const { adapter, calls } = recorder();
     await adapter.findMany({
       model: "Post",
@@ -376,9 +376,9 @@ describe("writing", () => {
   });
 
   it("deletes a soft-deleting child of a nested write just as plainly", async () => {
-    // The other half of the same promise. ADR 0014 names both `delete()` and
-    // `WriteTree.relations.*.delete`, and a v0.2 that changed only one of them
-    // would slip past a pin that watched the other.
+    // The other half of the same promise: `delete()` and
+    // `WriteTree.relations.*.delete` both destroy, and a v0.2 that changed only
+    // one of them would slip past a pin that watched the other.
     const { adapter, calls } = recorder();
     await adapter.update("User", 1, {
       set: {},

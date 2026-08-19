@@ -6,7 +6,7 @@ import { SelectFilter, TextFilter } from "./filter.js";
 
 describe("a column builder", () => {
   it("clones on every fluent call", () => {
-    // Invariant 3. A builder shared between requests leaks one user's state
+    // A builder shared between requests leaks one user's state
     // into another's, which is a security hole rather than a matter of style.
     const plain = TextColumn.make("title");
     const labelled = plain.label("Headline");

@@ -2,7 +2,7 @@
  * `@perchjs/prisma` — outbound adapter: the IR in, Prisma queries out.
  *
  * It does not read the DMMF. Prisma 7 leaves nothing to read at runtime, so the
- * IR is produced at build time by `@perchjs/prisma-generator` (ADR 0012).
+ * IR is produced at build time by `@perchjs/prisma-generator`.
  *
  * May import `@perchjs/core`. May never import `@perchjs/nest` or
  * `@perchjs/ui`: an adapter never imports another adapter.

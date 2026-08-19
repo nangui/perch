@@ -21,7 +21,7 @@ import { inferLabelField, SOFT_DELETE_FIELD } from "@perchjs/core";
 
 /**
  * Prisma 7 is the first version whose runtime DMMF no longer carries this shape,
- * which is why the IR is generated rather than read (ADR 0012). The generator
+ * which is why the IR is generated rather than read. The generator
  * receives it, and the contract test is what proves the range: widen it only
  * with that test passing against the wider version.
  */
@@ -304,9 +304,9 @@ function readRelation(field: DmmfField, modelName: string): RelationMeta {
  * fills the form.
  *
  * Deliberately not Prisma's `isReadOnly`, which names the column a relation
- * owns and is `false` on the autoincrement `id` this flag has always been
- * documented by (ADR 0013). That concept lives on
- * `RelationMeta.foreignKeyFields`, where `inferModel` already reads it.
+ * owns and is `false` on the autoincrement `id` this flag exists for. That
+ * concept lives on `RelationMeta.foreignKeyFields`, where `inferModel` already
+ * reads it.
  */
 function producedAtWrite(field: DmmfField): boolean {
   if (field.isUpdatedAt === true) return true;

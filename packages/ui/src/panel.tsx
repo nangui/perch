@@ -1,5 +1,5 @@
 /**
- * The panel's entry point in the browser — ADR 0009.
+ * The panel's entry point in the browser.
  *
  * This file is never imported. It is the entry of the second, self-contained
  * bundle `PanelModule` serves: React, ReactDOM, Radix and the renderer are
@@ -186,7 +186,7 @@ async function send(
   // told.
   if (!response.ok) throw new Error(`/state answered ${String(response.status)}`);
 
-  // The route answers with the tree itself (ADR 0010); the client's envelope
+  // The route answers with the tree itself; the client's envelope
   // has room for more than that, so the wrapping happens here rather than on
   // the wire.
   return { payload: (await response.json()) as SchemaPayload };

@@ -1,6 +1,6 @@
 /**
- * Every case below is a way for the two packages to disagree about the manifest
- * (ADR 0007 §4), and the point of each is that it surfaces at startup.
+ * Every case below is a way for the two packages to disagree about the
+ * manifest, and the point of each is that it surfaces at startup.
  *
  * Fixtures only, so this needs nothing built; the real specifier is
  * `tooling/panel-assets.test.ts`.

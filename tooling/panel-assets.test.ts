@@ -1,5 +1,5 @@
 /**
- * That `@perchjs/nest` can actually reach the manifest — ADR 0009 §3.
+ * That `@perchjs/nest` can actually reach the manifest.
  *
  * `tooling/resolution.test.ts` reads the source and says what nest is *allowed*
  * to resolve; this loads both published builds and says it *works*. Neither
@@ -47,7 +47,7 @@ describe("the published @perchjs/nest resolves the manifest", () => {
   });
 
   it("from the CommonJS build, where import.meta.url does not exist", async () => {
-    // tsdown rewrites it to __filename, and ADR 0009 §3 rests on that.
+    // tsdown rewrites it to __filename, and reaching the manifest rests on that.
     const { createRequire } = await import("node:module");
     const module = createRequire(import.meta.url)(join(NEST_DIST, "index.cjs")) as {
       loadPanelAssets: Loader;

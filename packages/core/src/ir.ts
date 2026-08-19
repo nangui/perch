@@ -80,7 +80,7 @@ export interface ModelMeta {
    *
    * It says nothing about what the framework does with it. In v0.1 it keeps the
    * tombstone out of an inferred form and nothing else — reads do not filter
-   * and `DataAdapter.delete` destroys the row (ADR 0014).
+   * and `DataAdapter.delete` destroys the row.
    */
   readonly hasSoftDelete: boolean;
   /**

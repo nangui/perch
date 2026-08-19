@@ -40,7 +40,7 @@ export interface PrismaClientLike {
 
 export interface PrismaDataAdapterOptions {
   readonly client: PrismaClientLike;
-  /** Written by `@perchjs/prisma-generator` at `prisma generate` (ADR 0012). */
+  /** Written by `@perchjs/prisma-generator` at `prisma generate`. */
   readonly ir: Ir;
 }
 

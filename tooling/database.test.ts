@@ -5,7 +5,7 @@
  * The unit tests assert translation against a client that records calls. They
  * would pass just as happily on arguments Prisma rejects. These run the whole
  * chain — schema → generated IR → adapter → database — and the last test
- * measures the one thing invariant 7 forbids.
+ * measures the one cost nothing here may pay: a query per row.
  *
  * It lives in tooling/ rather than in a package because it spans two of them:
  * the IR comes from @perchjs/prisma-generator and the queries from
@@ -277,7 +277,7 @@ withDatabase("writing, against a real database", () => {
   });
 
   it("destroys the row of a soft-deleting model, rather than marking it", async () => {
-    // Pinned, not endorsed (ADR 0014). Soft delete is v0.2, and until the
+    // Pinned, not endorsed. Soft delete is v0.2, and until the
     // restore and force-delete that make it usable exist, `delete()` means one
     // thing on every model. A test is what makes v0.2 changing that visible.
     const country = await adapter.create("Country", { set: { name: "Atlantis" } });
@@ -305,7 +305,7 @@ withDatabase("writing, against a real database", () => {
   });
 });
 
-withDatabase("invariant 7 — no query per row", () => {
+withDatabase("no query per row", () => {
   async function seed(from: number, to: number): Promise<void> {
     const author = await adapter.create("Author", {
       set: { email: `bulk${from}@example.com`, name: `Bulk ${from}` },
@@ -330,7 +330,7 @@ withDatabase("invariant 7 — no query per row", () => {
 
   it("costs the same number of statements however many rows come back", async () => {
     // An absolute number would pin Prisma's join strategy, which is its choice
-    // to make. What invariant 7 forbids is growth with the row count, so that
+    // to make. What may not happen is growth with the row count, so that
     // is what is measured — and relative to whatever the table already holds,
     // because a suite that assumes it owns the table measures its neighbours.
     await seed(0, 5);

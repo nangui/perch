@@ -52,7 +52,7 @@ export interface Clause {
 /**
  * A tree of relations to load eagerly. This is what makes the anti-N+1 rule
  * enforceable: a relation column contributes a branch here rather than a query
- * per row (CLAUDE.md invariant 7).
+ * per row.
  */
 export interface IncludePlan {
   readonly [relation: string]: true | IncludePlan;
@@ -124,7 +124,7 @@ export interface DataAdapter {
   update(model: string, id: Id, data: WriteTree): Promise<Row>;
   /**
    * Destroys the rows. Unconditional in v0.1, on every model — a model whose
-   * `hasSoftDelete` is true is deleted exactly like any other (ADR 0014). Soft
+   * `hasSoftDelete` is true is deleted exactly like any other. Soft
    * delete arrives in v0.2 with the restore and force-delete it needs to be
    * usable, and it changes what this method means.
    */

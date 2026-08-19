@@ -49,7 +49,8 @@ export {
 // The naming rules a panel derives from a model name.
 export { defaultSlug, kebab, plural } from "./naming.js";
 
-// Actions. One class for every trigger context (ADR 0017).
+// Actions. One class per trigger context, so a callback takes one record and
+// a bulk run composes it.
 export type { ActionGuard, ActionRun, ActionState, Confirmation } from "./action.js";
 export { Action, CreateAction, DeleteAction, EditAction } from "./action.js";
 export type { NotificationState, NotificationTone } from "./notification.js";

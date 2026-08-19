@@ -1,10 +1,10 @@
 /**
  * Dropping staged files nobody came back for.
  *
- * ADR 0016 decision 4 says orphans are bounded rather than tolerated, and names
- * two kinds. This is the common one: a reader chose a file, the bytes went up,
- * and the form was never saved — the tab was closed, the day ended. Nothing
- * points at it and nothing ever will.
+ * Orphans are bounded rather than tolerated, and there are two kinds. This is
+ * the common one: a reader chose a file, the bytes went up, and the form was
+ * never saved — the tab was closed, the day ended. Nothing points at it and
+ * nothing ever will.
  *
  * The framework provides this and the host schedules it. Not a timer started
  * here: a panel does not get to run background work in a process it does not

@@ -1,5 +1,5 @@
 /**
- * Acceptance criterion 2 of the fields PRD, over HTTP.
+ * What a relationship select is accepted on, over HTTP.
  *
  * `Select.relationship()` on a table of 50,000 rows: opening under 200 ms,
  * searching under 200 ms, and no N+1 query.

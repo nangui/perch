@@ -621,8 +621,8 @@ describe("what it refuses, all with the same answer", () => {
 
 describe("a column that reads through a relation", () => {
   it("asks for it once, in the page's own query", async () => {
-    // Invariant 7. One `include` merged from the columns, so a page of fifty
-    // rows costs the same as a page of one.
+    // One `include` merged from the columns, so a page of fifty rows costs the
+    // same as a page of one.
     const url = await serve();
     asked.length = 0;
 

@@ -1,5 +1,5 @@
 /**
- * The outbound port for bytes, as `DataAdapter` is for rows (ADR 0016).
+ * The outbound port for bytes, as `DataAdapter` is for rows.
  *
  * A disk is named, never described: `.disk("uploads")` picks among what the
  * panel was given, and what is behind the name — a directory, a bucket, a
@@ -46,7 +46,7 @@ export interface StorageAdapter {
   /**
    * Moves a staged file to where it belongs, and answers its final key.
    *
-   * Called by the save before the row is written (ADR 0016 decision 3), so a
+   * Called by the save before the row is written, so a
    * failure here means no row at all rather than a row pointing at nothing.
    */
   commit(key: string, directory: string): Promise<string>;

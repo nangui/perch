@@ -164,8 +164,9 @@ describe("what a reader actually meets at the ceiling", () => {
     // the accepted state holds no rows at all — not the ones that were there
     // before — and the rule judges that state, so it reports nothing.
     //
-    // Invariant 4 is why it is silent, and the client is what keeps anybody
-    // from arriving here: it stops offering another row at the limit. A
+    // State the tree does not account for is refused in silence, and the client
+    // is what keeps anybody from arriving here: it stops offering another row
+    // at the limit. A
     // request that gets past it was not written by this panel.
     const made = Repeater.make("items")
       .maxItems(2)

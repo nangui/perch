@@ -4,8 +4,8 @@
  * It renders what it was given and decides nothing. The server has already
  * removed every resource this user may not reach, so an entry missing here is
  * an entry that does not exist for them — not one hidden from them. Filtering
- * on the client would be the second kind, and invariant 8 is about exactly that
- * difference.
+ * on the client would be the second kind, and hiding a control is not a
+ * protection.
  */
 import type { ReactNode } from "react";
 

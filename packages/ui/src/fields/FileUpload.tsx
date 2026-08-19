@@ -2,7 +2,7 @@
  * `FileUpload` — one file, sent when it is chosen.
  *
  * The reader picks, the bytes go up, and what stays in the form is the key the
- * server issued (ADR 0016). So the control has three states rather than two:
+ * server issued. So the control has three states rather than two:
  * empty, sending, and holding a file the server has already taken. The middle
  * one is the reason this is not an `<input type=file>` with a label on it.
  *

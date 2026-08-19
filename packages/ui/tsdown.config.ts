@@ -1,5 +1,5 @@
 /**
- * Two outputs from one package — ADR 0009.
+ * Two outputs from one package.
  *
  * The library entry keeps stable names and external React, because the exports
  * map names it and third-party plugins compile against it. The panel entry
@@ -20,9 +20,9 @@ function hash(path: string): string {
 }
 
 /**
- * The shape `PanelModule` refuses to start on when it does not recognise it
- * (ADR 0007 §4). Bump it whenever an entry is renamed, removed, or when the
- * shell contract in `src/panel.tsx` changes.
+ * The shape `PanelModule` refuses to start on when it does not recognise it.
+ * Bump it whenever an entry is renamed, removed, or when the shell contract in
+ * `src/panel.tsx` changes.
  */
 const MANIFEST_VERSION = 2;
 
@@ -49,7 +49,7 @@ export default defineConfig([
     tsconfig: "tsconfig.build.json",
     platform: "browser",
     // Nothing external: a browser resolves no bare specifier, and PanelModule
-    // may serve nothing but this package (ADR 0007 §5).
+    // may serve nothing but this package.
     noExternal: [/.*/],
     minify: true,
     /**

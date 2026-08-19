@@ -1,5 +1,5 @@
 /**
- * The acceptance criterion the fields PRD names: a date entered in UTC+2 is
+ * The criterion a date field is accepted on: a date entered in UTC+2 is
  * persisted in UTC and displayed again in UTC+2 with no drift, across a
  * daylight-saving change.
  *

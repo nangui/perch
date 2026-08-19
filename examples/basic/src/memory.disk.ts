@@ -3,9 +3,9 @@
  *
  * The same point the data adapter makes: the panel never learns which one it
  * got. A real one writes to a bucket or a folder; this one keeps the bytes in a
- * `Map` and hands back keys, which is enough to watch the whole shape of
- * ADR 0016 happen — staged on choosing, committed on saving, and dropped when
- * the row that pointed at it stopped.
+ * `Map` and hands back keys, which is enough to watch an upload's whole life —
+ * staged on choosing, committed on saving, and dropped when the row that
+ * pointed at it stopped.
  */
 import { Injectable } from "@nestjs/common";
 import type { IncomingFile, StagedFile, StorageAdapter } from "@perchjs/core";
