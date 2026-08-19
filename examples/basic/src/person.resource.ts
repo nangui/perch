@@ -150,8 +150,9 @@ export class PersonResource {
    * query rather than one each.
    *
    * `country`, `city` and `role` are stored as codes and are shown as codes.
-   * What turns `fr` into `France` is a formatting option an entry does not have
-   * yet, and a lookup written here would be one this page alone knows about.
+   * Formatting shapes a value; it does not look one up. What turns `fr` into
+   * `France` is the same list the form's `Select` already holds, and reaching
+   * it from here is a decision nobody has taken.
    */
   infolist(): SchemaTree {
     return Schema.make([
@@ -175,7 +176,13 @@ export class PersonResource {
         .columns(2)
         .schema([
           TextEntry.make("city").label("City").placeholder("Not given"),
-          TextEntry.make("startsAt").label("Starts at").placeholder("Not scheduled"),
+          // Stored as an instant, read on a Paris wall clock — the same zone
+          // the form edits it in — and turned into words by the reader's own
+          // browser, which is the only thing that knows their locale.
+          TextEntry.make("startsAt")
+            .label("Starts at")
+            .dateTime({ timezone: "Europe/Paris" })
+            .placeholder("Not scheduled"),
         ]),
     ]);
   }

@@ -68,6 +68,76 @@ describe("an entry on the page", () => {
   });
 });
 
+/** The entry itself, not the shell around it: the label is text too. */
+const entry = (props: Record<string, unknown>, value?: unknown): string => {
+  const { container } = render(
+    <PanelView
+      payload={payload([
+        {
+          id: "a",
+          type: "TextEntry",
+          label: "Value",
+          ...(value === undefined ? {} : { value }),
+          props,
+        },
+      ])}
+    />,
+  );
+  return container.querySelector(".perch-entry")?.textContent ?? "";
+};
+
+describe("a value the server said how to present", () => {
+  it("reads a timestamp in the zone that was named, not the machine's", () => {
+    // 08:00 UTC is 10:00 in Paris. A page that showed 08:00 would be right
+    // about the instant and wrong about the question anybody is asking.
+    const shown = entry(
+      { format: "dateTime", timezone: "Europe/Paris" },
+      "2026-06-15T08:00:00.000Z",
+    );
+
+    expect(shown).toContain("10:00");
+  });
+
+  it("groups a number the way the reader's own locale groups one", () => {
+    expect(entry({ format: "numeric" }, 1234567)).not.toBe("1234567");
+  });
+
+  it("keeps the places it was told to keep", () => {
+    expect(entry({ format: "numeric", decimals: 2 }, 3)).toContain("3.00");
+  });
+
+  it("shows an amount in the currency the form declared", () => {
+    const shown = entry({ format: "money", currency: "EUR" }, 12.5);
+
+    expect(shown).toMatch(/12[.,]50/);
+    expect(shown).toMatch(/€|EUR/);
+  });
+});
+
+describe("a rule the value does not fit", () => {
+  it("shows the value rather than the word Invalid", () => {
+    expect(entry({ format: "dateTime" }, "not a date")).toBe("not a date");
+  });
+
+  it("survives a timezone the runtime has never heard of", () => {
+    // `Intl` throws on one. One entry may not take the page with it.
+    expect(
+      entry(
+        { format: "dateTime", timezone: "Mars/Olympus" },
+        "2026-06-15T08:00:00.000Z",
+      ),
+    ).toBe("2026-06-15T08:00:00.000Z");
+  });
+
+  it("survives a currency code that is not one", () => {
+    expect(entry({ format: "money", currency: "nope" }, 12.5)).toBe("12.5");
+  });
+
+  it("says nothing is there when the value is missing, rule or no rule", () => {
+    expect(entry({ format: "money", currency: "EUR" })).toBe("—");
+  });
+});
+
 describe("what the page does not offer", () => {
   const page = (): HTMLElement =>
     render(

@@ -390,6 +390,29 @@ function TextareaRenderer({
   );
 }
 
+/** The presentation rule the server declared, off `props` and typed on the way. */
+function entryFormat(node: SchemaNode): {
+  format?: string;
+  timezone?: string;
+  currency?: string;
+  decimals?: number;
+} {
+  const props = node.props ?? {};
+  const out: {
+    format?: string;
+    timezone?: string;
+    currency?: string;
+    decimals?: number;
+  } = {};
+
+  for (const key of ["format", "timezone", "currency"] as const) {
+    const value = props[key];
+    if (typeof value === "string") out[key] = value;
+  }
+  if (typeof props["decimals"] === "number") out.decimals = props["decimals"];
+  return out;
+}
+
 function TextEntryRenderer({ node }: NodeProps): ReactNode {
   // No status: an entry is never disabled, never in flight and never in error.
   // Passing a resting one would say those states exist for it.
@@ -404,6 +427,7 @@ function TextEntryRenderer({ node }: NodeProps): ReactNode {
           value={node.value}
           describedBy={binding.id}
           {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+          {...entryFormat(node)}
         />
       )}
     </FieldShell>

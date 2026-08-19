@@ -64,6 +64,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   DateTimePicker: ["withTime", "timezone", "minDate", "maxDate"],
   FileUpload: ["maxSize", "acceptedFileTypes"],
   Toggle: ["onIcon", "offIcon", "onColor"],
+  TextEntry: ["format", "timezone", "currency", "decimals"],
   Textarea: ["rows", "autosize", "maxLength"],
   Section: ["columns", "collapsible", "collapsed", "icon"],
   Grid: ["columns"],
