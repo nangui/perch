@@ -658,20 +658,17 @@ function walk(
   // read together, which is what a layout already is and already draws.
   if (component instanceof RepeatableEntry) {
     const rows = carriedRows(record, component.recordPath);
+    // Built once, not once per row. `Schema.make` runs every `configureUsing`
+    // registered against it, and a page of twenty notes ran them twenty times
+    // to produce twenty identical objects.
+    const shape = Schema.make(component.children);
     return {
       id,
       component,
       path: "",
       ...(record === undefined ? {} : { record }),
       children: rows.map((row, at) =>
-        walk(
-          Schema.make(component.children),
-          state,
-          `${id}/${String(at)}/`,
-          at,
-          under,
-          row,
-        ),
+        walk(shape, state, `${id}/${String(at)}/`, at, under, row),
       ),
     };
   }

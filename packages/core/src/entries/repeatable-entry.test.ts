@@ -5,7 +5,8 @@
  * a form's repeater reads the record instead, which is why the boot refuses one
  * and why this is a different component rather than a flag on that one.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { Component } from "../component.js";
 import { Schema, Section } from "../layout.js";
 import { RepeatableEntry } from "./repeatable-entry.js";
 import { TextEntry } from "./text-entry.js";
@@ -71,6 +72,32 @@ describe("the rows a relation carried", () => {
 
   it("put nothing in the state map, like every other entry", async () => {
     expect((await drawn(Schema.make([NOTES()]))).state).toEqual({});
+  });
+});
+
+describe("what drawing the rows costs", () => {
+  afterEach(() => {
+    Component.resetConfigurators();
+  });
+
+  it("shapes a row once, however many rows the record carried", async () => {
+    // `Schema.make` runs every configurator registered against it. Built inside
+    // the loop, a page of twenty notes ran them twenty times to produce twenty
+    // identical objects.
+    let built = 0;
+    Schema.configureUsing((schema) => {
+      built += 1;
+      return schema;
+    });
+
+    await resolveSchema(
+      Schema.make([NOTES()]),
+      {},
+      { operation: "view", record: RECORD },
+    );
+
+    // One for the form's own root, one for the shape a row takes.
+    expect(built).toBe(2);
   });
 });
 
