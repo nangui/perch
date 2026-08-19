@@ -3,33 +3,14 @@
  * type here rather than leaving each adapter to guess. `null` is what it says
  * when no row can carry that key.
  */
-import type { DataAdapter, FieldMeta, ModelMeta, ScalarType } from "@perchjs/core";
+import type { DataAdapter, ScalarType } from "@perchjs/core";
 import { describe, expect, it } from "vitest";
 import { recordId } from "./record-id.js";
+import { key, model } from "./__fixtures__/ir.js";
 
 function adapterWithKey(type: ScalarType): DataAdapter {
-  const primaryKey: FieldMeta = {
-    name: "id",
-    kind: "scalar",
-    type,
-    isRequired: true,
-    isList: false,
-    isId: true,
-    isUnique: true,
-    isReadOnly: true,
-    hasDefault: true,
-    isLongText: false,
-  };
-  const meta: ModelMeta = {
-    name: "Post",
-    dbName: "Post",
-    primaryKey,
-    fields: [primaryKey],
-    relations: [],
-    uniqueConstraints: [],
-    hasSoftDelete: false,
-    labelField: "id",
-  };
+  // The key's type is the whole subject here; everything else is ordinary.
+  const meta = model({ primaryKey: key({ type }), labelField: "id" });
   return { meta: () => meta } as unknown as DataAdapter;
 }
 

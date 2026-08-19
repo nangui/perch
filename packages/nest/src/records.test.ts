@@ -6,34 +6,13 @@
  * argument — it is the reason `sameOrigin` was extracted in the first place.
  */
 import { describe, expect, it } from "vitest";
-import type { DataAdapter, FieldMeta, Ir, ModelMeta, Row } from "@perchjs/core";
+import type { DataAdapter, Ir, ModelMeta, Row } from "@perchjs/core";
 import { EditAction, Schema, Table, TextColumn, TextInput } from "@perchjs/core";
 import type { RegisteredResource } from "./resource-registry.js";
 import { listRecords, resourcePath } from "./records.js";
+import { model } from "./__fixtures__/ir.js";
 
-const key: FieldMeta = {
-  name: "id",
-  kind: "scalar",
-  type: "Int",
-  isRequired: true,
-  isList: false,
-  isId: true,
-  isUnique: true,
-  isReadOnly: true,
-  hasDefault: true,
-  isLongText: false,
-};
-
-const POST: ModelMeta = {
-  name: "Post",
-  dbName: "Post",
-  primaryKey: key,
-  fields: [key],
-  relations: [],
-  uniqueConstraints: [["id"]],
-  hasSoftDelete: false,
-  labelField: "title",
-};
+const POST = model({ uniqueConstraints: [["id"]] });
 
 const ROWS: Row[] = [{ id: 1, title: "Ada" }];
 

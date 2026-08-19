@@ -8,46 +8,17 @@ import { tmpdir } from "node:os";
 import type { CanActivate, ExecutionContext, INestApplication } from "@nestjs/common";
 import { Injectable } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import type {
-  DataAdapter,
-  FieldMeta,
-  Id,
-  Ir,
-  ModelMeta,
-  Row,
-  WriteTree,
-} from "@perchjs/core";
+import type { DataAdapter, Id, Ir, ModelMeta, Row, WriteTree } from "@perchjs/core";
 import { Schema, TextInput } from "@perchjs/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
+import { model } from "./__fixtures__/ir.js";
 import type { SaveResponse } from "./panel-save.controller.js";
 
-const KEY: FieldMeta = {
-  name: "id",
-  kind: "scalar",
-  type: "Int",
-  isRequired: true,
-  isList: false,
-  isId: true,
-  isUnique: true,
-  isReadOnly: true,
-  hasDefault: true,
-  isLongText: false,
-};
-
-const META: ModelMeta = {
-  name: "Post",
-  dbName: "Post",
-  primaryKey: KEY,
-  fields: [KEY],
-  relations: [],
-  uniqueConstraints: [],
-  hasSoftDelete: false,
-  labelField: "title",
-};
+const META = model();
 
 let rows: Row[] = [];
 let writes: { kind: string; id?: Id; data: WriteTree }[] = [];

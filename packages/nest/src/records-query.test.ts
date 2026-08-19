@@ -3,7 +3,7 @@
  * is to say something an attacker writes.
  */
 import { describe, expect, it } from "vitest";
-import type { FieldMeta, Ir, ModelMeta } from "@perchjs/core";
+import type { Ir, ModelMeta } from "@perchjs/core";
 import { Table, TextColumn, TextFilter } from "@perchjs/core";
 import {
   DEFAULT_PER_PAGE,
@@ -12,31 +12,16 @@ import {
   MAX_SKIP,
   readQuery,
 } from "./records-query.js";
-
-function field(name: string, over: Partial<FieldMeta> = {}): FieldMeta {
-  return {
-    name,
-    kind: "scalar",
-    type: "String",
-    isRequired: true,
-    isList: false,
-    isId: false,
-    isUnique: false,
-    isReadOnly: false,
-    hasDefault: false,
-    isLongText: false,
-    ...over,
-  };
-}
+import { scalar } from "./__fixtures__/ir.js";
 
 const USER: ModelMeta = {
   name: "User",
   dbName: "users",
-  primaryKey: field("id", { type: "Int", isId: true, isUnique: true }),
+  primaryKey: scalar("id", { type: "Int", isId: true, isUnique: true }),
   fields: [
-    field("id", { type: "Int", isId: true, isUnique: true }),
-    field("name"),
-    field("passwordHash"),
+    scalar("id", { type: "Int", isId: true, isUnique: true }),
+    scalar("name"),
+    scalar("passwordHash"),
   ],
   relations: [],
   uniqueConstraints: [["id"]],

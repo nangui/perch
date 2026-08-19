@@ -18,6 +18,7 @@ import type {
   ModelMeta,
   Query,
   Row,
+  ScalarType,
 } from "@perchjs/core";
 import {
   CreateAction,
@@ -35,6 +36,7 @@ import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
+import { key, scalar } from "./__fixtures__/ir.js";
 
 /** Each row carries a column no table declares. That is the point. */
 const ROWS: Row[] = [
@@ -45,20 +47,14 @@ const ROWS: Row[] = [
 
 const SHOWN = ROWS.map(({ id, title }) => ({ id, title }));
 
-function field(name: string, type: string): FieldMeta {
-  return {
-    name,
-    kind: "scalar",
-    type,
-    isRequired: true,
-    isList: false,
-    isId: name === "id",
-    isUnique: false,
-    isReadOnly: false,
-    hasDefault: false,
-    isLongText: false,
-  } as FieldMeta;
-}
+/**
+ * The local shorthand: this file names a column by its type, and `id` is one.
+ *
+ * `ScalarType`, not `string`. What this replaced ended in `as FieldMeta`, which
+ * is what let a type the IR has no such thing as pass through unremarked.
+ */
+const field = (name: string, type: ScalarType): FieldMeta =>
+  scalar(name, { type, isId: name === "id" });
 
 const AUTHOR: ModelMeta = {
   name: "Author",
@@ -74,18 +70,7 @@ const AUTHOR: ModelMeta = {
 const POST: ModelMeta = {
   name: "Post",
   dbName: "Post",
-  primaryKey: {
-    name: "id",
-    kind: "scalar",
-    type: "Int",
-    isRequired: true,
-    isList: false,
-    isId: true,
-    isUnique: true,
-    isReadOnly: true,
-    hasDefault: true,
-    isLongText: false,
-  },
+  primaryKey: key(),
   // Filled rather than stubbed: the columns below read these, and an IR that
   // says `Post` exists with no fields is a convenience that made every one of
   // them read nothing.

@@ -5,30 +5,15 @@
  * carry nothing undeclared let the whole thing pass while doing nothing.
  */
 import { describe, expect, it } from "vitest";
-import type { FieldMeta, Ir, ModelMeta, Row } from "@perchjs/core";
+import type { Ir, ModelMeta, Row } from "@perchjs/core";
 import { Table, TextColumn } from "@perchjs/core";
 import { project, projectOne, visibleKeys } from "./row-projection.js";
-
-function field(name: string, over: Partial<FieldMeta> = {}): FieldMeta {
-  return {
-    name,
-    kind: "scalar",
-    type: "String",
-    isRequired: true,
-    isList: false,
-    isId: false,
-    isUnique: false,
-    isReadOnly: false,
-    hasDefault: false,
-    isLongText: false,
-    ...over,
-  };
-}
+import { scalar } from "./__fixtures__/ir.js";
 
 const USER: ModelMeta = {
   name: "User",
   dbName: "users",
-  primaryKey: field("id", { type: "Int", isId: true, isUnique: true }),
+  primaryKey: scalar("id", { type: "Int", isId: true, isUnique: true }),
   fields: [],
   relations: [],
   uniqueConstraints: [["id"]],

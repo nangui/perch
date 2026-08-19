@@ -27,6 +27,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
+import { model } from "./__fixtures__/ir.js";
 
 interface SaveAnswer {
   readonly errors?: Record<string, string>;
@@ -81,27 +82,7 @@ class MemoryAdapter implements DataAdapter {
     return IR;
   }
   meta(): ModelMeta {
-    return {
-      name: "Post",
-      dbName: "Post",
-      primaryKey: {
-        name: "id",
-        kind: "scalar",
-        type: "Int",
-        isRequired: true,
-        isList: false,
-        isId: true,
-        isUnique: true,
-        isReadOnly: true,
-        hasDefault: true,
-        isLongText: false,
-      },
-      fields: [],
-      relations: [],
-      uniqueConstraints: [],
-      hasSoftDelete: false,
-      labelField: "title",
-    } as unknown as ModelMeta;
+    return model({ fields: [] });
   }
   findMany(query: Query): Promise<{ rows: readonly Row[]; total: number }> {
     queries.push(query);

@@ -18,6 +18,7 @@ import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
+import { model } from "./__fixtures__/ir.js";
 
 interface Principal {
   readonly id: string;
@@ -36,27 +37,8 @@ class MemoryAdapter implements DataAdapter {
   meta(): ModelMeta {
     // Strictly what the panel asks of it: the type of the key it looks rows up
     // by.
-    return {
-      name: "Post",
-      dbName: "Post",
-      primaryKey: {
-        name: "id",
-        kind: "scalar",
-        type: "Int",
-        isRequired: true,
-        isList: false,
-        isId: true,
-        isUnique: true,
-        isReadOnly: true,
-        hasDefault: true,
-        isLongText: false,
-      },
-      fields: [],
-      relations: [],
-      uniqueConstraints: [],
-      hasSoftDelete: false,
-      labelField: "title",
-    };
+    // `fields` empty on purpose: nothing here reads a column off the model.
+    return model({ fields: [] });
   }
   findMany(): Promise<{ rows: readonly Row[]; total: number }> {
     return Promise.resolve({ rows: ROWS, total: ROWS.length });

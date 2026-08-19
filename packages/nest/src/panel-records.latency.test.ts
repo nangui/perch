@@ -19,6 +19,7 @@ import type { PanelAssets } from "./panel-assets.js";
 import { MAX_PER_PAGE } from "./records-query.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
+import { model } from "./__fixtures__/ir.js";
 
 const BUDGET_MS = 150;
 const ITERATIONS = 100;
@@ -31,27 +32,7 @@ const ROWS: Row[] = Array.from({ length: MAX_PER_PAGE }, (_, i) => ({
   body: "x".repeat(120),
 }));
 
-const POST: ModelMeta = {
-  name: "Post",
-  dbName: "Post",
-  primaryKey: {
-    name: "id",
-    kind: "scalar",
-    type: "Int",
-    isRequired: true,
-    isList: false,
-    isId: true,
-    isUnique: true,
-    isReadOnly: true,
-    hasDefault: true,
-    isLongText: false,
-  },
-  fields: [],
-  relations: [],
-  uniqueConstraints: [],
-  hasSoftDelete: false,
-  labelField: "title",
-};
+const POST = model({ fields: [] });
 
 @Injectable()
 class MemoryAdapter implements DataAdapter {
