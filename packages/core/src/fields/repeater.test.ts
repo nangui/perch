@@ -603,6 +603,69 @@ describe("the rows a record already has", () => {
   });
 });
 
+describe("the rows a record has one level further down", () => {
+  const nested = () =>
+    Schema.make([
+      Repeater.make("items")
+        .relationship("sections")
+        .schema([
+          TextInput.make("label"),
+          Repeater.make("blocks").schema([TextInput.make("body")]),
+        ]),
+    ]);
+
+  const RECORD = {
+    id: 1,
+    sections: [{ id: 10, label: "First", blocks: [{ id: 100, body: "Kept" }] }],
+  };
+
+  it("are on the form, like the ones a level above", async () => {
+    const tree = await resolveSchema(
+      nested(),
+      {},
+      { operation: "edit", record: RECORD },
+    );
+
+    expect(tree.state["items.10.blocks"]).toEqual(["100"]);
+    expect(tree.state["items.10.blocks.100.body"]).toBe("Kept");
+  });
+
+  it("survive a save the client made no mention of them in", async () => {
+    // The same loss as one level up, and just as quiet: the form shows none of
+    // them, the client sends none back, and the write says delete every one.
+    const options = { operation: "edit", record: RECORD } as const;
+    const tree = await resolveSchema(nested(), {}, options);
+    const write = dehydrate(tree, options);
+
+    const rows = write.relations?.["sections"]?.update?.[0]?.data.relations?.["blocks"];
+    expect(rows?.delete ?? []).toEqual([]);
+  });
+
+  it("leave no state behind on a row the reader removed", async () => {
+    // The list is the reader's. Seeding a row they took out would put values
+    // under a key the tree builds no node for — state nothing claims.
+    const tree = await resolveSchema(
+      nested(),
+      { items: [] },
+      { operation: "edit", record: RECORD },
+    );
+
+    expect(Object.keys(tree.state).some((path) => path.startsWith("items.10"))).toBe(
+      false,
+    );
+  });
+
+  it("give way to what the client sent about them, like any other row", async () => {
+    const tree = await resolveSchema(
+      nested(),
+      { items: ["10"], "items.10.blocks": [] },
+      { operation: "edit", record: RECORD },
+    );
+
+    expect(tree.state["items.10.blocks"]).toEqual([]);
+  });
+});
+
 describe("a row somebody added and never filled", () => {
   const made = () =>
     Repeater.make("items")

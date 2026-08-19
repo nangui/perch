@@ -522,8 +522,10 @@ function rowKeyOf(parent: string, path: string): string | undefined {
  * would send none back, and the save would read that as an instruction to
  * delete every one of them.
  *
- * Only where the client is silent. Once it has sent a list, that list is what
- * the reader is looking at, and an empty one means they removed the rows.
+ * Only where the client is silent, and that is judged at each list rather than
+ * once at the top: a client that sent the outer rows may still have said
+ * nothing about the rows inside them. Once it has sent a list, that list is
+ * what the reader is looking at, and an empty one means they removed the rows.
  */
 function seedRows(
   root: Component,
@@ -534,28 +536,55 @@ function seedRows(
   if (record === undefined) return clientState;
 
   const seeded: Record<string, unknown> = { ...clientState };
-  for (const { component, path } of flattenWalked(walk(root, {}))) {
-    if (!(component instanceof Repeater) || path === "" || path in seeded) continue;
+  seedInto(root, "", record, seeded);
+  return seeded;
+}
 
-    const held = record[component.state.relationship ?? component.name];
+/** One level of rows, and then the rows each of them holds. */
+function seedInto(
+  schema: Component,
+  prefix: string,
+  record: Row,
+  seeded: Record<string, unknown>,
+): void {
+  for (const repeater of repeatersIn(schema)) {
+    const path = `${prefix}${repeater.name}`;
+    const held = record[repeater.state.relationship ?? repeater.name];
     if (!Array.isArray(held)) continue;
 
-    const key = component.state.rowKey ?? DEFAULT_ROW_KEY;
+    // A list the client sent is the reader's; the rows it left out are rows
+    // they removed, and seeding those back would put state on a row the tree
+    // builds no node for.
+    const sent = seeded[path];
+    const kept = Array.isArray(sent) ? new Set(sent.map(String)) : undefined;
+
+    const key = repeater.state.rowKey ?? DEFAULT_ROW_KEY;
     const keys: string[] = [];
     for (const row of held) {
       if (typeof row !== "object" || row === null) continue;
       const id = (row as Row)[key];
       if (typeof id !== "string" && typeof id !== "number") continue;
       keys.push(String(id));
-      // The row's own fields, addressed the way the tree will address them.
+      if (kept !== undefined && !kept.has(String(id))) continue;
+
+      // Its own rows first: they turn this row's relation into a list of keys,
+      // which the copy below then leaves alone. The other way round it would
+      // copy the loaded rows themselves, and a list of rows is not a list.
+      const at = `${path}.${String(id)}`;
+      seedInto(repeater, `${at}.`, row as Row, seeded);
       for (const [name, value] of Object.entries(row as Row)) {
-        const at = `${path}.${String(id)}.${name}`;
-        if (!(at in seeded)) seeded[at] = value;
+        if (!(`${at}.${name}` in seeded)) seeded[`${at}.${name}`] = value;
       }
     }
-    seeded[path] = keys;
+    if (kept === undefined) seeded[path] = keys;
   }
-  return seeded;
+}
+
+/** The repeaters at one level: a layout is transparent, a repeater is the end. */
+function repeatersIn(component: Component): readonly Repeater[] {
+  return component.children.flatMap((child) =>
+    child instanceof Repeater ? [child] : repeatersIn(child),
+  );
 }
 
 interface WalkedNode {
