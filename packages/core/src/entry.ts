@@ -23,6 +23,10 @@ export interface EntryState extends ComponentState {
 export abstract class Entry extends Component {
   declare readonly state: EntryState;
 
+  protected override with(patch: Partial<EntryState>): this {
+    return super.with(patch);
+  }
+
   /**
    * Where the value lives **in the record** — `customer.email`.
    *
@@ -36,6 +40,6 @@ export abstract class Entry extends Component {
   }
 
   placeholder(value: Resolvable<string>): this {
-    return this.with({ placeholder: value } as Partial<EntryState>);
+    return this.with({ placeholder: value });
   }
 }

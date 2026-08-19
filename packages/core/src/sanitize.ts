@@ -39,31 +39,35 @@ export function sanitize(previous: ResolveResult, incoming: FormState): Sanitize
   // Keyed by where the value lives, not by what the field is called: the same
   // declaration stands for a field in every row of a repeater, and only the
   // path tells those apart.
-  // Narrowed rather than cast. Everything below reads `Field` members off these
-  // nodes, and an `as Field` would read them off anything that got past the
-  // filter — an `Entry` answering `undefined` to `acceptsClient` is refused by
-  // luck, and stops being refused the day something gives it one.
-  const fields = new Map(
-    previous.nodes
-      .filter(
-        (node): node is ResolvedNode & { readonly component: Field } =>
-          node.component instanceof Field && node.path !== "",
-      )
-      .map((node) => [node.path, node]),
-  );
+  // Checked rather than asserted. Everything below reads `Field` members off
+  // these entries, and both the cast this replaced and a type predicate say so
+  // without the compiler ever agreeing: an `Entry` answering `undefined` to
+  // `acceptsClient` was refused by luck, and would stop being refused the day
+  // something gave it one. Here the narrowing is the assignment, so a filter
+  // that let a non-field through would not compile.
+  const fields = new Map<
+    string,
+    { readonly field: Field; readonly node: ResolvedNode }
+  >();
+  for (const node of previous.nodes) {
+    if (node.component instanceof Field && node.path !== "") {
+      fields.set(node.path, { field: node.component, node });
+    }
+  }
 
   const state: Record<string, unknown> = {};
   const rejected: RejectedPath[] = [];
 
   for (const [path, value] of Object.entries(incoming)) {
-    const node = fields.get(path);
-    if (node === undefined) {
+    const found = fields.get(path);
+    if (found === undefined) {
       rejected.push({ path, reason: "unknown-path" });
       continue;
     }
+    const { field, node } = found;
     // Asked of the kind of field before its flags, because a resolvable flag
     // is a lock whose key the form holds.
-    if (!node.component.acceptsClient) {
+    if (!field.acceptsClient) {
       rejected.push({ path, reason: "server-owned" });
       continue;
     }
@@ -74,7 +78,7 @@ export function sanitize(previous: ResolveResult, incoming: FormState): Sanitize
     // The value, put to the field rather than judged from here: what a field
     // can hold is the field's own answer, and a chain of `instanceof` in this
     // file would have to grow with every type added and remind nobody.
-    const wrong = node.component.admits(value, node.options);
+    const wrong = field.admits(value, node.options);
     if (wrong !== undefined) {
       rejected.push({ path, reason: wrong });
       continue;

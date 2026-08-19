@@ -7,7 +7,9 @@
  * not because a rule was written to refuse infolists.
  */
 import { describe, expect, it } from "vitest";
+import { auditSchema } from "./audit.js";
 import { Section, Schema } from "./layout.js";
+import { Repeater } from "./fields/repeater.js";
 import { Entry } from "./entry.js";
 import { TextEntry } from "./entries/text-entry.js";
 import { Field } from "./field.js";
@@ -151,6 +153,28 @@ describe("an entry on the wire", () => {
     const tree = await read(Schema.make([TextEntry.make("title").hidden()]));
 
     expect(serialise(tree).schema.children ?? []).toEqual([]);
+  });
+});
+
+describe("an entry somebody put inside a repeater", () => {
+  it("stops the boot, rather than showing the parent's value on every row", () => {
+    // Measured before this existed: it resolved to the record's own `title` on
+    // every row, which is a value a reader can see and nothing would report.
+    const complaints = auditSchema(
+      Schema.make([
+        Repeater.make("items")
+          .relationship("rows")
+          .schema([TextEntry.make("title")]),
+      ]),
+    );
+
+    expect(complaints).toEqual([
+      { field: "title", problem: expect.stringContaining("read the record rather") },
+    ]);
+  });
+
+  it("says nothing about an entry that is not in one", () => {
+    expect(auditSchema(Schema.make([TextEntry.make("title")]))).toEqual([]);
   });
 });
 

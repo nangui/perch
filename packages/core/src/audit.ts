@@ -12,6 +12,7 @@
  * of somebody's own form, and the only useful answer is which line.
  */
 import type { Component } from "./component.js";
+import { Entry } from "./entry.js";
 import { Field } from "./field.js";
 import { Hidden } from "./fields/hidden.js";
 import { DateTimePicker } from "./fields/date-time-picker.js";
@@ -89,7 +90,29 @@ function walk(component: Component, into: Complaint[]): void {
       problem: "has nothing to repeat, so every row it added would be blank",
     });
   }
+  // An entry reads the record it was resolved against, and a repeater's row is
+  // not that record. Left alone it shows the parent's value on every row —
+  // plausible, wrong, and never reported by anything.
+  if (component instanceof Repeater) {
+    for (const entry of entriesIn(component)) {
+      into.push({
+        field: entry.recordPath === "" ? "an unnamed entry" : entry.recordPath,
+        problem:
+          "is an entry inside a repeater, so it would read the record rather " +
+          "than the row it is drawn in, and show the same value on every one",
+      });
+    }
+  }
   for (const child of component.children) walk(child, into);
+}
+
+/** Entries at this level. A nested repeater has already made its own case. */
+function entriesIn(component: Component): readonly Entry[] {
+  return component.children.flatMap((child) =>
+    child instanceof Repeater
+      ? []
+      : [...(child instanceof Entry ? [child] : []), ...entriesIn(child)],
+  );
 }
 
 /**
