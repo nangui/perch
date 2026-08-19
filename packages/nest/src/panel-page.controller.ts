@@ -17,10 +17,18 @@ import {
   Query,
   Req,
 } from "@nestjs/common";
-import type { DataAdapter, FormState, ResolveOptions, Row } from "@perchjs/core";
+import type {
+  DataAdapter,
+  FormState,
+  IncludePlan,
+  Ir,
+  ResolveOptions,
+  Row,
+  Schema,
+} from "@perchjs/core";
 import { buildNavigation, PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { listRecords, resourcePath } from "./records.js";
-import { resolveSchema, serialise } from "@perchjs/core";
+import { buildIncludePlan, entryPaths, resolveSchema, serialise } from "@perchjs/core";
 import { fileUrls } from "./file-urls.js";
 import { withOptions } from "./relationship-options.js";
 import type { PanelAssets } from "./panel-assets.js";
@@ -123,6 +131,7 @@ export class PanelPageController {
 
     return await this.#render({
       resource,
+      schema: this.#registry.formFor(resource),
       request,
       suffix: `${slug}/create`,
       operation: "create",
@@ -157,6 +166,7 @@ export class PanelPageController {
 
     return await this.#render({
       resource,
+      schema: this.#registry.formFor(resource),
       request,
       suffix: `${slug}/${id}/edit`,
       operation: "edit",
@@ -165,6 +175,64 @@ export class PanelPageController {
       // The whole row. `serialise` keeps only the paths the tree makes visible,
       // so a column the form does not carry never reaches the browser.
       state: record,
+      record,
+    });
+  }
+
+  /**
+   * `GET {path}/:resource/:id` — the record, read-only.
+   *
+   * Declared after `:resource/create` and `:resource/:id/edit`, both of which
+   * this would otherwise swallow: `create` is not an id and `edit` is not one
+   * either.
+   *
+   * The relations the entries name are loaded with the row, in its own query,
+   * so the page costs what a page costs and not what a page times its relations
+   * costs.
+   */
+  @Get(":resource/:id")
+  @Header("content-type", "text/html; charset=utf-8")
+  @Header("cache-control", "no-store")
+  async view(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Req() request: IncomingUrl,
+  ): Promise<string> {
+    const resource = this.#registry.get(slug);
+    if (resource === undefined) throw new NotFoundException();
+    if (this.#data === null) throw new NotFoundException();
+
+    // No infolist, no View page. Answered like a resource that does not exist,
+    // because that is what it is from outside.
+    const infolist = this.#registry.infolistFor(resource);
+    if (infolist === undefined) throw new NotFoundException();
+
+    const model = resource.metadata.model;
+    const key = recordId(this.#data, model, id);
+    if (key === null) throw new NotFoundException();
+
+    const plan = includeFor(this.#data.ir(), model, infolist);
+    const record = await this.#data.findOne(model, key, plan);
+    if (record === null) throw new NotFoundException();
+
+    // After the row, never before it: the policy is asked about a record, and
+    // asking it without one would be authorising at render time.
+    const user = this.#users.resolve(request);
+    if ((await authorize(resource.instance.can, "view", user, record)) !== "allowed") {
+      throw new NotFoundException();
+    }
+
+    return await this.#render({
+      resource,
+      schema: infolist,
+      request,
+      suffix: `${slug}/${id}`,
+      operation: "view",
+      id,
+      title: `${resource.metadata.label} ${id}`,
+      // Nothing: an entry reads the record, and the state map is what a client
+      // may write to.
+      state: {},
       record,
     });
   }
@@ -186,26 +254,24 @@ export class PanelPageController {
 
   async #render(page: {
     resource: RegisteredResource;
+    /** The tree this page draws: a form, or the infolist a View page reads. */
+    schema: Schema;
     request: IncomingUrl;
     suffix: string;
-    operation: "create" | "edit";
+    operation: "create" | "edit" | "view";
     id?: string;
     title: string;
     state: FormState;
     record?: Row;
   }): Promise<string> {
     const root = rootOf(page.request, page.suffix);
-    const resolved = await resolveSchema(
-      this.#registry.formFor(page.resource),
-      page.state,
-      {
-        operation: page.operation,
-        user: this.#users.resolve(page.request),
-        ...(page.record === undefined ? {} : { record: page.record }),
-        ...withOptions(this.#data, page.resource.metadata.model),
-        ...this.#urls,
-      },
-    );
+    const resolved = await resolveSchema(page.schema, page.state, {
+      operation: page.operation,
+      user: this.#users.resolve(page.request),
+      ...(page.record === undefined ? {} : { record: page.record }),
+      ...withOptions(this.#data, page.resource.metadata.model),
+      ...this.#urls,
+    });
 
     // The same guard, and the same function, the row actions go through.
     const list = resourcePath(root, page.resource.metadata.slug);
@@ -229,6 +295,21 @@ export class PanelPageController {
       scriptFile: entry(this.#assets, "panel.js"),
       styleFile: entry(this.#assets, "panel.css"),
     });
+  }
+}
+
+/**
+ * The relations an infolist names, as one plan.
+ *
+ * Refuses to throw, like the table's own plan does: a path that does not
+ * resolve stops the boot, so a running panel never reaches here with one, and
+ * taking a page down over it would be out of proportion to what a plan is for.
+ */
+function includeFor(ir: Ir, model: string, infolist: Schema): IncludePlan | undefined {
+  try {
+    return buildIncludePlan(ir, model, entryPaths(infolist));
+  } catch {
+    return undefined;
   }
 }
 

@@ -19,6 +19,7 @@ import {
   auditSchema,
   auditTable,
   columnPaths,
+  entryPaths,
   describeComplaints,
   findModel,
   FileUpload,
@@ -115,6 +116,18 @@ export class ResourceRegistry implements OnModuleInit {
   }
 
   /**
+   * What the View page reads, or nothing where the resource declares none.
+   *
+   * The extension hooks are not applied. They were written for the form, and
+   * whether a module that adds a column to one should also add it to the other
+   * is a decision nobody has taken — taking it here by spreading a reduce would
+   * be taking it silently.
+   */
+  infolistFor(resource: RegisteredResource): Schema | undefined {
+    return resource.instance.infolist?.();
+  }
+
+  /**
    * Every form is read once, here, and a form that cannot work stops the boot.
    *
    * Not in the constructor: the instances come from the container, and asking
@@ -134,11 +147,16 @@ export class ResourceRegistry implements OnModuleInit {
       // too, and one that cannot work should stop this boot rather than the
       // first reader.
       const form = this.formFor(registered);
+      const infolist = this.infolistFor(registered);
       const complaints = [
         ...auditSchema(form),
+        ...(infolist === undefined ? [] : auditSchema(infolist)),
         ...(table === undefined ? [] : auditTable(table)),
         ...this.#unknownDisks(form),
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
+        ...(infolist === undefined
+          ? []
+          : this.#unreadablePaths(metadata.model, entryPaths(infolist), "entry")),
       ];
       if (complaints.length > 0) {
         throw new Error(describeComplaints(`Resource "${metadata.slug}"`, complaints));
@@ -158,15 +176,24 @@ export class ResourceRegistry implements OnModuleInit {
     model: string,
     table: Table,
   ): readonly { field: string; problem: string }[] {
+    return this.#unreadablePaths(model, columnPaths(table), "column");
+  }
+
+  /** Shared, because a column and an entry speak the same path language. */
+  #unreadablePaths(
+    model: string,
+    paths: readonly string[],
+    what: string,
+  ): readonly { field: string; problem: string }[] {
     if (this.#data === null) return [];
     const ir = this.#data.ir();
 
-    // A model the IR does not carry is one problem, not one per column, and it
-    // is not this check's. The read path tolerates it the same way: `allowed`
+    // A model the IR does not carry is one problem, not one per path, and it is
+    // not this check's. The read path tolerates it the same way: `allowed`
     // answers with an empty set rather than complaining about every path.
     if (findModel(ir, model) === undefined) return [];
 
-    return columnPaths(table).flatMap((path) => {
+    return paths.flatMap((path) => {
       try {
         resolvePath(ir, model, path);
         return [];
@@ -174,7 +201,7 @@ export class ResourceRegistry implements OnModuleInit {
         return [
           {
             field: path,
-            problem: `is a column on \`${model}\` that reads nothing: ${
+            problem: `is ${what === "entry" ? "an" : "a"} ${what} on \`${model}\` that reads nothing: ${
               error instanceof Error ? error.message : "the path does not resolve"
             }`,
           },

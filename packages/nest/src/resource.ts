@@ -42,6 +42,12 @@ export interface PanelResource {
    * lists, with no columns and the narrow default sort of `records-query.ts`.
    */
   table?: () => Table;
+  /**
+   * What the View page reads. Optional, and its absence is what decides there
+   * is no View page: a resource with nothing to show read-only answers 404
+   * there, like one that does not exist.
+   */
+  infolist?: () => Schema;
   /** Absent means allowed: the panel already sits behind the guards. */
   can?: Authorization;
   /** Overrides the panel's own choice for this resource alone. */

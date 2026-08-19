@@ -18,7 +18,7 @@ export interface ShellOptions {
    * when submitted; `list` is a table, and carries a page of records rather
    * than a resolved tree.
    */
-  readonly operation: "create" | "edit" | "list";
+  readonly operation: "create" | "edit" | "list" | "view";
   /** The row being edited. Absent on a create and on a list. */
   readonly id?: string;
   /**
