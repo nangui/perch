@@ -28,6 +28,12 @@ const SENT_BUT_UNREAD: Readonly<Record<string, string>> = {
   "Select.optionsLimit":
     "how many a relationship query returns. A server-side bound the client " +
     "has no use for until it draws something about it",
+  "TextInput.step":
+    "nothing applies it, on either side. The control is deliberately not " +
+    '`type="number"` — spinners, silent locale parsing, a scroll-wheel trap — ' +
+    "and `step` means nothing on anything else; the server does not enforce it " +
+    "either. It needs a validation rule before the declaration is true, and " +
+    "until then `.numeric(0.5)` promises what nobody keeps",
   "Select.preload":
     "fetching a searchable select's options before the reader types. The " +
     "control asks on demand, and nothing decides otherwise yet",
@@ -64,25 +70,53 @@ function nameOf(qualified: string): string {
   return qualified.slice(qualified.indexOf(".") + 1);
 }
 
-/** Every word this package mentions, outside its own tests. */
-function mentioned(): string {
+/**
+ * Code only.
+ *
+ * Prose is not a reader, and it used to count as one: two sentences in
+ * `TextInput.tsx` about "the error badge" vouched for `TextEntry.badge` while
+ * nothing drew it. Block comments go, and so do whole-line `//` ones —
+ * inline `//` is left alone, because a URL in a string is not a comment.
+ */
+function code(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("//"))
+    .join("\n");
+}
+
+/**
+ * Where a prop of this type could be read: the registry, and the component
+ * named after it.
+ *
+ * The registry whole, because an adapter reaches its props through helpers
+ * beside it — `entryFormat` is not inside `TextEntryRenderer` and reads four of
+ * them. The component files by name, because that is where a mention meant for
+ * one type used to answer for another.
+ */
+function mentioned(qualified: string): string {
+  const type = qualified.slice(0, qualified.indexOf("."));
   const files = readdirSync(new URL(".", import.meta.url), {
     recursive: true,
     encoding: "utf8",
   }).filter(
     (name) =>
-      (name.endsWith(".ts") || name.endsWith(".tsx")) && !name.includes(".test."),
+      (name.endsWith(".ts") || name.endsWith(".tsx")) &&
+      !name.includes(".test.") &&
+      (name === "renderers.tsx" ||
+        name === "columns.tsx" ||
+        name.replace(/^.*\//, "").replace(/\.tsx?$/, "") === type),
   );
   return files
-    .map((name) => readFileSync(new URL(`./${name}`, import.meta.url), "utf8"))
+    .map((name) => code(readFileSync(new URL(`./${name}`, import.meta.url), "utf8")))
     .join("\n");
 }
 
 describe("a prop the server sends", () => {
   it("is read by something, or listed as deliberately not", () => {
-    const source = mentioned();
     const unread = crossing().filter(
-      (prop) => !new RegExp(`\\b${nameOf(prop)}\\b`).test(source),
+      (prop) => !new RegExp(`\\b${nameOf(prop)}\\b`).test(mentioned(prop)),
     );
 
     expect(unread).toEqual(Object.keys(SENT_BUT_UNREAD).sort());
@@ -91,10 +125,9 @@ describe("a prop the server sends", () => {
   it("is off the deliberate list once something reads it", () => {
     // An allowlist that only grows is a guard that stops guarding, quietly, on
     // the day somebody is in a hurry.
-    const source = mentioned();
     // Qualified, so one type gaining a reader does not excuse another.
     const claimed = Object.keys(SENT_BUT_UNREAD).filter((prop) =>
-      new RegExp(`\\b${nameOf(prop)}\\b`).test(source),
+      new RegExp(`\\b${nameOf(prop)}\\b`).test(mentioned(prop)),
     );
 
     expect(claimed).toEqual([]);
