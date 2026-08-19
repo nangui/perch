@@ -30,6 +30,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0016](0016-file-storage-port.md) | Uploads go up on selection, through a storage port, and the row is written last | accepted |
 | [0017](0017-what-an-action-receives.md) | An action's callback takes one record; a bulk trigger runs it per record in one transaction | accepted |
 | [0018](0018-how-a-repeater-addresses-its-rows.md) | A repeater's rows are flat paths under a stable key, and its own path holds their order | accepted |
+| [0019](0019-what-an-infolist-resolves-against.md) | An entry reads the record by a path and never enters the state map, so an infolist admits nothing | accepted |
 
 ## Format
 
