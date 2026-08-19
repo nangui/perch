@@ -653,6 +653,17 @@
 /* A reading, in the shape of a control: it sits in a column of fields and the
    eye reads that column as a column. Not a control, so nothing here suggests
    there is something to do to it. */
+/* ------------------------------------------------------------------- view */
+
+/*
+ * The help line is reserved on a form so an error appearing cannot make the
+ * page jump. Nothing here can be in error — there is no state to validate — so
+ * an empty one is empty space, and eight of them are a page of it.
+ */
+.perch-view .perch-field__help:empty {
+  min-height: 0;
+}
+
 /*
  * A value that is read, not a control. No border and no box: those say the
  * thing is yours to change, and on this page nothing is.
