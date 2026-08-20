@@ -123,8 +123,9 @@ export function readList(
   ir: Ir,
   raw: RawQuery,
   table?: Table,
+  mayReadDeleted = true,
 ): { readonly query: Query; readonly filters: Readonly<Record<string, string>> } {
-  const accepted = acceptedFilters(raw, table);
+  const accepted = acceptedFilters(raw, table, mayReadDeleted);
 
   return {
     query: readQuery(model, ir, raw, table, accepted),
@@ -212,6 +213,15 @@ export function readQuery(
 export function acceptedFilters(
   raw: Record<string, unknown>,
   table: Table | undefined,
+  /**
+   * Whether this reader may lift the read's own exclusion.
+   *
+   * A filter they may not use is treated as one nobody declared: no clause, no
+   * lifting, and no echo saying it was applied. Silently, like every other
+   * refusal at this boundary — a message here would say which resources keep
+   * something worth hiding.
+   */
+  mayReadDeleted = true,
 ): ReadonlyMap<string, AcceptedFilter> {
   const accepted = new Map<string, AcceptedFilter>();
   if (table === undefined) return accepted;
@@ -230,7 +240,7 @@ export function acceptedFilters(
     // one that decides which rows are read at all produces neither a clause nor
     // nothing — treating "no clause" as "not accepted" dropped it silently.
     const clause = filter.clause(term);
-    const deleted = filter.deleted(term);
+    const deleted = mayReadDeleted ? filter.deleted(term) : undefined;
     if (clause !== undefined || deleted !== undefined) {
       accepted.set(name, {
         value: term,

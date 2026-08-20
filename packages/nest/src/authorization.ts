@@ -23,6 +23,15 @@ export interface Authorization<TUser = unknown, TRecord = unknown> {
    */
   readonly restore?: (user: TUser) => boolean | Promise<boolean>;
   readonly forceDelete?: (user: TUser) => boolean | Promise<boolean>;
+  /**
+   * Asking to see what was removed.
+   *
+   * Separate from `view`, which is about a row somebody can already reach. A
+   * deleted row is off the page by default, and being allowed to read the page
+   * is not the same as being allowed to read what was taken off it — a
+   * cancelled order, a closed account, a name somebody asked to have removed.
+   */
+  readonly viewDeleted?: (user: TUser) => boolean | Promise<boolean>;
 }
 
 /**
@@ -38,7 +47,8 @@ export type Verdict = "allowed" | "denied" | "needs-record";
  * deleting is not a form somebody fills, so widening the shared type would put
  * a case into the resolution cycle that can never happen there.
  */
-export type Permission = Operation | "delete" | "restore" | "forceDelete";
+export type Permission =
+  Operation | "delete" | "restore" | "forceDelete" | "viewDeleted";
 
 /**
  * Which policy an action is held to.
@@ -79,6 +89,11 @@ export async function authorize(
     case "restore":
       if (can.restore === undefined) return "allowed";
       return (await can.restore(user)) ? "allowed" : "denied";
+    case "viewDeleted":
+      // Asked of the principal, never of a row: it decides which rows are read
+      // at all, so there is none in hand to ask about.
+      if (can.viewDeleted === undefined) return "allowed";
+      return (await can.viewDeleted(user)) ? "allowed" : "denied";
     case "forceDelete":
       if (can.forceDelete === undefined) return "allowed";
       return (await can.forceDelete(user)) ? "allowed" : "denied";

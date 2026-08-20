@@ -33,7 +33,7 @@ import {
   TextInput,
   TrashedFilter,
 } from "@perchjs/core";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
@@ -100,13 +100,25 @@ const POST: ModelMeta = {
   labelField: "title",
 };
 
+/** A model that keeps what was removed, so there is something to ask for. */
+const NOTE: ModelMeta = {
+  name: "Note",
+  dbName: "Note",
+  primaryKey: key(),
+  fields: [field("id", "Int"), field("body", "String")],
+  relations: [],
+  uniqueConstraints: [],
+  hasSoftDelete: true,
+  labelField: "body",
+};
+
 /** Records what it was asked, which is the only thing under test on this side. */
 const asked: Query[] = [];
 
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [POST, AUTHOR] };
+    return { models: [POST, AUTHOR, NOTE] };
   }
   meta(): ModelMeta {
     return POST;
@@ -444,6 +456,84 @@ describe("listing records", () => {
 
     expect(asked[0]?.clauses).toBeUndefined();
     expect(asked[0]?.include).toBeUndefined();
+  });
+});
+
+describe("asking to see what was removed", () => {
+  let policy: Authorization | undefined;
+
+  @PanelResource({ model: "Note", slug: "notes" })
+  class NoteResource {
+    get can(): Authorization {
+      return policy ?? {};
+    }
+    form(): Schema {
+      return Schema.make([TextInput.make("body")]);
+    }
+    table(): Table {
+      return Table.make()
+        .columns([TextColumn.make("body")])
+        .filters([TrashedFilter.make()]);
+    }
+  }
+
+  const listing = async (): Promise<Record<string, unknown>> => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        PanelModule.forRoot({
+          path: "/admin",
+          resources: [NoteResource],
+          dataAdapter: MemoryAdapter,
+          assets: assets(),
+        }),
+      ],
+    }).compile();
+    const app = moduleRef.createNestApplication();
+    await app.listen(0);
+    const at = await app.getUrl();
+    const response = await fetch(`${at}/admin/api/notes/records?filter.trashed=with`);
+    const body = (await response.json()) as Record<string, unknown>;
+    await app.close();
+    return body;
+  };
+
+  beforeEach(() => {
+    policy = undefined;
+    asked.length = 0;
+  });
+
+  it("is allowed where no policy says otherwise, like every other check here", async () => {
+    const body = await listing();
+
+    expect(asked.at(-1)?.deleted).toBe("with");
+    expect(body["filters"]).toEqual({ trashed: "with" });
+  });
+
+  it("is refused by a policy of its own, not by the one that guards the page", async () => {
+    // Reading the page and reading what was taken off it are two questions. A
+    // cancelled order or a closed account is off the page on purpose.
+    policy = { viewDeleted: () => false };
+
+    const body = await listing();
+
+    expect(asked.at(-1)?.deleted).toBeUndefined();
+    expect(body["filters"]).toBeUndefined();
+  });
+
+  it("takes the control away rather than leaving one that does nothing", async () => {
+    policy = { viewDeleted: () => false };
+
+    const body = await listing();
+    const columns = body["columns"] as { filters: { type: string }[] };
+
+    expect(columns.filters.map((one) => one.type)).toEqual([]);
+  });
+
+  it("leaves the control there for a reader who may use it", async () => {
+    const body = await listing();
+    const columns = body["columns"] as { filters: { type: string }[] };
+
+    expect(columns.filters.map((one) => one.type)).toEqual(["TrashedFilter"]);
   });
 });
 

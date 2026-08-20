@@ -19,7 +19,7 @@ import type {
 } from "@perchjs/core";
 import { findModel, serialiseTable, SOFT_DELETE_FIELD } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
-import { mayReach } from "./authorization.js";
+import { authorize, mayReach } from "./authorization.js";
 import { sameOrigin } from "./panel-root.js";
 import type { RawQuery } from "./records-query.js";
 import { DEFAULT_PER_PAGE, readList } from "./records-query.js";
@@ -123,6 +123,7 @@ export async function listRecords(
     model: resource.metadata.model,
     table: resource.instance.table?.(),
     raw,
+    mayReadDeleted: (await authorize(can, "viewDeleted", user)) === "allowed",
     ...pathOrNothing(resourcePath(root, resource.metadata.slug)),
   });
 }
@@ -146,10 +147,16 @@ export async function listOf(options: {
    */
   readonly scope?: Clause;
   readonly resourcePath?: string;
+  /**
+   * Whether this reader may lift the read's own exclusion. Default `true`: a
+   * caller with no policy to ask is a caller with nothing to refuse.
+   */
+  readonly mayReadDeleted?: boolean;
 }): Promise<RecordsResponse> {
   const { data, model, table, raw, scope } = options;
+  const mayReadDeleted = options.mayReadDeleted ?? true;
   const ir = data.ir();
-  const read = readList(model, ir, raw, table);
+  const read = readList(model, ir, raw, table, mayReadDeleted);
   const filters = read.filters;
   const query: Query =
     scope === undefined
@@ -175,7 +182,7 @@ export async function listOf(options: {
     columns:
       table === undefined
         ? { columns: [], filters: [], actions: [], headerActions: [], bulkActions: [] }
-        : serialiseTable(table),
+        : offered(serialiseTable(table), mayReadDeleted),
     recordKey: key,
     ...(marked.length === 0 ? {} : { deleted: marked }),
     ...(options.resourcePath === undefined
@@ -184,6 +191,21 @@ export async function listOf(options: {
     ...(applied === undefined ? {} : { sort: applied }),
     ...(query.search === undefined ? {} : { search: query.search.term }),
     ...(Object.keys(filters).length === 0 ? {} : { filters }),
+  };
+}
+
+/**
+ * The table as this reader gets it.
+ *
+ * A control the server would ignore is a control that is not drawn. The same
+ * reading `filters` already gets: what comes back names what was applied, so a
+ * box a reader can move and nothing answers has no business being there.
+ */
+function offered(columns: ColumnTree, mayReadDeleted: boolean): ColumnTree {
+  if (mayReadDeleted) return columns;
+  return {
+    ...columns,
+    filters: columns.filters.filter((one) => one.type !== "TrashedFilter"),
   };
 }
 

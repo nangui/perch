@@ -6,6 +6,7 @@
  * themselves would look wrong.
  */
 import type { DataAdapter } from "@perchjs/core";
+import { authorize } from "./authorization.js";
 import type { RawQuery } from "./records-query.js";
 import type { RelationManager } from "./relation-manager.js";
 import type { RecordsResponse } from "./records.js";
@@ -21,7 +22,7 @@ export async function listChildren(options: {
   readonly raw: RawQuery;
   readonly user: unknown;
 }): Promise<RecordsResponse> {
-  const { data, manager, scope, owner } = await reachManager({
+  const { data, manager, parent, scope, owner } = await reachManager({
     ...options,
     needs: "view",
   });
@@ -31,6 +32,11 @@ export async function listChildren(options: {
     model: scope.model,
     table: manager.state.table,
     raw: options.raw,
+    // The manager's own policy, never the child resource's — the same rule
+    // every other permission here follows.
+    mayReadDeleted:
+      (await authorize(manager.state.can, "viewDeleted", options.user, parent)) ===
+      "allowed",
     // Read off the parent rather than off the address: the column a relation
     // points at is not always the primary key, and the row is already in hand.
     scope: { path: scope.foreignKey, operator: "equals", value: owner },

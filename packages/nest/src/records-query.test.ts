@@ -254,6 +254,24 @@ describe("the filter that decides which rows are read", () => {
     expect(filters["trashed"]).toBe("with");
   });
 
+  it("is not accepted at all from a reader who may not lift the exclusion", () => {
+    // Treated as a filter nobody declared: no lifting, and no echo saying it
+    // was applied — a control cannot show a value the server ignored.
+    const { query, filters } = readList(
+      "User",
+      IR,
+      { "filter.trashed": "with", "filter.name": "Ada" },
+      table(),
+      false,
+    );
+
+    expect(query.deleted).toBeUndefined();
+    expect(filters["trashed"]).toBeUndefined();
+    // And the narrowing filters beside it are untouched: it is one refusal,
+    // not a reason to stop reading the request.
+    expect(filters["name"]).toBe("Ada");
+  });
+
   it("leaves the narrowing filters alone beside it", () => {
     const query = readQuery(
       "User",
