@@ -4,15 +4,30 @@
  * The controller is the thin half: it resolves who is asking and hands the rest
  * to `records.ts`, which the list page calls too.
  */
-import { Controller, Get, Inject, Param, Query, Req } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from "@nestjs/common";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf } from "./panel-root.js";
 import type { DataAdapter } from "@perchjs/core";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
+import type { PanelDisks } from "./storage.token.js";
+import { PANEL_STORAGE } from "./storage.token.js";
 import type { RawQuery } from "./records-query.js";
 import type { RecordsResponse } from "./records.js";
 import { listRecords } from "./records.js";
 import { listChildren } from "./relation-records.js";
+import type { SaveResponse } from "./panel-save.controller.js";
+import { saveChild } from "./relation-save.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
@@ -22,15 +37,18 @@ export class PanelRecordsController {
   readonly #registry: ResourceRegistry;
   readonly #users: UserResolver;
   readonly #data: DataAdapter | null;
+  readonly #disks: PanelDisks;
 
   constructor(
     registry: ResourceRegistry,
     @Inject(PANEL_USER_RESOLVER) users: UserResolver,
     @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
+    @Inject(PANEL_STORAGE) disks: PanelDisks,
   ) {
     this.#registry = registry;
     this.#users = users;
     this.#data = data;
+    this.#disks = disks;
   }
 
   @Get("records")
@@ -56,6 +74,55 @@ export class PanelRecordsController {
    * narrowed by a column the server derives, and a request that could name the
    * parent could name somebody else's.
    */
+  /**
+   * `POST` and `PATCH {path}/api/:resource/:id/relations/:name[/:childId]`.
+   *
+   * One child at a time, which is what separates a manager from a repeater.
+   * Both keys are in the address: the parent's because the request may not
+   * choose it, and the child's because it is checked against the parent before
+   * anything is written.
+   */
+  @Post(":id/relations/:name")
+  @HttpCode(200)
+  async createChild(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("name") name: string,
+    @Body() body: unknown,
+    @Req() request: IncomingUrl,
+  ): Promise<SaveResponse> {
+    return await saveChild({
+      data: this.#data,
+      resource: this.#registry.get(slug),
+      parentId: id,
+      relation: name,
+      body,
+      user: this.#users.resolve(request),
+      disks: this.#disks,
+    });
+  }
+
+  @Patch(":id/relations/:name/:childId")
+  async saveChild(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("name") name: string,
+    @Param("childId") childId: string,
+    @Body() body: unknown,
+    @Req() request: IncomingUrl,
+  ): Promise<SaveResponse> {
+    return await saveChild({
+      data: this.#data,
+      resource: this.#registry.get(slug),
+      parentId: id,
+      relation: name,
+      childId,
+      body,
+      user: this.#users.resolve(request),
+      disks: this.#disks,
+    });
+  }
+
   @Get(":id/relations/:name/records")
   async children(
     @Param("resource") slug: string,

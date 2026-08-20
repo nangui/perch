@@ -38,6 +38,7 @@ import { PANEL_STORAGE } from "./storage.token.js";
 import { admit } from "./admission.js";
 import { commitUploads, dropReplaced, undoCommitted } from "./commit-uploads.js";
 import { fileUrls } from "./file-urls.js";
+import { readState } from "./form-body.js";
 import { withOptions } from "./relationship-options.js";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf } from "./panel-root.js";
@@ -276,17 +277,6 @@ export class PanelSaveController {
       }),
     };
   }
-}
-
-function readState(body: unknown): Record<string, unknown> {
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    throw new NotFoundException();
-  }
-  const { state } = body as Record<string, unknown>;
-  if (typeof state !== "object" || state === null || Array.isArray(state)) {
-    throw new NotFoundException();
-  }
-  return state as Record<string, unknown>;
 }
 
 /**
