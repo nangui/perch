@@ -9,7 +9,7 @@ import type { Component, Operation, Resolvable, ResolverContext } from "./compon
 import { isResolver } from "./component.js";
 import type { Id, RelationWrite, Row, WriteTree } from "./data-adapter.js";
 import { Entry } from "./entry.js";
-import { Schema } from "./layout.js";
+import { Layout, Schema } from "./layout.js";
 import { RepeatableEntry } from "./entries/repeatable-entry.js";
 import { safeHref, TextEntry } from "./entries/text-entry.js";
 import type { ResolvedFlags } from "./field.js";
@@ -805,12 +805,10 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
   // A layout's own line of prose. Resolved rather than copied from the state
   // for the reason every resolvable is: copying one ships the function's source
   // or nothing at all.
-  const description = await value(
-    (component.state as { description?: Resolvable<string> }).description,
-    rc,
-    undefined,
-    count,
-  );
+  const description =
+    component instanceof Layout
+      ? await value(component.state.description, rc, undefined, count)
+      : undefined;
   // Resolved every pass, not hydrated once: a computed line that tracks another
   // field has to be recomputed when that field changes, and `default()` fills a
   // blank exactly once.

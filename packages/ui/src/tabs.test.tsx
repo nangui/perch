@@ -128,6 +128,44 @@ describe("reaching the panels from a keyboard", () => {
   });
 });
 
+describe("a tab's own line of prose", () => {
+  it("is drawn inside the panel it belongs to", () => {
+    // This renderer maps a panel's children itself rather than handing the
+    // panel to the layout renderer, so a description on a tab crossed the wire
+    // and reached nothing.
+    render(
+      <SchemaRenderer
+        payload={{
+          schema: {
+            id: "root",
+            type: "Schema",
+            children: [
+              {
+                id: "tabs",
+                type: "Tabs",
+                children: [
+                  {
+                    id: "one",
+                    type: "Tab",
+                    label: "About",
+                    description: "Who they are.",
+                    children: [{ id: "a", type: "TextInput", path: "a", label: "A" }],
+                  },
+                ],
+              },
+            ],
+          },
+          state: {},
+          errors: {},
+        }}
+        onChange={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText("Who they are.")).toBeTruthy();
+  });
+});
+
 describe("a callout on a page", () => {
   const box = (props: Record<string, unknown>, description?: string) =>
     render(

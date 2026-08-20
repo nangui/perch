@@ -86,6 +86,33 @@ export function auditInfolist(root: Component): readonly Complaint[] {
 }
 
 /**
+ * An empty state that says nothing.
+ *
+ * Declaring one takes the plain fallback away — "Nothing to show" is short and
+ * true — so one with none of the three leaves a blank box where a table was.
+ * The same shape as a limit of zero: a value that reads as "configure this" and
+ * un-configures it.
+ */
+function inspectEmpty(table: Table, into: Complaint[]): void {
+  const empty = table.state.empty;
+  if (empty === undefined) return;
+  if (
+    empty.heading !== undefined ||
+    empty.description !== undefined ||
+    empty.icon !== undefined
+  ) {
+    return;
+  }
+
+  into.push({
+    field: "the empty state",
+    problem:
+      "says nothing at all, and declaring one takes away the plain words the " +
+      "table would have used — leaving a blank box where a table was",
+  });
+}
+
+/**
  * A length nothing can be shortened to.
  *
  * Zero or less reads as "show none of it" and does the opposite: the renderer
@@ -304,6 +331,7 @@ export function auditTable(table: Table): readonly Complaint[] {
   declaredActions(table);
 
   const complaints: Complaint[] = [];
+  inspectEmpty(table, complaints);
 
   // Two of them under two names, which the name check above cannot see. They
   // decide one thing between them, so a reader can set them against each other

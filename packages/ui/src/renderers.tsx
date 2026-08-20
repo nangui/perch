@@ -520,6 +520,12 @@ function TabsRenderer({ node, renderChild }: NodeProps): ReactNode {
           style={columnsStyle(panel)}
           hidden={index !== at}
         >
+          {/* Drawn here too, because this file maps a panel's children itself
+              rather than handing the panel to the layout renderer — so a
+              description on a tab crossed the wire and reached nothing. */}
+          {panel.description === undefined ? null : (
+            <p className="perch-layout__description">{panel.description}</p>
+          )}
           {(panel.children ?? []).map(renderChild)}
         </div>
       ))}

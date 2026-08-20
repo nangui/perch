@@ -17,7 +17,15 @@ interface LayoutState extends ComponentState {
   readonly icon?: string;
 }
 
-abstract class Layout extends Component {
+/**
+ * Exported so the cycle can narrow to one.
+ *
+ * What a layout carries beyond a component — its columns, its own line of
+ * prose, the mark beside its title — is read by the resolver, and reading it
+ * through a cast would assert a shape nothing checks: rename a property here
+ * and the cast keeps compiling while the value silently stops arriving.
+ */
+export abstract class Layout extends Component {
   declare readonly state: LayoutState;
 
   protected override with(patch: Partial<LayoutState>): this {
@@ -36,6 +44,15 @@ abstract class Layout extends Component {
    */
   description(value: Resolvable<string>): this {
     return this.with({ description: value });
+  }
+
+  /**
+   * The mark beside the title. Here for the same reason, and because it was
+   * written twice: once on a section and once on a tab, so a callout that
+   * serialised one had no way to declare it.
+   */
+  icon(value: string): this {
+    return this.with({ icon: value });
   }
 }
 
@@ -64,10 +81,6 @@ export class Section extends Layout {
         ...(title === undefined ? {} : { name: title, label: title }),
       }),
     );
-  }
-
-  icon(value: string): this {
-    return this.with({ icon: value });
   }
 
   collapsible(value = true): this {
@@ -132,10 +145,6 @@ export class Tab extends Layout {
 
   static make(title: string): Tab {
     return configured(new Tab({ children: [], name: title, label: title }));
-  }
-
-  icon(value: string): this {
-    return this.with({ icon: value });
   }
 }
 

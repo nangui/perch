@@ -153,3 +153,26 @@ describe("a length nothing can be shortened to", () => {
     expect(auditInfolist(Schema.make([TextEntry.make("bio")]))).toEqual([]);
   });
 });
+
+describe("an empty state that says nothing", () => {
+  const table = (empty?: Parameters<Table["emptyState"]>[0]) => {
+    const made = Table.make().columns([TextColumn.make("title")]);
+    return auditTable(empty === undefined ? made : made.emptyState(empty));
+  };
+
+  it("stops the boot, because declaring one takes the plain words away", () => {
+    // A table with none says "Nothing to show", which is short and true. One
+    // with an empty one says nothing at all, in a box where a table was.
+    expect(table({})[0]?.problem).toMatch(/says nothing at all/);
+  });
+
+  it("leaves one that says something alone, whichever of the three it is", () => {
+    expect(table({ heading: "No posts yet" })).toEqual([]);
+    expect(table({ description: "Write the first one." })).toEqual([]);
+    expect(table({ icon: "\u270E" })).toEqual([]);
+  });
+
+  it("has nothing to say about a table that declared none", () => {
+    expect(table()).toEqual([]);
+  });
+});

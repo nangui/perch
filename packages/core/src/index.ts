@@ -147,7 +147,7 @@ export { Component, configured, isResolver } from "./component.js";
 
 // Layout components, shared by forms and infolists.
 export type { Columns } from "./layout.js";
-export { Callout, Grid, Schema, Section, Tab, Tabs } from "./layout.js";
+export { Callout, Grid, Layout, Schema, Section, Tab, Tabs } from "./layout.js";
 
 // Fields: components that hold state and are validated.
 export type {

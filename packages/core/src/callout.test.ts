@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { auditInfolist, auditSchema } from "./audit.js";
-import { Callout, Schema, Section } from "./layout.js";
+import { Callout, Schema, Section, Tab, Tabs } from "./layout.js";
 import { TextInput } from "./fields/text-input.js";
 import { resolveSchema } from "./resolve.js";
 import { serialise } from "./serialise.js";
@@ -53,6 +53,26 @@ describe("what a callout carries", () => {
     );
 
     expect(payload.schema.children?.[0]?.children?.[0]?.path).toBe("confirm");
+  });
+});
+
+describe("the mark beside a title", () => {
+  it("can be declared on a callout, which serialised one it could not set", async () => {
+    // Written twice — once on a section, once on a tab — and on the base
+    // neither time, so the wire promised a prop the type system forbade.
+    const payload = await drawn(Schema.make([Callout.make("Careful").icon("!")]));
+
+    expect(payload.schema.children?.[0]?.props?.["icon"]).toBe("!");
+  });
+
+  it("is still there on the two that always had it", async () => {
+    const section = await drawn(Schema.make([Section.make("Identity").icon("*")]));
+    const tabs = await drawn(
+      Schema.make([Tabs.make().tabs([Tab.make("About").icon("+")])]),
+    );
+
+    expect(section.schema.children?.[0]?.props?.["icon"]).toBe("*");
+    expect(tabs.schema.children?.[0]?.children?.[0]?.props?.["icon"]).toBe("+");
   });
 });
 
