@@ -7,7 +7,14 @@
  * here. Everything else — which button is drawn, what is sent, what is shown
  * afterwards — is the real component.
  */
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   registerBuiltInColumns,
@@ -861,3 +868,93 @@ const SCHEMA_FOR_KEY = {
   state: { reason: "" },
   errors: {},
 };
+
+describe("an action offered where it can do nothing", () => {
+  const page = (deleted?: (string | number)[]): RecordsPage => ({
+    rows: [{ id: 1, title: "Ada" }],
+    total: 1,
+    page: 1,
+    perPage: 25,
+    recordKey: "id",
+    resourcePath: "/admin/posts",
+    ...(deleted === undefined ? {} : { deleted }),
+    columns: {
+      columns: [{ type: "TextColumn", path: "title", label: "Title" }],
+      filters: [],
+      headerActions: [],
+      bulkActions: [],
+      actions: [
+        { type: "DeleteAction", name: "DeleteAction", trigger: "run" },
+        { type: "RestoreAction", name: "RestoreAction", trigger: "run" },
+      ],
+    },
+  });
+
+  const opened = async (deleted?: (string | number)[]): Promise<HTMLElement> => {
+    const { container } = render(
+      <PanelList
+        initial={page(deleted)}
+        title="Posts"
+        runAction={vi.fn().mockResolvedValue({ processed: 1, refused: 0 })}
+      />,
+    );
+    fireEvent.click(await screen.findByLabelText("Actions"));
+    return container;
+  };
+
+  it("does not offer a restore on a row that is not marked", async () => {
+    // Measured on screen before this: Restore sat on every row, and pressing it
+    // moved nothing — the port answers that no row changed and the page comes
+    // back the same.
+    const container = await opened();
+
+    expect(within(container).queryByText("Restore")).toBeNull();
+    expect(within(container).queryByText("Delete")).not.toBeNull();
+  });
+
+  it("does not offer a delete on one that is already marked", async () => {
+    const container = await opened([1]);
+
+    expect(within(container).queryByText("Delete")).toBeNull();
+    expect(within(container).queryByText("Restore")).not.toBeNull();
+  });
+});
+
+describe("a row's actions", () => {
+  it("are behind one control rather than spelled out beside the values", async () => {
+    render(
+      <PanelList
+        initial={{
+          rows: [{ id: 1, title: "Ada" }],
+          total: 1,
+          page: 1,
+          perPage: 25,
+          recordKey: "id",
+          resourcePath: "/admin/posts",
+          columns: {
+            columns: [{ type: "TextColumn", path: "title", label: "Title" }],
+            filters: [],
+            headerActions: [],
+            bulkActions: [],
+            actions: [{ type: "DeleteAction", name: "DeleteAction", trigger: "run" }],
+          },
+        }}
+        title="Posts"
+        runAction={vi.fn().mockResolvedValue({ processed: 1, refused: 0 })}
+      />,
+    );
+
+    // Shut to start with. Asserted on the element rather than on the words:
+    // a closed `<details>` still holds its children, so looking for the text
+    // finds it either way — which is how a control that never opened could
+    // have passed this.
+    const menu = document.querySelector(
+      "details.perch-row-actions",
+    ) as HTMLDetailsElement;
+    expect(menu.open).toBe(false);
+    expect(within(menu).getByText("Delete")).toBeDefined();
+
+    fireEvent.click(await screen.findByLabelText("Actions"));
+    expect(menu.open).toBe(true);
+  });
+});

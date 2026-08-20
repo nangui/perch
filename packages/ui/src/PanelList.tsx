@@ -41,6 +41,8 @@ export interface RecordsPage {
   /** The filters the server applied, by name. Never one it declined. */
   readonly filters?: Readonly<Record<string, string>>;
   readonly recordKey: string;
+  /** Which of the rows above are marked deleted, by key. */
+  readonly deleted?: readonly (string | number)[];
   /** Absent when the server would not vouch for the address. */
   readonly resourcePath?: string;
 }
@@ -464,6 +466,7 @@ export function PanelList({
           rows={page.rows}
           caption={title}
           rowHref={(action, row) => href(page, action, row)}
+          rowActions={(row) => offered(page, row)}
           {...(sort === undefined ? {} : { sort })}
           {...(reorder === undefined ? {} : { onSort: reorder })}
           {...(runAction === undefined ? {} : { onAction: press, actionsBusy: busy })}
@@ -764,6 +767,29 @@ function PageButton({
       {label}
     </button>
   );
+}
+
+/**
+ * The actions this row can be given.
+ *
+ * A restore belongs on a marked row and a delete on a live one. Offered on the
+ * other, each is a button a reader presses to no effect: the port answers that
+ * nothing moved, and the page comes back looking the same.
+ *
+ * By type rather than by a flag on the wire, because these two are the panel's
+ * own and their meaning is not the author's to change. An action nobody here
+ * has heard of is offered on every row.
+ */
+function offered(page: RecordsPage, row: Row): readonly ActionNode[] {
+  const key = row[page.recordKey];
+  const marked =
+    (key === undefined ? false : page.deleted?.some((one) => one === key)) === true;
+
+  return page.columns.actions.filter((action) => {
+    if (action.type === "RestoreAction") return marked;
+    if (action.type === "DeleteAction") return !marked;
+    return true;
+  });
 }
 
 /** Which page of a row an action leads to, as a path suffix. */

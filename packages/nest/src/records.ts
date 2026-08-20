@@ -7,8 +7,8 @@
  * twice is a boundary that will diverge.
  */
 import { NotFoundException } from "@nestjs/common";
-import type { ColumnTree, DataAdapter, Row, Sort } from "@perchjs/core";
-import { serialiseTable } from "@perchjs/core";
+import type { ColumnTree, DataAdapter, Id, Row, Sort } from "@perchjs/core";
+import { findModel, serialiseTable, SOFT_DELETE_FIELD } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import { mayReach } from "./authorization.js";
 import { sameOrigin } from "./panel-root.js";
@@ -31,6 +31,18 @@ export interface RecordsResponse {
   readonly perPage: number;
   /** Empty for a resource that declares no table. */
   readonly columns: ColumnTree;
+  /**
+   * Which of the rows above are marked deleted, by key.
+   *
+   * Beside the rows rather than inside them: a row is rebuilt from the columns
+   * a table declared, and a marker put in one would be a column nobody
+   * declared. One bit is all the client needs — a restore belongs on a marked
+   * row and a delete on a live one, and offering either where it does nothing
+   * is a button a reader presses to no effect.
+   *
+   * Absent on a model with nothing to mark.
+   */
+  readonly deleted?: readonly Id[];
   /**
    * The order actually applied, which is not always the one that was asked for
    * — an undeclared column is dropped in silence. The client draws its sort
@@ -105,6 +117,14 @@ export async function listRecords(
   const applied = query.sort?.[0];
   const perPage = query.take ?? DEFAULT_PER_PAGE;
 
+  const key = data.meta(model).primaryKey.name;
+  const marked =
+    findModel(ir, model)?.hasSoftDelete === true
+      ? found.rows
+          .filter((row) => row[SOFT_DELETE_FIELD] != null)
+          .map((row) => row[key] as Id)
+      : [];
+
   return {
     rows: project(found.rows, visibleKeys(model, ir, table)),
     total: found.total,
@@ -114,7 +134,8 @@ export async function listRecords(
       table === undefined
         ? { columns: [], filters: [], actions: [], headerActions: [], bulkActions: [] }
         : serialiseTable(table),
-    recordKey: data.meta(model).primaryKey.name,
+    recordKey: key,
+    ...(marked.length === 0 ? {} : { deleted: marked }),
     ...pathOrNothing(resourcePath(root, resource.metadata.slug)),
     ...(applied === undefined ? {} : { sort: applied }),
     ...(query.search === undefined ? {} : { search: query.search.term }),
