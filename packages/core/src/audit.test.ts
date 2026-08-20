@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { auditSchema, auditTable, describeComplaints } from "./audit.js";
+import { auditInfolist, auditSchema, auditTable, describeComplaints } from "./audit.js";
 import { TextColumn } from "./column.js";
 import { SelectFilter, TextFilter } from "./filter.js";
 import { Table } from "./table.js";
 import { Select } from "./fields/select.js";
 import { TextInput } from "./fields/text-input.js";
 import { Schema, Section } from "./layout.js";
+import { TextEntry } from "./entries/text-entry.js";
 
 describe("a form that can work", () => {
   it("draws no complaint", () => {
@@ -123,5 +124,32 @@ describe("the table half of a resource", () => {
       ]);
 
     expect(() => auditTable(table)).toThrow();
+  });
+});
+
+describe("a length nothing can be shortened to", () => {
+  const audited = (limit: number) =>
+    auditInfolist(Schema.make([TextEntry.make("bio").limit(limit)]));
+
+  it("stops the boot, because the renderer shows the whole value instead", () => {
+    // Zero reads as "show none of it" and does the opposite: a string cut to
+    // nothing leaves an ellipsis meaning nothing, so the renderer keeps the
+    // value whole. A declaration that quietly reverses itself is worse than
+    // one that refuses.
+    expect(audited(0)[0]?.problem).toMatch(/not a length a value can be shortened to/);
+    expect(audited(-5)).toHaveLength(1);
+  });
+
+  it("names the entry it is about", () => {
+    expect(audited(0)[0]?.field).toBe("bio");
+  });
+
+  it("refuses a length between two characters, which is no length at all", () => {
+    expect(audited(2.5)).toHaveLength(1);
+  });
+
+  it("leaves a limit that can be honoured alone", () => {
+    expect(audited(80)).toEqual([]);
+    expect(auditInfolist(Schema.make([TextEntry.make("bio")]))).toEqual([]);
   });
 });

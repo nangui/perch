@@ -13,6 +13,7 @@
  */
 import type { Component } from "./component.js";
 import { Entry } from "./entry.js";
+import { TextEntry } from "./entries/text-entry.js";
 import { Field } from "./field.js";
 import { Tab, Tabs } from "./layout.js";
 import { Hidden } from "./fields/hidden.js";
@@ -77,10 +78,33 @@ export function auditInfolist(root: Component): readonly Complaint[] {
       });
       return;
     }
+    if (component instanceof TextEntry) inspectLimit(component, complaints);
     for (const child of component.children) walk(child);
   };
   walk(root);
   return complaints;
+}
+
+/**
+ * A length nothing can be shortened to.
+ *
+ * Zero or less reads as "show none of it" and does the opposite: the renderer
+ * cannot cut a string to nothing and leave an ellipsis meaning anything, so it
+ * shows the whole value. A declaration that quietly does the reverse of what it
+ * says is worse than one that stops the boot.
+ */
+function inspectLimit(entry: TextEntry, into: Complaint[]): void {
+  const { limit } = entry.state;
+  if (limit === undefined) return;
+  if (Number.isInteger(limit) && limit > 0) return;
+
+  const name = entry.name;
+  into.push({
+    field: name === undefined || name === "" ? "an unnamed TextEntry" : name,
+    problem:
+      `has a limit of \`${String(limit)}\`, which is not a length a value can be ` +
+      "shortened to — a limit has to be a whole number above zero",
+  });
 }
 
 function inspectStep(input: TextInput, into: Complaint[]): void {
