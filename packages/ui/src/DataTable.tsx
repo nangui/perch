@@ -49,6 +49,14 @@ export interface DataTableProps {
   /** Something is already running. The buttons say so rather than look live. */
   readonly actionsBusy?: boolean;
   /**
+   * Which actions this row can be given, out of the ones the table declared.
+   *
+   * A restore belongs on a marked row and a delete on a live one; offering
+   * either where it does nothing is a button a reader presses to no effect.
+   * Absent means every action is offered on every row.
+   */
+  readonly rowActions?: (row: Row) => readonly ActionNode[];
+  /**
    * Ticking rows. Absent means the table offers none — nothing would be done
    * with a selection, and a checkbox that leads nowhere is furniture.
    */
@@ -70,6 +78,7 @@ export function DataTable({
   rowHref,
   onAction,
   actionsBusy = false,
+  rowActions,
   selection,
 }: DataTableProps): ReactNode {
   // A link needs an address; a run needs somebody to run it. An action whose
@@ -193,9 +202,13 @@ export function DataTable({
             ))}
             {actions.length === 0 ? null : (
               <td className="perch-table__cell perch-table__actions">
-                {actions.map((action) =>
-                  rowAction(action, row, rowHref, onAction, actionsBusy),
-                )}
+                <RowActions
+                  actions={rowActions === undefined ? actions : rowActions(row)}
+                  row={row}
+                  {...(rowHref === undefined ? {} : { href: rowHref })}
+                  {...(onAction === undefined ? {} : { onAction })}
+                  busy={actionsBusy}
+                />
               </td>
             )}
           </tr>
@@ -259,6 +272,45 @@ function rowAction(
 function defaultLabel(action: ActionNode): string {
   const words = action.type.replace(/Action$/, "").replace(/([a-z])([A-Z])/g, "$1 $2");
   return words.charAt(0) + words.slice(1).toLowerCase();
+}
+
+/**
+ * A row's actions, behind one control.
+ *
+ * Six spelled out on every row is a wall of words competing with the values
+ * they sit beside, and the reader scans past all of them. One button opens
+ * them, which is also the shape that stays honest when a row has ten.
+ *
+ * A `<details>` rather than a handmade popover: it opens on click and on Enter,
+ * closes on Escape, is in the tab order once, and needs no JavaScript to be
+ * operable at all.
+ */
+function RowActions({
+  actions,
+  row,
+  href,
+  onAction,
+  busy,
+}: {
+  readonly actions: readonly ActionNode[];
+  readonly row: Row;
+  readonly href?: (action: ActionNode, row: Row) => string | undefined;
+  readonly onAction?: (action: ActionNode, row: Row) => void;
+  readonly busy: boolean;
+}): ReactNode {
+  const drawn = actions
+    .map((action) => rowAction(action, row, href, onAction, busy))
+    .filter((one) => one !== null);
+  if (drawn.length === 0) return null;
+
+  return (
+    <details className="perch-row-actions">
+      <summary className="perch-row-actions__open" aria-label="Actions">
+        <span aria-hidden="true">⋯</span>
+      </summary>
+      <div className="perch-row-actions__menu">{drawn}</div>
+    </details>
+  );
 }
 
 /**

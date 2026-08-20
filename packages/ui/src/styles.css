@@ -2159,6 +2159,61 @@
   margin-left: var(--perch-space-6);
 }
 
+/*
+ * One control per row instead of a line of words. `<details>` because it opens
+ * on click and on Enter, closes on Escape, and is one tab stop — a handmade
+ * popover has to be given all three and usually gets two.
+ */
+.perch-row-actions {
+  position: relative;
+  display: inline-block;
+}
+
+.perch-row-actions__open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* WCAG's pointer target, the same floor every other control here keeps. */
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: var(--perch-space-1);
+  color: var(--perch-content-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.perch-row-actions__open::-webkit-details-marker {
+  display: none;
+}
+
+.perch-row-actions__open:hover,
+.perch-row-actions[open] .perch-row-actions__open {
+  background: var(--perch-surface-skeleton-strong);
+}
+
+.perch-row-actions__menu {
+  position: absolute;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 10rem;
+  padding: var(--perch-space-2);
+  gap: var(--perch-space-1);
+  background: var(--perch-surface);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-space-2);
+  box-shadow: var(--perch-shadow-popover);
+}
+
+/* Left, not centred: a column of labels is read down its left edge. */
+.perch-row-actions__menu .perch-table__action {
+  justify-content: flex-start;
+  text-align: left;
+  padding: var(--perch-space-2) var(--perch-space-3);
+}
+
 .perch-table__action {
   color: var(--perch-accent);
   text-decoration: none;
