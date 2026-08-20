@@ -2191,10 +2191,18 @@
   background: var(--perch-surface-skeleton-strong);
 }
 
+/*
+ * Against the viewport, not against the row. The table scrolls sideways for a
+ * wide one, and a box that scrolls clips in both directions whatever the
+ * z-index says — so a menu placed inside it is cut off at the last row.
+ */
+.perch-row-actions__menu[data-placed="false"] {
+  visibility: hidden;
+}
+
 .perch-row-actions__menu {
-  position: absolute;
-  right: 0;
-  z-index: 1;
+  position: fixed;
+  z-index: 20;
   display: flex;
   flex-direction: column;
   align-items: stretch;

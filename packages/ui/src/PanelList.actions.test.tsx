@@ -953,8 +953,21 @@ describe("a row's actions", () => {
     ) as HTMLDetailsElement;
     expect(menu.open).toBe(false);
     expect(within(menu).getByText("Delete")).toBeDefined();
+    expect(
+      (menu.querySelector(".perch-row-actions__menu") as HTMLElement).dataset["placed"],
+    ).toBe("false");
 
     fireEvent.click(await screen.findByLabelText("Actions"));
     expect(menu.open).toBe(true);
+
+    // Placed against the viewport once it opens. The table scrolls sideways for
+    // a wide one, and a scrolling box clips in both directions whatever the
+    // z-index says — measured on screen: the menu was cut off at the last row.
+    // `toggle` is queued by the specification, so the placement lands a task
+    // later — asserting straight after the click reads the shut state.
+    const list = menu.querySelector(".perch-row-actions__menu") as HTMLElement;
+    await waitFor(() => {
+      expect(list.dataset["placed"]).toBe("true");
+    });
   });
 });

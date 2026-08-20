@@ -10,6 +10,7 @@
  * cost Filament a rewrite, and it would look like an improvement.
  */
 import type { ReactNode } from "react";
+import { useRef, useState } from "react";
 import type {
   ActionNode,
   ColumnNode,
@@ -298,17 +299,48 @@ function RowActions({
   readonly onAction?: (action: ActionNode, row: Row) => void;
   readonly busy: boolean;
 }): ReactNode {
+  const open = useRef<HTMLElement | null>(null);
+  const [at, setAt] = useState<{ top: number; right: number } | null>(null);
+
   const drawn = actions
     .map((action) => rowAction(action, row, href, onAction, busy))
     .filter((one) => one !== null);
   if (drawn.length === 0) return null;
 
   return (
-    <details className="perch-row-actions">
-      <summary className="perch-row-actions__open" aria-label="Actions">
+    <details
+      className="perch-row-actions"
+      onToggle={(event) => {
+        // Placed when it opens, against the viewport. The table scrolls
+        // sideways for a wide one, and a scrolling box clips in both
+        // directions whatever the z-index says — so a menu positioned inside
+        // it is cut off at the last row, which is what this was.
+        const details = event.currentTarget;
+        if (!details.open) {
+          setAt(null);
+          return;
+        }
+        const box = open.current?.getBoundingClientRect();
+        if (box !== undefined)
+          setAt({ top: box.bottom, right: window.innerWidth - box.right });
+      }}
+    >
+      <summary className="perch-row-actions__open" aria-label="Actions" ref={open}>
         <span aria-hidden="true">⋯</span>
       </summary>
-      <div className="perch-row-actions__menu">{drawn}</div>
+      {/* Held back until it has somewhere to be: a fixed box painted before it
+          is placed lands wherever the flow left it. Kept in the tree all the
+          same — a `<details>` holds its content and folds it, and a screen
+          reader is told as much. */}
+      <div
+        className="perch-row-actions__menu"
+        data-placed={at !== null}
+        {...(at === null
+          ? {}
+          : { style: { top: `${String(at.top)}px`, right: `${String(at.right)}px` } })}
+      >
+        {drawn}
+      </div>
     </details>
   );
 }
