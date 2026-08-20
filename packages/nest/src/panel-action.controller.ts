@@ -20,52 +20,20 @@ import {
   Post,
   Req,
 } from "@nestjs/common";
-import type {
-  Action,
-  DeletedRows,
-  DataAdapter,
-  FormState,
-  Id,
-  NotificationState,
-  Row,
-  SchemaPayload,
-} from "@perchjs/core";
-import {
-  DeleteAction,
-  ForceDeleteAction,
-  RestoreAction,
-  admittedRecords,
-  declaredActions,
-  runAction,
-  serialise,
-} from "@perchjs/core";
-import { loadSelection, readSelection } from "./action-selection.js";
+import type { Action, DataAdapter, FormState, SchemaPayload } from "@perchjs/core";
+import { declaredActions, serialise } from "@perchjs/core";
+import type { ActionAnswer, ActionTarget } from "./action-run.js";
+import { carryAction, reachAction } from "./action-run.js";
 import { ReplayGuard, readReplayKey } from "./replay-guard.js";
 import { admit } from "./admission.js";
+import { recordId } from "./record-id.js";
+import { relationScope } from "./relation-scope.js";
 import { withOptions } from "./relationship-options.js";
 import { authorize, permissionFor } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
-
-export interface ActionAnswer {
-  /** How many records it ran against. */
-  readonly processed: number;
-  /** How many a guard turned down. Never why. */
-  readonly refused: number;
-  readonly notification?: NotificationState;
-  /**
-   * A modal whose form does not validate, answered the way a refused save is.
-   *
-   * Not a 4xx: the request was well formed and the reader is not done with the
-   * dialog. The tree comes back with it so the errors land on the fields they
-   * are about, rather than as a sentence about a form the client would have to
-   * match up itself.
-   */
-  readonly errors?: Readonly<Record<string, string>>;
-  readonly payload?: SchemaPayload;
-}
 
 @Controller("api/:resource")
 export class PanelActionController {
@@ -98,12 +66,41 @@ export class PanelActionController {
     @Body() body: unknown,
     @Req() request: unknown,
   ): Promise<ActionAnswer> {
-    const { action, user, model, allowed, refused } = await this.#reach(
-      slug,
-      name,
-      body,
-      request,
-    );
+    const user = this.#users.resolve(request);
+    return await this.#run(this.#onResource(slug), slug, name, body, user);
+  }
+
+  /**
+   * `POST {path}/api/:resource/:id/relations/:name/actions/:action`.
+   *
+   * A manager's own actions, on a manager's own rows. Its table declares them,
+   * so the resource's list is not an allowlist here — and the selection is
+   * narrowed by the derived column before anything is carried out, because a
+   * child of another parent is a perfectly valid row of the same model.
+   */
+  @Post(":id/relations/:relation/actions/:action")
+  @HttpCode(200)
+  async runOnChild(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("relation") relation: string,
+    @Param("action") name: string,
+    @Body() body: unknown,
+    @Req() request: unknown,
+  ): Promise<ActionAnswer> {
+    const user = this.#users.resolve(request);
+    const target = await this.#onChildren(slug, id, relation, name, user);
+    return await this.#run(target, `${slug}/${id}/${relation}`, name, body, user);
+  }
+
+  async #run(
+    target: ActionTarget,
+    prefix: string,
+    name: string,
+    body: unknown,
+    user: unknown,
+  ): Promise<ActionAnswer> {
+    const { action, allowed, refused } = await reachAction(target, name, body, user);
 
     // After every refusal, never before them. The key is the caller's own
     // invention, so answering from memory first would hand whoever sends it
@@ -113,12 +110,15 @@ export class PanelActionController {
     // Scoped by what the intent actually is — this action, on these rows —
     // rather than by the name alone. A name reused over another selection is
     // another intent, and answering it from memory would tell that caller their
-    // rows were dealt with when they were not.
+    // rows were dealt with when they were not. The parent is in the prefix for
+    // the same reason: the same action on the same keys under another parent is
+    // another intent.
     const key = readReplayKey(body);
+    const primaryKey = target.data.meta(target.model).primaryKey.name;
     const scoped =
       key === undefined
         ? undefined
-        : `${slug}/${name}/${allowed.map((row) => String(row[this.#keyName(model)])).join(",")}/${key}`;
+        : `${prefix}/${name}/${allowed.map((row) => String(row[primaryKey])).join(",")}/${key}`;
     const now = Date.now();
     if (scoped !== undefined) {
       const already = this.#replays.recall(scoped, now);
@@ -129,100 +129,95 @@ export class PanelActionController {
     // from — the same boundary form state crosses. An action with no form
     // collects nothing, and a body that carries something anyway is dropped
     // without a word.
-    const collected = await this.#collected(action, body, user, model);
+    const collected = await this.#collected(action, body, user, target.model);
     // A form that did not validate changed nothing, so there is nothing to
     // recognise later: the reader is meant to fix it and send it again.
     if ("refused" in collected) {
       return { ...collected.refused, processed: 0, refused };
     }
 
-    const answer = await this.#carry(
+    const answer = await carryAction({
+      data: target.data,
+      model: target.model,
       action,
-      model,
-      allowed,
+      rows: allowed,
       user,
-      refused,
-      collected.accepted,
-    );
+      refusedAlready: refused,
+      collected: collected.accepted,
+    });
     if (scoped !== undefined) this.#replays.remember(scoped, answer, now);
     return answer;
   }
 
-  /**
-   * Everything both routes have to re-establish before they do anything.
-   *
-   * Pressing a button is a request like any other, so none of what the button
-   * showed is believed: the action has to be one the table declared, the
-   * principal has to be allowed the resource, and the selection has to name
-   * rows that are still there.
-   */
-  async #reach(
-    slug: string,
-    name: string,
-    body: unknown,
-    request: unknown,
-  ): Promise<{
-    action: Action;
-    user: unknown;
-    model: string;
-    allowed: readonly Row[];
-    refused: number;
-  }> {
+  /** The resource's own rows, with its own policy asked per record. */
+  #onResource(slug: string): ActionTarget {
     const data = this.#data;
     if (data === null) throw new NotFoundException();
 
     const resource = this.#registry.get(slug);
     if (resource === undefined) throw new NotFoundException();
 
-    // The allowlist is read off the declaration, so a name nobody declared
-    // reaches nothing — the same oracle sorting, searching and filtering use.
-    // A resource with no table declares no actions and so offers none.
     const table = resource.instance.table?.();
-    const action = table === undefined ? undefined : declaredActions(table).get(name);
-    if (action === undefined) throw new NotFoundException();
+    return {
+      data,
+      model: resource.metadata.model,
+      ...(table === undefined ? {} : { table }),
+      ...(resource.instance.can === undefined ? {} : { can: resource.instance.can }),
+    };
+  }
 
-    // A link is not something this can carry out. Answering 200 with nothing
-    // done would tell the caller it worked, which is the failure mode this
-    // route exists to avoid.
-    if (!executable(action)) throw new NotFoundException();
+  /**
+   * A manager's rows, reached through the parent and narrowed to it.
+   *
+   * Both policies are asked about the parent rather than the child: managing a
+   * record's children is a thing done to the record, and a rule about which
+   * child belongs to the action's own guard, which runs per record anyway.
+   */
+  async #onChildren(
+    slug: string,
+    id: string,
+    relation: string,
+    name: string,
+    user: unknown,
+  ): Promise<ActionTarget> {
+    const data = this.#data;
+    if (data === null) throw new NotFoundException();
 
-    const user = this.#users.resolve(request);
+    const resource = this.#registry.get(slug);
+    if (resource === undefined) throw new NotFoundException();
+
     const model = resource.metadata.model;
+    const key = recordId(data, model, id);
+    if (key === null) throw new NotFoundException();
 
-    const { keys } = readSelection(data, model, body);
-    // Restoring and destroying for good are the two whose subject is a row an
-    // ordinary read leaves out. Loading them the ordinary way found nothing and
-    // answered 404 — the actions could never reach what they exist for.
-    const rows = await loadSelection(data, model, keys, reads(action));
-    // A key naming nothing is a row somebody deleted between the tick and the
-    // press. Naming none at all is a request about nothing.
-    if (rows.length === 0) throw new NotFoundException();
-
-    // Asked once without a record first. `viewAny`, `create` and `delete` do not
-    // turn on which row, so a selection of five hundred asks them once rather
-    // than five hundred times; only a check that needs a record is repeated.
-    const permission = permissionFor(action);
-    const gate = await authorize(resource.instance.can, permission, user);
-    if (gate === "denied") throw new NotFoundException();
-
-    const allowed: Row[] = [];
-    let refused = 0;
-    for (const row of rows) {
-      if (gate === "allowed") {
-        allowed.push(row);
-        continue;
-      }
-      const verdict = await authorize(resource.instance.can, permission, user, row);
-      if (verdict === "allowed") allowed.push(row);
-      else refused += 1;
+    // The parent, and the policy about it, before the relation is looked at.
+    const parent = await data.findOne(model, key);
+    if (parent === null) throw new NotFoundException();
+    if ((await authorize(resource.instance.can, "edit", user, parent)) !== "allowed") {
+      throw new NotFoundException();
     }
 
-    // Nothing this principal may touch is answered like a resource that is not
-    // there. Telling "you may not" apart from "there is no such thing" is how a
-    // caller maps what exists.
-    if (allowed.length === 0) throw new NotFoundException();
+    const manager = (resource.instance.relations?.() ?? []).find(
+      (one) => one.state.relation === relation,
+    );
+    if (manager === undefined) throw new NotFoundException();
 
-    return { action, user, model, allowed, refused };
+    // The manager's own policy, never the child resource's, and asked for what
+    // this action actually is: deleting a child asks about deleting.
+    const declared = declaredActions(manager.state.table).get(name);
+    if (declared === undefined) throw new NotFoundException();
+    const permission = permissionFor(declared);
+    if ((await authorize(manager.state.can, permission, user, parent)) !== "allowed") {
+      throw new NotFoundException();
+    }
+
+    const scope = relationScope(data.ir(), model, relation);
+    return {
+      data,
+      model: scope.model,
+      table: manager.state.table,
+      scope: { column: scope.foreignKey, value: parent[scope.parentKey] },
+    };
   }
 
   /**
@@ -278,7 +273,32 @@ export class PanelActionController {
     @Body() body: unknown,
     @Req() request: unknown,
   ): Promise<SchemaPayload> {
-    const { action, user, model } = await this.#reach(slug, name, body, request);
+    const user = this.#users.resolve(request);
+    return await this.#form(this.#onResource(slug), name, body, user);
+  }
+
+  @Post(":id/relations/:relation/actions/:action/form")
+  @HttpCode(200)
+  async childForm(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("relation") relation: string,
+    @Param("action") name: string,
+    @Body() body: unknown,
+    @Req() request: unknown,
+  ): Promise<SchemaPayload> {
+    const user = this.#users.resolve(request);
+    const target = await this.#onChildren(slug, id, relation, name, user);
+    return await this.#form(target, name, body, user);
+  }
+
+  async #form(
+    target: ActionTarget,
+    name: string,
+    body: unknown,
+    user: unknown,
+  ): Promise<SchemaPayload> {
+    const { action } = await reachAction(target, name, body, user);
     const schema = action.state.form;
     if (schema === undefined) throw new NotFoundException();
 
@@ -290,89 +310,10 @@ export class PanelActionController {
       // Filled once however many rows were ticked, so it answers to none of
       // them. A field that read a record would have fifty to choose from.
       record: null,
-      ...withOptions(this.#data, model),
+      ...withOptions(this.#data, target.model),
     });
     return serialise(tree);
   }
-
-  /**
-   * One transaction around the whole thing, so a batch that fails partway
-   * leaves nothing behind. It wraps one record the same way it wraps fifty:
-   * what rolls back must not depend on how many were ticked.
-   */
-  /** Where the primary key lives on a row of this model. */
-  #keyName(model: string): string {
-    if (this.#data === null) throw new NotFoundException();
-    return this.#data.meta(model).primaryKey.name;
-  }
-
-  async #carry(
-    action: Action,
-    model: string,
-    rows: readonly Row[],
-    user: unknown,
-    refusedAlready: number,
-    collected: FormState,
-  ): Promise<ActionAnswer> {
-    const data = this.#data;
-    if (data === null) throw new NotFoundException();
-    // Read once, not once per row. `meta` is documented as resolved at
-    // bootstrap and never called on a hot path, and five hundred rows is one.
-    const primaryKey = data.meta(model).primaryKey.name;
-    const key = (row: Row): Id => row[primaryKey] as Id;
-
-    return await data.transaction(async (tx) => {
-      // The three the framework carries out itself. Each is still asked of
-      // every record — the guard decides which rows it may touch — and each is
-      // one statement for fifty rows rather than fifty.
-      const port = builtIn(action);
-      if (port !== undefined) {
-        const admitted = await admittedRecords(action, rows, user);
-        const refused = refusedAlready + (rows.length - admitted.length);
-        if (admitted.length === 0) return { processed: 0, refused };
-
-        const processed = await tx[port](model, admitted.map(key));
-        return { processed, refused };
-      }
-
-      // What reaches the callback is what the schema admitted, never what the
-      // body carried. An action with no form hands it an empty object.
-      const outcome = await runAction({ action, records: rows, user, data: collected });
-      return { ...outcome, refused: outcome.refused + refusedAlready };
-    });
-  }
-}
-
-/**
- * Which rows an action is allowed to find.
- *
- * `with` for the two that act on marked rows, and only for those: deleting
- * reaches what a reader can see, and an action written by an author acts on the
- * page they were looking at.
- */
-function reads(action: Action): DeletedRows {
-  return action instanceof RestoreAction || action instanceof ForceDeleteAction
-    ? "with"
-    : "without";
-}
-
-/** Which port method carries this action out, where the framework does. */
-function builtIn(action: Action): "delete" | "forceDelete" | "restore" | undefined {
-  if (action instanceof ForceDeleteAction) return "forceDelete";
-  if (action instanceof RestoreAction) return "restore";
-  if (action instanceof DeleteAction) return "delete";
-  return undefined;
-}
-
-/**
- * Whether this route can carry the action out at all.
- *
- * An author's callback, or one of the ready-made ones this file knows how to
- * perform. `CreateAction` and `EditAction` are neither: they are links, and the
- * browser follows them without asking the server to do anything.
- */
-function executable(action: Action): boolean {
-  return action.trigger === "run";
 }
 
 /**
