@@ -27,8 +27,10 @@ import {
   TernaryFilter,
   TrashedFilter,
   describeComplaints,
+  Field,
   findModel,
   FileUpload,
+  Repeater,
   resolvePath,
 } from "@perchjs/core";
 import type { PanelResource, ResourceMetadata } from "./resource.js";
@@ -164,6 +166,7 @@ export class ResourceRegistry implements OnModuleInit {
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
         ...(table === undefined ? [] : this.#unaskableFilters(metadata.model, table)),
         ...this.#unscopableRelations(metadata.model, managers),
+        ...this.#reassigningFields(metadata.model, managers),
         ...managers.flatMap((manager) => auditTable(manager.state.table)),
         ...managers.flatMap((manager) =>
           manager.state.form === undefined ? [] : auditSchema(manager.state.form),
@@ -181,14 +184,6 @@ export class ResourceRegistry implements OnModuleInit {
     }
   }
 
-  /**
-   * Columns reading a path the model does not have.
-   *
-   * Not `auditTable`'s to catch: the IR is the adapter's and the domain has
-   * never heard of it. A typo here is a column that renders blank on every row
-   * for as long as nobody looks closely — and, since the loading plan is built
-   * from these paths, a relation that silently never loads.
-   */
   /**
    * A manager whose scope cannot be worked out.
    *
@@ -217,6 +212,44 @@ export class ResourceRegistry implements OnModuleInit {
           },
         ];
       }
+    });
+  }
+
+  /**
+   * A manager form declaring the column that says which parent a child is.
+   *
+   * The server fills it from the address and writes it last, so the field edits
+   * nothing whatever the reader puts in it. Refused rather than overridden
+   * quietly: a select that visibly offers to move a child to another parent,
+   * and does not, is worse than no select.
+   */
+  #reassigningFields(
+    model: string,
+    managers: readonly RelationManager[],
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const ir = this.#data.ir();
+
+    return managers.flatMap((manager) => {
+      const form = manager.state.form;
+      if (form === undefined) return [];
+
+      let scope;
+      try {
+        scope = relationScope(ir, model, manager.state.relation);
+      } catch {
+        // Already complained about above, and once is enough.
+        return [];
+      }
+
+      return ownFields(form)
+        .filter((field) => field.name === scope.foreignKey)
+        .map((field) => ({
+          field: `${manager.state.relation}.${field.name}`,
+          problem:
+            `is the column that says which \`${model}\` a child belongs to. The ` +
+            "server fills it from the address, so the field would edit nothing",
+        }));
     });
   }
 
@@ -280,6 +313,14 @@ export class ResourceRegistry implements OnModuleInit {
     });
   }
 
+  /**
+   * Columns reading a path the model does not have.
+   *
+   * Not `auditTable`'s to catch: the IR is the adapter's and the domain has
+   * never heard of it. A typo here is a column that renders blank on every row
+   * for as long as nobody looks closely — and, since the loading plan is built
+   * from these paths, a relation that silently never loads.
+   */
   #unreachableColumns(
     model: string,
     table: Table,
@@ -403,6 +444,20 @@ export class ResourceRegistry implements OnModuleInit {
       instance: this.#moduleRef.get<PanelResource>(registered.type, { strict: false }),
     };
   }
+}
+
+/**
+ * The fields naming the manager's own model.
+ *
+ * Stops at a repeater, whose rows are a third model's: a column name means
+ * something else in there, and matching it would refuse a form that is right.
+ */
+function ownFields(component: Component): readonly Field[] {
+  if (component instanceof Repeater) return [];
+  return [
+    ...(component instanceof Field ? [component] : []),
+    ...component.children.flatMap(ownFields),
+  ];
 }
 
 function flatten(component: Component): readonly Component[] {
