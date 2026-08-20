@@ -775,9 +775,11 @@ describe("naming what the reader asked for", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
-    await waitFor(() => {
-      expect(runAction).toHaveBeenCalledTimes(1);
-    });
+    // What the first press put on screen, not the call it made: a press while
+    // the first is in flight is ignored on purpose, so waiting on the call
+    // races the answer being handled.
+    expect(await screen.findByText(/^Done/)).toBeTruthy();
+
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
     await waitFor(() => {
       expect(runAction).toHaveBeenCalledTimes(2);
@@ -799,9 +801,11 @@ describe("naming what the reader asked for", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
-    await waitFor(() => {
-      expect(runAction).toHaveBeenCalledTimes(1);
-    });
+    // Waited for what the failure put on screen, not for the call: a press
+    // while the first is in flight is ignored on purpose, and waiting on the
+    // call alone races the rejection being handled.
+    expect(await screen.findByText("network")).toBeTruthy();
+
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
     await waitFor(() => {
       expect(runAction).toHaveBeenCalledTimes(2);
@@ -835,9 +839,9 @@ describe("naming what the reader asked for", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
     fireEvent.click(await screen.findByRole("button", { name: "Archive it" }));
-    await waitFor(() => {
-      expect(runAction).toHaveBeenCalledTimes(1);
-    });
+    // The refusal, on the field it is about. Waiting on the call instead would
+    // race the form coming back and the dialog being pressable again.
+    expect(await screen.findByText("This field is required.")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Reason"), { target: { value: "stale" } });
     fireEvent.click(screen.getByRole("button", { name: "Archive it" }));
