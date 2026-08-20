@@ -4,11 +4,13 @@
  */
 import type { ComponentState, Resolvable } from "./component.js";
 import { Component, configured } from "./component.js";
+import type { EntryTone } from "./entries/text-entry.js";
 
 export type Columns = number | { readonly default: number; readonly md?: number };
 
 interface LayoutState extends ComponentState {
   readonly columns?: Columns;
+  readonly tone?: EntryTone;
   readonly description?: Resolvable<string>;
   readonly collapsible?: boolean;
   readonly collapsed?: boolean;
@@ -24,6 +26,16 @@ abstract class Layout extends Component {
 
   columns(value: Columns): this {
     return this.with({ columns: value });
+  }
+
+  /**
+   * The layout's own line of prose, under its title and above what it holds.
+   *
+   * On the base rather than on one of them: the cycle resolves it for any
+   * layout, and a callout that could not say anything would be a box.
+   */
+  description(value: Resolvable<string>): this {
+    return this.with({ description: value });
   }
 }
 
@@ -54,10 +66,6 @@ export class Section extends Layout {
     );
   }
 
-  description(value: Resolvable<string>): this {
-    return this.with({ description: value });
-  }
-
   icon(value: string): this {
     return this.with({ icon: value });
   }
@@ -69,6 +77,45 @@ export class Section extends Layout {
   /** Implies `collapsible`: collapsed but not collapsible is a trap. */
   collapsed(value = true): this {
     return this.with({ collapsed: value, collapsible: true });
+  }
+}
+
+/**
+ * A box that says something, in one of the panel's four tones.
+ *
+ * A layout rather than an entry or a field: it holds no value, is bound to no
+ * column, and is read the same way in a form and in an infolist. What it says
+ * is a description like a section's — resolvable, because the sentence a reader
+ * needs usually depends on the record in front of them.
+ *
+ * It may hold children. A warning above the two fields it is about reads as one
+ * thing; the same warning floating beside them reads as a page decoration.
+ */
+export class Callout extends Layout {
+  override get type(): string {
+    return "Callout";
+  }
+
+  static make(heading?: string): Callout {
+    return configured(
+      // No tone here: the renderer already falls back to the quiet one, and a
+      // default written twice is one that can disagree with itself.
+      new Callout({
+        children: [],
+        ...(heading === undefined ? {} : { name: heading, label: heading }),
+      }),
+    );
+  }
+
+  /**
+   * Which of the four, and no more than the four.
+   *
+   * The same set a badge and an entry already use. A callout is the third thing
+   * to want a tone, and a fifth name here would be a colour the stylesheet has
+   * not got — which reads as a rendering fault rather than as a tone.
+   */
+  tone(value: EntryTone): this {
+    return this.with({ tone: value });
   }
 }
 

@@ -24,6 +24,7 @@ export interface SchemaNode {
   readonly path?: string;
   readonly label?: string;
   readonly helperText?: string;
+  readonly description?: string;
   readonly placeholder?: string;
   readonly disabled?: boolean;
   readonly readOnly?: boolean;
@@ -79,6 +80,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   ],
   Textarea: ["rows", "autosize", "maxLength"],
   Section: ["columns", "collapsible", "collapsed", "icon"],
+  Callout: ["columns", "icon", "tone"],
   Tab: ["columns", "icon"],
   Grid: ["columns"],
   Schema: ["columns"],
@@ -87,8 +89,8 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
 /**
  * Only static values belong here. Anything that accepts a resolver has to be
  * resolved by the cycle and read off `ResolvedNode` — copying it from the state
- * ships the function's source or nothing at all. `Section.description` is left
- * out for exactly that reason until the cycle resolves it.
+ * ships the function's source or nothing at all. A description is one of those,
+ * so it rides beside the label rather than in this list.
  */
 
 export function serialise(result: ResolveResult): SchemaPayload {
@@ -149,6 +151,9 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
       : {}),
     ...(resolved.label === undefined ? {} : { label: resolved.label }),
     ...(resolved.helperText === undefined ? {} : { helperText: resolved.helperText }),
+    ...(resolved.description === undefined
+      ? {}
+      : { description: resolved.description }),
     ...(resolved.disabled ? { disabled: true } : {}),
     ...(resolved.readOnly ? { readOnly: true } : {}),
     ...(resolved.content === undefined ? {} : { content: resolved.content }),

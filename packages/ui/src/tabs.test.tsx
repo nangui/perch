@@ -127,3 +127,60 @@ describe("reaching the panels from a keyboard", () => {
     ).toBe("true");
   });
 });
+
+describe("a callout on a page", () => {
+  const box = (props: Record<string, unknown>, description?: string) =>
+    render(
+      <SchemaRenderer
+        payload={{
+          schema: {
+            id: "root",
+            type: "Schema",
+            children: [
+              {
+                id: "note",
+                type: "Callout",
+                label: "Careful",
+                props,
+                ...(description === undefined ? {} : { description }),
+                children: [
+                  { id: "confirm", type: "TextInput", path: "confirm", label: "Sure" },
+                ],
+              },
+            ],
+          },
+          state: {},
+          errors: {},
+        }}
+        onChange={() => undefined}
+      />,
+    ).container;
+
+  it("says what it has to say, and holds what it is about", () => {
+    const container = box({}, "This cannot be undone.");
+
+    expect(screen.getByText("Careful")).toBeTruthy();
+    expect(screen.getByText("This cannot be undone.")).toBeTruthy();
+    expect(container.querySelector(".perch-layout--callout")).not.toBeNull();
+    // The field inside is a field: a warning above the two inputs it is about
+    // reads as one thing, and one floating beside them reads as decoration.
+    expect(screen.getByLabelText("Sure")).toBeTruthy();
+  });
+
+  it("carries its tone as data, not as a colour the stylesheet has to guess", () => {
+    expect(
+      box({ tone: "danger" })
+        .querySelector(".perch-layout--callout")
+        ?.getAttribute("data-tone"),
+    ).toBe("danger");
+  });
+
+  it("falls back rather than becoming a class the stylesheet has not got", () => {
+    // A box with no background reads as a rendering fault, not as a tone.
+    expect(
+      box({ tone: "chartreuse" })
+        .querySelector(".perch-layout--callout")
+        ?.getAttribute("data-tone"),
+    ).toBeNull();
+  });
+});

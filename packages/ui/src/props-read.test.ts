@@ -156,6 +156,7 @@ describe("a prop the server sends", () => {
     const types = new Set(crossing().map((prop) => prop.slice(0, prop.indexOf("."))));
 
     expect([...types].sort()).toEqual([
+      "Callout",
       "DateTimePicker",
       "FileUpload",
       "Grid",

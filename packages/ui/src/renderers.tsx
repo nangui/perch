@@ -91,8 +91,18 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
       </span>
     );
 
+  // Unknown names fall back rather than becoming a class the stylesheet has not
+  // got: a box with no background reads as a rendering fault.
+  const tone =
+    typeof node.props?.["tone"] === "string" && TONES.has(node.props["tone"])
+      ? node.props["tone"]
+      : undefined;
+
   return (
-    <div className={`perch-layout perch-layout--${node.type.toLowerCase()}`}>
+    <div
+      className={`perch-layout perch-layout--${node.type.toLowerCase()}`}
+      {...(tone === undefined ? {} : { "data-tone": tone })}
+    >
       {title === undefined ? null : collapsible ? (
         // The whole heading is the control, because a title beside a small
         // arrow is a target most people aim at and miss.
@@ -117,6 +127,13 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
           {title}
         </div>
       )}
+      {/* The layout's own line of prose, under its title and above what it
+          holds. Declared since the first section and never drawn: the value is
+          resolvable, and the payload carried only static props until the cycle
+          resolved this one. */}
+      {node.description === undefined ? null : (
+        <p className="perch-layout__description">{node.description}</p>
+      )}
       {/* Hidden rather than unmounted: a folded field is still a field, still
           filled in and still saved, and unmounting would lose what is in it. */}
       <div
@@ -130,6 +147,9 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
     </div>
   );
 }
+
+/** The panel's four, which a callout and a badge both choose from. */
+const TONES = new Set(["neutral", "success", "warning", "danger"]);
 
 function TextInputRenderer({
   node,
@@ -860,6 +880,8 @@ export function registerBuiltInComponents(): void {
   registerComponent("Section", LayoutRenderer);
   registerComponent("Grid", LayoutRenderer);
   registerComponent("Tabs", TabsRenderer);
+  // A box that says something, and holds whatever it is about.
+  registerComponent("Callout", LayoutRenderer);
   // A tab outside a `Tabs` is a box with a heading, which is what a layout is.
   registerComponent("Tab", LayoutRenderer);
   registerComponent("TextInput", TextInputRenderer);

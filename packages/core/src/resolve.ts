@@ -100,6 +100,8 @@ export interface ResolvedNode {
   readonly readOnly: boolean;
   readonly label?: string;
   readonly helperText?: string;
+  /** A layout's own line of prose, already resolved. */
+  readonly description?: string;
   readonly placeholder?: string;
   readonly required?: boolean;
   /** What a `Placeholder` shows. Resolved, so it may read other fields. */
@@ -800,6 +802,15 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       : false;
   const label = await value(component.state.label, rc, undefined, count);
   const helperText = await value(component.state.helperText, rc, undefined, count);
+  // A layout's own line of prose. Resolved rather than copied from the state
+  // for the reason every resolvable is: copying one ships the function's source
+  // or nothing at all.
+  const description = await value(
+    (component.state as { description?: Resolvable<string> }).description,
+    rc,
+    undefined,
+    count,
+  );
   // Resolved every pass, not hydrated once: a computed line that tracks another
   // field has to be recomputed when that field changes, and `default()` fills a
   // blank exactly once.
@@ -907,6 +918,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     readOnly,
     ...(label === undefined ? {} : { label }),
     ...(helperText === undefined ? {} : { helperText }),
+    ...(description === undefined ? {} : { description }),
     ...(content === undefined ? {} : { content }),
     ...(entryValue === undefined ? {} : { value: entryValue }),
     ...(tone === undefined ? {} : { tone }),
