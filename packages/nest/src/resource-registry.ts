@@ -171,6 +171,12 @@ export class ResourceRegistry implements OnModuleInit {
         ...this.#reassigningFields(metadata.model, managers),
         ...this.#unwritableChildren(metadata.model, managers),
         ...this.#unfollowableActions(managers),
+        // The same reading of a manager's form as the resource's own gets.
+        ...managers.flatMap((manager) =>
+          manager.state.form === undefined
+            ? []
+            : this.#unknownDisks(manager.state.form),
+        ),
         ...managers.flatMap((manager) => auditTable(manager.state.table)),
         ...managers.flatMap((manager) =>
           manager.state.form === undefined ? [] : auditSchema(manager.state.form),

@@ -1327,6 +1327,36 @@
   padding: var(--perch-space-8);
 }
 
+.perch-modal__bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--perch-space-4);
+}
+
+.perch-modal__close {
+  flex: none;
+  /* WCAG's pointer target, the floor every other control here keeps. */
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-lg);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.perch-modal__close:hover:not(:disabled) {
+  color: var(--perch-content);
+}
+
+.perch-modal__close:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .perch-modal__heading {
   margin: 0;
   font-size: var(--perch-text-xl);

@@ -278,6 +278,249 @@ describe("adding a child", () => {
   });
 });
 
+describe("what a write does to the page", () => {
+  const WRITABLE = [
+    { relation: "comments", label: "Comments", writable: true } as const,
+  ];
+
+  it("asks for it as it was, not from the top", async () => {
+    // A write invalidates the rows and nothing else. Asked for from scratch, a
+    // reader who edited a row on the third page of a filtered tab came back to
+    // the first page of an unfiltered one.
+    const write = writing();
+    const narrowed: RecordsPage = {
+      ...page("First"),
+      page: 3,
+      search: "compiler",
+      sort: { path: "body", direction: "desc" },
+      filters: { state: "open" },
+    };
+    const fetchPage = vi.fn().mockResolvedValue(narrowed);
+    render(
+      <PanelRelations
+        relations={WRITABLE}
+        fetchPage={fetchPage}
+        {...nothing}
+        {...write}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to Comments" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Body")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(fetchPage.mock.calls).toHaveLength(2);
+    });
+    expect(fetchPage.mock.calls[1]?.[1]).toEqual({
+      page: 3,
+      perPage: 25,
+      search: "compiler",
+      sort: { path: "body", direction: "desc" },
+      filters: { state: "open" },
+    });
+  });
+});
+
+describe("what a write says", () => {
+  const WRITABLE = [
+    { relation: "comments", label: "Comments", writable: true } as const,
+  ];
+
+  it("shows what the server said, because the row may land out of sight", async () => {
+    // A create sorts where it sorts. On page three of a filtered tab it is not
+    // on screen, and a table that comes back looking the same is the only
+    // other thing the reader would have to go on.
+    const write = writing();
+    write.saveChild.mockResolvedValue({
+      record: { id: 9 },
+      notification: { title: "Comments added", tone: "success" },
+    });
+    render(
+      <PanelRelations
+        relations={WRITABLE}
+        fetchPage={vi.fn().mockResolvedValue(page("First"))}
+        {...nothing}
+        {...write}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to Comments" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Body")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Comments added")).toBeTruthy();
+    });
+  });
+});
+
+describe("a file in a manager's form", () => {
+  const WRITABLE = [
+    { relation: "comments", label: "Comments", writable: true } as const,
+  ];
+
+  const WITH_FILE: SchemaPayload = {
+    schema: {
+      id: "root",
+      type: "Schema",
+      children: [
+        { id: "cover", type: "FileUpload", path: "cover", label: "Cover", props: {} },
+      ],
+    },
+    state: {},
+    errors: {},
+  };
+
+  it("is staged against the manager's own route, naming the child", async () => {
+    // The field is declared on the manager, so the resource's upload route
+    // would not find the path at all — and a control that stages nothing is
+    // one the reader fills for nothing.
+    const write = writing();
+    write.childForm.mockResolvedValue(WITH_FILE);
+    const uploadChildFile = vi.fn().mockResolvedValue({ key: "k", name: "a.png" });
+    render(
+      <PanelRelations
+        relations={WRITABLE}
+        fetchPage={vi.fn().mockResolvedValue(page("First"))}
+        {...nothing}
+        {...write}
+        uploadChildFile={uploadChildFile}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    fireEvent.click(await screen.findByLabelText("Actions"));
+    fireEvent.click(screen.getByText("Edit"));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Cover")).toBeTruthy();
+    });
+
+    const file = new File(["x"], "a.png", { type: "image/png" });
+    fireEvent.change(screen.getByLabelText("Cover"), { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(uploadChildFile).toHaveBeenCalled();
+    });
+    const [relation, childId, path, sent] = uploadChildFile.mock.calls[0] as unknown[];
+    expect([relation, childId, path]).toEqual(["comments", "1", "cover"]);
+    expect(sent).toBe(file);
+  });
+});
+
+describe("a dialog holding a form", () => {
+  const WRITABLE = [
+    { relation: "comments", label: "Comments", writable: true } as const,
+  ];
+
+  it("can be left with a pointer, not only with Escape", async () => {
+    // It ignores a click on the backdrop on purpose — what that would throw
+    // away is the reader's — and it draws no Cancel of its own, because the
+    // form submits itself. That left nothing to press.
+    const write = writing();
+    render(
+      <PanelRelations
+        relations={WRITABLE}
+        fetchPage={vi.fn().mockResolvedValue(page("First"))}
+        {...nothing}
+        {...write}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to Comments" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Body")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByLabelText("Body")).toBeNull();
+  });
+});
+
+describe("a write that is still in flight", () => {
+  const WRITABLE = [
+    { relation: "comments", label: "Comments", writable: true } as const,
+  ];
+
+  it("holds the dialog open, so a refusal has somewhere to land", async () => {
+    const write = writing();
+    write.saveChild.mockImplementation(() => new Promise(() => undefined));
+    const { container } = render(
+      <PanelRelations
+        relations={WRITABLE}
+        fetchPage={vi.fn().mockResolvedValue(page("First"))}
+        {...nothing}
+        {...write}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to Comments" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Body")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(write.saveChild).toHaveBeenCalled();
+    });
+
+    // Escape, which is what a `<dialog>` answers with a cancel event.
+    const dialog = container.querySelector("dialog");
+    fireEvent(
+      dialog as Element,
+      new Event("cancel", { bubbles: true, cancelable: true }),
+    );
+
+    expect(screen.queryByLabelText("Body")).not.toBeNull();
+  });
+});
+
+describe("a form that will not open", () => {
+  const WRITABLE = [
+    { relation: "comments", label: "Comments", writable: true } as const,
+  ];
+
+  it("says so, rather than closing as if nothing was pressed", async () => {
+    const write = writing();
+    write.childForm.mockRejectedValue(new Error("Could not reach the server."));
+    render(
+      <PanelRelations
+        relations={WRITABLE}
+        fetchPage={vi.fn().mockResolvedValue(page("First"))}
+        {...nothing}
+        {...write}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to Comments" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert").textContent).toBe("Could not reach the server.");
+    });
+  });
+});
+
 describe("editing a child", () => {
   const WRITABLE = [
     { relation: "comments", label: "Comments", writable: true } as const,

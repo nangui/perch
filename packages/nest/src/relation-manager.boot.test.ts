@@ -20,6 +20,7 @@ import {
   CreateAction,
   DeleteAction,
   EditAction,
+  FileUpload,
   Repeater,
   Schema,
   Select,
@@ -227,6 +228,18 @@ describe("a manager action the client could only draw as a link", () => {
     await expect(
       boot([comments().actions([DeleteAction.make()])]),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("a manager form naming a disk the panel has not", () => {
+  it("stops the boot, the way the resource's own form does", async () => {
+    await expect(
+      boot([
+        comments().form((schema) =>
+          schema.schema([FileUpload.make("body").disk("nowhere")]),
+        ),
+      ]),
+    ).rejects.toThrow(/names the disk `nowhere`/);
   });
 });
 

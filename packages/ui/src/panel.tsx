@@ -156,6 +156,9 @@ export function mount(element: HTMLElement): void {
                 request,
               )
             }
+            uploadChildFile={(relation, childId, path, file, state) =>
+              sendFile(under(relation), childId, path, file, state)
+            }
             saveChild={(relation, childId, state) =>
               save(
                 under(relation),

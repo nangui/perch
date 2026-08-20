@@ -527,7 +527,8 @@ export function PanelList({
 
       {/* Rendered only while something is pending, so the element is not in the
           page — and not in the accessibility tree — the rest of the time. */}
-      {pending === undefined ? null : (
+      {pending === undefined ? null : pending.action.hasForm !== true ? (
+        // A question, which the dialog's own buttons answer.
         <ConfirmDialog
           open
           confirmation={pending.action.confirmation ?? {}}
@@ -539,9 +540,21 @@ export function PanelList({
           onCancel={() => {
             setPending(undefined);
           }}
+        />
+      ) : (
+        // A form, which submits itself. Told apart here rather than by a
+        // `children` that is sometimes nothing: the two take different
+        // callers, and the dialog's own type says so.
+        <ConfirmDialog
+          open
+          confirmation={pending.action.confirmation ?? {}}
+          danger={pending.action.danger === true}
+          busy={busy}
+          onCancel={() => {
+            setPending(undefined);
+          }}
         >
-          {pending.action.hasForm !== true ? undefined : pending.schema === undefined ||
-            actionState === undefined ? (
+          {pending.schema === undefined || actionState === undefined ? (
             <p className="perch-modal__description" role="status">
               Loading…
             </p>

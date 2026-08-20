@@ -10,6 +10,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { ActionNode, FormState, Row, SchemaPayload } from "@perchjs/core";
+import type { UploadedFile } from "./node-props.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 import { PanelForm } from "./PanelForm.js";
 import type { ActionAnswer, PageRequest, RecordsPage } from "./PanelList.js";
@@ -26,6 +27,13 @@ export interface ManagedRelation {
 
 /** Which child a form is about: a new one, or the row a key names. */
 type Editing = { readonly relation: string; readonly childId?: string };
+
+/** What a tab holds: nothing yet, a page, or why there is none. */
+type Held = { readonly page: RecordsPage } | { readonly failed: string } | undefined;
+
+/** What the dialog holds: nothing yet, the form, or why there is none. */
+type Asked =
+  { readonly schema: SchemaPayload } | { readonly failed: string } | undefined;
 
 export interface PanelRelationsProps {
   readonly relations: readonly ManagedRelation[];
@@ -58,6 +66,14 @@ export interface PanelRelationsProps {
     childId: string | undefined,
     state: FormState,
   ) => Promise<SaveResponse>;
+  /** Stages a file for a field the manager's own form declares. */
+  readonly uploadChildFile?: (
+    relation: string,
+    childId: string | undefined,
+    path: string,
+    file: File,
+    state: FormState,
+  ) => Promise<UploadedFile>;
 }
 
 /** The action the tab adds to every row. Its own, carried out by this file. */
@@ -66,9 +82,6 @@ const EDIT: ActionNode = {
   name: "perch-edit-child",
   trigger: "run",
 };
-
-/** What a tab holds: nothing yet, a page, or why there is none. */
-type Held = { readonly page: RecordsPage } | { readonly failed: string } | undefined;
 
 export function PanelRelations({
   relations,
@@ -79,32 +92,59 @@ export function PanelRelations({
   childForm,
   childState,
   saveChild,
+  uploadChildFile,
 }: PanelRelationsProps): ReactNode {
   const [at, setAt] = useState(0);
   const [held, setHeld] = useState<Readonly<Record<string, Held>>>({});
   const [editing, setEditing] = useState<Editing | undefined>(undefined);
-  const [schema, setSchema] = useState<SchemaPayload | undefined>(undefined);
+  const [asked, setAsked] = useState<Asked>(undefined);
+  // Held while a write is in flight, so nothing dismisses the dialog out from
+  // under a refusal that has not arrived yet.
+  const [saving, setSaving] = useState(false);
+  // What each tab was last showing — its order, its filters, the page it was
+  // on. A write invalidates the rows, not what the reader was looking at.
+  const [shown, setShown] = useState<Readonly<Record<string, PageRequest>>>({});
+  // What the last write said, shown where an action's answer is shown. A
+  // create can sort onto a page the reader is not on, so the row appearing is
+  // not something they can be left to notice.
+  const [said, setSaid] = useState<ActionAnswer["notification"] | undefined>(undefined);
   const open = relations[at];
 
   /** Opens the form over the tab, once the server has resolved it. */
   function edit(relation: string, childId?: string): void {
     if (childForm === undefined) return;
-    setSchema(undefined);
+    setAsked(undefined);
     setEditing({ relation, ...(childId === undefined ? {} : { childId }) });
     void childForm(relation, childId).then(
-      (resolved) => {
-        setSchema(resolved);
+      (schema) => {
+        setAsked({ schema });
       },
-      () => {
-        setEditing(undefined);
+      (error: unknown) => {
+        // Said rather than swallowed. Closing the dialog silently leaves a
+        // reader who pressed a button with no idea whether anything happened.
+        setAsked({
+          failed: error instanceof Error ? error.message : "Could not open that.",
+        });
       },
     );
   }
 
-  /** After a write: the page is stale, so it is dropped and asked for again. */
-  function written(relation: string): void {
+  function shut(): void {
     setEditing(undefined);
-    setSchema(undefined);
+    setAsked(undefined);
+  }
+
+  /** After a write: the page is stale, so it is dropped and asked for again. */
+  function written(relation: string, notification: SaveResponse["notification"]): void {
+    shut();
+    setSaid(notification);
+    // What the reader was looking at, kept — read off the answer that is being
+    // dropped rather than off any request, because the server caps the paging
+    // depth and drops a sort it never declared.
+    const at = held[relation];
+    if (at !== undefined && "page" in at) {
+      setShown((was) => ({ ...was, [relation]: asking(at.page) }));
+    }
     // Dropped rather than patched: what a write did to the page — which rows,
     // in what order, on which page of how many — is the server's to say.
     setHeld((was) =>
@@ -116,7 +156,7 @@ export function PanelRelations({
     if (open === undefined || held[open.relation] !== undefined) return;
 
     let live = true;
-    void fetchPage(open.relation, {}).then(
+    void fetchPage(open.relation, shown[open.relation] ?? {}).then(
       (page) => {
         // The tab may have been left before this landed. Kept anyway — it is
         // the answer for that tab, and dropping it means fetching it again.
@@ -135,7 +175,7 @@ export function PanelRelations({
     return () => {
       live = false;
     };
-  }, [open, held, fetchPage]);
+  }, [open, held, shown, fetchPage]);
 
   if (relations.length === 0 || open === undefined) return null;
 
@@ -183,20 +223,20 @@ export function PanelRelations({
       {editing === undefined || saveChild === undefined ? null : (
         <ConfirmDialog
           open
-          confirmation={{
-            heading: editing.childId === undefined ? "Add" : "Edit",
-            confirmLabel: "Save",
-          }}
-          busy={false}
-          onConfirm={() => undefined}
-          onCancel={() => {
-            setEditing(undefined);
-            setSchema(undefined);
-          }}
+          confirmation={{ heading: editing.childId === undefined ? "Add" : "Edit" }}
+          // Escape and the backdrop are held off while a write is in flight:
+          // a refusal that arrives after the dialog has gone has nowhere to be
+          // shown, and the reader is told nothing.
+          busy={saving}
+          onCancel={shut}
         >
-          {schema === undefined || childState === undefined ? (
+          {asked === undefined || childState === undefined ? (
             <p className="perch-modal__description" role="status">
               Loading…
+            </p>
+          ) : "failed" in asked ? (
+            <p className="perch-modal__description" role="alert">
+              {asked.failed}
             </p>
           ) : (
             // The page form, in a dialog. A dependent field, a validation
@@ -204,23 +244,42 @@ export function PanelRelations({
             // component talking to the same cycle.
             <PanelForm
               key={`${editing.relation}/${editing.childId ?? "new"}`}
-              initial={schema}
+              initial={asked.schema}
               send={childState(editing.relation, editing.childId)}
               submitLabel="Save"
+              {...(uploadChildFile === undefined
+                ? {}
+                : {
+                    uploadFile: (path: string, file: File, state: FormState) =>
+                      uploadChildFile(
+                        editing.relation,
+                        editing.childId,
+                        path,
+                        file,
+                        state,
+                      ),
+                  })}
               save={async ({ state }) => {
-                const answer = await saveChild(
-                  editing.relation,
-                  editing.childId,
-                  state,
-                );
-                if (answer.errors === undefined) {
-                  written(editing.relation);
-                  return {};
+                setSaving(true);
+                try {
+                  const answer = await saveChild(
+                    editing.relation,
+                    editing.childId,
+                    state,
+                  );
+                  if (answer.errors === undefined) {
+                    written(editing.relation, answer.notification);
+                    return {};
+                  }
+                  return {
+                    errors: answer.errors,
+                    ...(answer.payload === undefined
+                      ? {}
+                      : { payload: answer.payload }),
+                  };
+                } finally {
+                  setSaving(false);
                 }
-                return {
-                  errors: answer.errors,
-                  ...(answer.payload === undefined ? {} : { payload: answer.payload }),
-                };
               }}
             />
           )}
@@ -251,6 +310,7 @@ export function PanelRelations({
         within
         initial={what.page}
         title={one.label}
+        {...(said === undefined ? {} : { flash: said })}
         {...(writable
           ? {
               rowActions: [EDIT],
@@ -276,6 +336,23 @@ export function PanelRelations({
       />
     );
   }
+}
+
+/**
+ * The page that is on screen, as the request that would ask for it again.
+ *
+ * A write invalidates the rows and nothing else. Asked for from scratch, a
+ * reader who edited a row on the third page of a filtered tab came back to the
+ * first page of an unfiltered one.
+ */
+function asking(page: RecordsPage): PageRequest {
+  return {
+    ...(page.sort === undefined ? {} : { sort: page.sort }),
+    page: page.page,
+    perPage: page.perPage,
+    ...(page.search === undefined ? {} : { search: page.search }),
+    ...(page.filters === undefined ? {} : { filters: page.filters }),
+  };
 }
 
 /** Namespaced, because a relation could be called the same as a form's tab. */

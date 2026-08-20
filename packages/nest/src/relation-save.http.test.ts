@@ -14,6 +14,9 @@ import { Injectable } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type {
   DataAdapter,
+  IncomingFile,
+  StagedFile,
+  StorageAdapter,
   Field,
   Id,
   Ir,
@@ -22,7 +25,7 @@ import type {
   Schema as SchemaTree,
   WriteTree,
 } from "@perchjs/core";
-import { Schema, TextColumn, TextInput } from "@perchjs/core";
+import { FileUpload, Schema, TextColumn, TextInput } from "@perchjs/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
@@ -78,6 +81,32 @@ let managerPolicy: Authorization | undefined;
 /** `null` is a manager that declares no form, which neither creates nor edits. */
 let fields: readonly Field[] | null = null;
 let next = 100;
+let staged: IncomingFile[] = [];
+
+@Injectable()
+class MemoryDisk implements StorageAdapter {
+  stage(file: IncomingFile): Promise<StagedFile> {
+    staged.push(file);
+    return Promise.resolve({
+      key: `staging/${String(staged.length)}`,
+      name: file.name,
+      size: file.bytes.byteLength,
+      type: file.type,
+    });
+  }
+  commit(key: string, directory: string): Promise<string> {
+    return Promise.resolve(`${directory}/${key}`);
+  }
+  remove(): Promise<void> {
+    return Promise.resolve();
+  }
+  url(key: string): string {
+    return `/files/${key}`;
+  }
+  sweepStaged(): Promise<number> {
+    return Promise.resolve(0);
+  }
+}
 
 @Injectable()
 class MemoryAdapter implements DataAdapter {
@@ -163,6 +192,7 @@ beforeEach(async () => {
   policy = undefined;
   managerPolicy = undefined;
   fields = [TextInput.make("body").required()];
+  staged = [];
 
   const moduleRef = await Test.createTestingModule({
     imports: [
@@ -170,6 +200,7 @@ beforeEach(async () => {
         path: "/admin",
         resources: [PostResource],
         dataAdapter: MemoryAdapter,
+        disks: { default: new MemoryDisk() },
         assets: assets(),
       }),
     ],
@@ -388,6 +419,18 @@ describe("the form a tab opens", () => {
     expect(JSON.stringify(body)).not.toContain("On the first");
   });
 
+  it("fills a field the reader cannot type into, which is the point of one", async () => {
+    // Measured before this: the row went through admission — the boundary
+    // client state crosses — which drops what a read-only field carries. The
+    // form opened empty, and required, with nothing the reader could do.
+    fields = [TextInput.make("body").required().readOnly()];
+
+    const { body } = await write(FORM, { childId: 10 });
+
+    expect(JSON.stringify(body)).toContain("On the first");
+    expect(body["errors"]).toEqual({});
+  });
+
   it("is filled from the row when one is named", async () => {
     const { body } = await write(FORM, { childId: 10 });
 
@@ -467,6 +510,68 @@ describe("the round trips that form takes", () => {
     expect(
       (await write(STATE, { state: {}, dirtyPath: "body", operation: "create" }))
         .status,
+    ).toBe(404);
+  });
+});
+
+describe("a file for a field the manager declares", () => {
+  const upload = async (
+    at: string,
+    fields: Record<string, string>,
+  ): Promise<number> => {
+    const form = new FormData();
+    for (const [name, value] of Object.entries(fields)) form.set(name, value);
+    form.set("file", new File(["a"], "a.png", { type: "image/png" }));
+    const response = await fetch(`${url}${at}`, { method: "POST", body: form });
+    return response.status;
+  };
+
+  it("is staged, because the resource's route would not find the path", async () => {
+    fields = [FileUpload.make("body")];
+
+    const status = await upload("/admin/api/posts/1/relations/comments/upload", {
+      path: "body",
+      state: "{}",
+    });
+
+    expect(status).toBe(200);
+    expect(staged).toHaveLength(1);
+  });
+
+  it("is refused for a child belonging to another parent", async () => {
+    fields = [FileUpload.make("body")];
+
+    const status = await upload("/admin/api/posts/1/relations/comments/upload", {
+      path: "body",
+      state: "{}",
+      id: "12",
+    });
+
+    expect(status).toBe(404);
+    expect(staged).toHaveLength(0);
+  });
+
+  it("is refused for a path the manager's form does not declare", async () => {
+    fields = [TextInput.make("body")];
+
+    const status = await upload("/admin/api/posts/1/relations/comments/upload", {
+      path: "body",
+      state: "{}",
+    });
+
+    expect(status).toBe(404);
+    expect(staged).toHaveLength(0);
+  });
+
+  it("is refused where the manager may not be added to", async () => {
+    fields = [FileUpload.make("body")];
+    managerPolicy = { create: () => false };
+
+    expect(
+      await upload("/admin/api/posts/1/relations/comments/upload", {
+        path: "body",
+        state: "{}",
+      }),
     ).toBe(404);
   });
 });

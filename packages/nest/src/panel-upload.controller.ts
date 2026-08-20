@@ -29,12 +29,20 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import type { DataAdapter, FormState, Row, StagedFile } from "@perchjs/core";
+import type {
+  DataAdapter,
+  FormState,
+  ResolveResult,
+  Row,
+  Schema,
+  StagedFile,
+} from "@perchjs/core";
 import { FileUpload } from "@perchjs/core";
 import { admit } from "./admission.js";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import { recordId } from "./record-id.js";
+import { childOf, reachManager } from "./relation-reach.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
@@ -130,9 +138,82 @@ export class PanelUploadController {
       record,
     });
 
+    return await this.#stage(tree, body.path, part);
+  }
+
+  /**
+   * `POST {path}/api/:resource/:id/relations/:relation/upload`.
+   *
+   * A file for a manager's own form. The field is declared there rather than on
+   * the resource, so the resource's route would not find the path at all — and
+   * a control that stages nothing is a control the reader fills for nothing.
+   */
+  @Post(":id/relations/:relation/upload")
+  @HttpCode(200)
+  @UseInterceptors(
+    FileInterceptor("file", { limits: { fileSize: UPLOAD_CEILING_BYTES } }),
+  )
+  async uploadToChild(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("relation") relation: string,
+    @UploadedFile() part: UploadedPart | undefined,
+    @Req() request: unknown,
+  ): Promise<UploadAnswer> {
+    const body = readBody(request);
+    const user = this.#users.resolve(request);
+
+    let schema: Schema | undefined;
+    const { data, scope, owner } = await reachManager({
+      data: this.#data,
+      resource: this.#registry.get(slug),
+      parentId: id,
+      relation,
+      user,
+      needs: (manager) => {
+        schema = manager.state.form;
+        // Filling a field on a form is doing what that form is for, so the
+        // permission asked is the one the write will ask.
+        return schema === undefined
+          ? undefined
+          : body.id === undefined
+            ? "create"
+            : "edit";
+      },
+    });
+    if (schema === undefined) throw new NotFoundException();
+
+    // The row being edited, checked against the parent first — the same door
+    // reading the form and writing it go through.
+    const record =
+      body.id === undefined ? null : (await childOf(data, scope, owner, body.id)).row;
+
+    const { tree } = await admit({
+      schema,
+      state: body.state,
+      operation: record === null ? "create" : "edit",
+      user,
+      record,
+    });
+
+    return await this.#stage(tree, body.path, part);
+  }
+
+  /**
+   * The field the path names, and the file it accepts.
+   *
+   * Shared, because which schema declared the field is the only thing the two
+   * routes differ by. Everything from here — may they fill it, which disk, how
+   * large, what type — is the field's own answer.
+   */
+  async #stage(
+    tree: ResolveResult,
+    path: string,
+    part: UploadedPart | undefined,
+  ): Promise<UploadAnswer> {
     const found = tree.nodes.find(
       (node): node is typeof node & { component: FileUpload } =>
-        node.component instanceof FileUpload && node.component.name === body.path,
+        node.component instanceof FileUpload && node.component.name === path,
     );
     if (found === undefined) throw new NotFoundException();
     // A field they may not write is a field they may not fill.

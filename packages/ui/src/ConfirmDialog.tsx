@@ -20,23 +20,29 @@ export interface Confirmation {
   readonly cancelLabel?: string;
 }
 
-export interface ConfirmDialogProps {
+interface DialogBase {
   readonly open: boolean;
   readonly confirmation: Confirmation;
-  /**
-   * A form the reader fills instead of a yes-or-no.
-   *
-   * When present it owns the dialog's buttons — a form submits itself, and a
-   * second confirm button beside it would be two ways to do one thing.
-   */
-  readonly children?: ReactNode;
   /** Drawn as destructive, and the confirm button with it. */
   readonly danger?: boolean;
   /** Held while the request is in flight, so it cannot be pressed twice. */
   readonly busy?: boolean;
-  readonly onConfirm: () => void;
   readonly onCancel: () => void;
 }
+
+/**
+ * Either a question or a form, and the two take different callers.
+ *
+ * A union rather than two optional props: a question with nothing to answer it
+ * would draw a confirm button that does nothing, and a form with a second
+ * confirm beside its own submit would be two ways to do one thing. Neither
+ * compiles.
+ */
+export type ConfirmDialogProps = DialogBase &
+  (
+    | { readonly children: ReactNode; readonly onConfirm?: never }
+    | { readonly children?: undefined; readonly onConfirm: () => void }
+  );
 
 export function ConfirmDialog({
   open,
@@ -91,9 +97,27 @@ export function ConfirmDialog({
           event.stopPropagation();
         }}
       >
-        <h2 className="perch-modal__heading">
-          {confirmation.heading ?? "Are you sure?"}
-        </h2>
+        <div className="perch-modal__bar">
+          <h2 className="perch-modal__heading">
+            {confirmation.heading ?? "Are you sure?"}
+          </h2>
+          {/* The pointer's way out, and only where there is none otherwise: a
+              question has its own Cancel, and a second control by the same
+              name would be two ways to do one thing. A dialog holding a form
+              has neither — it ignores a click on the backdrop on purpose, so
+              Escape was the only way to leave it. */}
+          {children === undefined ? null : (
+            <button
+              type="button"
+              className="perch-modal__close"
+              aria-label="Close"
+              disabled={busy}
+              onClick={onCancel}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          )}
+        </div>
         {confirmation.description === undefined ? null : (
           <p className="perch-modal__description">{confirmation.description}</p>
         )}
@@ -111,7 +135,9 @@ export function ConfirmDialog({
             <button
               type="button"
               className={`perch-button ${danger ? "perch-button--danger" : "perch-button--primary"}`}
-              onClick={onConfirm}
+              onClick={() => {
+                onConfirm?.();
+              }}
               disabled={busy}
               aria-busy={busy}
             >

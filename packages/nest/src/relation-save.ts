@@ -12,7 +12,7 @@
  */
 import { NotFoundException } from "@nestjs/common";
 import type { DataAdapter, Row, SchemaPayload, WriteTree } from "@perchjs/core";
-import { dehydrate, serialise } from "@perchjs/core";
+import { dehydrate, resolveSchema, serialise } from "@perchjs/core";
 import { admit } from "./admission.js";
 import { commitUploads, dropReplaced, undoCommitted } from "./commit-uploads.js";
 import { fileUrls } from "./file-urls.js";
@@ -106,7 +106,18 @@ export async function saveChild(request: ChildWrite): Promise<SaveResponse> {
   // alone: the row carries columns nothing on the client reads, and one of
   // them may be what a hook just hashed.
   const primaryKey = data.meta(scope.model).primaryKey.name;
-  return { record: projectOne(saved, new Set([primaryKey])) };
+  // Said by the server, because the wording is the server's — and said at all
+  // because a create can land on a page the reader is not looking at. Without
+  // it, a write that worked and a write that did nothing look the same.
+  return {
+    record: projectOne(saved, new Set([primaryKey])),
+    notification: {
+      title: `${manager.state.label ?? manager.state.relation} ${
+        found === null ? "added" : "saved"
+      }`,
+      tone: "success",
+    },
+  };
 }
 
 /**
@@ -156,14 +167,17 @@ export async function childForm(request: {
       ? null
       : (await childOf(data, scope, owner, request.childId)).row;
 
-  const { tree } = await admit({
-    schema: form,
-    // The row itself on an edit, which `serialise` narrows to the paths the
-    // tree makes visible — so a column the form does not carry stays here.
-    state: record ?? {},
+  // Resolved, never admitted. Admission is the boundary client state crosses,
+  // and it drops what a read-only or invisible field carries — which is right
+  // for a browser and wrong for a row the server just read. Put through it, a
+  // `.readOnly()` field came back empty and required.
+  //
+  // `serialise` still narrows the answer to the paths the tree makes visible,
+  // so a column the form does not carry never reaches the browser.
+  const tree = await resolveSchema(form, record ?? {}, {
     operation: record === null ? "create" : "edit",
     user: request.user,
-    record,
+    ...(record === null ? {} : { record }),
     ...withOptions(data, scope.model),
     ...fileUrls(request.disks),
   });
