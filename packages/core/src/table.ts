@@ -21,6 +21,19 @@ export interface TableState {
   /** What a ticked selection may be put through. */
   readonly bulkActions: readonly Action[];
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
+  readonly empty?: EmptyState;
+}
+
+/**
+ * What a table says when it has nothing to show.
+ *
+ * Static, all of it: an empty page has no record to work a sentence out from,
+ * which is the whole reason there is nothing on it.
+ */
+export interface EmptyState {
+  readonly heading?: string;
+  readonly description?: string;
+  readonly icon?: string;
 }
 
 /** What crosses the wire, as a `ColumnTree`. */
@@ -79,6 +92,7 @@ export interface ColumnTree {
   /** What it offers for a ticked selection. */
   readonly bulkActions: readonly ActionNode[];
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
+  readonly empty?: EmptyState;
 }
 
 export class Table {
@@ -135,6 +149,17 @@ export class Table {
   defaultSort(path: string, direction: SortDirection = "asc"): Table {
     return new Table({ ...this.state, defaultSort: { path, direction } });
   }
+
+  /**
+   * What to say when there is nothing to show.
+   *
+   * Without one the table says so in the plainest words it has. With one it can
+   * say why there is nothing yet and what to do about it — which is the
+   * difference between an empty page and a page that looks broken.
+   */
+  emptyState(state: EmptyState): Table {
+    return new Table({ ...this.state, empty: state });
+  }
 }
 
 /**
@@ -175,6 +200,7 @@ export function serialiseTable(table: Table): ColumnTree {
     actions: table.state.actions.map(node),
     headerActions: table.state.headerActions.map(node),
     bulkActions: table.state.bulkActions.map(node),
+    ...(table.state.empty === undefined ? {} : { empty: table.state.empty }),
     ...(table.state.defaultSort === undefined
       ? {}
       : { defaultSort: table.state.defaultSort }),

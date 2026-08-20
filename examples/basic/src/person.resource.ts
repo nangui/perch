@@ -9,6 +9,7 @@ import {
   Checkbox,
   CreateAction,
   DateTimePicker,
+  Callout,
   DeleteAction,
   EditAction,
   ForceDeleteAction,
@@ -174,6 +175,13 @@ export class PersonResource {
           destroy,
         ])
         .bulkActions([archive, remove, restore, destroy])
+        // What the page says with nothing on it. Without one it says "Nothing
+        // to show", which is true and tells a reader nothing they can act on.
+        .emptyState({
+          heading: "Nobody here",
+          description: "Create the first person, or widen the filters above.",
+          icon: "\u2691",
+        })
         .headerActions([CreateAction.make()])
         .defaultSort("firstName")
     );
@@ -322,10 +330,20 @@ export class PersonResource {
           Radio.make("role").label("Role").options(ROLES).inline(),
         ]),
 
+      Callout.make("Before you edit")
+        .tone("warning")
+        .description(({ get }) =>
+          get("active") === true
+            ? "This person can sign in. Changes take effect immediately."
+            : "This person cannot sign in, so nothing here reaches them yet.",
+        ),
       Section.make("Status")
         .columns(2)
         .schema([
-          Toggle.make("active").label("Active").onColor("success"),
+          // Live, because the callout above says something different about a
+          // person who cannot sign in. A resolvable line only tracks a field
+          // that asks the server when it changes.
+          Toggle.make("active").label("Active").onColor("success").live(),
           Checkbox.make("onCall").label("On call this week").inlineLabel(),
           DateTimePicker.make("startsAt")
             .label("Starts at")

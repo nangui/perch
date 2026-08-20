@@ -496,6 +496,9 @@ export function PanelList({
           columns={page.columns}
           rows={page.rows}
           caption={title}
+          {...(page.columns.empty === undefined
+            ? {}
+            : { empty: <EmptyState {...page.columns.empty} /> })}
           rowHref={(action, row) => href(page, action, row)}
           rowActions={(row) => [...offered(page, row), ...(rowActions ?? [])]}
           {...(sort === undefined ? {} : { sort })}
@@ -711,6 +714,40 @@ function narrowing(
         Apply
       </button>
     </form>
+  );
+}
+
+/**
+ * What the table says when it has nothing to show.
+ *
+ * The plainest words it has are the fallback, and they are the right fallback:
+ * "Nothing to show" is true and short. This is for the tables where the reason
+ * matters — nothing yet, nothing matching, nothing this reader may see — which
+ * is the difference between an empty page and a page that looks broken.
+ */
+function EmptyState({
+  heading,
+  description,
+  icon,
+}: {
+  readonly heading?: string;
+  readonly description?: string;
+  readonly icon?: string;
+}): ReactNode {
+  return (
+    <>
+      {/* Decoration beside the words, never instead of them: hidden from a
+          screen reader, which already has the sentence. */}
+      {icon === undefined ? null : (
+        <span className="perch-table__empty-icon" aria-hidden="true">
+          {icon}
+        </span>
+      )}
+      {heading === undefined ? null : (
+        <p className="perch-table__empty-heading">{heading}</p>
+      )}
+      {description === undefined ? null : <p>{description}</p>}
+    </>
   );
 }
 

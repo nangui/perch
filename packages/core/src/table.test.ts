@@ -212,3 +212,29 @@ describe("what a filter says on the wire", () => {
     expect(serialiseTable(table).filters[0]).not.toHaveProperty("options");
   });
 });
+
+describe("what a table says when it has nothing to show", () => {
+  it("crosses the wire whole, because none of it depends on a record", () => {
+    // An empty page has no row to work a sentence out from, which is the whole
+    // reason there is nothing on it — so all three are static and ride here.
+    const table = Table.make()
+      .columns([TextColumn.make("title")])
+      .emptyState({
+        heading: "No posts yet",
+        description: "Write the first one.",
+        icon: "\u270E",
+      });
+
+    expect(serialiseTable(table).empty).toEqual({
+      heading: "No posts yet",
+      description: "Write the first one.",
+      icon: "\u270E",
+    });
+  });
+
+  it("is absent where nothing was said, so the table falls back on its own", () => {
+    expect(
+      serialiseTable(Table.make().columns([TextColumn.make("title")])).empty,
+    ).toBeUndefined();
+  });
+});

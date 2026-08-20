@@ -1979,6 +1979,58 @@
 
 /* ------------------------------------------------------------------ renderer */
 
+/* Under the title, above what the layout holds. */
+.perch-layout__description {
+  margin: 0 0 var(--perch-space-4);
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+}
+
+/*
+ * A box that says something. Bordered on the leading edge rather than filled
+ * edge to edge: a panel of coloured blocks stops meaning anything, and the
+ * stripe reads as a tone at a glance without competing with the fields inside.
+ */
+.perch-layout--callout {
+  padding: var(--perch-space-4) var(--perch-space-5);
+  border: 1px solid var(--perch-border);
+  border-inline-start: 3px solid var(--perch-content-muted);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+}
+
+/*
+ * The tone on the stripe and on the words, never on the whole box: a filled
+ * panel behind a form's fields fights the controls it is warning about. Both,
+ * not the stripe alone — colour is not the only thing carrying it, but it
+ * should not be the only thing carrying it *twice* either.
+ */
+.perch-layout--callout[data-tone="success"] {
+  border-inline-start-color: var(--perch-success-content);
+  background: var(--perch-success-surface);
+}
+
+.perch-layout--callout[data-tone="warning"] {
+  border-inline-start-color: var(--perch-warning-content);
+  background: var(--perch-warning-surface);
+}
+
+.perch-layout--callout[data-tone="danger"] {
+  border-inline-start-color: var(--perch-danger-content);
+  background: var(--perch-danger-surface);
+}
+
+/* Its own line of prose is the point of it, not an aside under a title. */
+.perch-layout--callout .perch-layout__description {
+  margin-bottom: 0;
+  color: var(--perch-content);
+}
+
+/* Only where it holds something: an empty body would push the box open. */
+.perch-layout--callout .perch-layout__body:not(:empty) {
+  margin-top: var(--perch-space-4);
+}
+
 .perch-layout__body {
   display: grid;
   grid-template-columns: repeat(var(--perch-columns, 1), minmax(0, 1fr));
@@ -2136,6 +2188,29 @@
   padding: var(--perch-space-7);
   text-align: center;
   color: var(--perch-content-muted);
+}
+
+.perch-table__empty p {
+  margin: 0;
+}
+
+.perch-table__empty-icon {
+  display: block;
+  margin-bottom: var(--perch-space-3);
+  font-size: var(--perch-text-2xl);
+}
+
+/*
+ * The reason, in the page's own voice; the sentence under it explains.
+ *
+ * Named twice to outweigh the rule above it rather than shouted over with
+ * `!important`: a class beats an element, and a specificity fight settled that
+ * way is one the next rule here has to fight again.
+ */
+.perch-table__empty .perch-table__empty-heading {
+  margin-bottom: var(--perch-space-2);
+  color: var(--perch-content);
+  font-weight: 600;
 }
 
 .perch-cell__icon[data-on="true"] {

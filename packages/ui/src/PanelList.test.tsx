@@ -891,3 +891,50 @@ describe("the controls that narrow a list", () => {
     expect(screen.getByRole("textbox", { name: "email" })).toBeTruthy();
   });
 });
+
+describe("a table with nothing to show", () => {
+  const listed = (empty?: RecordsPage["columns"]["empty"]) =>
+    render(
+      <PanelList
+        initial={{
+          ...PAGE,
+          rows: [],
+          total: 0,
+          columns: { ...PAGE.columns, ...(empty === undefined ? {} : { empty }) },
+        }}
+        title="People"
+      />,
+    ).container;
+
+  it("says so in the plainest words it has, where nothing was declared", () => {
+    expect(listed().textContent).toContain("Nothing to show.");
+  });
+
+  it("says why, and what to do about it, where something was", () => {
+    // The difference between an empty page and a page that looks broken.
+    const container = listed({
+      heading: "No people yet",
+      description: "Add the first one to get started.",
+      icon: "👥",
+    });
+
+    expect(screen.getByText("No people yet")).toBeTruthy();
+    expect(screen.getByText("Add the first one to get started.")).toBeTruthy();
+    expect(container.querySelector(".perch-table__empty-icon")?.textContent).toBe("👥");
+  });
+
+  it("hides the mark beside the words from a reader who has the words", () => {
+    const container = listed({ heading: "No people yet", icon: "👥" });
+
+    expect(
+      container.querySelector(".perch-table__empty-icon")?.getAttribute("aria-hidden"),
+    ).toBe("true");
+  });
+
+  it("draws only what was declared, not empty lines for the rest", () => {
+    const container = listed({ heading: "No people yet" });
+
+    expect(container.querySelectorAll(".perch-table__empty p")).toHaveLength(1);
+    expect(container.querySelector(".perch-table__empty-icon")).toBeNull();
+  });
+});
