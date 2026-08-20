@@ -11,11 +11,13 @@ import {
   DateTimePicker,
   DeleteAction,
   EditAction,
+  ForceDeleteAction,
   FileUpload,
   Hidden,
   Placeholder,
   Radio,
   Repeater,
+  RestoreAction,
   RepeatableEntry,
   Schema,
   Section,
@@ -28,6 +30,7 @@ import {
   TextEntry,
   TextInput,
   Toggle,
+  TrashedFilter,
   ViewAction,
 } from "@perchjs/core";
 import { Action, Notification } from "@perchjs/core";
@@ -135,24 +138,44 @@ export class PersonResource {
           .success();
       });
 
-    return Table.make()
-      .columns([
-        TextColumn.make("firstName").label("First name").sortable().searchable(),
-        TextColumn.make("lastName").label("Last name").searchable(),
-        TextColumn.make("city").label("City"),
-        // Reads through the relation. One `include` for the page, never one
-        // query per row.
-        TextColumn.make("team.name").label("Team"),
-      ])
-      .filters([
-        SelectFilter.make("country").label("Country").options(COUNTRIES),
-        SelectFilter.make("role").label("Role").options(ROLES),
-        TextFilter.make("email").label("Email contains"),
-      ])
-      .actions([ViewAction.make(), EditAction.make(), archive, remove])
-      .bulkActions([archive, remove])
-      .headerActions([CreateAction.make()])
-      .defaultSort("firstName");
+    // One instance in both lists, not two: two actions of one name is a form the
+    // boot refuses, and rightly — a request names an action by its name, so the
+    // second could never be reached.
+    const restore = RestoreAction.make();
+    const destroy = ForceDeleteAction.make();
+
+    return (
+      Table.make()
+        .columns([
+          TextColumn.make("firstName").label("First name").sortable().searchable(),
+          TextColumn.make("lastName").label("Last name").searchable(),
+          TextColumn.make("city").label("City"),
+          // Reads through the relation. One `include` for the page, never one
+          // query per row.
+          TextColumn.make("team.name").label("Team"),
+        ])
+        .filters([
+          // Three states, one of which is the ordinary page. It lifts the read's
+          // own exclusion rather than narrowing what came out.
+          TrashedFilter.make().label("Deleted"),
+          SelectFilter.make("country").label("Country").options(COUNTRIES),
+          SelectFilter.make("role").label("Role").options(ROLES),
+          TextFilter.make("email").label("Email contains"),
+        ])
+        // Restore brings a marked row back and asks nothing; force delete leaves
+        // nothing to bring back, so it asks first and takes its own policy.
+        .actions([
+          ViewAction.make(),
+          EditAction.make(),
+          archive,
+          remove,
+          restore,
+          destroy,
+        ])
+        .bulkActions([archive, remove, restore, destroy])
+        .headerActions([CreateAction.make()])
+        .defaultSort("firstName")
+    );
   }
 
   /**

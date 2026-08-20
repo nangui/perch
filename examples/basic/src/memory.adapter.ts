@@ -20,12 +20,14 @@ import type {
   Clause,
   DataAdapter,
   FieldMeta,
+  DeletedRows,
   Id,
   IncludePlan,
   Ir,
   ModelMeta,
   Page,
   Query,
+  ReadOptions,
   Row,
   WriteTree,
 } from "@perchjs/core";
@@ -84,6 +86,9 @@ const PERSON: ModelMeta = {
     scalar("avatar", "String"),
     scalar("teamId", "Int"),
     scalar("tenantId", "Int"),
+    // The tombstone. Named by convention, which is what sets `hasSoftDelete`
+    // and what keeps it out of an inferred form.
+    scalar("deletedAt", "DateTime"),
   ],
   relations: [
     {
@@ -106,7 +111,7 @@ const PERSON: ModelMeta = {
     },
   ],
   uniqueConstraints: [["id"]],
-  hasSoftDelete: false,
+  hasSoftDelete: true,
   labelField: "firstName",
 };
 
@@ -185,7 +190,9 @@ export class MemoryAdapter implements DataAdapter {
   }
 
   findMany(query: Query): Promise<Page> {
-    let rows = this.#rows.filter((row) => matches(row, query.clauses));
+    let rows = this.#rows
+      .filter((row) => wanted(row, query.deleted))
+      .filter((row) => matches(row, query.clauses));
 
     const term = query.search?.term.toLowerCase();
     if (term !== undefined && term !== "") {
@@ -220,9 +227,11 @@ export class MemoryAdapter implements DataAdapter {
   }
 
   /** The children come with the row: they are the only ones an update reaches. */
-  findOne(_model: string, id: Id, include?: IncludePlan): Promise<Row | null> {
+  findOne(_model: string, id: Id, options?: ReadOptions): Promise<Row | null> {
+    const include = options?.include;
     const row = this.#rows.find((one) => one["id"] === id);
-    if (row === undefined) return Promise.resolve(null);
+    if (row === undefined || !wanted(row, options?.deleted))
+      return Promise.resolve(null);
     const notes = this.#notes.filter((note) => note["personId"] === row["id"]);
     return Promise.resolve({ ...join(row, include), notes });
   }
@@ -268,18 +277,32 @@ export class MemoryAdapter implements DataAdapter {
     }
   }
 
+  /** A person is soft-deleting, so this marks. Destroying has its own verb. */
   delete(_model: string, ids: readonly Id[]): Promise<number> {
+    return Promise.resolve(this.#mark(ids, new Date()));
+  }
+
+  forceDelete(_model: string, ids: readonly Id[]): Promise<number> {
     const before = this.#rows.length;
     this.#rows = this.#rows.filter((row) => !ids.includes(row["id"] as Id));
     return Promise.resolve(before - this.#rows.length);
   }
-  /** Not exercised here: a double that answered zero would let a test
-   * pass with nothing having happened. */
-  forceDelete(): Promise<number> {
-    throw new Error("not needed here");
+
+  restore(_model: string, ids: readonly Id[]): Promise<number> {
+    return Promise.resolve(this.#mark(ids, null));
   }
-  restore(): Promise<number> {
-    throw new Error("not needed here");
+
+  /** Rows that moved, not rows that were named: one already there did not. */
+  #mark(ids: readonly Id[], at: Date | null): number {
+    let moved = 0;
+    this.#rows = this.#rows.map((row) => {
+      if (!ids.includes(row["id"] as Id)) return row;
+      const marked = row["deletedAt"] != null;
+      if (marked === (at !== null)) return row;
+      moved += 1;
+      return { ...row, deletedAt: at };
+    });
+    return moved;
   }
 
   /** No rollback to speak of, which is the honest limit of a variable. */
@@ -306,6 +329,13 @@ export class MemoryAdapter implements DataAdapter {
 function join(row: Row, include: IncludePlan | undefined): Row {
   if (include?.["team"] === undefined) return row;
   return { ...row, team: TEAMS.find((team) => team["id"] === row["teamId"]) ?? null };
+}
+
+/** Whether a row is one this read asked for. `without` where nothing says so. */
+function wanted(row: Row, deleted: DeletedRows | undefined): boolean {
+  if (deleted === "with") return true;
+  const marked = row["deletedAt"] != null;
+  return deleted === "only" ? marked : !marked;
 }
 
 function matches(row: Row, clauses: readonly Clause[] | undefined): boolean {
