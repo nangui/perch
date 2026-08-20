@@ -81,11 +81,23 @@ function nameOf(qualified: string): string {
  * inline `//` is left alone, because a URL in a string is not a comment.
  */
 function code(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .split("\n")
-    .filter((line) => !line.trimStart().startsWith("//"))
-    .join("\n");
+  return (
+    source
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .split("\n")
+      .filter((line) => !line.trimStart().startsWith("//"))
+      .join("\n")
+      // Hyphen-joined words, which in this codebase are class names and custom
+      // properties rather than anything that reads a prop. A word boundary sits
+      // on either side of a hyphen, so `perch-badge--neutral` answered for a prop
+      // called `badge` and `perch-entry__copy` for one called `copy` — a guard
+      // vouching for a reader that is a string in a stylesheet.
+      //
+      // Whole tokens, not the hyphens: taking out only the punctuation would glue
+      // the words together and leave `perchbadgeneutral`, which matches nothing
+      // and would hide a genuine mention written the same way.
+      .replace(/\b[\w$]+(?:-[\w$]+)+\b/g, " ")
+  );
 }
 
 /**
