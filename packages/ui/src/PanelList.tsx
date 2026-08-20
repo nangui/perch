@@ -640,26 +640,31 @@ function narrowing(
       }}
     >
       {searchable ? (
-        <input
-          className="perch-control"
-          type="search"
-          name="search"
-          aria-label="Search"
-          value={state.typed}
-          onChange={(event) => {
-            state.setTyped(event.target.value);
-          }}
-        />
+        <label className="perch-list__narrow">
+          <span className="perch-list__narrow-name">Search</span>
+          <input
+            className="perch-control"
+            type="search"
+            name="search"
+            value={state.typed}
+            onChange={(event) => {
+              state.setTyped(event.target.value);
+            }}
+          />
+        </label>
       ) : null}
       {filters.map((filter) => {
         // `key` is passed on the element, never through the spread: React 19
         // warns about that and — the part that matters — does not use it, so a
         // list of controls would reconcile by position and hand a reader's
         // focus and half-typed value to a different filter when one is added.
+        // The name is on a `<label>` around the control rather than on the
+        // control itself: an `aria-label` names it for a screen reader and
+        // leaves a row of boxes all reading "Any" for everybody else.
+        const named = filter.label ?? filter.name;
         const shared = {
           className: "perch-control",
           name: filter.name,
-          "aria-label": filter.label ?? filter.name,
           value: state.entered[filter.name] ?? "",
           onChange: (event: { target: { value: string } }) => {
             state.setEntered({ ...state.entered, [filter.name]: event.target.value });
@@ -667,7 +672,12 @@ function narrowing(
         };
 
         if (filter.type === "TextFilter") {
-          return <input key={filter.name} {...shared} type="text" />;
+          return (
+            <label key={filter.name} className="perch-list__narrow">
+              <span className="perch-list__narrow-name">{named}</span>
+              <input {...shared} type="text" />
+            </label>
+          );
         }
         // A choice with nothing to choose from is a control that can only be
         // put back where it started. The trashed filter is drawn the same way:
@@ -680,15 +690,18 @@ function narrowing(
           (filter.options?.length ?? 0) > 0
         ) {
           return (
-            <select key={filter.name} {...shared}>
-              {/* An empty choice, or the control cannot be put back. */}
-              <option value="">Any</option>
-              {filter.options?.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <label key={filter.name} className="perch-list__narrow">
+              <span className="perch-list__narrow-name">{named}</span>
+              <select {...shared}>
+                {/* An empty choice, or the control cannot be put back. */}
+                <option value="">Any</option>
+                {filter.options?.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           );
         }
         // A type the renderer has no meaning for is skipped, not guessed at.

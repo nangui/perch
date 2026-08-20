@@ -832,3 +832,62 @@ describe("narrowing by a choice", () => {
     expect(screen.queryByLabelText("Status")).toBeNull();
   });
 });
+
+describe("the controls that narrow a list", () => {
+  const narrowed: RecordsPage = {
+    ...PAGE,
+    columns: {
+      ...PAGE.columns,
+      searchable: true,
+      filters: [
+        {
+          type: "SelectFilter",
+          name: "country",
+          label: "Country",
+          options: [{ value: "fr", label: "France" }],
+        },
+        {
+          type: "SelectFilter",
+          name: "role",
+          label: "Role",
+          options: [{ value: "lead", label: "Lead" }],
+        },
+      ],
+    },
+  };
+
+  it("each carry their name where a reader can see it", () => {
+    // Measured on screen before this: three boxes reading "Any", side by side,
+    // with nothing to say which was which unless you read the page by ear.
+    render(<PanelList initial={narrowed} title="People" fetchPage={vi.fn()} />);
+
+    expect(screen.getByText("Country")).toBeTruthy();
+    expect(screen.getByText("Role")).toBeTruthy();
+    expect(screen.getByText("Search")).toBeTruthy();
+  });
+
+  it("are still named for a reader who is not looking at them", () => {
+    render(<PanelList initial={narrowed} title="People" fetchPage={vi.fn()} />);
+
+    expect(screen.getByRole("combobox", { name: "Country" })).toBeTruthy();
+    expect(screen.getByRole("searchbox", { name: "Search" })).toBeTruthy();
+  });
+
+  it("falls back to the name where a filter declared no label", () => {
+    render(
+      <PanelList
+        initial={{
+          ...narrowed,
+          columns: {
+            ...narrowed.columns,
+            filters: [{ type: "TextFilter", name: "email" }],
+          },
+        }}
+        title="People"
+        fetchPage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "email" })).toBeTruthy();
+  });
+});

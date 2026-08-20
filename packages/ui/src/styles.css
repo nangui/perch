@@ -2179,7 +2179,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--perch-space-4);
-  align-items: center;
+  /* The names sit above the controls, so the row lines up on their bottoms
+     rather than on their middles — an Apply button beside a labelled box would
+     otherwise float half a line high. */
+  align-items: flex-end;
   padding: var(--perch-space-6);
   margin-bottom: var(--perch-space-6);
   background: var(--perch-surface);
@@ -2245,6 +2248,24 @@
    button is the one that cannot grow: its size is a pointer target. */
 .perch-list__search .perch-control {
   height: var(--perch-control-height-sm);
+}
+
+/* Each control under its own name. A row of boxes all reading "Any" is three
+   identical controls to anybody reading the page by eye. */
+.perch-list__narrow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--perch-space-1);
+}
+
+/* The same treatment a field's label gets, because it is the same thing: the
+   name of the control under it. */
+.perch-list__narrow-name {
+  color: var(--perch-content-muted);
+  font-size: var(--perch-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
 
 /* Turning a page is a button, not a link: it replaces the rows in place rather
