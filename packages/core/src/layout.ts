@@ -72,6 +72,49 @@ export class Section extends Layout {
   }
 }
 
+/**
+ * One panel of a `Tabs`, and a layout like any other inside it.
+ *
+ * Its label is what the tab reads, so it is asked for rather than optional: a
+ * tab nobody can name is one nobody can choose.
+ */
+export class Tab extends Layout {
+  override get type(): string {
+    return "Tab";
+  }
+
+  static make(title: string): Tab {
+    return configured(new Tab({ children: [], name: title, label: title }));
+  }
+
+  icon(value: string): this {
+    return this.with({ icon: value });
+  }
+}
+
+/**
+ * A set of panels, one at a time.
+ *
+ * The same class in a form and in an infolist — one implementation, which is
+ * what a layout being a `Component` rather than a field is for. What is inside
+ * a panel nobody is looking at is still there: a field in a folded tab is
+ * still a field, still filled in and still saved.
+ */
+export class Tabs extends Layout {
+  override get type(): string {
+    return "Tabs";
+  }
+
+  static make(): Tabs {
+    return configured(new Tabs({ children: [] }));
+  }
+
+  /** The panels, in the order they are read. */
+  tabs(panels: readonly Tab[]): this {
+    return this.with({ children: [...panels] });
+  }
+}
+
 export class Grid extends Layout {
   override get type(): string {
     return "Grid";

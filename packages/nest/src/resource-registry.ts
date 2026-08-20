@@ -22,6 +22,7 @@ import {
   columnPaths,
   entryPaths,
   entryRelations,
+  TernaryFilter,
   TrashedFilter,
   describeComplaints,
   findModel,
@@ -158,6 +159,7 @@ export class ResourceRegistry implements OnModuleInit {
         ...this.#unknownDisks(form),
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
+        ...(table === undefined ? [] : this.#unaskableFilters(metadata.model, table)),
         ...(infolist === undefined
           ? []
           : this.#unreadablePaths(metadata.model, entryPaths(infolist), "entry")),
@@ -201,6 +203,42 @@ export class ResourceRegistry implements OnModuleInit {
           `filters deleted rows on \`${model}\`, which has no deletion column — ` +
           "every one of its three states shows the same page",
       }));
+  }
+
+  /**
+   * A ternary filter on a column that does not hold one of two answers.
+   *
+   * `equals true` against a `String` matches nothing, on every row, for ever —
+   * an empty table that reads as a table with nothing in it.
+   */
+  #unaskableFilters(
+    model: string,
+    table: Table,
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const ir = this.#data.ir();
+    if (findModel(ir, model) === undefined) return [];
+
+    return table.state.filters.flatMap((filter) => {
+      if (!(filter instanceof TernaryFilter)) return [];
+      let type: string | undefined;
+      try {
+        type = resolvePath(ir, model, filter.state.path).field.type;
+      } catch {
+        // A path that does not resolve is `#unreadablePaths`' complaint, and
+        // saying it twice helps nobody.
+        return [];
+      }
+      if (type === "Boolean") return [];
+      return [
+        {
+          field: filter.state.name,
+          problem:
+            `asks yes or no of \`${filter.state.path}\`, which is a \`${type}\` — ` +
+            "the comparison matches nothing, on every row",
+        },
+      ];
+    });
   }
 
   #unreachableColumns(

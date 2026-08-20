@@ -152,6 +152,7 @@ describe("a prop the server sends", () => {
       "Schema",
       "Section",
       "Select",
+      "Tab",
       "TextEntry",
       "TextInput",
       "Textarea",

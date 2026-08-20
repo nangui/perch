@@ -74,6 +74,46 @@ export abstract class Filter {
 }
 
 /**
+ * Yes, no, or either — a column that holds one of two answers.
+ *
+ * Three states and not a checkbox, because a checkbox has two and the third is
+ * the one a filter needs: a tick that means "either" is a tick nobody can read.
+ * The empty choice is that third state, so putting the control back asks for
+ * the unfiltered page.
+ *
+ * A closed set, like every other choice here: `filter.published=maybe` is not a
+ * way to ask a question nobody declared.
+ */
+export class TernaryFilter extends Filter {
+  static make(name: string): TernaryFilter {
+    return new TernaryFilter({ name, path: name, operator: "equals" });
+  }
+
+  override get type(): string {
+    return "TernaryFilter";
+  }
+
+  protected override with(state: FilterState): this {
+    return new TernaryFilter(state) as this;
+  }
+
+  override clause(value: string): Clause | undefined {
+    if (value !== "yes" && value !== "no") return undefined;
+    // The boolean, not the word: a column that holds `true` compared against
+    // `"yes"` finds nothing and reads as an empty table rather than as a bug.
+    return { path: this.state.path, operator: "equals", value: value === "yes" };
+  }
+
+  /** Drawn like any other closed set, so the client needs nothing new. */
+  get choices(): readonly { readonly value: string; readonly label: string }[] {
+    return [
+      { value: "yes", label: "Yes" },
+      { value: "no", label: "No" },
+    ];
+  }
+}
+
+/**
  * With deleted, only deleted, or neither — the filter that lifts the read's own
  * exclusion rather than narrowing what it returned.
  *

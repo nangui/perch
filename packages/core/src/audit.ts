@@ -14,6 +14,7 @@
 import type { Component } from "./component.js";
 import { Entry } from "./entry.js";
 import { Field } from "./field.js";
+import { Tab, Tabs } from "./layout.js";
 import { Hidden } from "./fields/hidden.js";
 import { DateTimePicker } from "./fields/date-time-picker.js";
 import { FileUpload } from "./fields/file-upload.js";
@@ -126,6 +127,27 @@ function walk(component: Component, into: Complaint[]): void {
       field: component.name === "" ? "an unnamed Radio" : component.name,
       problem: "has no options, so it offers nothing and would refuse anything",
     });
+  }
+  // A set of panels with no panels draws nothing at all, and a panel that is
+  // not one is drawn as a tab named after whatever it is, opening on an empty
+  // box. Both read on screen as a layout that failed rather than as a form.
+  if (component instanceof Tabs) {
+    const name = component.name === "" ? "an unnamed Tabs" : component.name;
+    if (component.children.length === 0) {
+      into.push({
+        field: name ?? "an unnamed Tabs",
+        problem: "has no panels, so it draws nothing",
+      });
+    }
+    for (const child of component.children) {
+      if (child instanceof Tab) continue;
+      into.push({
+        field: child.name === "" || child.name === undefined ? child.type : child.name,
+        problem:
+          `is a \`${child.type}\` directly inside a \`Tabs\`, which holds panels — ` +
+          "it would be drawn as a tab named after itself, opening on nothing",
+      });
+    }
   }
   // A row is a section that happens many times; with no children it is a
   // section that happens many times and shows nothing.

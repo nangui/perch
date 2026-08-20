@@ -79,6 +79,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   ],
   Textarea: ["rows", "autosize", "maxLength"],
   Section: ["columns", "collapsible", "collapsed", "icon"],
+  Tab: ["columns", "icon"],
   Grid: ["columns"],
   Schema: ["columns"],
 };

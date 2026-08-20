@@ -100,7 +100,13 @@ export type {
   TableState,
 } from "./table.js";
 export type { FilterState } from "./filter.js";
-export { Filter, SelectFilter, TextFilter, TrashedFilter } from "./filter.js";
+export {
+  Filter,
+  SelectFilter,
+  TernaryFilter,
+  TextFilter,
+  TrashedFilter,
+} from "./filter.js";
 export {
   columnPaths,
   declaredActions,
@@ -140,7 +146,7 @@ export { Component, configured, isResolver } from "./component.js";
 
 // Layout components, shared by forms and infolists.
 export type { Columns } from "./layout.js";
-export { Grid, Schema, Section } from "./layout.js";
+export { Grid, Schema, Section, Tab, Tabs } from "./layout.js";
 
 // Fields: components that hold state and are validated.
 export type {

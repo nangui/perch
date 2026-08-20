@@ -6,6 +6,7 @@
  * substitutable, which is what a plugin needs to replace one.
  */
 import type { ReactNode } from "react";
+import type { KeyboardEvent } from "react";
 import { useCallback, useState } from "react";
 import type { SchemaNode } from "@perchjs/core";
 import { FieldShell } from "./FieldShell.js";
@@ -468,6 +469,81 @@ function RepeatableEntryRenderer({ node, renderChild }: NodeProps): ReactNode {
   );
 }
 
+/**
+ * Panels, one at a time.
+ *
+ * A tablist as the pattern describes it: the tabs are buttons, the arrows move
+ * between them, and only the chosen one is in the tab order — so the keyboard
+ * reaches the set in one press and moves inside it with the arrows, rather than
+ * tabbing through every panel's worth of controls to get past.
+ *
+ * Hidden rather than unmounted, like a folded section: a field in a tab nobody
+ * is looking at is still a field, still filled in and still saved.
+ */
+function TabsRenderer({ node, renderChild }: NodeProps): ReactNode {
+  const panels = node.children ?? [];
+  const [chosen, setChosen] = useState(0);
+  const at = Math.min(chosen, Math.max(panels.length - 1, 0));
+  if (panels.length === 0) return null;
+
+  const move = (event: KeyboardEvent<HTMLDivElement>): void => {
+    // Not `step`: this file is read for every type's props, so a local of that
+    // name here would vouch for `TextInput.step` — which is on the wire with no
+    // reader, and the guard says so only while nothing says the word.
+    const towards = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+    if (towards === 0) return;
+    event.preventDefault();
+    const next = (at + towards + panels.length) % panels.length;
+    setChosen(next);
+    // Focus follows the choice: a tab that is selected and not focused leaves
+    // the reader pressing arrows and hearing nothing.
+    const list = event.currentTarget;
+    (list.children[next] as HTMLElement | undefined)?.focus();
+  };
+
+  return (
+    <div className={`perch-layout perch-layout--${node.type.toLowerCase()}`}>
+      <div className="perch-tabs__list" role="tablist" onKeyDown={move}>
+        {panels.map((panel, index) => (
+          <button
+            key={panel.id}
+            type="button"
+            role="tab"
+            id={`${panel.id}-tab`}
+            className="perch-tabs__tab"
+            aria-selected={index === at}
+            aria-controls={panel.id}
+            tabIndex={index === at ? 0 : -1}
+            onClick={() => {
+              setChosen(index);
+            }}
+          >
+            {typeof panel.props?.["icon"] === "string" ? (
+              <span className="perch-tabs__icon" aria-hidden="true">
+                {panel.props["icon"]}
+              </span>
+            ) : null}
+            {panel.label ?? ""}
+          </button>
+        ))}
+      </div>
+      {panels.map((panel, index) => (
+        <div
+          key={panel.id}
+          id={panel.id}
+          role="tabpanel"
+          aria-labelledby={`${panel.id}-tab`}
+          className="perch-layout__body"
+          style={columnsStyle(panel)}
+          hidden={index !== at}
+        >
+          {(panel.children ?? []).map(renderChild)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TextEntryRenderer({ node }: NodeProps): ReactNode {
   // No status: an entry is never disabled, never in flight and never in error.
   // Passing a resting one would say those states exist for it.
@@ -809,6 +885,9 @@ export function registerBuiltInComponents(): void {
   registerComponent("Schema", LayoutRenderer);
   registerComponent("Section", LayoutRenderer);
   registerComponent("Grid", LayoutRenderer);
+  registerComponent("Tabs", TabsRenderer);
+  // A tab outside a `Tabs` is a box with a heading, which is what a layout is.
+  registerComponent("Tab", LayoutRenderer);
   registerComponent("TextInput", TextInputRenderer);
   registerComponent("Select", SelectRenderer);
   registerComponent("Checkbox", CheckboxRenderer);

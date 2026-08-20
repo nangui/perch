@@ -29,6 +29,7 @@ import {
   Table,
   TextColumn,
   TextFilter,
+  TernaryFilter,
   TextInput,
   TrashedFilter,
 } from "@perchjs/core";
@@ -474,6 +475,41 @@ describe("a trashed filter on a model with nothing to mark", () => {
           await ref.init();
         }),
     ).rejects.toThrow(/no deletion column/);
+  });
+});
+
+describe("a ternary filter on a column that holds no yes or no", () => {
+  it("stops the boot rather than matching nothing on every row", async () => {
+    // `equals true` against a `String` finds nothing, for ever — an empty table
+    // that reads as a table with nothing in it.
+    @PanelResource({ model: "Post", slug: "unaskable" })
+    class UnaskableResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .filters([TernaryFilter.make("title")]);
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [UnaskableResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/matches nothing/);
   });
 });
 

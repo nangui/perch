@@ -628,7 +628,9 @@ function narrowing(
         // three states, one of which is the empty one, and nothing about it is
         // the client's to know beyond that.
         if (
-          (filter.type === "SelectFilter" || filter.type === "TrashedFilter") &&
+          (filter.type === "SelectFilter" ||
+            filter.type === "TrashedFilter" ||
+            filter.type === "TernaryFilter") &&
           (filter.options?.length ?? 0) > 0
         ) {
           return (

@@ -653,6 +653,43 @@
 /* A reading, in the shape of a control: it sits in a column of fields and the
    eye reads that column as a column. Not a control, so nothing here suggests
    there is something to do to it. */
+/* ------------------------------------------------------------------- tabs */
+
+.perch-tabs__list {
+  display: flex;
+  gap: var(--perch-space-1);
+  border-bottom: 1px solid var(--perch-border);
+}
+
+.perch-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+  /* WCAG's pointer target, the floor every other control here keeps. */
+  min-height: 24px;
+  padding: var(--perch-space-3) var(--perch-space-4);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+  cursor: pointer;
+}
+
+.perch-tabs__tab:hover {
+  color: var(--perch-content);
+}
+
+/*
+ * Underlined and darker, not colour alone: which panel you are on has to be
+ * legible to somebody who cannot tell the two colours apart.
+ */
+.perch-tabs__tab[aria-selected="true"] {
+  color: var(--perch-content);
+  border-bottom-color: var(--perch-accent);
+  font-weight: 600;
+}
+
 /* ------------------------------------------------------------------- view */
 
 /*
