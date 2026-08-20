@@ -38,6 +38,7 @@ import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
+import { RelationManager } from "./relation-manager.js";
 import { key, scalar } from "./__fixtures__/ir.js";
 
 /** Each row carries a column no table declares. That is the point. */
@@ -510,6 +511,40 @@ describe("a ternary filter on a column that holds no yes or no", () => {
           await ref.init();
         }),
     ).rejects.toThrow(/matches nothing/);
+  });
+});
+
+describe("a relation manager whose scope cannot be worked out", () => {
+  it("stops the boot rather than guessing which column narrows it", async () => {
+    // Every read and write it makes is narrowed by one derived column. The
+    // wrong one is a page of somebody else's rows, and it looks exactly like
+    // the right one.
+    @PanelResource({ model: "Post", slug: "unscopable" })
+    class UnscopableResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      relations(): readonly RelationManager[] {
+        return [RelationManager.make("nowhere")];
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [UnscopableResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/no relation named/);
   });
 });
 

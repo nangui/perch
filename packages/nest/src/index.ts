@@ -58,3 +58,7 @@ export type { PanelResourceOptions, ResourceMetadata } from "./resource.js";
 export { PANEL_RESOURCE, PanelResource, resourceMetadata } from "./resource.js";
 export type { RegisteredResource, ResourceClass } from "./resource-registry.js";
 export { PANEL_RESOURCE_TYPES, ResourceRegistry } from "./resource-registry.js";
+export type { RelationManagerState } from "./relation-manager.js";
+export { RelationManager } from "./relation-manager.js";
+export type { RelationScope } from "./relation-scope.js";
+export { relationScope, ScopeError } from "./relation-scope.js";

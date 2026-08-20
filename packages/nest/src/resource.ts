@@ -6,6 +6,7 @@
 import type { Schema, Table } from "@perchjs/core";
 import { defaultSlug, plural } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
+import type { RelationManager } from "./relation-manager.js";
 import type { RedirectAfterCreate } from "./redirect.js";
 import { Injectable, SetMetadata } from "@nestjs/common";
 
@@ -48,6 +49,13 @@ export interface PanelResource {
    * there, like one that does not exist.
    */
   infolist?: () => Schema;
+  /**
+   * Children managed beside a record rather than inside its form.
+   *
+   * A repeater writes its rows with the parent, in one transaction; these work
+   * one operation at a time, with their own pages and their own actions.
+   */
+  relations?: () => readonly RelationManager[];
   /** Absent means allowed: the panel already sits behind the guards. */
   can?: Authorization;
   /** Overrides the panel's own choice for this resource alone. */

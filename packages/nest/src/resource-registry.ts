@@ -14,6 +14,8 @@ import type { OnModuleInit } from "@nestjs/common";
 import { Inject, Injectable } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
 import type { Component, EntryRelation, Ir } from "@perchjs/core";
+import type { RelationManager } from "./relation-manager.js";
+import { relationScope } from "./relation-scope.js";
 import type { DataAdapter, Schema, Table } from "@perchjs/core";
 import {
   auditInfolist,
@@ -147,6 +149,7 @@ export class ResourceRegistry implements OnModuleInit {
     for (const registered of this.all()) {
       const { metadata, instance } = registered;
       const table = instance.table?.();
+      const managers = instance.relations?.() ?? [];
       // Audited as it will be served: a field a hook adds is somebody's code
       // too, and one that cannot work should stop this boot rather than the
       // first reader.
@@ -160,6 +163,11 @@ export class ResourceRegistry implements OnModuleInit {
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
         ...(table === undefined ? [] : this.#unaskableFilters(metadata.model, table)),
+        ...this.#unscopableRelations(metadata.model, managers),
+        ...managers.flatMap((manager) => auditTable(manager.state.table)),
+        ...managers.flatMap((manager) =>
+          manager.state.form === undefined ? [] : auditSchema(manager.state.form),
+        ),
         ...(infolist === undefined
           ? []
           : this.#unreadablePaths(metadata.model, entryPaths(infolist), "entry")),
@@ -181,6 +189,37 @@ export class ResourceRegistry implements OnModuleInit {
    * for as long as nobody looks closely — and, since the loading plan is built
    * from these paths, a relation that silently never loads.
    */
+  /**
+   * A manager whose scope cannot be worked out.
+   *
+   * Every read and write it makes is narrowed by one derived column, so this is
+   * a security boundary and not a convenience: it is settled here, at the one
+   * moment somebody is watching, rather than under the first reader.
+   */
+  #unscopableRelations(
+    model: string,
+    managers: readonly RelationManager[],
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const ir = this.#data.ir();
+
+    return managers.flatMap((manager) => {
+      try {
+        relationScope(ir, model, manager.state.relation);
+        return [];
+      } catch (error) {
+        return [
+          {
+            field: manager.state.relation,
+            problem: `cannot be narrowed to one \`${model}\`: ${
+              error instanceof Error ? error.message : "the scope does not resolve"
+            }`,
+          },
+        ];
+      }
+    });
+  }
+
   /**
    * A trashed filter on a model with nothing to mark.
    *
