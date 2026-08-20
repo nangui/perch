@@ -12,6 +12,7 @@ import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { RawQuery } from "./records-query.js";
 import type { RecordsResponse } from "./records.js";
 import { listRecords } from "./records.js";
+import { listChildren } from "./relation-records.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
@@ -46,5 +47,30 @@ export class PanelRecordsController {
       // `/admin/api/posts/records` → `/admin`, whatever prefix the host added.
       rootOf(request, "api"),
     );
+  }
+
+  /**
+   * `GET {path}/api/:resource/:id/relations/:name/records`.
+   *
+   * The parent's key is in the address and nowhere else. A relation manager is
+   * narrowed by a column the server derives, and a request that could name the
+   * parent could name somebody else's.
+   */
+  @Get(":id/relations/:name/records")
+  async children(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("name") name: string,
+    @Query() query: RawQuery,
+    @Req() request: IncomingUrl,
+  ): Promise<RecordsResponse> {
+    return await listChildren({
+      data: this.#data,
+      resource: this.#registry.get(slug),
+      parentId: id,
+      relation: name,
+      raw: query,
+      user: this.#users.resolve(request),
+    });
   }
 }

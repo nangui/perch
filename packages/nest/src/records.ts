@@ -7,7 +7,16 @@
  * twice is a boundary that will diverge.
  */
 import { NotFoundException } from "@nestjs/common";
-import type { ColumnTree, DataAdapter, Id, Row, Sort } from "@perchjs/core";
+import type {
+  Clause,
+  ColumnTree,
+  DataAdapter,
+  Id,
+  Query,
+  Row,
+  Sort,
+  Table,
+} from "@perchjs/core";
 import { findModel, serialiseTable, SOFT_DELETE_FIELD } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import { mayReach } from "./authorization.js";
@@ -109,10 +118,43 @@ export async function listRecords(
   const can = resource.instance.can;
   if (!(await mayReach(can, user)) || !mayList(can)) throw new NotFoundException();
 
-  const model = resource.metadata.model;
-  const table = resource.instance.table?.();
+  return await listOf({
+    data,
+    model: resource.metadata.model,
+    table: resource.instance.table?.(),
+    raw,
+    ...pathOrNothing(resourcePath(root, resource.metadata.slug)),
+  });
+}
+
+/**
+ * The reading half, with no resource in it.
+ *
+ * Shared because a relation manager lists rows the same way a resource does —
+ * the same sorting, filtering, searching and loading plan — and differs in one
+ * thing: which rows it may see at all. Two readers would drift, and the one
+ * that drifted would be the one with the narrowing in it.
+ */
+export async function listOf(options: {
+  readonly data: DataAdapter;
+  readonly model: string;
+  readonly table: Table | undefined;
+  readonly raw: RawQuery;
+  /**
+   * Narrowed by the server, never by the request. Added after the declared
+   * filters rather than among them, so nothing a client sends can widen it.
+   */
+  readonly scope?: Clause;
+  readonly resourcePath?: string;
+}): Promise<RecordsResponse> {
+  const { data, model, table, raw, scope } = options;
   const ir = data.ir();
-  const { query, filters } = readList(model, ir, raw, table);
+  const read = readList(model, ir, raw, table);
+  const filters = read.filters;
+  const query: Query =
+    scope === undefined
+      ? read.query
+      : { ...read.query, clauses: [...(read.query.clauses ?? []), scope] };
   const found = await data.findMany(query);
   const applied = query.sort?.[0];
   const perPage = query.take ?? DEFAULT_PER_PAGE;
@@ -136,7 +178,9 @@ export async function listRecords(
         : serialiseTable(table),
     recordKey: key,
     ...(marked.length === 0 ? {} : { deleted: marked }),
-    ...pathOrNothing(resourcePath(root, resource.metadata.slug)),
+    ...(options.resourcePath === undefined
+      ? {}
+      : { resourcePath: options.resourcePath }),
     ...(applied === undefined ? {} : { sort: applied }),
     ...(query.search === undefined ? {} : { search: query.search.term }),
     ...(Object.keys(filters).length === 0 ? {} : { filters }),

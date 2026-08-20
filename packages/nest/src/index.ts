@@ -62,3 +62,4 @@ export type { RelationManagerState } from "./relation-manager.js";
 export { RelationManager } from "./relation-manager.js";
 export type { RelationScope } from "./relation-scope.js";
 export { relationScope, ScopeError } from "./relation-scope.js";
+export { listChildren, managedRelations } from "./relation-records.js";
