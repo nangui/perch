@@ -32,6 +32,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0018](0018-how-a-repeater-addresses-its-rows.md) | A repeater's rows are flat paths under a stable key, and its own path holds their order | accepted |
 | [0019](0019-what-an-infolist-resolves-against.md) | An entry reads the record by a path and never enters the state map, so an infolist admits nothing | accepted |
 | [0020](0020-what-a-soft-delete-does.md) | `delete` marks and `forceDelete` destroys; reads exclude marked rows at every depth, and nothing cascades | accepted |
+| [0021](0021-what-scopes-a-relation-manager.md) | A manager is scoped by a column derived from the IR and reached through its parent's address, never from a body | accepted |
 
 ## Format
 
