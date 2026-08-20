@@ -58,6 +58,40 @@ describe("what a repeater may hold", () => {
   });
 });
 
+describe("what identifies a node inside a row", () => {
+  const ids = (node: { id: string; children: readonly { id: string }[] }) =>
+    node.children.map((child) => child.id);
+
+  it("tells one row's keyed child from the next one's", async () => {
+    // A key is a stable identity for the client diff. Inside a repeater every
+    // row is walked from the same declaration, so a key written once was the
+    // id of every row's copy — and the renderer keys React by it, which makes
+    // two siblings with one key.
+    const tree = await resolveSchema(
+      Schema.make([
+        Repeater.make("items").schema([TextInput.make("label").key("theLabel")]),
+      ]),
+      { items: ["r1", "r2"] },
+      { operation: "create" },
+    );
+
+    const repeater = tree.root.children[0];
+    expect(new Set(ids(repeater!)).size).toBe(2);
+  });
+
+  it("keeps a key at the top of a form exactly as it was written", async () => {
+    // Only a row namespaces one. Everywhere else the key is the id, which is
+    // what makes it worth writing.
+    const tree = await resolveSchema(
+      Schema.make([TextInput.make("title").key("theTitle")]),
+      {},
+      { operation: "create" },
+    );
+
+    expect(tree.root.children[0]?.id).toBe("theTitle");
+  });
+});
+
 describe("more rows than a field allows", () => {
   const bounded = Repeater.make("items").maxItems(2);
 

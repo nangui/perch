@@ -648,12 +648,23 @@ function walk(
   index = 0,
   under = "",
   record?: Row,
+  row = "",
 ): WalkedNode {
   const own =
     component instanceof Field && component.name !== ""
       ? `${under}${component.name}`
       : "";
-  const id = component.state.key ?? (own !== "" ? own : `${prefix}${String(index)}`);
+  // A key is written once and every row is walked from that one declaration,
+  // so inside a repeat it has to be told apart by the row it is in. `row` is
+  // the row's own identity, not its position, so the key still survives a
+  // reorder — and outside a repeat it is empty and the key is the id, which is
+  // what makes writing one worth anything.
+  const id =
+    component.state.key === undefined
+      ? own !== ""
+        ? own
+        : `${prefix}${String(index)}`
+      : `${row}${component.state.key}`;
 
   // One group per row the record carried, in the order it carried them. A
   // `Schema` rather than something invented for this: a row is a set of entries
@@ -669,8 +680,16 @@ function walk(
       component,
       path: "",
       ...(record === undefined ? {} : { record }),
-      children: rows.map((row, at) =>
-        walk(shape, state, `${id}/${String(at)}/`, at, under, row),
+      children: rows.map((held, at) =>
+        walk(
+          shape,
+          state,
+          `${id}/${String(at)}/`,
+          at,
+          under,
+          held,
+          `${id}/${String(at)}/`,
+        ),
       ),
     };
   }
@@ -682,7 +701,15 @@ function walk(
       path: own,
       children: rowKeys(state[own], component.state.maxItems).flatMap((key) =>
         component.children.map((child, i) =>
-          walk(child, state, `${id}/${key}/`, i, `${own}.${key}.`, record),
+          walk(
+            child,
+            state,
+            `${id}/${key}/`,
+            i,
+            `${own}.${key}.`,
+            record,
+            `${id}/${key}/`,
+          ),
         ),
       ),
     };
@@ -694,7 +721,7 @@ function walk(
     path: own,
     ...(record === undefined ? {} : { record }),
     children: component.children.map((child, i) =>
-      walk(child, state, `${id}/`, i, under, record),
+      walk(child, state, `${id}/`, i, under, record, row),
     ),
   };
 }

@@ -145,3 +145,24 @@ describe("what the loading plan is told", () => {
     expect(entryRelations(schema).map((r) => r.relation)).toEqual(["notes"]);
   });
 });
+
+describe("what identifies an entry inside a row", () => {
+  it("tells one row's keyed entry from the next one's", async () => {
+    // Every row is drawn from the same declaration, so a key written once was
+    // the id of every row's copy — and the renderer keys React by it, which
+    // makes two siblings under one key.
+    const payload = await drawn(
+      Schema.make([
+        RepeatableEntry.make("notes").schema([
+          TextEntry.make("body").label("Note").key("theBody"),
+        ]),
+      ]),
+    );
+
+    const rows = payload.schema.children?.[0]?.children ?? [];
+    const ids = rows.flatMap((row) => (row.children ?? []).map((one) => one.id));
+
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+  });
+});
