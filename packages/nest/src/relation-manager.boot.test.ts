@@ -31,10 +31,45 @@ const COMMENT: ModelMeta = model({
   labelField: "body",
   relations: [
     {
+      name: "replies",
+      type: "many",
+      targetModel: "Reply",
+      relationName: "CommentToReply",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
+    {
       name: "post",
       type: "one",
       targetModel: "Post",
+      relationName: "CommentToPost",
       foreignKeyFields: ["postId"],
+      referencedFields: ["id"],
+      isRequired: true,
+      isList: false,
+    },
+  ],
+});
+
+/** What a repeater inside a manager's form writes: a third model's columns. */
+const REPLY: ModelMeta = model({
+  name: "Reply",
+  dbName: "Reply",
+  fields: [
+    key(),
+    scalar("postId", { type: "Int" }),
+    scalar("commentId", { type: "Int" }),
+  ],
+  labelField: "postId",
+  relations: [
+    {
+      name: "comment",
+      type: "one",
+      targetModel: "Comment",
+      relationName: "CommentToReply",
+      foreignKeyFields: ["commentId"],
       referencedFields: ["id"],
       isRequired: true,
       isList: false,
@@ -49,6 +84,7 @@ const POST: ModelMeta = model({
       name: "pinned",
       type: "one",
       targetModel: "Comment",
+      relationName: "PostPinnedComment",
       foreignKeyFields: ["pinnedId"],
       referencedFields: ["id"],
       isRequired: false,
@@ -58,6 +94,7 @@ const POST: ModelMeta = model({
       name: "comments",
       type: "many",
       targetModel: "Comment",
+      relationName: "CommentToPost",
       foreignKeyFields: [],
       referencedFields: [],
       isRequired: false,
@@ -69,7 +106,7 @@ const POST: ModelMeta = model({
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [POST, COMMENT] };
+    return { models: [POST, COMMENT, REPLY] };
   }
   meta(name: string): ModelMeta {
     return name === "Comment" ? COMMENT : POST;
@@ -161,6 +198,16 @@ describe("a manager the server cannot narrow", () => {
     await expect(boot([RelationManager.make("pinned")])).rejects.toThrow(
       /holds one row, not many/,
     );
+  });
+});
+
+describe("a manager form writing a column the child has not", () => {
+  it("stops the boot, judged against the child rather than the parent", async () => {
+    // `title` is the parent's column. Reached through a parent changes nothing
+    // about which model the write lands on.
+    await expect(
+      boot([comments().form((schema) => schema.schema([TextInput.make("title")]))]),
+    ).rejects.toThrow("`title` is a field on `Comment`");
   });
 });
 

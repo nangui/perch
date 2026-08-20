@@ -38,6 +38,7 @@ const country: RelationMeta = {
   name: "country",
   type: "one",
   targetModel: "Country",
+  relationName: "CountryToUser",
   foreignKeyFields: ["countryId"],
   referencedFields: ["id"],
   isRequired: false,

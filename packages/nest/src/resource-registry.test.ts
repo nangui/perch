@@ -9,6 +9,7 @@ import { Injectable, Module } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { Table } from "@perchjs/core";
 import {
+  Repeater,
   resolveSchema,
   Schema,
   FileUpload,
@@ -305,7 +306,10 @@ describe("a column reading a path the model does not have", () => {
         name: "Post",
         dbName: "Post",
         primaryKey: { name: "id", kind: "scalar", type: "Int", isId: true },
-        fields: [{ name: "id", kind: "scalar", type: "Int", isId: true }],
+        fields: [
+          { name: "id", kind: "scalar", type: "Int", isId: true },
+          { name: "title", kind: "scalar", type: "String" },
+        ],
         relations: [],
         uniqueConstraints: [],
         hasSoftDelete: false,
@@ -368,5 +372,112 @@ describe("a column reading a path the model does not have", () => {
     // That is one problem, not one per column, and the read path tolerates it
     // the same way rather than complaining about every path.
     await expect(boot(GhostResource)).resolves.toBeUndefined();
+  });
+});
+
+describe("a form field writing a column the model has not", () => {
+  const IR = {
+    models: [
+      {
+        name: "Post",
+        dbName: "Post",
+        primaryKey: { name: "id", kind: "scalar", type: "Int", isId: true },
+        fields: [
+          { name: "id", kind: "scalar", type: "Int", isId: true },
+          { name: "title", kind: "scalar", type: "String" },
+        ],
+        relations: [
+          {
+            name: "sections",
+            type: "many",
+            targetModel: "Section",
+            relationName: "PostToSection",
+            foreignKeyFields: [],
+            referencedFields: [],
+            isRequired: false,
+            isList: true,
+          },
+        ],
+        uniqueConstraints: [],
+        hasSoftDelete: false,
+        labelField: "title",
+      },
+      {
+        name: "Section",
+        dbName: "Section",
+        primaryKey: { name: "id", kind: "scalar", type: "Int", isId: true },
+        fields: [
+          { name: "id", kind: "scalar", type: "Int", isId: true },
+          { name: "label", kind: "scalar", type: "String" },
+        ],
+        relations: [],
+        uniqueConstraints: [],
+        hasSoftDelete: false,
+        labelField: "label",
+      },
+    ],
+  } as never;
+
+  @Injectable()
+  class Adapter {
+    ir() {
+      return IR;
+    }
+  }
+
+  const boot = async (form: Schema): Promise<void> => {
+    @PanelResource({ model: "Post", slug: "posts" })
+    class Resource {
+      form(): Schema {
+        return form;
+      }
+    }
+
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        PanelModule.forRoot({
+          path: "/admin",
+          resources: [Resource],
+          dataAdapter: Adapter as never,
+          assets: assets(),
+        }),
+      ],
+    }).compile();
+    await moduleRef.init();
+  };
+
+  it("stops the boot, because the adapter refuses the whole row", async () => {
+    await expect(boot(Schema.make([TextInput.make("titel")]))).rejects.toThrow(
+      "`titel` is a field on `Post`, which has no column by that name",
+    );
+  });
+
+  it("leaves a control that was never going to be a column alone", async () => {
+    // A confirmation box, a toggle that only shows something: forms have these,
+    // and saying so is what `.dehydrated(false)` is for.
+    await expect(
+      boot(
+        Schema.make([
+          TextInput.make("title"),
+          TextInput.make("titleAgain").dehydrated(false),
+        ]),
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it("judges a repeater's rows against the model they are written to", async () => {
+    await expect(
+      boot(Schema.make([Repeater.make("sections").schema([TextInput.make("label")])])),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      boot(Schema.make([Repeater.make("sections").schema([TextInput.make("title")])])),
+    ).rejects.toThrow("`title` is a field on `Section`");
+  });
+
+  it("stops the boot on a repeater naming no to-many at all", async () => {
+    await expect(
+      boot(Schema.make([Repeater.make("chapters").schema([TextInput.make("label")])])),
+    ).rejects.toThrow("`chapters` is a repeater on `Post`");
   });
 });

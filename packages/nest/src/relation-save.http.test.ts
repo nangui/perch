@@ -41,6 +41,7 @@ const COMMENT: ModelMeta = model({
       name: "post",
       type: "one",
       targetModel: "Post",
+      relationName: "CommentToPost",
       foreignKeyFields: ["postId"],
       referencedFields: ["id"],
       isRequired: true,
@@ -56,6 +57,7 @@ const POST: ModelMeta = model({
       name: "comments",
       type: "many",
       targetModel: "Comment",
+      relationName: "CommentToPost",
       foreignKeyFields: [],
       referencedFields: [],
       isRequired: false,
@@ -297,8 +299,40 @@ describe("who may write one", () => {
     managerPolicy = { update: () => false };
 
     expect(
+      (
+        await write(
+          "/admin/api/posts/1/relations/comments/10",
+          { body: "Reworded" },
+          "PATCH",
+        )
+      ).status,
+    ).toBe(404);
+  });
+
+  it("asks the manager for permission to add, not permission to change", async () => {
+    // Adding a child and changing one are separate permissions. A manager
+    // declaring `create` means it, and asking `update` instead would let a
+    // reader allowed only to edit add rows.
+    managerPolicy = { create: () => false, update: () => true };
+
+    expect(
       (await write("/admin/api/posts/1/relations/comments", { body: "Fresh" })).status,
     ).toBe(404);
+    expect(comments).toHaveLength(2);
+  });
+
+  it("does not hold an edit to the permission to add", async () => {
+    managerPolicy = { create: () => false, update: () => true };
+
+    expect(
+      (
+        await write(
+          "/admin/api/posts/1/relations/comments/10",
+          { body: "Reworded" },
+          "PATCH",
+        )
+      ).status,
+    ).toBe(200);
   });
 
   it("is refused where the manager declares no form", async () => {

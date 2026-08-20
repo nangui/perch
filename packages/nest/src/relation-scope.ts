@@ -57,7 +57,7 @@ export function relationScope(ir: Ir, parent: string, relation: string): Relatio
     );
   }
 
-  const back = pointingBack(target, parent);
+  const back = pointingBack(target, parent, declared);
   if (back.length === 0) {
     throw new ScopeError(
       `\`${declared.targetModel}\` has no column holding a \`${parent}\`, so its rows ` +
@@ -89,14 +89,26 @@ export function relationScope(ir: Ir, parent: string, relation: string): Relatio
 }
 
 /**
- * The to-one relations on the child that lead back to the parent.
+ * The to-one relation on the child that is the other half of this one.
+ *
+ * Matched on the name both sides share rather than on the models alone. Two
+ * relations between the same pair — a post's comments and the one it pins —
+ * are told apart by nothing else, and matching on the models would refuse both
+ * as ambiguous while the schema says exactly which is which.
  *
  * To-one only: a to-many pointing back is the other half of a join, and a join
  * has no column for this to read.
  */
-function pointingBack(child: ModelMeta, parent: string): readonly RelationMeta[] {
+function pointingBack(
+  child: ModelMeta,
+  parent: string,
+  declared: RelationMeta,
+): readonly RelationMeta[] {
   return child.relations.filter(
     (one) =>
-      !one.isList && one.targetModel === parent && one.foreignKeyFields.length > 0,
+      !one.isList &&
+      one.targetModel === parent &&
+      one.relationName === declared.relationName &&
+      one.foreignKeyFields.length > 0,
   );
 }

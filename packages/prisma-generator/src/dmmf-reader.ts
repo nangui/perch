@@ -288,6 +288,7 @@ function readRelation(field: DmmfField, modelName: string): RelationMeta {
     name: field.name,
     type: field.isList ? "many" : "one",
     targetModel: field.type,
+    relationName: field.relationName,
     foreignKeyFields: [...(field.relationFromFields ?? [])],
     referencedFields: [...(field.relationToFields ?? [])],
     isRequired: field.isRequired && !field.isList,

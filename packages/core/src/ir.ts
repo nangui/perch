@@ -59,6 +59,15 @@ export interface RelationMeta {
   readonly name: string;
   readonly type: RelationCardinality;
   readonly targetModel: string;
+  /**
+   * The name both sides of the relation share.
+   *
+   * What pairs a to-many with the to-one that holds its column. Two relations
+   * between the same pair of models are told apart by nothing else — the
+   * columns are on one side and the list is on the other, so without this the
+   * only way back is a guess between two.
+   */
+  readonly relationName: string;
   readonly foreignKeyFields: readonly string[];
   readonly referencedFields: readonly string[];
   readonly isRequired: boolean;

@@ -157,6 +157,17 @@ describe("readDmmf — relations", () => {
   it("reads an optional to-one relation", () => {
     expect(findRelation(findModel(ir, "Post")!, "category")?.isRequired).toBe(false);
   });
+
+  it("carries the name both halves of a relation share", () => {
+    // What pairs a to-many with the to-one holding its column. Read from the
+    // DMMF rather than rebuilt from the field's own name, which would differ on
+    // the two sides and pair nothing.
+    const posts = findRelation(findModel(ir, "User")!, "posts");
+    const author = findRelation(findModel(ir, "Post")!, "author");
+
+    expect(posts?.relationName).toBe("PostToUser");
+    expect(author?.relationName).toBe(posts?.relationName);
+  });
 });
 
 describe("readDmmf — model-level metadata", () => {

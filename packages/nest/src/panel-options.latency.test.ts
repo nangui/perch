@@ -47,7 +47,12 @@ const IR = {
   models: [
     {
       name: "Post",
-      fields: [{ name: "id", type: "Int", isId: true }],
+      fields: [
+        { name: "id", type: "Int", isId: true },
+        { name: "title", type: "String" },
+        { name: "authorId", type: "Int" },
+        { name: "editorId", type: "Int" },
+      ],
       relations: [
         {
           name: "author",

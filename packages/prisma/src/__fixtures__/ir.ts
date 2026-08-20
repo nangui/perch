@@ -27,11 +27,17 @@ function field(name: string, over: Partial<FieldMeta> = {}): FieldMeta {
 const id = (name = "id"): FieldMeta =>
   field(name, { type: "Int", isId: true, isUnique: true, isReadOnly: true });
 
-function toMany(name: string, targetModel: string): RelationMeta {
+/** The name Prisma gives a relation nobody named: the two models, in order. */
+function pair(owner: string, targetModel: string): string {
+  return [owner, targetModel].sort().join("To");
+}
+
+function toMany(owner: string, name: string, targetModel: string): RelationMeta {
   return {
     name,
     type: "many",
     targetModel,
+    relationName: pair(owner, targetModel),
     foreignKeyFields: [],
     referencedFields: [],
     isRequired: false,
@@ -39,11 +45,17 @@ function toMany(name: string, targetModel: string): RelationMeta {
   };
 }
 
-function toOne(name: string, targetModel: string, fk: string): RelationMeta {
+function toOne(
+  owner: string,
+  name: string,
+  targetModel: string,
+  fk: string,
+): RelationMeta {
   return {
     name,
     type: "one",
     targetModel,
+    relationName: pair(owner, targetModel),
     foreignKeyFields: [fk],
     referencedFields: ["id"],
     isRequired: true,
@@ -72,16 +84,19 @@ export const FIXTURE_IR: Ir = {
       name: "User",
       fields: [id(), field("email", { isUnique: true }), field("name")],
       relations: [
-        toMany("posts", "Post"),
-        toMany("orders", "Order"),
-        toMany("notes", "Note"),
+        toMany("User", "posts", "Post"),
+        toMany("User", "orders", "Order"),
+        toMany("User", "notes", "Note"),
       ],
       labelField: "name",
     }),
     model({
       name: "Post",
       fields: [id(), field("title"), field("authorId", { type: "Int" })],
-      relations: [toOne("author", "User", "authorId"), toMany("comments", "Comment")],
+      relations: [
+        toOne("Post", "author", "User", "authorId"),
+        toMany("Post", "comments", "Comment"),
+      ],
       labelField: "title",
     }),
     model({

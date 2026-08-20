@@ -34,9 +34,72 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
-import { model } from "./__fixtures__/ir.js";
+import { key, model, scalar } from "./__fixtures__/ir.js";
 
-const META = model();
+const META = model({
+  fields: [key(), scalar("title")],
+  relations: [
+    {
+      name: "sections",
+      type: "many",
+      targetModel: "Section",
+      relationName: "PostToSection",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
+  ],
+});
+
+/** A row of the repeater, and the rows one of those holds in turn. */
+const SECTION = model({
+  name: "Section",
+  dbName: "Section",
+  fields: [key(), scalar("label"), scalar("file"), scalar("postId", { type: "Int" })],
+  labelField: "label",
+  relations: [
+    {
+      name: "post",
+      type: "one",
+      targetModel: "Post",
+      relationName: "PostToSection",
+      foreignKeyFields: ["postId"],
+      referencedFields: ["id"],
+      isRequired: true,
+      isList: false,
+    },
+    {
+      name: "blocks",
+      type: "many",
+      targetModel: "Block",
+      relationName: "BlockToSection",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
+  ],
+});
+
+const BLOCK = model({
+  name: "Block",
+  dbName: "Block",
+  fields: [key(), scalar("file"), scalar("sectionId", { type: "Int" })],
+  labelField: "file",
+  relations: [
+    {
+      name: "section",
+      type: "one",
+      targetModel: "Section",
+      relationName: "BlockToSection",
+      foreignKeyFields: ["sectionId"],
+      referencedFields: ["id"],
+      isRequired: true,
+      isList: false,
+    },
+  ],
+});
 
 interface Block extends Row {
   readonly id: number;
@@ -82,7 +145,7 @@ const text = (value: unknown): string => (typeof value === "string" ? value : ""
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [META] };
+    return { models: [META, SECTION, BLOCK] };
   }
   meta(): ModelMeta {
     return META;

@@ -162,11 +162,13 @@ export class ResourceRegistry implements OnModuleInit {
         ...(infolist === undefined ? [] : auditInfolist(infolist)),
         ...(table === undefined ? [] : auditTable(table)),
         ...this.#unknownDisks(form),
+        ...this.#unwritableFields(metadata.model, form),
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
         ...(table === undefined ? [] : this.#unaskableFilters(metadata.model, table)),
         ...this.#unscopableRelations(metadata.model, managers),
         ...this.#reassigningFields(metadata.model, managers),
+        ...this.#unwritableChildren(metadata.model, managers),
         ...managers.flatMap((manager) => auditTable(manager.state.table)),
         ...managers.flatMap((manager) =>
           manager.state.form === undefined ? [] : auditSchema(manager.state.form),
@@ -242,7 +244,7 @@ export class ResourceRegistry implements OnModuleInit {
         return [];
       }
 
-      return ownFields(form)
+      return ownFields(form.children)
         .filter((field) => field.name === scope.foreignKey)
         .map((field) => ({
           field: `${manager.state.relation}.${field.name}`,
@@ -372,6 +374,91 @@ export class ResourceRegistry implements OnModuleInit {
     });
   }
 
+  /**
+   * The same reading of a manager's form, against the model it writes.
+   *
+   * A child form is a form; nothing about being reached through a parent makes
+   * a column name any more likely to be right.
+   */
+  #unwritableChildren(
+    model: string,
+    managers: readonly RelationManager[],
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const ir = this.#data.ir();
+
+    return managers.flatMap((manager) => {
+      const form = manager.state.form;
+      if (form === undefined) return [];
+      try {
+        const scope = relationScope(ir, model, manager.state.relation);
+        return this.#writesUnder(ir, scope.model, form.children);
+      } catch {
+        // Already complained about above, and once is enough.
+        return [];
+      }
+    });
+  }
+
+  /**
+   * A form field writing a column the model has not.
+   *
+   * The one shape of declaration nothing else here judges. A table column that
+   * reads nothing is caught, an entry that reads nothing is caught, and a field
+   * naming a column by a typo has until now reached the database — where the
+   * adapter refuses the whole write, under a reader, with the form's contents
+   * gone.
+   *
+   * Only what is written: a field marked as not dehydrated is a control that
+   * was never going to be a column, which is a thing forms legitimately have.
+   */
+  #unwritableFields(
+    model: string,
+    form: Schema,
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    return this.#writesUnder(this.#data.ir(), model, form.children);
+  }
+
+  /** One level of columns, then whatever a repeater's rows write. */
+  #writesUnder(
+    ir: Ir,
+    model: string,
+    nodes: readonly Component[],
+  ): readonly { field: string; problem: string }[] {
+    const owner = findModel(ir, model);
+    if (owner === undefined) return [];
+    const columns = new Set(owner.fields.map((one) => one.name));
+
+    const here = ownFields(nodes)
+      .filter((field) => field.state.dehydrated && field.name !== "")
+      .filter((field) => !columns.has(field.name))
+      .map((field) => ({
+        field: field.name,
+        problem:
+          `is a field on \`${model}\`, which has no column by that name. The ` +
+          "write names it, so the row it belongs to is refused whole",
+      }));
+
+    const rows = ownRepeaters(nodes).flatMap((repeater) => {
+      const name = repeater.state.relationship ?? repeater.name;
+      const found = owner.relations.find((one) => one.name === name && one.isList);
+      if (found === undefined) {
+        return [
+          {
+            field: name,
+            problem:
+              `is a repeater on \`${model}\`, which has no to-many relation by ` +
+              "that name — it writes rows, so it needs one",
+          },
+        ];
+      }
+      return this.#writesUnder(ir, found.targetModel, repeater.children);
+    });
+
+    return [...here, ...rows];
+  }
+
   /** Shared, because a column and an entry speak the same path language. */
   #unreadablePaths(
     model: string,
@@ -447,17 +534,25 @@ export class ResourceRegistry implements OnModuleInit {
 }
 
 /**
- * The fields naming the manager's own model.
+ * The fields writing columns of one model.
  *
- * Stops at a repeater, whose rows are a third model's: a column name means
- * something else in there, and matching it would refuse a form that is right.
+ * Stops at a repeater, whose rows are another model's: a column name means
+ * something else in there, and judging it here would refuse a form that is
+ * right. What is inside one is judged against that model instead.
  */
-function ownFields(component: Component): readonly Field[] {
-  if (component instanceof Repeater) return [];
-  return [
-    ...(component instanceof Field ? [component] : []),
-    ...component.children.flatMap(ownFields),
-  ];
+function ownFields(nodes: readonly Component[]): readonly Field[] {
+  return nodes.flatMap((node) => {
+    if (node instanceof Repeater) return [];
+    if (node instanceof Field) return [node];
+    return ownFields(node.children);
+  });
+}
+
+/** The repeaters at this level, each the root of a model of its own. */
+function ownRepeaters(nodes: readonly Component[]): readonly Repeater[] {
+  return nodes.flatMap((node) =>
+    node instanceof Repeater ? [node] : ownRepeaters(node.children),
+  );
 }
 
 function flatten(component: Component): readonly Component[] {

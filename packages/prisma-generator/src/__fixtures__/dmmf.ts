@@ -53,7 +53,18 @@ function enumField(
   return { ...scalar(name, type, over), kind: "enum" };
 }
 
+/**
+ * The name Prisma gives a relation nobody named: the two models, in order.
+ *
+ * Derived here rather than copied from what the generator emitted, so the
+ * contract test compares two independent readings instead of one with itself.
+ */
+function pair(owner: string, target: string): string {
+  return [owner, target].sort().join("To");
+}
+
 function relation(
+  owner: string,
   name: string,
   type: string,
   over: Partial<DmmfField> = {},
@@ -68,15 +79,21 @@ function relation(
     isUnique: false,
     isReadOnly: false,
     hasDefaultValue: false,
-    relationName: `${type}To${name}`,
+    relationName: pair(owner, type),
     relationFromFields: [],
     relationToFields: [],
     ...over,
   };
 }
 
-function toOne(name: string, type: string, fk: string, over: Partial<DmmfField> = {}) {
-  return relation(name, type, {
+function toOne(
+  owner: string,
+  name: string,
+  type: string,
+  fk: string,
+  over: Partial<DmmfField> = {},
+) {
+  return relation(owner, name, type, {
     relationFromFields: [fk],
     relationToFields: ["id"],
     relationOnDelete: "Cascade",
@@ -84,8 +101,13 @@ function toOne(name: string, type: string, fk: string, over: Partial<DmmfField> 
   });
 }
 
-function toMany(name: string, type: string, over: Partial<DmmfField> = {}) {
-  return relation(name, type, { isList: true, isRequired: false, ...over });
+function toMany(
+  owner: string,
+  name: string,
+  type: string,
+  over: Partial<DmmfField> = {},
+) {
+  return relation(owner, name, type, { isList: true, isRequired: false, ...over });
 }
 
 const models: DmmfModel[] = [
@@ -114,10 +136,10 @@ const models: DmmfModel[] = [
       scalar("deletedAt", "DateTime", { isRequired: false }),
       enumField("role", "Role", { hasDefaultValue: true, default: "VIEWER" }),
       scalar("preferences", "Json", { isRequired: false }),
-      relation("profile", "Profile", { isRequired: false }),
-      toMany("posts", "Post"),
-      toMany("comments", "Comment"),
-      toMany("orders", "Order"),
+      relation("User", "profile", "Profile", { isRequired: false }),
+      toMany("User", "posts", "Post"),
+      toMany("User", "comments", "Comment"),
+      toMany("User", "orders", "Order"),
     ],
     uniqueFields: [],
   },
@@ -133,7 +155,7 @@ const models: DmmfModel[] = [
       }),
       scalar("avatarUrl", "String", { isRequired: false }),
       fk("userId", { isUnique: true }),
-      toOne("user", "User", "userId"),
+      toOne("Profile", "user", "User", "userId"),
     ],
     uniqueFields: [],
   },
@@ -151,11 +173,11 @@ const models: DmmfModel[] = [
       enumField("status", "PostStatus", { hasDefaultValue: true, default: "DRAFT" }),
       fk("authorId"),
       fk("categoryId", { isRequired: false }),
-      toOne("author", "User", "authorId"),
-      toOne("category", "Category", "categoryId", { isRequired: false }),
-      toMany("comments", "Comment"),
+      toOne("Post", "author", "User", "authorId"),
+      toOne("Post", "category", "Category", "categoryId", { isRequired: false }),
+      toMany("Post", "comments", "Comment"),
       // Many-to-many, explicit join model.
-      toMany("tags", "PostTag"),
+      toMany("Post", "tags", "PostTag"),
     ],
     uniqueFields: [["authorId", "slug"]],
   },
@@ -171,8 +193,8 @@ const models: DmmfModel[] = [
       }),
       fk("postId"),
       fk("authorId"),
-      toOne("post", "Post", "postId"),
-      toOne("author", "User", "authorId"),
+      toOne("Comment", "post", "Post", "postId"),
+      toOne("Comment", "author", "User", "authorId"),
     ],
     uniqueFields: [],
   },
@@ -183,7 +205,7 @@ const models: DmmfModel[] = [
       id(),
       scalar("name", "String", { isUnique: true, nativeType: ["VarChar", ["80"]] }),
       scalar("description", "String", { isRequired: false, nativeType: ["Text", []] }),
-      toMany("posts", "Post"),
+      toMany("Category", "posts", "Post"),
     ],
     uniqueFields: [],
   },
@@ -193,7 +215,7 @@ const models: DmmfModel[] = [
     fields: [
       id(),
       scalar("label", "String", { isUnique: true, nativeType: ["VarChar", ["60"]] }),
-      toMany("posts", "PostTag"),
+      toMany("Tag", "posts", "PostTag"),
     ],
     uniqueFields: [],
   },
@@ -205,8 +227,8 @@ const models: DmmfModel[] = [
       id(),
       fk("postId"),
       fk("tagId"),
-      toOne("post", "Post", "postId"),
-      toOne("tag", "Tag", "tagId"),
+      toOne("PostTag", "post", "Post", "postId"),
+      toOne("PostTag", "tag", "Tag", "tagId"),
     ],
     uniqueFields: [["postId", "tagId"]],
   },
@@ -217,7 +239,7 @@ const models: DmmfModel[] = [
       id(),
       scalar("name", "String", { isUnique: true, nativeType: ["VarChar", ["100"]] }),
       scalar("isoCode", "String", { isUnique: true, nativeType: ["Char", ["2"]] }),
-      toMany("addresses", "Address"),
+      toMany("Country", "addresses", "Address"),
     ],
     uniqueFields: [],
   },
@@ -229,8 +251,8 @@ const models: DmmfModel[] = [
       scalar("line1", "String", { nativeType: ["VarChar", ["200"]] }),
       scalar("city", "String", { nativeType: ["VarChar", ["120"]] }),
       fk("countryId"),
-      toOne("country", "Country", "countryId"),
-      toMany("orders", "Order"),
+      toOne("Address", "country", "Country", "countryId"),
+      toMany("Address", "orders", "Order"),
     ],
     uniqueFields: [],
   },
@@ -245,7 +267,7 @@ const models: DmmfModel[] = [
       scalar("weightKg", "Float", { isRequired: false }),
       scalar("stock", "Int", { hasDefaultValue: true, default: 0 }),
       scalar("isPublished", "Boolean", { hasDefaultValue: true, default: false }),
-      toMany("lines", "OrderLine"),
+      toMany("Product", "lines", "OrderLine"),
     ],
     uniqueFields: [],
   },
@@ -266,9 +288,11 @@ const models: DmmfModel[] = [
       enumField("status", "OrderStatus", { hasDefaultValue: true, default: "PENDING" }),
       fk("customerId"),
       fk("shippingAddressId", { isRequired: false }),
-      toOne("customer", "User", "customerId"),
-      toOne("shippingAddress", "Address", "shippingAddressId", { isRequired: false }),
-      toMany("lines", "OrderLine"),
+      toOne("Order", "customer", "User", "customerId"),
+      toOne("Order", "shippingAddress", "Address", "shippingAddressId", {
+        isRequired: false,
+      }),
+      toMany("Order", "lines", "OrderLine"),
     ],
     uniqueFields: [],
   },
@@ -281,8 +305,8 @@ const models: DmmfModel[] = [
       scalar("unitPrice", "Decimal", { nativeType: ["Decimal", ["10", "2"]] }),
       fk("orderId"),
       fk("productId"),
-      toOne("order", "Order", "orderId"),
-      toOne("product", "Product", "productId"),
+      toOne("OrderLine", "order", "Order", "orderId"),
+      toOne("OrderLine", "product", "Product", "productId"),
     ],
     uniqueFields: [["orderId", "productId"]],
   },

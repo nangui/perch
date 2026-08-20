@@ -27,14 +27,6 @@ export interface RelationManagerState {
   readonly table: Table;
   /** What creating and editing a child asks for. Absent means neither. */
   readonly form?: Schema;
-  /**
-   * Rows a many-to-many joins rather than owns.
-   *
-   * There is no column to fill for one — the join table is the database's — so
-   * a row exists on its own and is attached, or it is not. A different verb set
-   * rather than a flag on the same one.
-   */
-  readonly attachable: boolean;
   /** Its own, never the child resource's. */
   readonly can?: Authorization;
 }
@@ -48,11 +40,7 @@ export class RelationManager {
 
   /** The name of a to-many relation on the parent's model. */
   static make(relation: string): RelationManager {
-    return new RelationManager({
-      relation,
-      table: Rows.make(),
-      attachable: false,
-    });
+    return new RelationManager({ relation, table: Rows.make() });
   }
 
   /** What the reader sees. The relation's own name where none is given. */
@@ -90,11 +78,6 @@ export class RelationManager {
 
   bulkActions(list: readonly Action[]): RelationManager {
     return this.table((table) => table.bulkActions(list));
-  }
-
-  /** Joined rather than owned: attach and detach, never create and delete. */
-  attachable(value = true): RelationManager {
-    return new RelationManager({ ...this.state, attachable: value });
   }
 
   /**

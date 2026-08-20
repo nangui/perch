@@ -27,6 +27,7 @@ function relation(
     name,
     type: "one",
     targetModel,
+    relationName: `${targetModel}To${name}`,
     foreignKeyFields: [`${name}Id`],
     referencedFields: ["id"],
     isRequired: true,

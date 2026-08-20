@@ -27,9 +27,43 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
-import { model } from "./__fixtures__/ir.js";
+import { key, model, scalar } from "./__fixtures__/ir.js";
 
-const META = model();
+const META = model({
+  fields: [key(), scalar("title")],
+  relations: [
+    {
+      name: "sections",
+      type: "many",
+      targetModel: "Section",
+      relationName: "PostToSection",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
+  ],
+});
+
+/** What the repeater's rows are: a model of their own, reached by a relation. */
+const SECTION = model({
+  name: "Section",
+  dbName: "Section",
+  fields: [key(), scalar("label"), scalar("postId", { type: "Int" })],
+  labelField: "label",
+  relations: [
+    {
+      name: "post",
+      type: "one",
+      targetModel: "Post",
+      relationName: "PostToSection",
+      foreignKeyFields: ["postId"],
+      referencedFields: ["id"],
+      isRequired: true,
+      isList: false,
+    },
+  ],
+});
 
 interface Section extends Row {
   readonly id: number;
@@ -51,7 +85,7 @@ let refuse = false;
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [META] };
+    return { models: [META, SECTION] };
   }
   meta(): ModelMeta {
     return META;

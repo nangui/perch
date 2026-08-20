@@ -11,7 +11,7 @@
  * type, so the row is read and checked rather than trusted.
  */
 import { NotFoundException } from "@nestjs/common";
-import type { DataAdapter, Row, Schema, WriteTree } from "@perchjs/core";
+import type { DataAdapter, Id, Row, Schema, WriteTree } from "@perchjs/core";
 import { dehydrate, serialise } from "@perchjs/core";
 import { admit } from "./admission.js";
 import { authorize } from "./authorization.js";
@@ -69,7 +69,12 @@ async function reached(request: ChildWrite): Promise<{
 
   // The manager's own policy, never the child resource's. The same model is
   // managed differently under different parents.
-  if ((await authorize(manager.state.can, "edit", user, parent)) !== "allowed") {
+  //
+  // Which of the two it is decided by the address, before the row is read:
+  // adding a child and changing one are separate permissions, and a policy
+  // that declares `create` means it.
+  const doing = request.childId === undefined ? "create" : "edit";
+  if ((await authorize(manager.state.can, doing, user, parent)) !== "allowed") {
     throw new NotFoundException();
   }
 
@@ -87,7 +92,7 @@ async function childOf(
   scope: RelationScope,
   parent: Row,
   childId: string,
-): Promise<Row> {
+): Promise<{ readonly row: Row; readonly key: Id }> {
   const key = recordId(data, scope.model, childId);
   if (key === null) throw new NotFoundException();
 
@@ -96,15 +101,18 @@ async function childOf(
   // The check that makes a key safe to accept. Without it, editing somebody
   // else's child is a matter of typing their id into the address.
   if (row[scope.foreignKey] !== parent[scope.parentKey]) throw new NotFoundException();
-  return row;
+  // The key travels with the row, so the update reaches for a value that has
+  // been through `recordId` rather than casting whatever the column held.
+  return { row, key };
 }
 
 export async function saveChild(request: ChildWrite): Promise<SaveResponse> {
   const { data, parent, form, scope } = await reached(request);
-  const record =
+  const found =
     request.childId === undefined
       ? null
       : await childOf(data, scope, parent, request.childId);
+  const record = found?.row ?? null;
   const operation = record === null ? "create" : "edit";
 
   const { tree } = await admit({
@@ -138,17 +146,12 @@ export async function saveChild(request: ChildWrite): Promise<SaveResponse> {
     request.disks,
   );
 
-  const primaryKey = data.meta(scope.model).primaryKey.name;
   let saved: Row;
   try {
     saved = await data.transaction(async (tx) =>
-      record === null
+      found === null
         ? tx.create(scope.model, owned(write, scope, parent))
-        : tx.update(
-            scope.model,
-            record[primaryKey] as never,
-            owned(write, scope, parent),
-          ),
+        : tx.update(scope.model, found.key, owned(write, scope, parent)),
     );
   } catch (error) {
     await undoCommitted(committed, request.disks);
@@ -159,6 +162,7 @@ export async function saveChild(request: ChildWrite): Promise<SaveResponse> {
   // The key alone, for the reason every other write answers with the key
   // alone: the row carries columns nothing on the client reads, and one of
   // them may be what a hook just hashed.
+  const primaryKey = data.meta(scope.model).primaryKey.name;
   return { record: projectOne(saved, new Set([primaryKey])) };
 }
 

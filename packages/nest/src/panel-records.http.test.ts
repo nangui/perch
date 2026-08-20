@@ -88,6 +88,7 @@ const POST: ModelMeta = {
       name: "author",
       type: "one",
       targetModel: "Author",
+      relationName: "AuthorToPost",
       foreignKeyFields: ["authorId"],
       referencedFields: ["id"],
       isRequired: true,

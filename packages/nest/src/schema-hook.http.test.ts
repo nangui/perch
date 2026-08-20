@@ -25,10 +25,21 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
-import { model } from "./__fixtures__/ir.js";
+import { key, model, scalar } from "./__fixtures__/ir.js";
 import type { SchemaHook } from "./schema-hook.js";
 
-const META = model();
+const META = model({
+  fields: [
+    key(),
+    scalar("title"),
+    // The columns the modules below inject a field for. A hook adds a control;
+    // it does not add a column, so the model has to already have one.
+    scalar("createdBy"),
+    scalar("moderatedBy"),
+    scalar("one"),
+    scalar("two"),
+  ],
+});
 
 let rows: Row[] = [];
 let written: WriteTree[] = [];

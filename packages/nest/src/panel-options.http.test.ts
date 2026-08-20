@@ -30,7 +30,14 @@ const IR = {
   models: [
     {
       name: "Post",
-      fields: [{ name: "id", type: "Int", isId: true }],
+      fields: [
+        { name: "id", type: "Int", isId: true },
+        { name: "title", type: "String" },
+        { name: "authorId", type: "Int" },
+        { name: "hiddenId", type: "Int" },
+        { name: "lockedId", type: "Int" },
+        { name: "quietId", type: "Int" },
+      ],
       relations: [
         {
           name: "author",

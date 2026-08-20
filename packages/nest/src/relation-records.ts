@@ -16,7 +16,6 @@ import type { RawQuery } from "./records-query.js";
 import { recordId } from "./record-id.js";
 import type { RecordsResponse } from "./records.js";
 import { listOf } from "./records.js";
-import type { RelationManager } from "./relation-manager.js";
 import { relationScope } from "./relation-scope.js";
 import type { RegisteredResource } from "./resource-registry.js";
 
@@ -68,14 +67,4 @@ export async function listChildren(options: {
       value: parent[scope.parentKey],
     },
   });
-}
-
-/** What the parent page draws a tab for, and nothing about their contents. */
-export function managedRelations(
-  managers: readonly RelationManager[],
-): readonly { readonly relation: string; readonly label: string }[] {
-  return managers.map((manager) => ({
-    relation: manager.state.relation,
-    label: manager.state.label ?? manager.state.relation,
-  }));
 }

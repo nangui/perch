@@ -15,10 +15,19 @@ import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
-import { model } from "./__fixtures__/ir.js";
+import { key, model, scalar } from "./__fixtures__/ir.js";
 import type { SaveResponse } from "./panel-save.controller.js";
 
-const META = model();
+const META = model({
+  fields: [
+    key(),
+    scalar("title"),
+    scalar("body"),
+    scalar("password"),
+    scalar("internalNote"),
+    scalar("computed"),
+  ],
+});
 
 let rows: Row[] = [];
 let writes: { kind: string; id?: Id; data: WriteTree }[] = [];

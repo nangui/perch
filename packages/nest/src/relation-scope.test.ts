@@ -12,20 +12,27 @@ import { RelationManager } from "./relation-manager.js";
 import { relationScope, ScopeError } from "./relation-scope.js";
 import { key, model, scalar } from "./__fixtures__/ir.js";
 
-const toOne = (name: string, target: string, fk: string) => ({
+/**
+ * The relation name is last and always spelled out, because it is what pairs
+ * the two halves: a to-many and the to-one holding its column are the same
+ * relation exactly when this string matches.
+ */
+const toOne = (name: string, target: string, fk: string, relationName: string) => ({
   name,
   type: "one" as const,
   targetModel: target,
+  relationName,
   foreignKeyFields: [fk],
   referencedFields: ["id"],
   isRequired: true,
   isList: false,
 });
 
-const toMany = (name: string, target: string) => ({
+const toMany = (name: string, target: string, relationName: string) => ({
   name,
   type: "many" as const,
   targetModel: target,
+  relationName,
   foreignKeyFields: [],
   referencedFields: [],
   isRequired: false,
@@ -38,14 +45,14 @@ const POST = model({
   name: "Post",
   dbName: "Post",
   fields: [key(), scalar("title")],
-  relations: [toMany("comments", "Comment")],
+  relations: [toMany("comments", "Comment", "CommentToPost")],
 });
 
 const COMMENT = model({
   name: "Comment",
   dbName: "Comment",
   fields: [key(), scalar("body"), scalar("postId", { type: "Int" })],
-  relations: [toOne("post", "Post", "postId")],
+  relations: [toOne("post", "Post", "postId", "CommentToPost")],
 });
 
 describe("the column that narrows a manager to one parent", () => {
@@ -68,7 +75,7 @@ describe("the column that narrows a manager to one parent", () => {
       fields: [key(), scalar("postCode")],
       relations: [
         {
-          ...toOne("post", "Post", "postCode"),
+          ...toOne("post", "Post", "postCode", "PostToTag"),
           referencedFields: ["code"],
         },
       ],
@@ -76,7 +83,7 @@ describe("the column that narrows a manager to one parent", () => {
 
     expect(
       relationScope(
-        ir([{ ...POST, relations: [toMany("tags", "Tag")] }, byCode]),
+        ir([{ ...POST, relations: [toMany("tags", "Tag", "PostToTag")] }, byCode]),
         "Post",
         "tags",
       ).parentKey,
@@ -96,7 +103,7 @@ describe("a scope that cannot be worked out", () => {
       name: "Post",
       dbName: "Post",
       fields: [key()],
-      relations: [toOne("author", "Comment", "authorId")],
+      relations: [toOne("author", "Comment", "authorId", "AuthorComment")],
     });
 
     expect(() => relationScope(ir([holder, COMMENT]), "Post", "author")).toThrow(
@@ -112,8 +119,9 @@ describe("a scope that cannot be worked out", () => {
     );
   });
 
-  it("refuses two ways back rather than picking one", () => {
+  it("refuses two ways back under one name rather than picking one", () => {
     // Two possible pages, and the wrong one looks exactly like the right one.
+    // Prisma cannot produce this; an adapter handing over a broken IR can.
     const twice = model({
       name: "Comment",
       dbName: "Comment",
@@ -123,14 +131,53 @@ describe("a scope that cannot be worked out", () => {
         scalar("editedPostId", { type: "Int" }),
       ],
       relations: [
-        toOne("post", "Post", "postId"),
-        toOne("editedPost", "Post", "editedPostId"),
+        toOne("post", "Post", "postId", "CommentToPost"),
+        toOne("editedPost", "Post", "editedPostId", "CommentToPost"),
       ],
     });
 
     expect(() => relationScope(ir([POST, twice]), "Post", "comments")).toThrow(
       /more than once/,
     );
+  });
+});
+
+describe("two relations between the same pair of models", () => {
+  // A post's comments and the ones it has edited. Both are `Post` to `Comment`,
+  // and the schema says which is which — so refusing them as ambiguous would
+  // refuse a schema that is not.
+  const parent = model({
+    name: "Post",
+    dbName: "Post",
+    fields: [key(), scalar("title")],
+    relations: [
+      toMany("comments", "Comment", "CommentToPost"),
+      toMany("editedComments", "Comment", "EditedComments"),
+    ],
+  });
+
+  const child = model({
+    name: "Comment",
+    dbName: "Comment",
+    fields: [
+      key(),
+      scalar("body"),
+      scalar("postId", { type: "Int" }),
+      scalar("editedPostId", { type: "Int" }),
+    ],
+    relations: [
+      toOne("post", "Post", "postId", "CommentToPost"),
+      toOne("editedPost", "Post", "editedPostId", "EditedComments"),
+    ],
+  });
+
+  it("are told apart by the name both sides carry", () => {
+    expect(relationScope(ir([parent, child]), "Post", "comments").foreignKey).toBe(
+      "postId",
+    );
+    expect(
+      relationScope(ir([parent, child]), "Post", "editedComments").foreignKey,
+    ).toBe("editedPostId");
   });
 });
 
@@ -164,10 +211,5 @@ describe("a manager on a resource", () => {
 
   it("does neither create nor edit without a form", () => {
     expect(RelationManager.make("comments").state.form).toBeUndefined();
-  });
-
-  it("says when its rows are joined rather than owned", () => {
-    // No column to fill, so a different verb set: attach and detach.
-    expect(RelationManager.make("tags").attachable().state.attachable).toBe(true);
   });
 });
