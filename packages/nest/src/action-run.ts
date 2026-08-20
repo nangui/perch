@@ -53,6 +53,11 @@ export interface ActionTarget {
   readonly data: DataAdapter;
   /** Where the allowlist is read. No table declares no actions. */
   readonly table?: Table;
+  /**
+   * Already read off that table, where the caller had to look it up to know
+   * which permission to ask. One lookup, so there is one answer.
+   */
+  readonly action?: Action;
   /** Whose rows are acted on. */
   readonly model: string;
   /** Asked per record, where a record is what decides it. */
@@ -92,7 +97,9 @@ export async function reachAction(
 
   // The allowlist is read off the declaration, so a name nobody declared
   // reaches nothing — the same oracle sorting, searching and filtering use.
-  const action = table === undefined ? undefined : declaredActions(table).get(name);
+  const action =
+    target.action ??
+    (table === undefined ? undefined : declaredActions(table).get(name));
   if (action === undefined) throw new NotFoundException();
 
   // A link is not something this can carry out. Answering 200 with nothing done

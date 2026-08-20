@@ -80,6 +80,8 @@ const COMMENTS: Row[] = [
 /** Every query the route built, so the narrowing is read rather than argued. */
 let asked: Query[] = [];
 let policy: Authorization | undefined;
+/** A parent row that came back without the column its children point at. */
+let hollow = false;
 let managerPolicy: Authorization | undefined;
 
 @Injectable()
@@ -99,7 +101,11 @@ class MemoryAdapter implements DataAdapter {
     return Promise.resolve({ rows, total: rows.length });
   }
   findOne(_model: string, id: Id): Promise<Row | null> {
-    return Promise.resolve(POSTS.find((row) => row["id"] === id) ?? null);
+    const found = POSTS.find((row) => row["id"] === id) ?? null;
+    if (found === null || !hollow) return Promise.resolve(found);
+    return Promise.resolve(
+      Object.fromEntries(Object.entries(found).filter(([name]) => name !== "id")),
+    );
   }
   create(): Promise<Row> {
     throw new Error("not needed here");
@@ -157,6 +163,7 @@ beforeEach(async () => {
   asked = [];
   policy = undefined;
   managerPolicy = undefined;
+  hollow = false;
 
   const moduleRef = await Test.createTestingModule({
     imports: [
@@ -237,6 +244,20 @@ describe("what a request cannot widen", () => {
     expect(
       (await children("/admin/api/posts/404/relations/comments/records")).status,
     ).toBe(404);
+  });
+});
+
+describe("a parent holding nothing in the column its children point at", () => {
+  it("is refused rather than narrowed by nothing", async () => {
+    // Everything downstream of this value fails open without it: a clause
+    // comparing to nothing, a create writing nothing into the owning column,
+    // a selection matching every row that also has nothing there.
+    hollow = true;
+
+    expect(
+      (await children("/admin/api/posts/1/relations/comments/records")).status,
+    ).toBe(404);
+    expect(asked.some((one) => one.model === "Comment")).toBe(false);
   });
 });
 

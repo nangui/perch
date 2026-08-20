@@ -16,7 +16,16 @@ import { tmpdir } from "node:os";
 import { Injectable } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { DataAdapter, Ir, ModelMeta, Row } from "@perchjs/core";
-import { Repeater, Schema, Select, TextColumn, TextInput } from "@perchjs/core";
+import {
+  CreateAction,
+  DeleteAction,
+  EditAction,
+  Repeater,
+  Schema,
+  Select,
+  TextColumn,
+  TextInput,
+} from "@perchjs/core";
 import { describe, expect, it } from "vitest";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
@@ -198,6 +207,26 @@ describe("a manager the server cannot narrow", () => {
     await expect(boot([RelationManager.make("pinned")])).rejects.toThrow(
       /holds one row, not many/,
     );
+  });
+});
+
+describe("a manager action the client could only draw as a link", () => {
+  it("stops the boot, because a child has no page to link to", async () => {
+    await expect(boot([comments().actions([EditAction.make()])])).rejects.toThrow(
+      "comments.EditAction",
+    );
+  });
+
+  it("says so about a header action too", async () => {
+    await expect(
+      boot([comments().headerActions([CreateAction.make()])]),
+    ).rejects.toThrow("is a link to a page a child does not have");
+  });
+
+  it("leaves an action the server carries out alone", async () => {
+    await expect(
+      boot([comments().actions([DeleteAction.make()])]),
+    ).resolves.toBeUndefined();
   });
 });
 

@@ -278,8 +278,10 @@ describe("a key naming another parent's child", () => {
 });
 
 describe("who may run one", () => {
-  it("is refused when the parent may not be edited", async () => {
-    policy = { view: () => true, update: () => false };
+  it("is refused when the parent may not be seen", async () => {
+    // Seeing the parent is what reaching a manager costs; the manager's own
+    // policy is what says whether this action may run.
+    policy = { view: () => false };
 
     expect((await act(ON_FIRST, { ids: [10] })).status).toBe(404);
     expect(comments).toHaveLength(3);

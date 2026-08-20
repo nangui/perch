@@ -22,6 +22,7 @@ import {
   auditSchema,
   auditTable,
   columnPaths,
+  declaredActions,
   entryPaths,
   entryRelations,
   TernaryFilter,
@@ -169,6 +170,7 @@ export class ResourceRegistry implements OnModuleInit {
         ...this.#unscopableRelations(metadata.model, managers),
         ...this.#reassigningFields(metadata.model, managers),
         ...this.#unwritableChildren(metadata.model, managers),
+        ...this.#unfollowableActions(managers),
         ...managers.flatMap((manager) => auditTable(manager.state.table)),
         ...managers.flatMap((manager) =>
           manager.state.form === undefined ? [] : auditSchema(manager.state.form),
@@ -372,6 +374,29 @@ export class ResourceRegistry implements OnModuleInit {
         ...this.#rowsUnder(ir, found.targetModel, entry.relations),
       ];
     });
+  }
+
+  /**
+   * A manager's action that is a link rather than something to carry out.
+   *
+   * A link is an address the client builds, and a child has no page of its
+   * own — a manager writes in place, through the parent. So the renderer, told
+   * no path for these rows, draws nothing at all: the button crosses the wire
+   * and disappears. Refused here rather than discovered by its absence.
+   */
+  #unfollowableActions(
+    managers: readonly RelationManager[],
+  ): readonly { field: string; problem: string }[] {
+    return managers.flatMap((manager) =>
+      [...declaredActions(manager.state.table).values()]
+        .filter((action) => action.trigger === "link")
+        .map((action) => ({
+          field: `${manager.state.relation}.${action.state.name ?? action.type}`,
+          problem:
+            "is a link to a page a child does not have. A manager works through " +
+            "the parent, so what it offers has to be something the server carries out",
+        })),
+    );
   }
 
   /**

@@ -11,10 +11,9 @@
  * type, so the row is read and checked rather than trusted.
  */
 import { NotFoundException } from "@nestjs/common";
-import type { DataAdapter, Id, Row, Schema, WriteTree } from "@perchjs/core";
+import type { DataAdapter, Id, Row, WriteTree } from "@perchjs/core";
 import { dehydrate, serialise } from "@perchjs/core";
 import { admit } from "./admission.js";
-import { authorize } from "./authorization.js";
 import { commitUploads, dropReplaced, undoCommitted } from "./commit-uploads.js";
 import { fileUrls } from "./file-urls.js";
 import { readState } from "./form-body.js";
@@ -22,7 +21,7 @@ import type { SaveResponse } from "./panel-save.controller.js";
 import { recordId } from "./record-id.js";
 import { withOptions } from "./relationship-options.js";
 import type { RelationScope } from "./relation-scope.js";
-import { relationScope } from "./relation-scope.js";
+import { reachManager } from "./relation-reach.js";
 import type { RegisteredResource } from "./resource-registry.js";
 import { projectOne } from "./row-projection.js";
 import type { PanelDisks } from "./storage.token.js";
@@ -39,58 +38,11 @@ export interface ChildWrite {
   readonly disks: PanelDisks;
 }
 
-/** The parent, the form and the column, or a refusal that says nothing. */
-async function reached(request: ChildWrite): Promise<{
-  readonly data: DataAdapter;
-  readonly parent: Row;
-  readonly scope: RelationScope;
-  readonly form: Schema;
-}> {
-  const { data, resource, parentId, relation, user } = request;
-  if (resource === undefined || data === null) throw new NotFoundException();
-
-  const model = resource.metadata.model;
-  const key = recordId(data, model, parentId);
-  if (key === null) throw new NotFoundException();
-
-  // The parent, and the policy about it, before the relation is looked at.
-  const parent = await data.findOne(model, key);
-  if (parent === null) throw new NotFoundException();
-  // Changing what hangs off a record is changing the record, so `edit` is what
-  // is asked here where reading the list asked `view`.
-  if ((await authorize(resource.instance.can, "edit", user, parent)) !== "allowed") {
-    throw new NotFoundException();
-  }
-
-  const manager = (resource.instance.relations?.() ?? []).find(
-    (one) => one.state.relation === relation,
-  );
-  if (manager === undefined) throw new NotFoundException();
-
-  // The manager's own policy, never the child resource's. The same model is
-  // managed differently under different parents.
-  //
-  // Which of the two it is decided by the address, before the row is read:
-  // adding a child and changing one are separate permissions, and a policy
-  // that declares `create` means it.
-  const doing = request.childId === undefined ? "create" : "edit";
-  if ((await authorize(manager.state.can, doing, user, parent)) !== "allowed") {
-    throw new NotFoundException();
-  }
-
-  // A manager with no form neither creates nor edits. Answered like a route
-  // that is not there, because from outside that is what it is.
-  const form = manager.state.form;
-  if (form === undefined) throw new NotFoundException();
-
-  return { data, parent, scope: relationScope(data.ir(), model, relation), form };
-}
-
 /** The child a key names, but only if it is one of this parent's. */
 async function childOf(
   data: DataAdapter,
   scope: RelationScope,
-  parent: Row,
+  owner: unknown,
   childId: string,
 ): Promise<{ readonly row: Row; readonly key: Id }> {
   const key = recordId(data, scope.model, childId);
@@ -100,18 +52,30 @@ async function childOf(
   if (row === null) throw new NotFoundException();
   // The check that makes a key safe to accept. Without it, editing somebody
   // else's child is a matter of typing their id into the address.
-  if (row[scope.foreignKey] !== parent[scope.parentKey]) throw new NotFoundException();
+  if (row[scope.foreignKey] !== owner) throw new NotFoundException();
   // The key travels with the row, so the update reaches for a value that has
   // been through `recordId` rather than casting whatever the column held.
   return { row, key };
 }
 
 export async function saveChild(request: ChildWrite): Promise<SaveResponse> {
-  const { data, parent, form, scope } = await reached(request);
+  const { data, manager, scope, owner } = await reachManager({
+    ...request,
+    // Adding a child and changing one are separate permissions, and a manager
+    // declaring `create` means it. Decided from the address, before the row is
+    // read.
+    needs: request.childId === undefined ? "create" : "edit",
+  });
+
+  // A manager with no form neither creates nor edits. Answered like a route
+  // that is not there, because from outside that is what it is.
+  const form = manager.state.form;
+  if (form === undefined) throw new NotFoundException();
+
   const found =
     request.childId === undefined
       ? null
-      : await childOf(data, scope, parent, request.childId);
+      : await childOf(data, scope, owner, request.childId);
   const record = found?.row ?? null;
   const operation = record === null ? "create" : "edit";
 
@@ -150,8 +114,8 @@ export async function saveChild(request: ChildWrite): Promise<SaveResponse> {
   try {
     saved = await data.transaction(async (tx) =>
       found === null
-        ? tx.create(scope.model, owned(write, scope, parent))
-        : tx.update(scope.model, found.key, owned(write, scope, parent)),
+        ? tx.create(scope.model, owned(write, scope, owner))
+        : tx.update(scope.model, found.key, owned(write, scope, owner)),
     );
   } catch (error) {
     await undoCommitted(committed, request.disks);
@@ -173,9 +137,9 @@ export async function saveChild(request: ChildWrite): Promise<SaveResponse> {
  * reassign a child to another parent — not a form that declared the column, and
  * not a step that rewrote the values on the way through.
  */
-function owned(write: WriteTree, scope: RelationScope, parent: Row): WriteTree {
+function owned(write: WriteTree, scope: RelationScope, owner: unknown): WriteTree {
   return {
     ...write,
-    set: { ...write.set, [scope.foreignKey]: parent[scope.parentKey] },
+    set: { ...write.set, [scope.foreignKey]: owner },
   };
 }

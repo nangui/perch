@@ -26,10 +26,9 @@ import type { ActionAnswer, ActionTarget } from "./action-run.js";
 import { carryAction, reachAction } from "./action-run.js";
 import { ReplayGuard, readReplayKey } from "./replay-guard.js";
 import { admit } from "./admission.js";
-import { recordId } from "./record-id.js";
-import { relationScope } from "./relation-scope.js";
+import { reachManager } from "./relation-reach.js";
 import { withOptions } from "./relationship-options.js";
-import { authorize, permissionFor } from "./authorization.js";
+import { permissionFor } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
@@ -169,9 +168,10 @@ export class PanelActionController {
   /**
    * A manager's rows, reached through the parent and narrowed to it.
    *
-   * Both policies are asked about the parent rather than the child: managing a
-   * record's children is a thing done to the record, and a rule about which
-   * child belongs to the action's own guard, which runs per record anyway.
+   * Both policies are asked about the parent rather than the child: seeing the
+   * parent is what reaching a manager costs, the manager's own policy says
+   * whether this action may run, and a rule about which child belongs to the
+   * action's own guard, which runs per record anyway.
    */
   async #onChildren(
     slug: string,
@@ -180,43 +180,31 @@ export class PanelActionController {
     name: string,
     user: unknown,
   ): Promise<ActionTarget> {
-    const data = this.#data;
-    if (data === null) throw new NotFoundException();
-
-    const resource = this.#registry.get(slug);
-    if (resource === undefined) throw new NotFoundException();
-
-    const model = resource.metadata.model;
-    const key = recordId(data, model, id);
-    if (key === null) throw new NotFoundException();
-
-    // The parent, and the policy about it, before the relation is looked at.
-    const parent = await data.findOne(model, key);
-    if (parent === null) throw new NotFoundException();
-    if ((await authorize(resource.instance.can, "edit", user, parent)) !== "allowed") {
-      throw new NotFoundException();
-    }
-
-    const manager = (resource.instance.relations?.() ?? []).find(
-      (one) => one.state.relation === relation,
-    );
-    if (manager === undefined) throw new NotFoundException();
-
-    // The manager's own policy, never the child resource's, and asked for what
-    // this action actually is: deleting a child asks about deleting.
-    const declared = declaredActions(manager.state.table).get(name);
+    // Resolved on the way past, so the allowlist is read once: the permission
+    // to ask and the action to run are the same lookup.
+    let declared: Action | undefined;
+    const { data, scope, owner } = await reachManager({
+      data: this.#data,
+      resource: this.#registry.get(slug),
+      parentId: id,
+      relation,
+      user,
+      needs: (one) => {
+        declared = declaredActions(one.state.table).get(name);
+        // Deleting a child asks about deleting, not about editing.
+        return declared === undefined ? undefined : permissionFor(declared);
+      },
+    });
     if (declared === undefined) throw new NotFoundException();
-    const permission = permissionFor(declared);
-    if ((await authorize(manager.state.can, permission, user, parent)) !== "allowed") {
-      throw new NotFoundException();
-    }
 
-    const scope = relationScope(data.ir(), model, relation);
+    // No table and no policy: the manager's table is what declared the action
+    // above, and the manager's own policy has already been asked about the
+    // parent, so nothing further is asked per row here.
     return {
       data,
       model: scope.model,
-      table: manager.state.table,
-      scope: { column: scope.foreignKey, value: parent[scope.parentKey] },
+      action: declared,
+      scope: { column: scope.foreignKey, value: owner },
     };
   }
 

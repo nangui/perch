@@ -283,15 +283,27 @@ describe("editing a child", () => {
 });
 
 describe("who may write one", () => {
-  it("is refused when the parent may not be edited", async () => {
-    // The policy for changing a row, not for seeing it: changing what hangs
-    // off a record is changing the record.
-    policy = { view: () => true, update: () => false };
+  it("is refused when the parent may not be seen", async () => {
+    // Seeing the parent is what reaching a manager costs. What may then be
+    // done there is the manager's own policy to say, which is why the resource
+    // is asked `view` here and not `update`.
+    policy = { view: () => false };
 
     expect(
       (await write("/admin/api/posts/1/relations/comments", { body: "Fresh" })).status,
     ).toBe(404);
     expect(comments).toHaveLength(2);
+  });
+
+  it("is not held to the parent's own edit policy", async () => {
+    // A reader who may not edit the post itself may still be the one who
+    // moderates its comments. Borrowing the parent's rule would decide that
+    // somewhere its author never looked.
+    policy = { view: () => true, update: () => false };
+
+    expect(
+      (await write("/admin/api/posts/1/relations/comments", { body: "Fresh" })).status,
+    ).toBe(200);
   });
 
   it("is refused by the manager's own policy, with the parent allowed", async () => {
