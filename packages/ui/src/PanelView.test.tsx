@@ -300,7 +300,10 @@ describe("a value that can be copied", () => {
     });
   });
 
-  it("offers a button naming what it copies", () => {
+  it("offers a button named for the entry, not for what is in it", () => {
+    // Named for the value, a biography was read aloud in full before the
+    // button said what it did. The entry's own name is what tells one copy
+    // button from the next, and it is one phrase long.
     withClipboard();
     const container = render(
       <PanelView
@@ -308,6 +311,7 @@ describe("a value that can be copied", () => {
           {
             id: "a",
             type: "TextEntry",
+            label: "Email",
             value: "ada@example.com",
             props: { copyable: true },
           },
@@ -317,7 +321,16 @@ describe("a value that can be copied", () => {
 
     expect(
       container.querySelector(".perch-entry__copy")?.getAttribute("aria-label"),
-    ).toBe("Copy ada@example.com");
+    ).toBe("Copy Email");
+  });
+
+  it("says just Copy where the entry has no name to borrow", () => {
+    withClipboard();
+    const container = copyable({}, "ada@example.com");
+
+    expect(
+      container.querySelector(".perch-entry__copy")?.getAttribute("aria-label"),
+    ).toBe("Copy");
   });
 
   it("offers none where there is nothing to copy", () => {

@@ -35,6 +35,8 @@ export interface TextEntryProps {
   readonly href?: string;
   /** A button beside it that copies the whole value, not the shown one. */
   readonly copyable?: boolean;
+  /** What the entry is called, which is what names the copy button. */
+  readonly label?: string;
   /** How much to show. The rest is still there to hover over and to copy. */
   readonly limit?: number;
   /** Points the shell's help line at this, so the two are read together. */
@@ -133,7 +135,13 @@ function shorten(text: string, limit: number): string {
  * old browser. A button that cannot do its one job is worse than no button,
  * because the reader tries it.
  */
-function CopyButton({ value }: { readonly value: string }): ReactNode {
+function CopyButton({
+  value,
+  label,
+}: {
+  readonly value: string;
+  readonly label?: string;
+}): ReactNode {
   const [copied, setCopied] = useState(false);
   // `in`, not a comparison: the DOM types say the clipboard is always there and
   // an insecure origin says otherwise, so this asks the object rather than the
@@ -144,9 +152,11 @@ function CopyButton({ value }: { readonly value: string }): ReactNode {
     <button
       type="button"
       className="perch-entry__copy"
-      // Named for what it copies: a page of buttons all called "Copy" is a list
-      // of identical controls to anybody not reading it by eye.
-      aria-label={`Copy ${value}`}
+      // Named for the entry rather than for its value: a page of buttons all
+      // called "Copy" is a list of identical controls to anybody not reading it
+      // by eye, and a name built from the value read a whole biography aloud
+      // before saying what the button did.
+      aria-label={label === undefined || label === "" ? "Copy" : `Copy ${label}`}
       onClick={() => {
         void navigator.clipboard.writeText(value).then(
           () => {
@@ -173,7 +183,13 @@ export function TextEntry(props: TextEntryProps): ReactNode {
 
   // The whole value, never the shortened one: copying an ellipsis is worse than
   // having no button.
-  const copy = props.copyable === true && !empty ? <CopyButton value={whole} /> : null;
+  const copy =
+    props.copyable === true && !empty ? (
+      <CopyButton
+        value={whole}
+        {...(props.label === undefined ? {} : { label: props.label })}
+      />
+    ) : null;
   // Unknown names fall back rather than becoming a class the stylesheet has not
   // got: a pill with no background reads as a rendering fault.
   const tone =

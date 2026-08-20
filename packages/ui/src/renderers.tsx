@@ -520,6 +520,7 @@ function TextEntryRenderer({ node }: NodeProps): ReactNode {
         <TextEntry
           value={node.value}
           describedBy={binding.id}
+          {...(node.label === undefined ? {} : { label: node.label })}
           {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
           {...(node.tone === undefined ? {} : { tone: node.tone })}
           {...(node.href === undefined ? {} : { href: node.href })}
