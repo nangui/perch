@@ -848,13 +848,19 @@ function headerActions(page: RecordsPage): ReactNode {
  * were turned down, and "2 refused" hides that three went through. Never why
  * they were refused — the server does not say, and inventing a reason here
  * would be worse than the silence.
+ *
+ * Nothing done and nothing refused is its own answer. It used to fall into the
+ * first branch and read `Done: 0 records.`, which is a success notice for
+ * something that did not happen — restoring a row that was never deleted, or
+ * one that moved between the tick and the press.
  */
 function describeOutcome(answer: { processed: number; refused: number }): string {
   const done = `${String(answer.processed)} ${plural(answer.processed, "record")}`;
+  const refused = `${String(answer.refused)} ${plural(answer.refused, "record")}`;
+
+  if (answer.processed === 0 && answer.refused === 0) return "Nothing changed.";
   if (answer.refused === 0) return `Done: ${done}.`;
-  if (answer.processed === 0) {
-    return `Nothing was changed: ${String(answer.refused)} ${plural(answer.refused, "record")} could not be.`;
-  }
+  if (answer.processed === 0) return `Nothing changed: ${refused} could not be.`;
   return `Done: ${done}. ${String(answer.refused)} could not be.`;
 }
 
