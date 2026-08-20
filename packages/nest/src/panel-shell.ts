@@ -30,6 +30,13 @@ export interface ShellOptions {
   readonly listLabel?: string;
   /** The panel's own menu, already filtered by what this user may reach. */
   readonly navigation?: unknown;
+  /**
+   * The relation managers this record has, as tabs to draw under the form.
+   *
+   * Names and labels, never rows: what a tab holds is fetched when it is
+   * opened, so a record with six managers costs one page rather than seven.
+   */
+  readonly relations?: unknown;
   readonly payload: unknown;
   readonly scriptFile: string;
   readonly styleFile: string;
@@ -57,6 +64,10 @@ export function renderShell(options: ShellOptions): string {
     options.navigation === undefined
       ? ""
       : ` data-navigation="${attribute(JSON.stringify(options.navigation))}"`
+  }${
+    options.relations === undefined
+      ? ""
+      : ` data-relations="${attribute(JSON.stringify(options.relations))}"`
   } data-title="${attribute(options.title)}" data-payload="${payload}"></div>
 <script type="module" src="${attribute(`${options.root}/assets/${options.scriptFile}`)}"></script>
 </body>

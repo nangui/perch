@@ -7,6 +7,7 @@
  */
 import type { DataAdapter } from "@perchjs/core";
 import type { RawQuery } from "./records-query.js";
+import type { RelationManager } from "./relation-manager.js";
 import type { RecordsResponse } from "./records.js";
 import { listOf } from "./records.js";
 import { reachManager } from "./relation-reach.js";
@@ -34,4 +35,19 @@ export async function listChildren(options: {
     // points at is not always the primary key, and the row is already in hand.
     scope: { path: scope.foreignKey, operator: "equals", value: owner },
   });
+}
+
+/**
+ * What the parent's page draws a tab for, and nothing about their contents.
+ *
+ * Names and labels only: the rows behind a tab are fetched when it is opened,
+ * so a record with six managers costs one page rather than seven.
+ */
+export function managedRelations(
+  managers: readonly RelationManager[],
+): readonly { readonly relation: string; readonly label: string }[] {
+  return managers.map((manager) => ({
+    relation: manager.state.relation,
+    label: manager.state.label ?? manager.state.relation,
+  }));
 }

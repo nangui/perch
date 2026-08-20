@@ -25,6 +25,7 @@ import {
   SelectFilter,
   Table,
   Textarea,
+  IconColumn,
   TextColumn,
   TextFilter,
   TextEntry,
@@ -34,7 +35,7 @@ import {
   ViewAction,
 } from "@perchjs/core";
 import { Action, Notification } from "@perchjs/core";
-import { PanelResource } from "@perchjs/nest";
+import { PanelResource, RelationManager } from "@perchjs/nest";
 
 /** An action a host writes, which is the only kind that carries a callback. */
 class ArchiveAction extends Action {
@@ -176,6 +177,34 @@ export class PersonResource {
         .headerActions([CreateAction.make()])
         .defaultSort("firstName")
     );
+  }
+
+  /**
+   * The tasks, managed beside the record rather than inside its form.
+   *
+   * The distinction the example is here to show: the notes above are a
+   * `Repeater`, edited in the form and written with the person in one
+   * transaction. These are a manager — their own table under the form, their
+   * own paging, their own actions, one operation at a time.
+   *
+   * Nothing here says which tasks. The column that narrows them to this person
+   * is derived from the schema at boot and never comes from a request.
+   */
+  relations(): readonly RelationManager[] {
+    return [
+      RelationManager.make("tasks")
+        .label("Tasks")
+        .table((table) =>
+          table
+            .columns([
+              TextColumn.make("title").label("Task").sortable().searchable(),
+              IconColumn.make("done").label("Done").boolean(),
+            ])
+            .defaultSort("title"),
+        )
+        .form((schema) => schema.schema([TextInput.make("title").required()]))
+        .actions([DeleteAction.make().requiresConfirmation()]),
+    ];
   }
 
   /**

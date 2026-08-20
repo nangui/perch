@@ -58,7 +58,15 @@ export interface PageRequest {
 
 export interface PanelListProps {
   readonly initial: RecordsPage;
+  /** The table's caption, and its heading unless it is drawn `within` a page. */
   readonly title: string;
+  /**
+   * Drawn inside another page rather than as one.
+   *
+   * A relation manager's table is a tab under a form: it is not the page's
+   * landmark and it is named by its tab, so it gets neither.
+   */
+  readonly within?: boolean;
   /**
    * Asks the server for a page. Absent means the table cannot be reordered and
    * cannot be turned — it is whatever the shell embedded.
@@ -125,6 +133,7 @@ interface Pending {
 export function PanelList({
   initial,
   title,
+  within,
   fetchPage,
   onPage,
   flash,
@@ -414,10 +423,15 @@ export function PanelList({
     void open(action, [key]);
   }
 
+  // A tab under a form is not a landmark and does not name itself — the tab
+  // does, and a second `<h1>` under the page's own would say the record is
+  // called after its relation.
+  const Frame = within === true ? "section" : "main";
+
   return (
-    <main className="perch-list">
+    <Frame className="perch-list">
       <div className="perch-list__header">
-        <h1 className="perch-list__title">{title}</h1>
+        {within === true ? null : <h1 className="perch-list__title">{title}</h1>}
         {headerActions(page)}
       </div>
       {narrowing(page, find, { typed, setTyped, entered, setEntered })}
@@ -544,7 +558,7 @@ export function PanelList({
       <p className="perch-list__total" role="status">
         {status(page)}
       </p>
-    </main>
+    </Frame>
   );
 }
 

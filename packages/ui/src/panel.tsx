@@ -21,6 +21,8 @@ import type { NavigationGroup } from "./PanelNav.js";
 import { PanelNav } from "./PanelNav.js";
 import type { ActionAnswer, PageRequest, RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
+import type { ManagedRelation } from "./PanelRelations.js";
+import { PanelRelations } from "./PanelRelations.js";
 import { registerBuiltInColumns } from "./columns.js";
 import { registerBuiltInComponents } from "./renderers.js";
 import type {
@@ -108,21 +110,57 @@ export function mount(element: HTMLElement): void {
     return;
   }
 
+  // The relation managers, if this record has any. Under the form rather than
+  // beside it: they are about the record the form edits, and there is nothing
+  // to scope them by until it has been written.
+  const managed = relationsOf(element.dataset["relations"]);
+  const under = (relation: string): string =>
+    `${api}/${encodeURIComponent(id ?? "")}/relations/${encodeURIComponent(relation)}`;
+
   createRoot(element).render(
     framed(
-      <PanelForm
-        initial={JSON.parse(payload) as SchemaPayload}
-        send={(request) => send(api, operation, id, request)}
-        save={(request) => save(api, operation, id, request)}
-        onSaved={goWhereTheServerSays}
-        renderFailure={renderFailure}
-        searchOptions={(path, term, state) =>
-          askOptions(api, operation, id, path, term, state)
-        }
-        uploadFile={(path, file, state) => sendFile(api, id, path, file, state)}
-      />,
+      <>
+        <PanelForm
+          initial={JSON.parse(payload) as SchemaPayload}
+          send={(request) => send(api, operation, id, request)}
+          save={(request) => save(api, operation, id, request)}
+          onSaved={goWhereTheServerSays}
+          renderFailure={renderFailure}
+          searchOptions={(path, term, state) =>
+            askOptions(api, operation, id, path, term, state)
+          }
+          uploadFile={(path, file, state) => sendFile(api, id, path, file, state)}
+        />
+        {managed.length === 0 || id === undefined ? null : (
+          <PanelRelations
+            relations={managed}
+            // The same four transports the list page uses, pointed at the
+            // manager's own routes. That the base changes and nothing else is
+            // what the addresses were shaped for.
+            fetchPage={(relation, request) => records(under(relation), request)}
+            runAction={(relation, name, ids, data, key) =>
+              runAction(under(relation), name, ids, data, key)
+            }
+            actionForm={(relation, name, ids) => actionForm(under(relation), name, ids)}
+            actionState={(relation, name) => (request) =>
+              send(under(relation), "create", undefined, request, name)
+            }
+          />
+        )}
+      </>,
     ),
   );
+}
+
+/** The managers the shell named, or none. A malformed attribute is none. */
+function relationsOf(raw: string | undefined): readonly ManagedRelation[] {
+  if (raw === undefined) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as readonly ManagedRelation[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 /**

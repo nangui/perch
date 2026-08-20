@@ -690,6 +690,40 @@
   font-weight: 600;
 }
 
+/* -------------------------------------------------------------- relations */
+
+/*
+ * The managers under a form. Separated from it by a rule rather than a gap:
+ * what is above is the record, what is below is what hangs off it, and the two
+ * are edited by different requests.
+ */
+.perch-relations {
+  margin-top: var(--perch-space-6);
+  padding-top: var(--perch-space-5);
+  border-top: 1px solid var(--perch-border);
+}
+
+.perch-relations__body {
+  padding-top: var(--perch-space-4);
+}
+
+/* Already inside a page, so it brings no page padding of its own. */
+.perch-relations .perch-list {
+  padding: 0;
+}
+
+.perch-relations__waiting,
+.perch-relations__failed {
+  margin: 0;
+  padding: var(--perch-space-4) 0;
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+}
+
+.perch-relations__failed {
+  color: var(--perch-danger);
+}
+
 /* ------------------------------------------------------------------- view */
 
 /*

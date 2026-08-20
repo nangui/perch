@@ -67,6 +67,37 @@ const NOTE: ModelMeta = {
   labelField: "body",
 };
 
+/**
+ * The other kind of child: managed beside the record rather than inside its
+ * form. Same shape as a note, and a different way of being edited.
+ */
+const TASK: ModelMeta = {
+  name: "Task",
+  dbName: "Task",
+  primaryKey: scalar("id", "Int"),
+  fields: [
+    scalar("id", "Int"),
+    scalar("title", "String"),
+    scalar("done", "Boolean"),
+    scalar("personId", "Int"),
+  ],
+  relations: [
+    {
+      name: "person",
+      type: "one",
+      targetModel: "Person",
+      relationName: "PersonToTask",
+      foreignKeyFields: ["personId"],
+      referencedFields: ["id"],
+      isRequired: true,
+      isList: false,
+    },
+  ],
+  uniqueConstraints: [["id"]],
+  hasSoftDelete: false,
+  labelField: "title",
+};
+
 const PERSON: ModelMeta = {
   name: "Person",
   dbName: "Person",
@@ -96,6 +127,16 @@ const PERSON: ModelMeta = {
       type: "many",
       targetModel: "Note",
       relationName: "NoteToUser",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
+    {
+      name: "tasks",
+      type: "many",
+      targetModel: "Task",
+      relationName: "PersonToTask",
       foreignKeyFields: [],
       referencedFields: [],
       isRequired: false,
@@ -183,15 +224,31 @@ export class MemoryAdapter implements DataAdapter {
   ];
   #nextNoteId = 3;
 
+  /** The rows a manager lists. Same shape as a note, edited alongside. */
+  #tasks: Row[] = [
+    { id: 1, title: "Review the A-0 paper", done: true, personId: 1 },
+    { id: 2, title: "Answer the compiler mail", done: false, personId: 1 },
+    { id: 3, title: "Draft the debugging note", done: false, personId: 2 },
+  ];
+  #nextTaskId = 4;
+
   ir(): Ir {
-    return { models: [PERSON, NOTE, TEAM] };
+    return { models: [PERSON, NOTE, TASK, TEAM] };
   }
 
-  meta(): ModelMeta {
-    return PERSON;
+  meta(model: string): ModelMeta {
+    return model === "Task" ? TASK : PERSON;
   }
 
   findMany(query: Query): Promise<Page> {
+    if (query.model === "Task") {
+      const found = this.#tasks.filter((row) => matches(row, query.clauses));
+      return Promise.resolve({
+        rows: found.slice(query.skip ?? 0, (query.skip ?? 0) + (query.take ?? 25)),
+        total: found.length,
+      });
+    }
+
     let rows = this.#rows
       .filter((row) => wanted(row, query.deleted))
       .filter((row) => matches(row, query.clauses));
@@ -229,7 +286,11 @@ export class MemoryAdapter implements DataAdapter {
   }
 
   /** The children come with the row: they are the only ones an update reaches. */
-  findOne(_model: string, id: Id, options?: ReadOptions): Promise<Row | null> {
+  findOne(model: string, id: Id, options?: ReadOptions): Promise<Row | null> {
+    if (model === "Task") {
+      return Promise.resolve(this.#tasks.find((row) => row["id"] === id) ?? null);
+    }
+
     const include = options?.include;
     const row = this.#rows.find((one) => one["id"] === id);
     if (row === undefined || !wanted(row, options?.deleted))
@@ -238,14 +299,28 @@ export class MemoryAdapter implements DataAdapter {
     return Promise.resolve({ ...join(row, include), notes });
   }
 
-  create(_model: string, data: WriteTree): Promise<Row> {
+  create(model: string, data: WriteTree): Promise<Row> {
+    if (model === "Task") {
+      const task: Row = { id: this.#nextTaskId++, done: false, ...data.set };
+      this.#tasks.push(task);
+      return Promise.resolve(task);
+    }
+
     const row: Row = { id: this.#nextId++, ...data.set };
     this.#rows.push(row);
     this.#writeRelations(row["id"] as number, data);
     return Promise.resolve(row);
   }
 
-  update(_model: string, id: Id, data: WriteTree): Promise<Row> {
+  update(model: string, id: Id, data: WriteTree): Promise<Row> {
+    if (model === "Task") {
+      const at = this.#tasks.findIndex((row) => row["id"] === id);
+      if (at === -1) throw new Error(`no Task ${String(id)}`);
+      const task = { ...this.#tasks[at], ...data.set } as Row;
+      this.#tasks[at] = task;
+      return Promise.resolve(task);
+    }
+
     const index = this.#rows.findIndex((row) => row["id"] === id);
     if (index === -1) throw new Error(`no Person ${String(id)}`);
     const row = { ...this.#rows[index], ...data.set } as Row;
@@ -280,11 +355,20 @@ export class MemoryAdapter implements DataAdapter {
   }
 
   /** A person is soft-deleting, so this marks. Destroying has its own verb. */
-  delete(_model: string, ids: readonly Id[]): Promise<number> {
+  delete(model: string, ids: readonly Id[]): Promise<number> {
+    // A task carries no tombstone, so deleting one destroys it. The port says
+    // `delete` marks where the model can be marked, and this one cannot.
+    if (model === "Task") return this.forceDelete(model, ids);
     return Promise.resolve(this.#mark(ids, new Date()));
   }
 
-  forceDelete(_model: string, ids: readonly Id[]): Promise<number> {
+  forceDelete(model: string, ids: readonly Id[]): Promise<number> {
+    if (model === "Task") {
+      const had = this.#tasks.length;
+      this.#tasks = this.#tasks.filter((row) => !ids.includes(row["id"] as Id));
+      return Promise.resolve(had - this.#tasks.length);
+    }
+
     const before = this.#rows.length;
     this.#rows = this.#rows.filter((row) => !ids.includes(row["id"] as Id));
     return Promise.resolve(before - this.#rows.length);
@@ -316,12 +400,17 @@ export class MemoryAdapter implements DataAdapter {
    * arrays; putting them back is cheap and it is what the milestone claims.
    */
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
-    const before = { rows: [...this.#rows], notes: [...this.#notes] };
+    const before = {
+      rows: [...this.#rows],
+      notes: [...this.#notes],
+      tasks: [...this.#tasks],
+    };
     try {
       return await fn(this);
     } catch (error) {
       this.#rows = before.rows;
       this.#notes = before.notes;
+      this.#tasks = before.tasks;
       throw error;
     }
   }

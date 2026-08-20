@@ -291,3 +291,32 @@ describe("who may read them", () => {
     ).toBe(404);
   });
 });
+
+describe("the page the managers are drawn on", () => {
+  const html = async (at: string): Promise<{ status: number; body: string }> => {
+    const response = await fetch(`${url}${at}`);
+    return { status: response.status, body: await response.text() };
+  };
+
+  it("names them on the edit page, so the client can draw a tab each", async () => {
+    const { body } = await html("/admin/posts/1/edit");
+
+    expect(body).toContain("data-relations=");
+    expect(body).toContain("comments");
+    expect(body).toContain("Comments");
+  });
+
+  it("sends no rows with them", async () => {
+    // A record with six managers costs one page, not seven. What a tab holds
+    // is fetched when it is opened.
+    await html("/admin/posts/1/edit");
+
+    expect(asked.some((one) => one.model === "Comment")).toBe(false);
+  });
+
+  it("names none on the create page, which has no record to hang them off", async () => {
+    const { body } = await html("/admin/posts/create");
+
+    expect(body).not.toContain("data-relations=");
+  });
+});

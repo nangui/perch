@@ -6,10 +6,11 @@
  * substitutable, which is what a plugin needs to replace one.
  */
 import type { ReactNode } from "react";
-import type { KeyboardEvent } from "react";
 import { useCallback, useState } from "react";
 import type { SchemaNode } from "@perchjs/core";
 import { FieldShell } from "./FieldShell.js";
+import type { TabHead } from "./Tabs.js";
+import { TabStrip } from "./Tabs.js";
 import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
@@ -486,47 +487,9 @@ function TabsRenderer({ node, renderChild }: NodeProps): ReactNode {
   const at = Math.min(chosen, Math.max(panels.length - 1, 0));
   if (panels.length === 0) return null;
 
-  const move = (event: KeyboardEvent<HTMLDivElement>): void => {
-    // Not `step`: this file is read for every type's props, so a local of that
-    // name here would vouch for `TextInput.step` — which is on the wire with no
-    // reader, and the guard says so only while nothing says the word.
-    const towards = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
-    if (towards === 0) return;
-    event.preventDefault();
-    const next = (at + towards + panels.length) % panels.length;
-    setChosen(next);
-    // Focus follows the choice: a tab that is selected and not focused leaves
-    // the reader pressing arrows and hearing nothing.
-    const list = event.currentTarget;
-    (list.children[next] as HTMLElement | undefined)?.focus();
-  };
-
   return (
     <div className={`perch-layout perch-layout--${node.type.toLowerCase()}`}>
-      <div className="perch-tabs__list" role="tablist" onKeyDown={move}>
-        {panels.map((panel, index) => (
-          <button
-            key={panel.id}
-            type="button"
-            role="tab"
-            id={`${panel.id}-tab`}
-            className="perch-tabs__tab"
-            aria-selected={index === at}
-            aria-controls={panel.id}
-            tabIndex={index === at ? 0 : -1}
-            onClick={() => {
-              setChosen(index);
-            }}
-          >
-            {typeof panel.props?.["icon"] === "string" ? (
-              <span className="perch-tabs__icon" aria-hidden="true">
-                {panel.props["icon"]}
-              </span>
-            ) : null}
-            {panel.label ?? ""}
-          </button>
-        ))}
-      </div>
+      <TabStrip tabs={panels.map(head)} at={at} choose={setChosen} />
       {panels.map((panel, index) => (
         <div
           key={panel.id}
@@ -879,6 +842,16 @@ function newRowKey(): string {
     crypto?.randomUUID?.() ??
     `new-${String(Date.now())}-${Math.random().toString(36).slice(2)}`
   );
+}
+
+/** A panel's tab, named by its label and given the icon it declared. */
+function head(panel: SchemaNode): TabHead {
+  const icon = panel.props?.["icon"];
+  return {
+    id: panel.id,
+    label: panel.label ?? "",
+    ...(typeof icon === "string" ? { icon } : {}),
+  };
 }
 
 export function registerBuiltInComponents(): void {

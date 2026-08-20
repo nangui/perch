@@ -50,6 +50,7 @@ import { PANEL_STORAGE } from "./storage.token.js";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf } from "./panel-root.js";
 import { recordId } from "./record-id.js";
+import { managedRelations } from "./relation-records.js";
 import type { RawQuery } from "./records-query.js";
 import type { RegisteredResource } from "./resource-registry.js";
 import { ResourceRegistry } from "./resource-registry.js";
@@ -181,6 +182,9 @@ export class PanelPageController {
       operation: "edit",
       id,
       title: `Edit ${resource.metadata.label}`,
+      // Only on an edit: a manager is scoped by the parent's key, and a record
+      // that has not been written has none to scope by.
+      relations: managedRelations(resource.instance.relations?.() ?? []),
       // The whole row. `serialise` keeps only the paths the tree makes visible,
       // so a column the form does not carry never reaches the browser.
       state: record,
@@ -275,6 +279,7 @@ export class PanelPageController {
     title: string;
     state: FormState;
     record?: Row;
+    relations?: readonly { readonly relation: string; readonly label: string }[];
   }): Promise<string> {
     const root = rootOf(page.request, page.suffix);
     const resolved = await resolveSchema(page.schema, page.state, {
@@ -303,6 +308,9 @@ export class PanelPageController {
         ? {}
         : { listPath: list, listLabel: page.resource.metadata.pluralLabel }),
       ...(page.id === undefined ? {} : { id: page.id }),
+      ...(page.relations === undefined || page.relations.length === 0
+        ? {}
+        : { relations: page.relations }),
       payload: serialise(resolved),
       scriptFile: entry(this.#assets, "panel.js"),
       styleFile: entry(this.#assets, "panel.css"),

@@ -156,7 +156,14 @@ class PostResource {
       .actions([
         DeleteAction.make(),
         NoteAction.make()
-          .form(Schema.make([TextInput.make("reason").required()]))
+          .form(
+            Schema.make([
+              TextInput.make("reason").required(),
+              // Depends on another field, so the modal only works if its round
+              // trips reach a route that knows this schema.
+              TextInput.make("body").visible(({ get }) => Boolean(get("reason"))),
+            ]),
+          )
           .action((record) => {
             noted = [...noted, record];
           }),
@@ -341,5 +348,58 @@ describe("the modal a child action opens", () => {
     const done = await act(at, { ids: [10], data: { reason: "Off topic" } });
     expect(done.body["processed"]).toBe(1);
     expect(noted.map((row) => row["id"])).toEqual([10]);
+  });
+});
+
+describe("a modal over children, taking a round trip", () => {
+  const STATE = "/admin/api/posts/1/relations/comments/state";
+
+  it("resolves the action's own schema, so a dependent field works inside it", async () => {
+    // A modal is a schema like any other. Without a route that knows it, the
+    // cycle stops at a door it was never told about and the field never shows.
+    const { status, body } = await act(STATE, {
+      state: { reason: "Off topic" },
+      dirtyPath: "reason",
+      operation: "create",
+      action: "NoteAction",
+    });
+
+    expect(status).toBe(200);
+    expect(JSON.stringify(body)).toContain("body");
+  });
+
+  it("keeps the dependent field away until the one it reads is filled", async () => {
+    const { body } = await act(STATE, {
+      state: {},
+      dirtyPath: "reason",
+      operation: "create",
+      action: "NoteAction",
+    });
+
+    expect(JSON.stringify(body)).not.toContain('"path":"body"');
+  });
+
+  it("reaches nothing without an action to name", async () => {
+    // The manager's own form is written through its own route, where the child
+    // being edited is known. This one is for modals.
+    expect(
+      (await act(STATE, { state: {}, dirtyPath: "reason", operation: "create" }))
+        .status,
+    ).toBe(404);
+  });
+
+  it("is refused by the same policy the run is", async () => {
+    managerPolicy = { update: () => false };
+
+    expect(
+      (
+        await act(STATE, {
+          state: {},
+          dirtyPath: "reason",
+          operation: "create",
+          action: "NoteAction",
+        })
+      ).status,
+    ).toBe(404);
   });
 });
