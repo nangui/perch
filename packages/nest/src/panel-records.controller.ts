@@ -18,7 +18,7 @@ import {
 } from "@nestjs/common";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf } from "./panel-root.js";
-import type { DataAdapter } from "@perchjs/core";
+import type { DataAdapter, SchemaPayload } from "@perchjs/core";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
@@ -27,7 +27,7 @@ import type { RecordsResponse } from "./records.js";
 import { listRecords } from "./records.js";
 import { listChildren } from "./relation-records.js";
 import type { SaveResponse } from "./panel-save.controller.js";
-import { saveChild } from "./relation-save.js";
+import { childForm, saveChild } from "./relation-save.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
@@ -118,6 +118,36 @@ export class PanelRecordsController {
       relation: name,
       childId,
       body,
+      user: this.#users.resolve(request),
+      disks: this.#disks,
+    });
+  }
+
+  /**
+   * `POST {path}/api/:resource/:id/relations/:name/form`.
+   *
+   * What the modal shows, resolved against this reader. A body naming a child
+   * fills it from that row — after the row has been checked against the parent,
+   * so reading somebody else's through this is the refusal writing one is.
+   */
+  @Post(":id/relations/:name/form")
+  @HttpCode(200)
+  async childForm(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("name") name: string,
+    @Body() body: unknown,
+    @Req() request: IncomingUrl,
+  ): Promise<SchemaPayload> {
+    const childId = (body as { childId?: unknown } | null)?.childId;
+    return await childForm({
+      data: this.#data,
+      resource: this.#registry.get(slug),
+      parentId: id,
+      relation: name,
+      ...(typeof childId === "string" || typeof childId === "number"
+        ? { childId: String(childId) }
+        : {}),
       user: this.#users.resolve(request),
       disks: this.#disks,
     });

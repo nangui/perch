@@ -106,6 +106,16 @@ export interface PanelListProps {
   readonly actionState?: (
     name: string,
   ) => (request: StateRequest) => Promise<StateResponse>;
+  /**
+   * Offered on every row, after the ones the table declared, and carried out by
+   * the host rather than by a request from here.
+   *
+   * For what a page can do that the rows themselves cannot say: editing a
+   * relation manager's child opens a form over the tab, and a child has no page
+   * of its own for a link to lead to.
+   */
+  readonly rowActions?: readonly ActionNode[];
+  readonly onRowAction?: (name: string, row: Row) => void;
 }
 
 /** What the server answered. Counts, and whatever the action wanted to say. */
@@ -134,6 +144,8 @@ export function PanelList({
   initial,
   title,
   within,
+  rowActions,
+  onRowAction,
   fetchPage,
   onPage,
   flash,
@@ -418,6 +430,11 @@ export function PanelList({
   }
 
   function press(action: ActionNode, row: Row): void {
+    // The host's own, which no request from here carries out.
+    if ((rowActions ?? []).some((one) => one.name === action.name)) {
+      onRowAction?.(action.name, row);
+      return;
+    }
     const key = row[page.recordKey];
     if (typeof key !== "string" && typeof key !== "number") return;
     void open(action, [key]);
@@ -480,10 +497,12 @@ export function PanelList({
           rows={page.rows}
           caption={title}
           rowHref={(action, row) => href(page, action, row)}
-          rowActions={(row) => offered(page, row)}
+          rowActions={(row) => [...offered(page, row), ...(rowActions ?? [])]}
           {...(sort === undefined ? {} : { sort })}
           {...(reorder === undefined ? {} : { onSort: reorder })}
-          {...(runAction === undefined ? {} : { onAction: press, actionsBusy: busy })}
+          {...(runAction === undefined && onRowAction === undefined
+            ? {}
+            : { onAction: press, actionsBusy: busy })}
           {...(bulk.length === 0 || runAction === undefined
             ? {}
             : {

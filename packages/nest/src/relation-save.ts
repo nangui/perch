@@ -11,17 +11,16 @@
  * type, so the row is read and checked rather than trusted.
  */
 import { NotFoundException } from "@nestjs/common";
-import type { DataAdapter, Id, Row, WriteTree } from "@perchjs/core";
+import type { DataAdapter, Row, SchemaPayload, WriteTree } from "@perchjs/core";
 import { dehydrate, serialise } from "@perchjs/core";
 import { admit } from "./admission.js";
 import { commitUploads, dropReplaced, undoCommitted } from "./commit-uploads.js";
 import { fileUrls } from "./file-urls.js";
 import { readState } from "./form-body.js";
 import type { SaveResponse } from "./panel-save.controller.js";
-import { recordId } from "./record-id.js";
 import { withOptions } from "./relationship-options.js";
 import type { RelationScope } from "./relation-scope.js";
-import { reachManager } from "./relation-reach.js";
+import { childOf, reachManager } from "./relation-reach.js";
 import type { RegisteredResource } from "./resource-registry.js";
 import { projectOne } from "./row-projection.js";
 import type { PanelDisks } from "./storage.token.js";
@@ -36,26 +35,6 @@ export interface ChildWrite {
   readonly body: unknown;
   readonly user: unknown;
   readonly disks: PanelDisks;
-}
-
-/** The child a key names, but only if it is one of this parent's. */
-async function childOf(
-  data: DataAdapter,
-  scope: RelationScope,
-  owner: unknown,
-  childId: string,
-): Promise<{ readonly row: Row; readonly key: Id }> {
-  const key = recordId(data, scope.model, childId);
-  if (key === null) throw new NotFoundException();
-
-  const row = await data.findOne(scope.model, key);
-  if (row === null) throw new NotFoundException();
-  // The check that makes a key safe to accept. Without it, editing somebody
-  // else's child is a matter of typing their id into the address.
-  if (row[scope.foreignKey] !== owner) throw new NotFoundException();
-  // The key travels with the row, so the update reaches for a value that has
-  // been through `recordId` rather than casting whatever the column held.
-  return { row, key };
 }
 
 export async function saveChild(request: ChildWrite): Promise<SaveResponse> {
@@ -142,4 +121,52 @@ function owned(write: WriteTree, scope: RelationScope, owner: unknown): WriteTre
     ...write,
     set: { ...write.set, [scope.foreignKey]: owner },
   };
+}
+
+/**
+ * The form a manager opens, resolved against this reader.
+ *
+ * Asked for rather than shipped with the tab, for the reason an action's modal
+ * is: a schema means nothing until it has been resolved against a principal,
+ * and a tab is drawn for every reader who opens one.
+ *
+ * On an edit it is filled from the row — but only after the row has been
+ * checked against the parent, so reading somebody else's child through this is
+ * the same refusal writing one is.
+ */
+export async function childForm(request: {
+  readonly data: DataAdapter | null;
+  readonly resource: RegisteredResource | undefined;
+  readonly parentId: string;
+  readonly relation: string;
+  readonly childId?: string;
+  readonly user: unknown;
+  readonly disks: PanelDisks;
+}): Promise<SchemaPayload> {
+  const { data, manager, scope, owner } = await reachManager({
+    ...request,
+    needs: request.childId === undefined ? "create" : "edit",
+  });
+
+  const form = manager.state.form;
+  if (form === undefined) throw new NotFoundException();
+
+  const record =
+    request.childId === undefined
+      ? null
+      : (await childOf(data, scope, owner, request.childId)).row;
+
+  const { tree } = await admit({
+    schema: form,
+    // The row itself on an edit, which `serialise` narrows to the paths the
+    // tree makes visible — so a column the form does not carry stays here.
+    state: record ?? {},
+    operation: record === null ? "create" : "edit",
+    user: request.user,
+    record,
+    ...withOptions(data, scope.model),
+    ...fileUrls(request.disks),
+  });
+
+  return serialise(tree);
 }

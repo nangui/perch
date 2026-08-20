@@ -145,11 +145,48 @@ export function mount(element: HTMLElement): void {
             actionState={(relation, name) => (request) =>
               send(under(relation), "create", undefined, request, name)
             }
+            // The manager's own form: opened, taken round trips, and written.
+            // No action name, which is what tells the routes which schema.
+            childForm={(relation, childId) => askChildForm(under(relation), childId)}
+            childState={(relation, childId) => (request) =>
+              send(
+                under(relation),
+                childId === undefined ? "create" : "edit",
+                childId,
+                request,
+              )
+            }
+            saveChild={(relation, childId, state) =>
+              save(
+                under(relation),
+                childId === undefined ? "create" : "edit",
+                childId,
+                { state },
+              )
+            }
           />
         )}
       </>,
     ),
   );
+}
+
+/**
+ * The form a manager opens, resolved against this reader.
+ *
+ * Asked for rather than shipped with the tab, for the same reason an action's
+ * modal is: a schema means nothing until it has been resolved, and the row it
+ * is filled from is checked against the parent on the way.
+ */
+async function askChildForm(base: string, childId?: string): Promise<SchemaPayload> {
+  const response = await fetch(`${base}/form`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify(childId === undefined ? {} : { childId }),
+    credentials: "same-origin",
+  });
+  if (!response.ok) throw new Error(`/form answered ${String(response.status)}`);
+  return (await response.json()) as SchemaPayload;
 }
 
 /** The managers the shell named, or none. A malformed attribute is none. */

@@ -50,6 +50,7 @@ import { PANEL_STORAGE } from "./storage.token.js";
 import type { IncomingUrl } from "./panel-root.js";
 import { rootOf } from "./panel-root.js";
 import { recordId } from "./record-id.js";
+import type { ManagedRelation } from "./relation-records.js";
 import { managedRelations } from "./relation-records.js";
 import type { RawQuery } from "./records-query.js";
 import type { RegisteredResource } from "./resource-registry.js";
@@ -279,7 +280,7 @@ export class PanelPageController {
     title: string;
     state: FormState;
     record?: Row;
-    relations?: readonly { readonly relation: string; readonly label: string }[];
+    relations?: readonly ManagedRelation[];
   }): Promise<string> {
     const root = rootOf(page.request, page.suffix);
     const resolved = await resolveSchema(page.schema, page.state, {

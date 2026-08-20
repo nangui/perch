@@ -703,6 +703,19 @@
   border-top: 1px solid var(--perch-border);
 }
 
+/* The strip and the add button on one line, the button pushed to the end. */
+.perch-relations__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--perch-space-4);
+  border-bottom: 1px solid var(--perch-border);
+}
+
+.perch-relations__head .perch-tabs__list {
+  border-bottom: 0;
+}
+
 .perch-relations__body {
   padding-top: var(--perch-space-4);
 }

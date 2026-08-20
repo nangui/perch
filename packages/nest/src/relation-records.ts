@@ -45,9 +45,19 @@ export async function listChildren(options: {
  */
 export function managedRelations(
   managers: readonly RelationManager[],
-): readonly { readonly relation: string; readonly label: string }[] {
+): readonly ManagedRelation[] {
   return managers.map((manager) => ({
     relation: manager.state.relation,
     label: manager.state.label ?? manager.state.relation,
+    // A manager with no form neither creates nor edits, so the tab offers
+    // neither. Said here rather than discovered by a route answering 404.
+    ...(manager.state.form === undefined ? {} : { writable: true as const }),
   }));
+}
+
+export interface ManagedRelation {
+  readonly relation: string;
+  readonly label: string;
+  /** Whether it declares a form. Absent means the tab only lists and acts. */
+  readonly writable?: true;
 }

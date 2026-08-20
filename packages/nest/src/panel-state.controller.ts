@@ -40,7 +40,7 @@ import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
 import { recordId } from "./record-id.js";
-import { reachManager } from "./relation-reach.js";
+import { childOf, reachManager } from "./relation-reach.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { RegisteredResource } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
@@ -149,9 +149,9 @@ export class PanelStateController {
    * schema — a dependent `Select` inside one has to work, or the cycle stops
    * at a door it was never told about.
    *
-   * Only an action's form is reachable here. The manager's own form is written
-   * through its own route, where the child being edited is known; a modal
-   * answers to no single row, so the tree resolves against none.
+   * Two schemas are reachable: an action's form, and the manager's own. Which
+   * one is read off the declaration, never off the request — a name nobody
+   * declared, or a manager with no form, reaches nothing.
    */
   @Post(":id/relations/:relation/state")
   @HttpCode(200)
@@ -163,39 +163,59 @@ export class PanelStateController {
     @Req() request: unknown,
   ): Promise<SchemaPayload> {
     const decoded = decode(body);
-    if (decoded.action === undefined) throw new NotFoundException();
     const user = this.#users.resolve(request);
+    const wanted = decoded.action;
 
-    let named: Action | undefined;
-    const { scope } = await reachManager({
+    let schema: Schema | undefined;
+    const { data, scope, owner } = await reachManager({
       data: this.#data,
       resource: this.#registry.get(slug),
       parentId: id,
       relation,
       user,
       needs: (manager) => {
-        named = declaredActions(manager.state.table).get(decoded.action as string);
-        return named === undefined ? undefined : permissionFor(named);
+        if (wanted === undefined) {
+          // The manager's own form. Adding a child and changing one are
+          // separate permissions, and the operation says which this is.
+          schema = manager.state.form;
+          return schema === undefined
+            ? undefined
+            : decoded.operation === "create"
+              ? "create"
+              : "edit";
+        }
+        const named = declaredActions(manager.state.table).get(wanted);
+        if (named === undefined) return undefined;
+        schema = named.state.form;
+        return schema === undefined ? undefined : permissionFor(named);
       },
     });
-    if (named === undefined) throw new NotFoundException();
+    if (schema === undefined) throw new NotFoundException();
 
-    // Read against the child's model, which is whose columns the modal's fields
+    // The row a manager's form is filling in, checked against the parent first.
+    // A modal over a selection answers to no single row and resolves against
+    // none, which is why an action never loads one.
+    const record =
+      wanted !== undefined || decoded.id === undefined
+        ? null
+        : (await childOf(data, scope, owner, String(decoded.id))).row;
+
+    // Read against the child's model, which is whose columns these fields
     // declare. The parent's would offer a dropdown of the wrong table.
-    const schema = formOf(named);
     const options = { ...withOptions(this.#data, scope.model), ...this.#urls };
     const { accepted, tree } = await admit({
       schema,
       state: decoded.state,
       operation: decoded.operation,
       user,
-      record: null,
+      record,
       ...options,
     });
     const next = await resolveSchema(schema, accepted, {
       operation: decoded.operation,
       dirtyPath: decoded.dirtyPath,
       user,
+      ...(record === null ? {} : { record }),
       previous: tree,
       ...options,
     });

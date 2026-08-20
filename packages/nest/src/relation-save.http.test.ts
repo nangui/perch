@@ -188,10 +188,13 @@ const write = async (
   state: Record<string, unknown>,
   method = "POST",
 ): Promise<{ status: number; body: Record<string, unknown> }> => {
+  // A save carries `{ state }`; the form and state routes carry their own
+  // envelope. Told apart by the address, which is what decides the shape.
+  const envelope = at.endsWith("/form") || at.endsWith("/state") ? state : { state };
   const response = await fetch(`${url}${at}`, {
     method,
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ state }),
+    body: JSON.stringify(envelope),
   });
   return {
     status: response.status,
@@ -365,6 +368,105 @@ describe("who may write one", () => {
   it("is refused for a relation nobody manages", async () => {
     expect(
       (await write("/admin/api/posts/1/relations/nothing", { body: "Fresh" })).status,
+    ).toBe(404);
+  });
+});
+
+describe("the form a tab opens", () => {
+  const FORM = "/admin/api/posts/1/relations/comments/form";
+
+  it("is the manager's own, resolved against the reader", async () => {
+    const { status, body } = await write(FORM, {});
+
+    expect(status).toBe(200);
+    expect(JSON.stringify(body)).toContain('"path":"body"');
+  });
+
+  it("comes back empty for a new child", async () => {
+    const { body } = await write(FORM, {});
+
+    expect(JSON.stringify(body)).not.toContain("On the first");
+  });
+
+  it("is filled from the row when one is named", async () => {
+    const { body } = await write(FORM, { childId: 10 });
+
+    expect(JSON.stringify(body)).toContain("On the first");
+  });
+
+  it("refuses a row belonging to another parent", async () => {
+    // Reading somebody else's child through this is the refusal writing one is.
+    expect((await write(FORM, { childId: 12 })).status).toBe(404);
+  });
+
+  it("refuses where the manager declares no form", async () => {
+    fields = null;
+
+    expect((await write(FORM, {})).status).toBe(404);
+  });
+
+  it("is refused when the parent may not be seen", async () => {
+    policy = { view: () => false };
+
+    expect((await write(FORM, {})).status).toBe(404);
+  });
+});
+
+describe("the round trips that form takes", () => {
+  const STATE = "/admin/api/posts/1/relations/comments/state";
+
+  it("resolves the manager's form when no action is named", async () => {
+    fields = [
+      TextInput.make("body").required(),
+      // Only there once `body` is, so this proves the cycle reached it.
+      TextInput.make("author").visible(({ get }) => Boolean(get("body"))),
+    ];
+
+    const filled = await write(STATE, {
+      state: { body: "Something" },
+      dirtyPath: "body",
+      operation: "create",
+    });
+    const empty = await write(STATE, {
+      state: {},
+      dirtyPath: "body",
+      operation: "create",
+    });
+
+    expect(JSON.stringify(filled.body)).toContain('"path":"author"');
+    expect(JSON.stringify(empty.body)).not.toContain('"path":"author"');
+  });
+
+  it("resolves it against the row on an edit", async () => {
+    const { status } = await write(STATE, {
+      state: {},
+      dirtyPath: "body",
+      operation: "edit",
+      id: 10,
+    });
+
+    expect(status).toBe(200);
+  });
+
+  it("refuses a row belonging to another parent", async () => {
+    expect(
+      (
+        await write(STATE, {
+          state: {},
+          dirtyPath: "body",
+          operation: "edit",
+          id: 12,
+        })
+      ).status,
+    ).toBe(404);
+  });
+
+  it("asks the manager for permission to add when that is what it is", async () => {
+    managerPolicy = { create: () => false, update: () => true };
+
+    expect(
+      (await write(STATE, { state: {}, dirtyPath: "body", operation: "create" }))
+        .status,
     ).toBe(404);
   });
 });

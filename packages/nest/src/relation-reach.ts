@@ -11,7 +11,7 @@
  * that stopped narrowing.
  */
 import { NotFoundException } from "@nestjs/common";
-import type { DataAdapter, Row } from "@perchjs/core";
+import type { DataAdapter, Id, Row } from "@perchjs/core";
 import type { Permission } from "./authorization.js";
 import { authorize } from "./authorization.js";
 import { recordId } from "./record-id.js";
@@ -89,4 +89,29 @@ export async function reachManager(request: {
   if (owner === undefined || owner === null) throw new NotFoundException();
 
   return { data, parent, manager, scope, owner };
+}
+
+/**
+ * The child a key names, but only if it is one of this parent's.
+ *
+ * The check that makes a key safe to accept: without it, reading or editing
+ * somebody else's child is a matter of typing their id into the address. Here
+ * rather than in one caller, because reading a form, taking its round trips and
+ * writing it are three doors onto the same row.
+ */
+export async function childOf(
+  data: DataAdapter,
+  scope: RelationScope,
+  owner: unknown,
+  childId: string,
+): Promise<{ readonly row: Row; readonly key: Id }> {
+  const key = recordId(data, scope.model, childId);
+  if (key === null) throw new NotFoundException();
+
+  const row = await data.findOne(scope.model, key);
+  if (row === null) throw new NotFoundException();
+  if (row[scope.foreignKey] !== owner) throw new NotFoundException();
+  // The key travels with the row, so a write reaches for a value that has been
+  // through `recordId` rather than casting whatever the column held.
+  return { row, key };
 }

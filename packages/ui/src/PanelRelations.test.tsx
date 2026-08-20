@@ -10,7 +10,13 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { Mock } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { registerBuiltInColumns, resetColumnRegistry } from "./index.js";
+import {
+  registerBuiltInColumns,
+  registerBuiltInComponents,
+  resetColumnRegistry,
+  resetRegistry,
+} from "./index.js";
+import type { SchemaPayload } from "@perchjs/core";
 import type { RecordsPage } from "./PanelList.js";
 import { PanelRelations } from "./PanelRelations.js";
 
@@ -44,9 +50,36 @@ const nothing = {
   actionState: vi.fn(),
 };
 
+const FORM: SchemaPayload = {
+  schema: {
+    id: "root",
+    type: "Schema",
+    children: [{ id: "body", type: "TextInput", path: "body", label: "Body" }],
+  },
+  state: {},
+  errors: {},
+};
+
+/** Everything a writable tab needs, so a test names only what it is about. */
+const writing = () => ({
+  childForm: vi.fn().mockResolvedValue(FORM),
+  childState: vi.fn().mockReturnValue(vi.fn()),
+  saveChild: vi.fn().mockResolvedValue({ record: { id: 9 } }),
+});
+
 beforeEach(() => {
   resetColumnRegistry();
   registerBuiltInColumns();
+  // A modal renders fields, not only cells.
+  resetRegistry();
+  registerBuiltInComponents();
+  // jsdom has the element but not its modal behaviour.
+  HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+    this.open = false;
+  };
   vi.clearAllMocks();
 });
 
@@ -167,5 +200,127 @@ describe("a tab nobody is on", () => {
     // One table on the page, not two: the closed tab is not built at all, so
     // its buttons are not reachable by tabbing past the open one.
     expect(screen.getAllByRole("table")).toHaveLength(1);
+  });
+});
+
+describe("adding a child", () => {
+  const WRITABLE = [
+    { relation: "comments", label: "Comments", writable: true } as const,
+  ];
+
+  it("offers nothing where the manager declares no form", async () => {
+    render(
+      <PanelRelations
+        relations={RELATIONS}
+        fetchPage={vi.fn().mockResolvedValue(page("First"))}
+        {...nothing}
+        {...writing()}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    expect(screen.queryByRole("button", { name: "Add to Comments" })).toBeNull();
+  });
+
+  it("asks the server for the form, and opens it over the tab", async () => {
+    const write = writing();
+    render(
+      <PanelRelations
+        relations={WRITABLE}
+        fetchPage={vi.fn().mockResolvedValue(page("First"))}
+        {...nothing}
+        {...write}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to Comments" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Body")).toBeTruthy();
+    });
+    // No child named: this is a create, and the server is told so by silence.
+    expect(write.childForm.mock.calls[0]).toEqual(["comments", undefined]);
+  });
+
+  it("writes it and asks for the page again, because the page is now stale", async () => {
+    const write = writing();
+    const fetchPage = vi.fn().mockResolvedValue(page("First"));
+    render(
+      <PanelRelations
+        relations={WRITABLE}
+        fetchPage={fetchPage}
+        {...nothing}
+        {...write}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to Comments" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Body")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(write.saveChild).toHaveBeenCalled();
+    });
+    expect(write.saveChild.mock.calls[0]?.[1]).toBeUndefined();
+    await waitFor(() => {
+      expect(fetchPage.mock.calls).toHaveLength(2);
+    });
+  });
+});
+
+describe("editing a child", () => {
+  const WRITABLE = [
+    { relation: "comments", label: "Comments", writable: true } as const,
+  ];
+
+  it("opens the form on the row it was pressed on", async () => {
+    const write = writing();
+    render(
+      <PanelRelations
+        relations={WRITABLE}
+        fetchPage={vi.fn().mockResolvedValue(page("First"))}
+        {...nothing}
+        {...write}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    fireEvent.click(await screen.findByLabelText("Actions"));
+    fireEvent.click(screen.getByText("Edit"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Body")).toBeTruthy();
+    });
+    // The row's key, which is what makes it an edit rather than a second child.
+    expect(write.childForm.mock.calls[0]).toEqual(["comments", "1"]);
+  });
+
+  it("offers no edit where the manager declares no form", async () => {
+    render(
+      <PanelRelations
+        relations={RELATIONS}
+        fetchPage={vi.fn().mockResolvedValue(page("First"))}
+        {...nothing}
+        {...writing()}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("First")).toBeTruthy();
+    });
+
+    fireEvent.click(await screen.findByLabelText("Actions"));
+    expect(screen.queryByText("Edit")).toBeNull();
   });
 });
