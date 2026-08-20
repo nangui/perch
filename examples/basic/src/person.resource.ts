@@ -27,6 +27,7 @@ import {
   Table,
   Textarea,
   IconColumn,
+  Text,
   TextColumn,
   TextFilter,
   TextEntry,
@@ -330,6 +331,11 @@ export class PersonResource {
           Radio.make("role").label("Role").options(ROLES).inline(),
         ]),
 
+      // Static content, which is neither a control nor a reading of the row:
+      // the sentence between two sections rather than a field with a label.
+      Text.make(
+        "Everything below is saved together. Tasks are their own, under the tabs.",
+      ),
       Callout.make("Before you edit")
         .tone("warning")
         .description(({ get }) =>

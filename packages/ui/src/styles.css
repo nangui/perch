@@ -1979,6 +1979,55 @@
 
 /* ------------------------------------------------------------------ renderer */
 
+/* ------------------------------------------------------------------ prime */
+
+/*
+ * Static content between the controls. No field chrome around any of them: a
+ * paragraph with a label over it reads as a field nobody can fill in.
+ */
+.perch-prime--text {
+  margin: 0;
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+}
+
+.perch-prime--text[data-tone="success"] {
+  color: var(--perch-success-content);
+}
+
+.perch-prime--text[data-tone="warning"] {
+  color: var(--perch-warning-content);
+}
+
+.perch-prime--text[data-tone="danger"] {
+  color: var(--perch-danger-content);
+}
+
+/* Bounded by the column it sits in, never wider than it. */
+.perch-prime--image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--perch-radius);
+}
+
+.perch-prime--icon {
+  font-size: var(--perch-text-2xl);
+  line-height: 1;
+}
+
+.perch-prime--icon[data-tone="success"] {
+  color: var(--perch-success-content);
+}
+
+.perch-prime--icon[data-tone="warning"] {
+  color: var(--perch-warning-content);
+}
+
+.perch-prime--icon[data-tone="danger"] {
+  color: var(--perch-danger-content);
+}
+
 /* Under the title, above what the layout holds. */
 .perch-layout__description {
   margin: 0 0 var(--perch-space-4);

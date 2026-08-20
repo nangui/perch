@@ -222,3 +222,82 @@ describe("a callout on a page", () => {
     ).toBeNull();
   });
 });
+
+describe("static content on a page", () => {
+  const drawn = (node: SchemaNode) =>
+    render(
+      <SchemaRenderer
+        payload={{
+          schema: { id: "root", type: "Schema", children: [node] },
+          state: {},
+          errors: {},
+        }}
+        onChange={() => undefined}
+      />,
+    ).container;
+
+  it("draws a paragraph with no field chrome around it", () => {
+    // A shell puts a label above and help below, which is right for a control
+    // and wrong for a sentence between two sections.
+    const container = drawn({
+      id: "note",
+      type: "Text",
+      content: "Rates apply from Monday.",
+      props: { tone: "warning" },
+    });
+
+    expect(screen.getByText("Rates apply from Monday.")).toBeTruthy();
+    expect(container.querySelector(".perch-field__label")).toBeNull();
+    expect(
+      container.querySelector(".perch-prime--text")?.getAttribute("data-tone"),
+    ).toBe("warning");
+  });
+
+  it("draws a picture by its address, and says what it is", () => {
+    const container = drawn({
+      id: "chart",
+      type: "Image",
+      content: "/c.png",
+      props: { alt: "A rate chart" },
+    });
+    const picture = container.querySelector("img");
+
+    expect(picture?.getAttribute("src")).toBe("/c.png");
+    expect(picture?.getAttribute("alt")).toBe("A rate chart");
+  });
+
+  it("treats a picture nobody described as decoration, not as an unnamed one", () => {
+    const container = drawn({ id: "chart", type: "Image", content: "/c.png" });
+
+    expect(container.querySelector("img")?.getAttribute("alt")).toBe("");
+  });
+
+  it("hides a mark from a reader who would only hear the character", () => {
+    const container = drawn({ id: "flag", type: "Icon", content: "\u2691" });
+
+    expect(
+      container.querySelector(".perch-prime--icon")?.getAttribute("aria-hidden"),
+    ).toBe("true");
+  });
+
+  it("draws nothing at all where there is nothing to draw", () => {
+    // An empty paragraph would take a line of the page and say nothing on it.
+    expect(
+      drawn({ id: "note", type: "Text" }).querySelector(".perch-prime"),
+    ).toBeNull();
+  });
+
+  it("draws nothing where what came back was blank, not only absent", () => {
+    // A browser resolves `src=""` against the document and fetches the page
+    // again — so a source the server would not vouch for is no image at all.
+    expect(
+      drawn({ id: "chart", type: "Image", content: "" }).querySelector("img"),
+    ).toBeNull();
+    expect(
+      drawn({ id: "note", type: "Text", content: "" }).querySelector(".perch-prime"),
+    ).toBeNull();
+    expect(
+      drawn({ id: "flag", type: "Icon", content: "" }).querySelector(".perch-prime"),
+    ).toBeNull();
+  });
+});

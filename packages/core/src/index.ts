@@ -148,6 +148,8 @@ export { Component, configured, isResolver } from "./component.js";
 // Layout components, shared by forms and infolists.
 export type { Columns } from "./layout.js";
 export { Callout, Grid, Layout, Schema, Section, Tab, Tabs } from "./layout.js";
+export type { PrimeState } from "./prime.js";
+export { Icon, Image, Prime, Text } from "./prime.js";
 
 // Fields: components that hold state and are validated.
 export type {

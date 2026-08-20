@@ -31,12 +31,22 @@ const CORE = new URL("../../core/src/", import.meta.url);
  */
 const SOURCES = ["fields", "entries"];
 
+/**
+ * The files at the root of core that declare a component type.
+ *
+ * Named one by one rather than swept up, so adding a branch to the tree means
+ * saying so here — which is the moment to notice it is not drawn. `prime.ts`
+ * arrived without this line and three types went unwatched: unregistering one
+ * of them left every test in this file green.
+ */
+const ROOTS = ["layout.ts", "prime.ts"];
+
 function declared(): readonly string[] {
   const files = SOURCES.flatMap((directory) =>
     readdirSync(new URL(directory, CORE), { recursive: true, encoding: "utf8" })
       .filter((name) => name.endsWith(".ts") && !name.includes(".test."))
       .map((name) => `${directory}/${name}`),
-  ).concat("layout.ts");
+  ).concat(ROOTS);
 
   const types: string[] = [];
   for (const file of files) {
@@ -116,5 +126,16 @@ describe("what a schema can carry", () => {
 
   it("finds the registry naming something at all", () => {
     expect(registered().size).toBeGreaterThan(10);
+  });
+
+  it("draws nothing a schema cannot carry, which is the other direction", () => {
+    // Asking only whether every declared type is drawn leaves the mirror
+    // unwatched: a renderer registered under a name core does not declare is
+    // dead code that looks connected, and a type this file cannot see is one
+    // it will never report. Both are caught by matching the two lists.
+    const known = new Set(declared());
+    const spurious = [...registered()].filter((type) => !known.has(type));
+
+    expect(spurious).toEqual([]);
   });
 });

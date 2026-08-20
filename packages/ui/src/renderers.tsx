@@ -93,10 +93,7 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
 
   // Unknown names fall back rather than becoming a class the stylesheet has not
   // got: a box with no background reads as a rendering fault.
-  const tone =
-    typeof node.props?.["tone"] === "string" && TONES.has(node.props["tone"])
-      ? node.props["tone"]
-      : undefined;
+  const tone = toneOf(node);
 
   return (
     <div
@@ -150,6 +147,81 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
 
 /** The panel's four, which a callout and a badge both choose from. */
 const TONES = new Set(["neutral", "success", "warning", "danger"]);
+
+/**
+ * Nothing to draw, whether it never arrived or came back blank.
+ *
+ * An empty paragraph takes a line of the page and says nothing on it, and an
+ * empty `src` is a request for the page itself.
+ */
+function empty(content: string | undefined): boolean {
+  return content === undefined || content === "";
+}
+
+/** The tone the server chose, or none, rather than a class that does not exist. */
+function toneOf(node: NodeProps["node"]): string | undefined {
+  const tone = node.props?.["tone"];
+  return typeof tone === "string" && TONES.has(tone) ? tone : undefined;
+}
+
+/**
+ * Static content in a schema: a paragraph, a picture, a mark.
+ *
+ * No `FieldShell` around any of them. A shell puts a label above and help
+ * below, which is right for a control and wrong for a sentence between two
+ * sections — a paragraph with a heading over it reads as a field nobody can
+ * fill in.
+ */
+function TextRenderer({ node }: NodeProps): ReactNode {
+  if (empty(node.content)) return null;
+  const tone = toneOf(node);
+
+  return (
+    <p
+      className="perch-prime perch-prime--text"
+      {...(tone === undefined ? {} : { "data-tone": tone })}
+    >
+      {node.content}
+    </p>
+  );
+}
+
+function ImageRenderer({ node }: NodeProps): ReactNode {
+  // Empty as well as absent. A browser resolves `src=""` against the document
+  // and fetches the page again, so a source that came back blank — a column
+  // nobody filled, an address the server would not vouch for — is no image.
+  if (empty(node.content)) return null;
+  const alt = node.props?.["alt"];
+
+  // An empty `alt` is a real answer and the reason it is asked for on the way
+  // in: it says the picture is decoration. Missing is not the same thing, and
+  // a picture nobody described is one a reader is not told about — so it is
+  // treated as decoration rather than announced as an unnamed image.
+  return (
+    <img
+      className="perch-prime perch-prime--image"
+      src={node.content}
+      alt={typeof alt === "string" ? alt : ""}
+    />
+  );
+}
+
+function IconRenderer({ node }: NodeProps): ReactNode {
+  if (empty(node.content)) return null;
+  const tone = toneOf(node);
+
+  // Hidden from a screen reader, always. A mark carrying meaning of its own
+  // would need words beside it, and those words are a `Text`.
+  return (
+    <span
+      className="perch-prime perch-prime--icon"
+      aria-hidden="true"
+      {...(tone === undefined ? {} : { "data-tone": tone })}
+    >
+      {node.content}
+    </span>
+  );
+}
 
 function TextInputRenderer({
   node,
@@ -888,6 +960,10 @@ export function registerBuiltInComponents(): void {
   registerComponent("Tabs", TabsRenderer);
   // A box that says something, and holds whatever it is about.
   registerComponent("Callout", LayoutRenderer);
+  // Static content: what the reader looks at rather than a reading of a record.
+  registerComponent("Text", TextRenderer);
+  registerComponent("Image", ImageRenderer);
+  registerComponent("Icon", IconRenderer);
   // A tab outside a `Tabs` is a box with a heading, which is what a layout is.
   registerComponent("Tab", LayoutRenderer);
   registerComponent("TextInput", TextInputRenderer);

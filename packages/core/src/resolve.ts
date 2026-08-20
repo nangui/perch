@@ -10,6 +10,7 @@ import { isResolver } from "./component.js";
 import type { Id, RelationWrite, Row, WriteTree } from "./data-adapter.js";
 import { Entry } from "./entry.js";
 import { Layout, Schema } from "./layout.js";
+import { Image, Prime } from "./prime.js";
 import { RepeatableEntry } from "./entries/repeatable-entry.js";
 import { safeHref, TextEntry } from "./entries/text-entry.js";
 import type { ResolvedFlags } from "./field.js";
@@ -820,10 +821,17 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       ? await rowLabels(component, node, ctx, count)
       : undefined;
 
-  const content =
-    component instanceof Placeholder
+  // Both hold something to read and neither is written. A placeholder is a
+  // field with a label above it; a prime is content between the controls.
+  const said =
+    component instanceof Placeholder || component instanceof Prime
       ? await value(component.state.content, rc, undefined, count)
       : undefined;
+  // An image's content is an address, and it is checked here for the reason an
+  // entry's is: the source accepts a resolver, so it can be built from a stored
+  // value, and a stored value does not reach an attribute unchecked. Refused,
+  // it is nothing at all rather than an `<img>` pointing somewhere unread.
+  const content = component instanceof Image ? safeHref(said) : said;
 
   // From the record, by the path the entry names, and not from the state map.
   // `readPath` is the reader a relation column already uses: it stops at an
