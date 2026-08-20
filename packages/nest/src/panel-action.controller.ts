@@ -22,6 +22,7 @@ import {
 } from "@nestjs/common";
 import type {
   Action,
+  DeletedRows,
   DataAdapter,
   FormState,
   Id,
@@ -189,7 +190,10 @@ export class PanelActionController {
     const model = resource.metadata.model;
 
     const { keys } = readSelection(data, model, body);
-    const rows = await loadSelection(data, model, keys);
+    // Restoring and destroying for good are the two whose subject is a row an
+    // ordinary read leaves out. Loading them the ordinary way found nothing and
+    // answered 404 — the actions could never reach what they exist for.
+    const rows = await loadSelection(data, model, keys, reads(action));
     // A key naming nothing is a row somebody deleted between the tick and the
     // press. Naming none at all is a request about nothing.
     if (rows.length === 0) throw new NotFoundException();
@@ -337,6 +341,19 @@ export class PanelActionController {
       return { ...outcome, refused: outcome.refused + refusedAlready };
     });
   }
+}
+
+/**
+ * Which rows an action is allowed to find.
+ *
+ * `with` for the two that act on marked rows, and only for those: deleting
+ * reaches what a reader can see, and an action written by an author acts on the
+ * page they were looking at.
+ */
+function reads(action: Action): DeletedRows {
+  return action instanceof RestoreAction || action instanceof ForceDeleteAction
+    ? "with"
+    : "without";
 }
 
 /** Which port method carries this action out, where the framework does. */

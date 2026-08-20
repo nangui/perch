@@ -8,7 +8,7 @@
  *
  * They are loaded in one query. Fifty ticked rows are not fifty round trips.
  */
-import type { DataAdapter, Id, Row } from "@perchjs/core";
+import type { DataAdapter, DeletedRows, Id, Row } from "@perchjs/core";
 import { UnprocessableEntityException } from "@nestjs/common";
 import { recordId } from "./record-id.js";
 
@@ -76,6 +76,7 @@ export async function loadSelection(
   data: DataAdapter,
   model: string,
   keys: readonly Id[],
+  deleted: DeletedRows = "without",
 ): Promise<readonly Row[]> {
   if (keys.length === 0) return [];
 
@@ -83,6 +84,7 @@ export async function loadSelection(
     model,
     clauses: [{ path: data.meta(model).primaryKey.name, operator: "in", value: keys }],
     take: keys.length,
+    deleted,
   });
   return page.rows;
 }

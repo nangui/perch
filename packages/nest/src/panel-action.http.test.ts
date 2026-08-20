@@ -44,6 +44,8 @@ let ran: { record: Row; data: Readonly<Record<string, unknown>> }[] = [];
 let deleted: readonly Id[][] = [];
 let destroyed: readonly Id[][] = [];
 let restored: readonly Id[][] = [];
+/** Rows the double is pretending are deleted. */
+let marked = new Set<Id>();
 let policy: Authorization | undefined;
 let guard: ((user: unknown, record: Row) => boolean) | undefined;
 let transactions = 0;
@@ -88,7 +90,11 @@ class MemoryAdapter implements DataAdapter {
     queries += 1;
     const rows = wanted
       .map((id) => ROWS[Number(id)])
-      .filter((row): row is Row => row !== undefined);
+      .filter((row): row is Row => row !== undefined)
+      // Marked rows are left out unless asked for, like a real one. A double
+      // that answered with them either way could not tell whether an action
+      // acting on a deleted row can reach it — and one of them could not.
+      .filter((row) => query.deleted === "with" || !marked.has(row["id"] as Id));
     return Promise.resolve({ rows, total: rows.length });
   }
   findOne(_model: string, id: Id): Promise<Row | null> {
@@ -185,6 +191,7 @@ beforeEach(async () => {
   deleted = [];
   destroyed = [];
   restored = [];
+  marked = new Set();
   transactions = 0;
   queries = 0;
   explode = false;
@@ -890,5 +897,33 @@ describe("what each of the two asks first", () => {
 
     expect(restore).toBeDefined();
     expect(restore?.confirmation).toBeUndefined();
+  });
+});
+
+describe("an action whose subject is a row a read leaves out", () => {
+  it("reaches a marked row to restore it", async () => {
+    // Found by running it: an ordinary read excludes marked rows, so loading
+    // the selection the ordinary way found nothing and answered 404 — the two
+    // actions could never reach what they exist for.
+    marked = new Set([1]);
+
+    expect((await press("RestoreAction")).status).toBe(200);
+    expect(restored).toEqual([[1]]);
+  });
+
+  it("reaches one to destroy it for good", async () => {
+    marked = new Set([1]);
+
+    expect((await press("ForceDeleteAction")).status).toBe(200);
+    expect(destroyed).toEqual([[1]]);
+  });
+
+  it("still refuses a delete on a row nobody can see", async () => {
+    // Deleting reaches what a reader can see. A row already marked is not on
+    // the page the button was pressed from.
+    marked = new Set([1]);
+
+    expect((await press("DeleteAction")).status).toBe(404);
+    expect(deleted).toEqual([]);
   });
 });
