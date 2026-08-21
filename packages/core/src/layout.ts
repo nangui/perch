@@ -94,6 +94,33 @@ export class Section extends Layout {
 }
 
 /**
+ * A group of fields that belong together, and nothing more.
+ *
+ * Lighter than a section on purpose: no card, no collapsing, no place for a
+ * page to be divided at. Two dates that make a range, a street and a postcode —
+ * the grouping is what is being said, and a section around two fields says the
+ * page has a part called that.
+ *
+ * The browser has an element for exactly this, which is where the name comes
+ * from and what its renderer draws: a group with a name is a thing a screen
+ * reader announces on the way in, for free, and a `div` with a heading is not.
+ */
+export class Fieldset extends Layout {
+  override get type(): string {
+    return "Fieldset";
+  }
+
+  static make(label?: string): Fieldset {
+    return configured(
+      new Fieldset({
+        children: [],
+        ...(label === undefined ? {} : { name: label, label }),
+      }),
+    );
+  }
+}
+
+/**
  * A box that says something, in one of the panel's four tones.
  *
  * A layout rather than an entry or a field: it holds no value, is bound to no

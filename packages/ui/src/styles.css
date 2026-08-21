@@ -2028,6 +2028,31 @@
   color: var(--perch-danger-content);
 }
 
+/*
+ * A group of fields that belong together. Lighter than a section on purpose:
+ * a hairline and a name, no card and no shadow — a page of cards inside cards
+ * stops reading as structure and starts reading as noise.
+ */
+.perch-layout--fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: var(--perch-space-4) var(--perch-space-5) var(--perch-space-5);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius);
+}
+
+.perch-layout__legend {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+  padding-inline: var(--perch-space-2);
+  color: var(--perch-content-muted);
+  font-size: var(--perch-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
 /* Under the title, above what the layout holds. */
 .perch-layout__description {
   margin: 0 0 var(--perch-space-4);

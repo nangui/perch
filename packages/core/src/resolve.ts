@@ -96,9 +96,24 @@ export interface ResolvedNode {
   readonly component: Component;
   /** Where its value lives. `items.r1.label` for a field inside a row. */
   readonly path: string;
+  /**
+   * Effective, which is to say inherited: what a layout says applies to what it
+   * holds. A field inside a hidden section is hidden, and one inside a disabled
+   * group is disabled, whatever it says about itself.
+   */
   readonly visible: boolean;
   readonly disabled: boolean;
   readonly readOnly: boolean;
+  /**
+   * What this node's own resolvers answered, before anything above it applied.
+   *
+   * Kept apart because the two are needed at different moments: the effective
+   * flags are what every reader wants, and these are what a later pass reuses.
+   * A pass that carried the effective ones would keep a child hidden after the
+   * section above it came back — the child's own reads never changed, so
+   * nothing would recompute it.
+   */
+  readonly own: { readonly visible: boolean; readonly disabled: boolean };
   readonly label?: string;
   readonly helperText?: string;
   /** A layout's own line of prose, already resolved. */
@@ -268,6 +283,19 @@ export async function resolveSchema(
     throw new ResolutionCycleError([...changed]);
   }
   if (resolved === undefined) throw new Error("The resolution loop did not run.");
+
+  // INHERIT — what a layout says applies to what it holds.
+  //
+  // Last, and over the whole tree, because resolution runs children first and
+  // this runs the other way. Recomputed from each node's own answer every time
+  // rather than folded in place, so a node carried from the last round trip
+  // cannot bring a stale one with it.
+  //
+  // Without this the flags stopped at the node that declared them: a field
+  // inside a hidden section never reached an honest browser — the payload drops
+  // the whole subtree — and a forged state naming its path was admitted,
+  // validated and written.
+  resolved = inherit(resolved, true, false);
 
   const nodes = flattenResolved(resolved);
 
@@ -921,6 +949,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     path: node.path,
     visible,
     disabled,
+    own: { visible, disabled },
     readOnly,
     ...(label === undefined ? {} : { label }),
     ...(helperText === undefined ? {} : { helperText }),
@@ -1012,6 +1041,32 @@ function flagsOf(node: ResolvedNode): ResolvedFlags {
 
 function flattenWalked(node: WalkedNode): readonly WalkedNode[] {
   return [node, ...node.children.flatMap(flattenWalked)];
+}
+
+/**
+ * The effective flags, from a node's own answer and what stands above it.
+ *
+ * Hidden wins over shown and disabled wins over enabled, in both directions: a
+ * layout cannot reveal what its child hid, and a child cannot show itself
+ * inside a hidden parent.
+ */
+function inherit(
+  node: ResolvedNode,
+  visible: boolean,
+  disabled: boolean,
+): ResolvedNode {
+  const effective = {
+    visible: node.own.visible && visible,
+    disabled: node.own.disabled || disabled,
+  };
+
+  return {
+    ...node,
+    ...effective,
+    children: node.children.map((child) =>
+      inherit(child, effective.visible, effective.disabled),
+    ),
+  };
 }
 
 function flattenResolved(node: ResolvedNode): readonly ResolvedNode[] {

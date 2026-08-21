@@ -79,7 +79,9 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
   const collapsible = node.props?.["collapsible"] === true;
   // Where it starts, not where it stays: after that it is the reader's.
   const [folded, setFolded] = useState(node.props?.["collapsed"] === true);
-  const title = node.label;
+  // Blank as well as absent: a heading with nothing in it takes a line of the
+  // page and names nothing on it.
+  const title = empty(node.label) ? undefined : node.label;
   // Decoration beside the title, never instead of it: hidden from a screen
   // reader, which already has the words.
   const icon =
@@ -128,9 +130,9 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
           holds. Declared since the first section and never drawn: the value is
           resolvable, and the payload carried only static props until the cycle
           resolved this one. */}
-      {node.description === undefined ? null : (
-        <p className="perch-layout__description">{node.description}</p>
-      )}
+      <Description
+        {...(node.description === undefined ? {} : { text: node.description })}
+      />
       {/* Hidden rather than unmounted: a folded field is still a field, still
           filled in and still saved, and unmounting would lose what is in it. */}
       <div
@@ -145,17 +147,73 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
   );
 }
 
+/**
+ * A group of fields with a name, drawn as the element the browser has for it.
+ *
+ * Not the layout renderer with different padding: `<fieldset>` and `<legend>`
+ * are announced as a group on the way in, and a `div` with a heading over it is
+ * a heading followed by some fields. The grouping is the whole point of the
+ * component, so it is the part that has to be real.
+ */
+function FieldsetRenderer({ node, renderChild }: NodeProps): ReactNode {
+  const icon =
+    typeof node.props?.["icon"] === "string" ? node.props["icon"] : undefined;
+
+  return (
+    // The element's own attribute, which takes every control inside out of
+    // reach and out of the tab order. The fields each arrive disabled too now
+    // that a layout's flags reach them, so this is the group saying it rather
+    // than the only thing saying it.
+    <fieldset
+      className="perch-layout perch-layout--fieldset"
+      disabled={node.disabled === true}
+    >
+      {empty(node.label) ? null : (
+        <legend className="perch-layout__legend">
+          {/* Decoration beside the name, never instead of it. */}
+          {icon === undefined ? null : (
+            <span className="perch-layout__icon" aria-hidden="true">
+              {icon}
+            </span>
+          )}
+          {node.label}
+        </legend>
+      )}
+      <Description
+        {...(node.description === undefined ? {} : { text: node.description })}
+      />
+      <div className="perch-layout__body" style={columnsStyle(node)}>
+        {(node.children ?? []).map(renderChild)}
+      </div>
+    </fieldset>
+  );
+}
+
 /** The panel's four, which a callout and a badge both choose from. */
 const TONES = new Set(["neutral", "success", "warning", "danger"]);
 
 /**
  * Nothing to draw, whether it never arrived or came back blank.
  *
- * An empty paragraph takes a line of the page and says nothing on it, and an
- * empty `src` is a request for the page itself.
+ * An empty paragraph takes a line of the page and says nothing on it, an empty
+ * `src` is a request for the page itself, and an empty legend names a group
+ * with nothing.
  */
 function empty(content: string | undefined): boolean {
   return content === undefined || content === "";
+}
+
+/**
+ * A layout's own line of prose, under its name and above what it holds.
+ *
+ * One component rather than the same three lines in each renderer that draws a
+ * layout. There were three, and the last time there were two, one of them was
+ * missed: a tab's description crossed the wire and reached nothing, because the
+ * renderer that draws a tab panel maps its children itself.
+ */
+function Description({ text }: { readonly text?: string }): ReactNode {
+  if (empty(text)) return null;
+  return <p className="perch-layout__description">{text}</p>;
 }
 
 /** The tone the server chose, or none, rather than a class that does not exist. */
@@ -595,9 +653,9 @@ function TabsRenderer({ node, renderChild }: NodeProps): ReactNode {
           {/* Drawn here too, because this file maps a panel's children itself
               rather than handing the panel to the layout renderer — so a
               description on a tab crossed the wire and reached nothing. */}
-          {panel.description === undefined ? null : (
-            <p className="perch-layout__description">{panel.description}</p>
-          )}
+          <Description
+            {...(panel.description === undefined ? {} : { text: panel.description })}
+          />
           {(panel.children ?? []).map(renderChild)}
         </div>
       ))}
@@ -960,6 +1018,8 @@ export function registerBuiltInComponents(): void {
   registerComponent("Tabs", TabsRenderer);
   // A box that says something, and holds whatever it is about.
   registerComponent("Callout", LayoutRenderer);
+  // Its own, because the grouping it names is a thing the browser can announce.
+  registerComponent("Fieldset", FieldsetRenderer);
   // Static content: what the reader looks at rather than a reading of a record.
   registerComponent("Text", TextRenderer);
   registerComponent("Image", ImageRenderer);

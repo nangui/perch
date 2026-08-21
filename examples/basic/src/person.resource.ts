@@ -12,6 +12,7 @@ import {
   Callout,
   DeleteAction,
   EditAction,
+  Fieldset,
   ForceDeleteAction,
   FileUpload,
   Hidden,
@@ -301,23 +302,29 @@ export class PersonResource {
           Hidden.make("tenantId").default(1),
         ]),
 
-      Section.make("Where they live")
-        .columns(2)
-        .schema([
-          Select.make("country")
-            .label("Country")
-            .options(COUNTRIES)
-            .placeholder("Pick a country")
-            // Without this the field is submitted with the form and nothing is
-            // asked of the server while typing.
-            .live(),
-          Select.make("city")
-            .label("City")
-            .options(({ get }) => this.#cities.inCountry(String(get("country"))))
-            .placeholder("Pick a city")
-            .visible(({ get }) => Boolean(get("country")))
-            .helperText("Follows the country."),
-        ]),
+      Section.make("Where they live").schema([
+        // Lighter than a section: two fields that make one answer between them,
+        // grouped by the element a browser announces as a group. A section
+        // around two fields would say the page has a part called that.
+        Fieldset.make("Address")
+          .columns(2)
+          .description("Stored as codes, and shown as codes.")
+          .schema([
+            Select.make("country")
+              .label("Country")
+              .options(COUNTRIES)
+              .placeholder("Pick a country")
+              // Without this the field is submitted with the form and nothing is
+              // asked of the server while typing.
+              .live(),
+            Select.make("city")
+              .label("City")
+              .options(({ get }) => this.#cities.inCountry(String(get("country"))))
+              .placeholder("Pick a city")
+              .visible(({ get }) => Boolean(get("country")))
+              .helperText("Follows the country."),
+          ]),
+      ]),
 
       Section.make("About")
         .collapsible()

@@ -301,3 +301,142 @@ describe("static content on a page", () => {
     ).toBeNull();
   });
 });
+
+describe("a group of fields on a page", () => {
+  const drawn = (node: SchemaNode) =>
+    render(
+      <SchemaRenderer
+        payload={{
+          schema: { id: "root", type: "Schema", children: [node] },
+          state: {},
+          errors: {},
+        }}
+        onChange={() => undefined}
+      />,
+    ).container;
+
+  const group = (over: Partial<SchemaNode> = {}): SchemaNode => ({
+    id: "when",
+    type: "Fieldset",
+    label: "When they are here",
+    children: [{ id: "from", type: "TextInput", path: "from", label: "From" }],
+    ...over,
+  });
+
+  it("is a group the browser announces, not a heading with fields under it", () => {
+    // The grouping is the whole point of the component, so it is the part that
+    // has to be real: a `div` with a heading is a heading and some fields.
+    drawn(group());
+
+    expect(screen.getByRole("group", { name: "When they are here" })).toBeTruthy();
+  });
+
+  it("holds what it was given", () => {
+    drawn(group());
+
+    expect(screen.getByLabelText("From")).toBeTruthy();
+  });
+
+  it("says its own line of prose, under its name", () => {
+    drawn(group({ description: "Both inclusive." }));
+
+    expect(screen.getByText("Both inclusive.")).toBeTruthy();
+  });
+
+  it("hides the mark beside its name from a reader who has the name", () => {
+    const container = drawn(group({ props: { icon: "*" } }));
+
+    expect(
+      container.querySelector(".perch-layout__icon")?.getAttribute("aria-hidden"),
+    ).toBe("true");
+  });
+
+  it("takes its controls out of reach when the group is disabled", () => {
+    // The server refuses what a disabled group holds, and the element says so
+    // where a browser will act on it. Only the attribute is asserted: jsdom
+    // does not propagate a fieldset's `disabled` to the controls inside, so
+    // asking whether the input is disabled here would test the environment.
+    // What the reader is actually shown does not rest on that anyway — every
+    // field inside arrives disabled in its own right, which core settles.
+    const container = drawn(group({ disabled: true }));
+
+    expect(container.querySelector("fieldset")?.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("draws a group with no name rather than an empty legend", () => {
+    const container = drawn({
+      id: "when",
+      type: "Fieldset",
+      children: [{ id: "from", type: "TextInput", path: "from", label: "From" }],
+    });
+
+    expect(container.querySelector("legend")).toBeNull();
+    expect(container.querySelector("fieldset")).not.toBeNull();
+  });
+});
+
+describe("a layout named or described with nothing", () => {
+  const drawn = (node: SchemaNode) =>
+    render(
+      <SchemaRenderer
+        payload={{
+          schema: { id: "root", type: "Schema", children: [node] },
+          state: {},
+          errors: {},
+        }}
+        onChange={() => undefined}
+      />,
+    ).container;
+
+  it("draws no legend for a group with a blank name", () => {
+    // An empty legend names a group with nothing, which is what a group with
+    // no legend already is — only with an extra element in the tree.
+    const container = drawn({
+      id: "g",
+      type: "Fieldset",
+      label: "",
+      children: [],
+    });
+
+    expect(container.querySelector("legend")).toBeNull();
+    expect(container.querySelector("fieldset")).not.toBeNull();
+  });
+
+  it("draws no heading for a section with a blank name", () => {
+    const container = drawn({ id: "s", type: "Section", label: "", children: [] });
+
+    expect(container.querySelector(".perch-layout__title")).toBeNull();
+  });
+
+  it("draws no line of prose for a blank description", () => {
+    const container = drawn({
+      id: "s",
+      type: "Section",
+      label: "Named",
+      description: "",
+      children: [],
+    });
+
+    expect(container.querySelector(".perch-layout__description")).toBeNull();
+  });
+
+  it("draws one for a tab, from the same place as the rest", () => {
+    // Three renderers drew this and one of them was missed once. They share it
+    // now, so the next one to draw a layout cannot forget.
+    const container = drawn({
+      id: "tabs",
+      type: "Tabs",
+      children: [
+        {
+          id: "one",
+          type: "Tab",
+          label: "About",
+          description: "Who they are.",
+          children: [],
+        },
+      ],
+    });
+
+    expect(container.querySelectorAll(".perch-layout__description")).toHaveLength(1);
+  });
+});

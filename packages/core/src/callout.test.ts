@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { auditInfolist, auditSchema } from "./audit.js";
-import { Callout, Schema, Section, Tab, Tabs } from "./layout.js";
+import { Callout, Fieldset, Schema, Section, Tab, Tabs } from "./layout.js";
 import { TextInput } from "./fields/text-input.js";
 import { resolveSchema } from "./resolve.js";
 import { serialise } from "./serialise.js";
@@ -94,5 +94,40 @@ describe("where a callout may go", () => {
 
     expect(auditSchema(schema)).toEqual([]);
     expect(auditInfolist(schema)).toEqual([]);
+  });
+});
+
+describe("a group of fields that belong together", () => {
+  it("carries its name and what it holds", async () => {
+    const payload = await drawn(
+      Schema.make([
+        Fieldset.make("When they are here")
+          .columns(2)
+          .schema([TextInput.make("from"), TextInput.make("until")]),
+      ]),
+    );
+    const group = payload.schema.children?.[0];
+
+    expect(group?.type).toBe("Fieldset");
+    expect(group?.label).toBe("When they are here");
+    expect(group?.props?.["columns"]).toBe(2);
+    expect(group?.children?.map((one) => one.path)).toEqual(["from", "until"]);
+  });
+
+  it("takes a line of prose and a mark like any other layout", async () => {
+    const payload = await drawn(
+      Schema.make([Fieldset.make("Dates").description("Both inclusive.").icon("*")]),
+    );
+
+    expect(payload.schema.children?.[0]?.description).toBe("Both inclusive.");
+    expect(payload.schema.children?.[0]?.props?.["icon"]).toBe("*");
+  });
+
+  it("does not fold, which is what separates it from a section", async () => {
+    // No card and no place for a page to be divided at: the grouping is what
+    // is being said, and two fields are not a part of a page.
+    const payload = await drawn(Schema.make([Fieldset.make("Dates")]));
+
+    expect(payload.schema.children?.[0]?.props?.["collapsible"]).toBeUndefined();
   });
 });
