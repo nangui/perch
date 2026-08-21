@@ -930,6 +930,79 @@
   opacity: 0.5;
 }
 
+/* ------------------------------------------------------------ colour picker */
+
+/*
+ * A swatch and a box, in one frame. The swatch is the browser's own control:
+ * it opens the picker the reader already knows, and the only thing asked of
+ * this file is to make it the size of the text beside it.
+ */
+.perch-color {
+  gap: var(--perch-space-3);
+}
+
+.perch-color__well {
+  position: relative;
+  display: flex;
+  flex: none;
+}
+
+/* Struck through, which is what "no colour" looks like anywhere else. Over the
+   control rather than instead of it: clicking still opens the picker. */
+.perch-color[data-empty="true"] .perch-color__well::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-sm);
+  background:
+    linear-gradient(
+      to top right,
+      transparent calc(50% - 1px),
+      var(--perch-border-strong) calc(50% - 1px),
+      var(--perch-border-strong) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    ),
+    var(--perch-surface);
+  pointer-events: none;
+}
+
+.perch-color__swatch {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--perch-radius-sm);
+  background: none;
+  cursor: pointer;
+}
+
+.perch-color__swatch:disabled {
+  cursor: not-allowed;
+}
+
+/* The wrapper the browser puts around the colour is padded by default, which
+   leaves the swatch smaller than the square it was given. */
+.perch-color__swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.perch-color__swatch::-webkit-color-swatch {
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-sm);
+}
+
+.perch-color__swatch::-moz-color-swatch {
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-sm);
+}
+
+/* A colour is a code, and a code reads as one in the face the code editor uses. */
+.perch-color__text {
+  font-family: var(--perch-font-mono);
+}
+
 /* -------------------------------------------------------------- key value */
 
 /*

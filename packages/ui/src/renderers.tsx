@@ -15,6 +15,7 @@ import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
 import { CheckboxList } from "./fields/CheckboxList.js";
+import { ColorPicker } from "./fields/ColorPicker.js";
 import type { Pair } from "./fields/KeyValue.js";
 import { KeyValue } from "./fields/KeyValue.js";
 import { TagsInput } from "./fields/TagsInput.js";
@@ -410,6 +411,41 @@ function SelectRenderer({
           />
         )
       }
+    </FieldShell>
+  );
+}
+
+/** One colour. Hex on the wire, whatever the column keeps it in. */
+function ColorPickerRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const label = node.label ?? node.path ?? "";
+
+  return (
+    <FieldShell
+      label={label}
+      status={status}
+      required={node.required === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <ColorPicker
+          value={typeof value === "string" && value !== "" ? value : null}
+          onValueChange={(next) => {
+            onChange(node.path ?? "", next);
+          }}
+          status={status}
+          binding={binding}
+          label={label}
+          {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+        />
+      )}
     </FieldShell>
   );
 }
@@ -1196,6 +1232,7 @@ export function registerBuiltInComponents(): void {
   registerComponent("CheckboxList", CheckboxListRenderer);
   registerComponent("TagsInput", TagsInputRenderer);
   registerComponent("KeyValue", KeyValueRenderer);
+  registerComponent("ColorPicker", ColorPickerRenderer);
   registerComponent("DateTimePicker", DateTimePickerRenderer);
   registerComponent("FileUpload", FileUploadRenderer);
   registerComponent("Placeholder", PlaceholderRenderer);
