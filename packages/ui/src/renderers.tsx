@@ -15,6 +15,8 @@ import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
 import { CheckboxList } from "./fields/CheckboxList.js";
+import type { Pair } from "./fields/KeyValue.js";
+import { KeyValue } from "./fields/KeyValue.js";
 import { TagsInput } from "./fields/TagsInput.js";
 import { DateTimePicker } from "./fields/DateTimePicker.js";
 import { FileUpload } from "./fields/FileUpload.js";
@@ -408,6 +410,59 @@ function SelectRenderer({
           />
         )
       }
+    </FieldShell>
+  );
+}
+
+/** The pairs in a `Json` column. Ordered rows above, an object underneath. */
+function KeyValueRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const label = node.label ?? node.path ?? "";
+  // Anything that is not a list of pairs reads as no rows. The server refuses
+  // the shape at the boundary; drawing it is not the place to argue about it.
+  const rows = Array.isArray(value)
+    ? value.flatMap((one): Pair[] =>
+        Array.isArray(one) &&
+        one.length === 2 &&
+        typeof one[0] === "string" &&
+        typeof one[1] === "string"
+          ? [[one[0], one[1]]]
+          : [],
+      )
+    : [];
+
+  return (
+    <FieldShell
+      label={label}
+      status={status}
+      required={node.required === true}
+      inline={node.inlineLabel === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <KeyValue
+          value={rows}
+          onValueChange={(next) => {
+            onChange(node.path ?? "", next);
+          }}
+          status={status}
+          binding={binding}
+          label={label}
+          {...(typeof node.props?.["keyLabel"] === "string"
+            ? { keyLabel: node.props["keyLabel"] }
+            : {})}
+          {...(typeof node.props?.["valueLabel"] === "string"
+            ? { valueLabel: node.props["valueLabel"] }
+            : {})}
+        />
+      )}
     </FieldShell>
   );
 }
@@ -1140,6 +1195,7 @@ export function registerBuiltInComponents(): void {
   registerComponent("Radio", RadioRenderer);
   registerComponent("CheckboxList", CheckboxListRenderer);
   registerComponent("TagsInput", TagsInputRenderer);
+  registerComponent("KeyValue", KeyValueRenderer);
   registerComponent("DateTimePicker", DateTimePickerRenderer);
   registerComponent("FileUpload", FileUploadRenderer);
   registerComponent("Placeholder", PlaceholderRenderer);

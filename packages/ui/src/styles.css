@@ -930,6 +930,71 @@
   opacity: 0.5;
 }
 
+/* -------------------------------------------------------------- key value */
+
+/*
+ * Two columns of boxes and a control to take a row off. The heading row and
+ * the rows below it are separate grids, so the last column is given a width
+ * rather than measured — otherwise `auto` reads a button in one and an empty
+ * span in the other, and the headings sit askew.
+ */
+.perch-kv {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--perch-space-3);
+  min-width: 0;
+  /* A fieldset, for the group and the name the legend gives it. Its own frame
+     is dropped: the field shell already draws one. */
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.perch-kv__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--perch-space-2);
+  width: 100%;
+}
+
+.perch-kv__head,
+.perch-kv__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr var(--perch-space-9);
+  align-items: center;
+  gap: var(--perch-space-2);
+}
+
+.perch-kv__head {
+  color: var(--perch-content-subtle);
+  font-size: var(--perch-text-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.perch-kv__remove {
+  /* WCAG's pointer target, the floor every other control here keeps, and the
+     width the heading row reserves for this column. */
+  width: var(--perch-space-9);
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--perch-content-muted);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.perch-kv__remove:hover:not(:disabled) {
+  color: var(--perch-content);
+}
+
+.perch-kv__remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* ---------------------------------------------------------- checkbox list */
 
 /*
