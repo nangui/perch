@@ -74,6 +74,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   Radio: ["inline"],
   CheckboxList: ["columns", "bulkToggleable"],
   TagsInput: ["separator", "suggestions"],
+  KeyValue: ["keyLabel", "valueLabel"],
   Repeater: ["collapsible", "maxItems"],
   DateTimePicker: ["withTime", "timezone", "minDate", "maxDate"],
   FileUpload: ["maxSize", "acceptedFileTypes"],

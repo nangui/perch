@@ -20,6 +20,7 @@ import { Hidden } from "./fields/hidden.js";
 import { DateTimePicker } from "./fields/date-time-picker.js";
 import { FileUpload } from "./fields/file-upload.js";
 import { CheckboxList } from "./fields/checkbox-list.js";
+import { KeyValue } from "./fields/key-value.js";
 import { TagsInput } from "./fields/tags-input.js";
 import { Radio } from "./fields/radio.js";
 import { Repeater } from "./fields/repeater.js";
@@ -98,6 +99,20 @@ export function auditInfolist(root: Component): readonly Complaint[] {
  * the thing it configures; the other two are a limit of zero and a count of
  * zero columns.
  */
+function inspectPairLabels(field: KeyValue, into: Complaint[]): void {
+  const { keyLabel, valueLabel } = field.state;
+  for (const [method, given] of [
+    ["keyLabel", keyLabel],
+    ["valueLabel", valueLabel],
+  ] as const) {
+    if (given === undefined || given.trim() !== "") continue;
+    into.push({
+      field: named(field),
+      problem: `names a column with nothing in .${method}(), which leaves the heading blank and the boxes under it named only by their row`,
+    });
+  }
+}
+
 function inspectSeparator(field: TagsInput, into: Complaint[]): void {
   const { separator } = field.state;
   if (separator === undefined || separator !== "") return;
@@ -277,6 +292,9 @@ function walk(component: Component, into: Complaint[]): void {
   // as declared and refuses nothing.
   if (component instanceof TextInput) inspectStep(component, into);
   if (component instanceof TagsInput) inspectSeparator(component, into);
+  // A column named with nothing is a heading that draws blank and a box whose
+  // only name is the row it is on — declared, and naming nothing.
+  if (component instanceof KeyValue) inspectPairLabels(component, into);
   // A media type nothing can match is a filter that refuses everything, and a
   // reader whose file is turned away is told only that it was.
   if (component instanceof FileUpload) inspectUpload(component, into);

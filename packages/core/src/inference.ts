@@ -131,7 +131,10 @@ export function inferField(
   }
 
   if (field.kind === "json" || field.type === "Json") {
-    // KeyValue lands in v0.2; until then the honest fallback is a code editor.
+    // A code editor rather than a key-value table: the column holds anything,
+    // and a table of text pairs holds flat text. Inferring one would show a
+    // nested value as the JSON it reads as and write that text back, which is
+    // a fair trade where somebody declared the field and none at all here.
     return base(field, { component: "CodeEditor" });
   }
 

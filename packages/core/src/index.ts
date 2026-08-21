@@ -196,6 +196,8 @@ export { Placeholder } from "./fields/placeholder.js";
 
 export type { CheckboxListState } from "./fields/checkbox-list.js";
 export { CheckboxList } from "./fields/checkbox-list.js";
+export type { KeyValueState, Pair } from "./fields/key-value.js";
+export { KeyValue } from "./fields/key-value.js";
 export type { TagsInputState } from "./fields/tags-input.js";
 export { TagsInput } from "./fields/tags-input.js";
 export type { RadioState } from "./fields/radio.js";
