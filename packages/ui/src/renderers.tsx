@@ -14,6 +14,7 @@ import { TabStrip } from "./Tabs.js";
 import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
+import { CheckboxList } from "./fields/CheckboxList.js";
 import { DateTimePicker } from "./fields/DateTimePicker.js";
 import { FileUpload } from "./fields/FileUpload.js";
 import { Placeholder } from "./fields/Placeholder.js";
@@ -406,6 +407,60 @@ function SelectRenderer({
           />
         )
       }
+    </FieldShell>
+  );
+}
+
+/** Several of a few, all of them visible. A list on the wire, always. */
+function CheckboxListRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const label = node.label ?? node.path ?? "";
+  const options = (node.options ?? [])
+    .map((option) => ({ value: scalar(option.value), label: option.label }))
+    .filter(
+      (option): option is { value: string; label: string } => option.value !== null,
+    );
+
+  // Anything that is not a list reads as nothing ticked. The server refuses
+  // the shape at the boundary; drawing it is not the place to argue about it.
+  const ticked = Array.isArray(value)
+    ? value.flatMap((one) => {
+        const text = scalar(one);
+        return text === null ? [] : [text];
+      })
+    : [];
+
+  return (
+    <FieldShell
+      label={label}
+      status={status}
+      required={node.required === true}
+      inline={node.inlineLabel === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <CheckboxList
+          value={ticked}
+          onValueChange={(next) => {
+            onChange(node.path ?? "", next);
+          }}
+          options={options}
+          status={status}
+          binding={binding}
+          label={label}
+          {...(typeof node.props?.["columns"] === "number"
+            ? { columns: node.props["columns"] }
+            : {})}
+          bulkToggleable={node.props?.["bulkToggleable"] === true}
+        />
+      )}
     </FieldShell>
   );
 }
@@ -1030,6 +1085,7 @@ export function registerBuiltInComponents(): void {
   registerComponent("Select", SelectRenderer);
   registerComponent("Checkbox", CheckboxRenderer);
   registerComponent("Radio", RadioRenderer);
+  registerComponent("CheckboxList", CheckboxListRenderer);
   registerComponent("DateTimePicker", DateTimePickerRenderer);
   registerComponent("FileUpload", FileUploadRenderer);
   registerComponent("Placeholder", PlaceholderRenderer);

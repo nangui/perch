@@ -10,6 +10,7 @@ import {
   CreateAction,
   DateTimePicker,
   Callout,
+  CheckboxList,
   DeleteAction,
   EditAction,
   Fieldset,
@@ -90,6 +91,14 @@ function name(value: unknown): string {
 }
 
 const COUNTRIES = { fr: "France", be: "Belgium", ci: "Côte d'Ivoire" };
+/** A handful, which is the length this field is for. */
+const SKILLS = {
+  compilers: "Compilers",
+  cryptography: "Cryptography",
+  hardware: "Hardware",
+  teaching: "Teaching",
+};
+
 const ROLES = { lead: "Lead", member: "Member", guest: "Guest" };
 
 /** What each role is worth saying about it, for the badge on the View page. */
@@ -329,6 +338,15 @@ export class PersonResource {
       Section.make("About")
         .collapsible()
         .schema([
+          // Every choice on the page at once, several of them taken. A select
+          // would hide them behind a click, which is the right trade past a
+          // handful and the wrong one here.
+          CheckboxList.make("skills")
+            .label("Skills")
+            .options(SKILLS)
+            .columns(2)
+            .bulkToggleable()
+            .helperText("Whatever they can be asked about."),
           Textarea.make("bio")
             .label("Biography")
             .rows(4)

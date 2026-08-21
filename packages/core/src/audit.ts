@@ -19,6 +19,7 @@ import { Tab, Tabs } from "./layout.js";
 import { Hidden } from "./fields/hidden.js";
 import { DateTimePicker } from "./fields/date-time-picker.js";
 import { FileUpload } from "./fields/file-upload.js";
+import { CheckboxList } from "./fields/checkbox-list.js";
 import { Radio } from "./fields/radio.js";
 import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
@@ -209,9 +210,14 @@ function walk(component: Component, into: Complaint[]): void {
   if (component instanceof FileUpload) inspectUpload(component, into);
   // Every choice is on the page, so there is no relation and no window to
   // excuse an empty list: the boundary would refuse every value a reader picks.
-  if (component instanceof Radio && component.state.options === undefined) {
+  // Both of them, from one check — a select is the one that has somewhere else
+  // its values could come from, and these two do not.
+  if (
+    (component instanceof Radio || component instanceof CheckboxList) &&
+    component.declaredOptions === undefined
+  ) {
     into.push({
-      field: component.name === "" ? "an unnamed Radio" : component.name,
+      field: component.name === "" ? `an unnamed ${component.type}` : component.name,
       problem: "has no options, so it offers nothing and would refuse anything",
     });
   }

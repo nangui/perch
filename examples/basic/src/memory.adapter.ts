@@ -116,6 +116,7 @@ const PERSON: ModelMeta = {
     scalar("startsAt", "DateTime"),
     scalar("avatar", "String"),
     scalar("rating", "Int"),
+    scalar("skills", "String"),
     scalar("teamId", "Int"),
     scalar("tenantId", "Int"),
     // The tombstone. Named by convention, which is what sets `hasSoftDelete`

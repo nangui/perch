@@ -194,6 +194,8 @@ export { Hidden } from "./fields/hidden.js";
 export type { PlaceholderState } from "./fields/placeholder.js";
 export { Placeholder } from "./fields/placeholder.js";
 
+export type { CheckboxListState } from "./fields/checkbox-list.js";
+export { CheckboxList } from "./fields/checkbox-list.js";
 export type { RadioState } from "./fields/radio.js";
 export { Radio } from "./fields/radio.js";
 export type { RepeaterState } from "./fields/repeater.js";

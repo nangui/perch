@@ -865,6 +865,69 @@
 /* Real inputs sharing a name, so the browser gives the group its arrow keys
    and its single tab stop. Out of sight, not out of the layout: `display: none`
    would take them out of the tab order along with everything else. */
+/* ---------------------------------------------------------- checkbox list */
+
+/*
+ * A group of choices, any number of them taken. A fieldset, so the browser
+ * announces it as a group and each box keeps its own tab stop — no border of
+ * its own, because the shell around the field already draws one.
+ */
+.perch-checkbox-list {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/*
+ * One column unless the field asked for more. The count arrives as a custom
+ * property so the number is the component's and the grid is this file's.
+ */
+.perch-checkbox-list__options {
+  display: grid;
+  grid-template-columns: repeat(var(--perch-choices, 1), minmax(0, 1fr));
+  gap: var(--perch-space-3) var(--perch-space-6);
+}
+
+.perch-checkbox-list__option,
+.perch-checkbox-list__all {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-3);
+  min-width: 0;
+}
+
+/* Set apart from the choices it acts on: it is a control over them, not one. */
+.perch-checkbox-list__all {
+  margin-bottom: var(--perch-space-3);
+  padding-bottom: var(--perch-space-3);
+  border-bottom: 1px solid var(--perch-border);
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+}
+
+.perch-checkbox-list__label {
+  min-width: 0;
+  font-size: var(--perch-text-control);
+  cursor: pointer;
+}
+
+.perch-checkbox-list__input:disabled + .perch-checkbox-list__label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.perch-checkbox-list--empty {
+  display: flex;
+  align-items: center;
+  min-height: var(--perch-control-height);
+}
+
+.perch-checkbox-list__empty {
+  color: var(--perch-content-muted);
+  font-size: var(--perch-text-control);
+}
+
 .perch-radio {
   display: flex;
   flex-direction: column;
