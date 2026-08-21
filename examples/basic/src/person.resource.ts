@@ -17,6 +17,7 @@ import {
   ForceDeleteAction,
   FileUpload,
   Hidden,
+  KeyValue,
   Placeholder,
   Radio,
   Repeater,
@@ -356,6 +357,14 @@ export class PersonResource {
             .separator(",")
             .suggestions(["Countess", "Enchantress of Numbers"])
             .placeholder("Type a name and press Enter"),
+          // A `Json` column, edited as the pairs it stands for rather than as
+          // the object it is: a key typed as an object key is deleted and
+          // re-added on every keystroke, and the cursor goes with it.
+          KeyValue.make("links")
+            .label("Links")
+            .keyLabel("Name")
+            .valueLabel("Address")
+            .helperText("Kept as one JSON column."),
           Textarea.make("bio")
             .label("Biography")
             .rows(4)
