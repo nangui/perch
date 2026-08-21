@@ -7,6 +7,7 @@ import type {
 } from "@perchjs/core";
 import {
   Checkbox,
+  ColorPicker,
   CreateAction,
   DateTimePicker,
   Callout,
@@ -441,6 +442,13 @@ export class PersonResource {
           .maxSize(2 * 1024 * 1024)
           .directory("avatars")
           .helperText("Goes up when you choose it; kept when you save."),
+        // The page holds hex, because that is what a colour control speaks.
+        // The column holds `hsl()`, because this one was told to.
+        ColorPicker.make("tint")
+          .label("Tint")
+          .hsl()
+          .placeholder("#21594a")
+          .helperText("Picked as hex, kept as hsl()."),
       ]),
     ]);
   }
