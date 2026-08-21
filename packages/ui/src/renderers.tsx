@@ -15,6 +15,7 @@ import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
 import { CheckboxList } from "./fields/CheckboxList.js";
+import { TagsInput } from "./fields/TagsInput.js";
 import { DateTimePicker } from "./fields/DateTimePicker.js";
 import { FileUpload } from "./fields/FileUpload.js";
 import { Placeholder } from "./fields/Placeholder.js";
@@ -407,6 +408,58 @@ function SelectRenderer({
           />
         )
       }
+    </FieldShell>
+  );
+}
+
+/** A list the reader writes. Open, so there is no set to measure against. */
+function TagsInputRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const label = node.label ?? node.path ?? "";
+  // Anything that is not a list of text reads as no tags. The server refuses
+  // the shape at the boundary; drawing it is not the place to argue about it.
+  const tags = Array.isArray(value)
+    ? value.filter((one): one is string => typeof one === "string")
+    : [];
+  const suggestions = node.props?.["suggestions"];
+
+  return (
+    <FieldShell
+      label={label}
+      status={status}
+      required={node.required === true}
+      inline={node.inlineLabel === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <TagsInput
+          value={tags}
+          onValueChange={(next) => {
+            onChange(node.path ?? "", next);
+          }}
+          status={status}
+          binding={binding}
+          label={label}
+          {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+          {...(typeof node.props?.["separator"] === "string"
+            ? { separator: node.props["separator"] }
+            : {})}
+          {...(Array.isArray(suggestions)
+            ? {
+                suggestions: suggestions.filter(
+                  (one): one is string => typeof one === "string",
+                ),
+              }
+            : {})}
+        />
+      )}
     </FieldShell>
   );
 }
@@ -1086,6 +1139,7 @@ export function registerBuiltInComponents(): void {
   registerComponent("Checkbox", CheckboxRenderer);
   registerComponent("Radio", RadioRenderer);
   registerComponent("CheckboxList", CheckboxListRenderer);
+  registerComponent("TagsInput", TagsInputRenderer);
   registerComponent("DateTimePicker", DateTimePickerRenderer);
   registerComponent("FileUpload", FileUploadRenderer);
   registerComponent("Placeholder", PlaceholderRenderer);

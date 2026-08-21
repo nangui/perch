@@ -27,6 +27,7 @@ import {
   Select,
   SelectFilter,
   Table,
+  TagsInput,
   Textarea,
   IconColumn,
   Text,
@@ -347,6 +348,14 @@ export class PersonResource {
             .columns(2)
             .bulkToggleable()
             .helperText("Whatever they can be asked about."),
+          // A list the reader writes rather than picks from, kept in a
+          // `String` column joined on commas — which is the shape most tags
+          // are already in when a panel meets an existing database.
+          TagsInput.make("aliases")
+            .label("Also known as")
+            .separator(",")
+            .suggestions(["Countess", "Enchantress of Numbers"])
+            .placeholder("Type a name and press Enter"),
           Textarea.make("bio")
             .label("Biography")
             .rows(4)

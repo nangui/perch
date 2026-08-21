@@ -20,6 +20,7 @@ import { Hidden } from "./fields/hidden.js";
 import { DateTimePicker } from "./fields/date-time-picker.js";
 import { FileUpload } from "./fields/file-upload.js";
 import { CheckboxList } from "./fields/checkbox-list.js";
+import { TagsInput } from "./fields/tags-input.js";
 import { Radio } from "./fields/radio.js";
 import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
@@ -86,6 +87,27 @@ export function auditInfolist(root: Component): readonly Complaint[] {
   };
   walk(root);
   return complaints;
+}
+
+/**
+ * A separator that is not a character.
+ *
+ * `"ada".includes("")` is true, so an empty one matches every tag there is and
+ * the field admits nothing at all — silently, and for every value a reader can
+ * type. The third value in this file that reads as configuration and disables
+ * the thing it configures; the other two are a limit of zero and a count of
+ * zero columns.
+ */
+function inspectSeparator(field: TagsInput, into: Complaint[]): void {
+  const { separator } = field.state;
+  if (separator === undefined || separator !== "") return;
+
+  into.push({
+    field: named(field),
+    problem:
+      "is joined on nothing, which every tag contains — so the field would " +
+      "refuse every value there is",
+  });
 }
 
 /**
@@ -254,6 +276,7 @@ function walk(component: Component, into: Complaint[]): void {
   // it implies would answer `true` to everything, which is a limit that reads
   // as declared and refuses nothing.
   if (component instanceof TextInput) inspectStep(component, into);
+  if (component instanceof TagsInput) inspectSeparator(component, into);
   // A media type nothing can match is a filter that refuses everything, and a
   // reader whose file is turned away is told only that it was.
   if (component instanceof FileUpload) inspectUpload(component, into);
