@@ -57,7 +57,13 @@ export function CheckboxList({
         className="perch-checkbox-list perch-checkbox-list--empty"
         {...statusAttributes(status)}
       >
-        <span className="perch-checkbox-list__empty">No options available</span>
+        {/* The shell's label points here by id. There is no control to focus —
+            there is nothing to choose — but a `for` naming an element that does
+            not exist is a label attached to nobody, which is worse than one
+            attached to the words that replaced the control. */}
+        <span id={binding.id} className="perch-checkbox-list__empty">
+          No options available
+        </span>
       </div>
     );
   }

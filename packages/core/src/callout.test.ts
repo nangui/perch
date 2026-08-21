@@ -131,3 +131,30 @@ describe("a group of fields that belong together", () => {
     expect(payload.schema.children?.[0]?.props?.["collapsible"]).toBeUndefined();
   });
 });
+
+describe("a layout laid out in no columns", () => {
+  it("stops the boot, wherever the count was declared", () => {
+    // One mechanism, one check: every layout that takes a count sends it to
+    // the same `repeat(n, …)`, where anything but a whole number above zero is
+    // dropped and the grid falls back to one column.
+    expect(
+      auditSchema(Schema.make([Section.make("Two").columns(0)]))[0]?.problem,
+    ).toMatch(/not a number of columns/);
+    expect(auditSchema(Schema.make([Fieldset.make("Two").columns(-1)]))).toHaveLength(
+      1,
+    );
+  });
+
+  it("reads both halves of a responsive count", () => {
+    expect(
+      auditSchema(Schema.make([Section.make("Two").columns({ default: 1, md: 0 })])),
+    ).toHaveLength(1);
+  });
+
+  it("says nothing about counts that work", () => {
+    expect(auditSchema(Schema.make([Section.make("Two").columns(2)]))).toEqual([]);
+    expect(
+      auditSchema(Schema.make([Section.make("Two").columns({ default: 1, md: 2 })])),
+    ).toEqual([]);
+  });
+});

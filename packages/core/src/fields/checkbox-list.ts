@@ -91,6 +91,13 @@ export class CheckboxList extends Field {
     if (isUnset(value)) return undefined;
     if (!Array.isArray(value)) return "wrong-shape";
     if (value.some((one) => !isScalarValue(one))) return "wrong-shape";
+    // The same reading a repeater gives its keys: two ticks of one choice are
+    // one choice, and left in, the list says the reader picked it twice. No
+    // page can produce one, so a repeated value is a forged state and refused
+    // like any other shape the form could not have made.
+    if (new Set(value.map((one) => String(one))).size !== value.length) {
+      return "wrong-shape";
+    }
 
     // Matched as text, because a form returns `"2"` for a key declared as `2`.
     const names = new Set((options ?? []).map((option) => String(option.value)));

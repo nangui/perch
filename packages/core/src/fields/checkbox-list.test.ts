@@ -63,6 +63,12 @@ describe("what a checkbox list may hold", () => {
     );
   });
 
+  it("nothing ticked twice, which no page can produce", async () => {
+    // The same reading a repeater gives its keys: two ticks of one choice are
+    // one choice, and left in, the list says the reader picked it twice.
+    expect(await refusal(["lead", "lead"])).toBe("wrong-shape");
+  });
+
   it("a key declared as a number, which a form returns as text", async () => {
     const numbered = CheckboxList.make("roles").options({ 1: "One", 2: "Two" });
 
@@ -106,6 +112,25 @@ describe("what it tells the browser", () => {
 
     expect(node?.props?.["columns"]).toBeUndefined();
     expect(node?.props?.["bulkToggleable"]).toBe(false);
+  });
+});
+
+describe("a count of columns nothing can be laid out in", () => {
+  const audited = (columns: number) =>
+    auditSchema(
+      Schema.make([CheckboxList.make("roles").options(ROLES).columns(columns)]),
+    );
+
+  it("stops the boot, because the grid quietly falls back to one", () => {
+    // `repeat(0, …)` is invalid, so the declaration is dropped and the layout
+    // silently becomes what it would have been with no columns at all.
+    expect(audited(0)[0]?.problem).toMatch(/not a number of columns/);
+    expect(audited(-2)).toHaveLength(1);
+    expect(audited(1.5)).toHaveLength(1);
+  });
+
+  it("says nothing about a count that works", () => {
+    expect(audited(2)).toEqual([]);
   });
 });
 

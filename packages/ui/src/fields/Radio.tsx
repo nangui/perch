@@ -56,7 +56,12 @@ export function Radio({
     // below it moves. A field that vanishes is one nobody can ask about.
     return (
       <div className="perch-radio perch-radio--empty" {...statusAttributes(status)}>
-        <span className="perch-radio__empty">No options available</span>
+        {/* The shell's label points here by id. There is no control to focus —
+            there is nothing to choose — but a `for` naming an element that does
+            not exist is a label attached to nobody. */}
+        <span id={binding.id} className="perch-radio__empty">
+          No options available
+        </span>
       </div>
     );
   }

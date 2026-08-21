@@ -15,7 +15,7 @@ import type { Component } from "./component.js";
 import { Entry } from "./entry.js";
 import { TextEntry } from "./entries/text-entry.js";
 import { Field } from "./field.js";
-import { Tab, Tabs } from "./layout.js";
+import { Layout, Tab, Tabs } from "./layout.js";
 import { Hidden } from "./fields/hidden.js";
 import { DateTimePicker } from "./fields/date-time-picker.js";
 import { FileUpload } from "./fields/file-upload.js";
@@ -47,7 +47,7 @@ export function auditSchema(root: Component): readonly Complaint[] {
     for (const field of hiddenFields(root)) {
       if (field.state.defaultValue !== undefined) continue;
       complaints.push({
-        field: field.name === "" ? "an unnamed Hidden" : field.name,
+        field: named(field),
         problem:
           "has no default, and a hidden field takes its value from the row or " +
           "from one — so a create would write nothing for it",
@@ -72,7 +72,7 @@ export function auditInfolist(root: Component): readonly Complaint[] {
   const walk = (component: Component): void => {
     if (component instanceof Field) {
       complaints.push({
-        field: component.name === "" ? `an unnamed ${component.type}` : component.name,
+        field: named(component),
         problem:
           "is a field in an infolist, so it would draw a control on a page " +
           "with nothing to save it — an entry is what shows a value",
@@ -81,10 +81,59 @@ export function auditInfolist(root: Component): readonly Complaint[] {
     }
     if (component instanceof TextEntry) inspectLimit(component, complaints);
     inspectSends(component, complaints);
+    inspectColumns(component, complaints);
     for (const child of component.children) walk(child);
   };
   walk(root);
   return complaints;
+}
+
+/**
+ * A count of columns nothing can be laid out in.
+ *
+ * The number reaches the stylesheet as `repeat(n, …)`, where anything but a
+ * whole number above zero is invalid — so the declaration is dropped and the
+ * grid quietly falls back to one column. A value that reads as configuration
+ * and configures nothing, which is the shape a step of zero and a limit of
+ * zero already get refused for.
+ *
+ * Both shapes, because a responsive count is two numbers and either can be the
+ * wrong one.
+ */
+function inspectColumns(component: Component, into: Complaint[]): void {
+  const declared: unknown =
+    component instanceof Layout || component instanceof CheckboxList
+      ? component.state.columns
+      : undefined;
+  if (declared === undefined) return;
+
+  const counts =
+    typeof declared === "number"
+      ? [declared]
+      : Object.values(declared as Record<string, unknown>);
+
+  for (const count of counts) {
+    if (typeof count === "number" && Number.isInteger(count) && count > 0) continue;
+    into.push({
+      field: named(component),
+      problem:
+        `is laid out in \`${String(count)}\` columns, which is not a number of ` +
+        "columns — it has to be a whole number above zero",
+    });
+    return;
+  }
+}
+
+/**
+ * What a complaint calls a component, named or not.
+ *
+ * One spelling. There were ten, each written where it was needed, and three of
+ * them read the name without allowing for its being absent — which a layout's
+ * is, whenever nobody titled it.
+ */
+function named(component: Component): string {
+  const name = component.name;
+  return name === undefined || name === "" ? `an unnamed ${component.type}` : name;
 }
 
 /**
@@ -161,9 +210,8 @@ function inspectLimit(entry: TextEntry, into: Complaint[]): void {
   if (limit === undefined) return;
   if (Number.isInteger(limit) && limit > 0) return;
 
-  const name = entry.name;
   into.push({
-    field: name === undefined || name === "" ? "an unnamed TextEntry" : name,
+    field: named(entry),
     problem:
       `has a limit of \`${String(limit)}\`, which is not a length a value can be ` +
       "shortened to — a limit has to be a whole number above zero",
@@ -176,7 +224,7 @@ function inspectStep(input: TextInput, into: Complaint[]): void {
   if (Number.isFinite(step) && step > 0) return;
 
   into.push({
-    field: input.name === "" ? "an unnamed TextInput" : input.name,
+    field: named(input),
     problem:
       `has a step of \`${String(step)}\`, which is not a grain a value can ` +
       "come in — a step has to be a positive number",
@@ -199,6 +247,7 @@ function hiddenFields(component: Component): readonly Hidden[] {
 
 function walk(component: Component, into: Complaint[]): void {
   inspectSends(component, into);
+  inspectColumns(component, into);
   if (component instanceof Select) inspectSelect(component, into);
   if (component instanceof DateTimePicker) inspectDates(component, into);
   // A step of zero divides; a negative one has no meaning. Either way the rule
@@ -217,7 +266,7 @@ function walk(component: Component, into: Complaint[]): void {
     component.declaredOptions === undefined
   ) {
     into.push({
-      field: component.name === "" ? `an unnamed ${component.type}` : component.name,
+      field: named(component),
       problem: "has no options, so it offers nothing and would refuse anything",
     });
   }
@@ -225,10 +274,10 @@ function walk(component: Component, into: Complaint[]): void {
   // not one is drawn as a tab named after whatever it is, opening on an empty
   // box. Both read on screen as a layout that failed rather than as a form.
   if (component instanceof Tabs) {
-    const name = component.name === "" ? "an unnamed Tabs" : component.name;
+    const name = named(component);
     if (component.children.length === 0) {
       into.push({
-        field: name ?? "an unnamed Tabs",
+        field: name,
         problem: "has no panels, so it draws nothing",
       });
     }
@@ -246,7 +295,7 @@ function walk(component: Component, into: Complaint[]): void {
   // section that happens many times and shows nothing.
   if (component instanceof Repeater && component.children.length === 0) {
     into.push({
-      field: component.name === "" ? "an unnamed Repeater" : component.name,
+      field: named(component),
       problem: "has nothing to repeat, so every row it added would be blank",
     });
   }
@@ -285,7 +334,7 @@ function entriesIn(component: Component): readonly Entry[] {
  * hour the field cannot even show.
  */
 function inspectDates(picker: DateTimePicker, into: Complaint[]): void {
-  const name = picker.name === "" ? "an unnamed DateTimePicker" : picker.name;
+  const name = named(picker);
   const { withTime, minDate, maxDate } = picker.state;
   const wanted = withTime ? "YYYY-MM-DDTHH:mm" : "YYYY-MM-DD";
 
@@ -308,7 +357,7 @@ function inspectDates(picker: DateTimePicker, into: Complaint[]): void {
 }
 
 function inspectUpload(upload: FileUpload, into: Complaint[]): void {
-  const name = upload.name === "" ? "an unnamed FileUpload" : upload.name;
+  const name = named(upload);
   const types = upload.state.acceptedFileTypes;
   if (types === undefined) return;
 
@@ -332,7 +381,7 @@ function inspectUpload(upload: FileUpload, into: Complaint[]): void {
 }
 
 function inspectSelect(select: Select, into: Complaint[]): void {
-  const name = select.name === "" ? "an unnamed Select" : select.name;
+  const name = named(select);
   const { options, relationship, searchable } = select.state;
 
   // The route that answers typing resolves a relation and searches its label

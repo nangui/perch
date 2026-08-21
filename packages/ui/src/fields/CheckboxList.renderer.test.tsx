@@ -68,6 +68,15 @@ describe("the group a reader meets", () => {
     expect(boxes.map((one) => one.checked)).toEqual([true, false, true]);
   });
 
+  it("gives the shell's label something to point at when it is empty", () => {
+    // A `for` naming an element that does not exist is a label attached to
+    // nobody. There is no control to focus here, and the words that replaced
+    // it are what the label is about.
+    const { container } = draw({ options: [] });
+
+    expect(container.querySelector("#roles")?.textContent).toBe("No options available");
+  });
+
   it("keeps its shape where there is nothing to choose", () => {
     // A field that vanishes is one nobody can ask about, and the row below it
     // would move under the reader's pointer.
