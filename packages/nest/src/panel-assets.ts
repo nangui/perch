@@ -20,6 +20,9 @@ const REQUIRED_ENTRIES = ["panel.js", "panel.css"] as const;
 
 export const PANEL_ASSETS = Symbol("PERCH_PANEL_ASSETS");
 
+/** Addresses an application asked the panel to load beside its own bundle. */
+export const PANEL_SCRIPTS = Symbol("PERCH_PANEL_SCRIPTS");
+
 export interface PanelAssets {
   readonly directory: string;
   /** Logical name → filename on disk, content-hashed. */

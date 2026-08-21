@@ -79,10 +79,45 @@ export function auditInfolist(root: Component): readonly Complaint[] {
       return;
     }
     if (component instanceof TextEntry) inspectLimit(component, complaints);
+    inspectSends(component, complaints);
     for (const child of component.children) walk(child);
   };
   walk(root);
   return complaints;
+}
+
+/**
+ * A prop that will not survive the trip.
+ *
+ * What a component declares as sent is copied onto the payload, and the shell
+ * puts the payload through `JSON.stringify`. A value that throws there — a
+ * structure that refers to itself, a `BigInt` — takes the page down with a
+ * stack trace about JSON, from a declaration nothing questioned.
+ *
+ * Read here rather than trusted, and at the one moment somebody is watching:
+ * the state is fixed when the component is declared, so this is knowable long
+ * before a reader asks for the page.
+ */
+function inspectSends(component: Component, into: Complaint[]): void {
+  const state = component.state as unknown as Record<string, unknown>;
+
+  for (const key of component.sends) {
+    const value = state[key];
+    // Both are dropped by the serialiser rather than sent, so neither reaches
+    // anything that could break on them.
+    if (value === undefined || typeof value === "function") continue;
+
+    try {
+      JSON.stringify(value);
+    } catch {
+      into.push({
+        field: `${component.type}.${key}`,
+        problem:
+          "is sent to the browser and cannot be turned into JSON — the page " +
+          "carrying it fails to render at all",
+      });
+    }
+  }
 }
 
 /**
@@ -162,6 +197,7 @@ function hiddenFields(component: Component): readonly Hidden[] {
 }
 
 function walk(component: Component, into: Complaint[]): void {
+  inspectSends(component, into);
   if (component instanceof Select) inspectSelect(component, into);
   if (component instanceof DateTimePicker) inspectDates(component, into);
   // A step of zero divides; a negative one has no meaning. Either way the rule

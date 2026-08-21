@@ -48,6 +48,11 @@ const SENT_BUT_UNREAD: Readonly<Record<string, string>> = {
  * repeater's `collapsible` quietly vouched for a section's.
  */
 function crossing(): readonly string[] {
+  return [...new Set([...tabled(), ...declared()])].sort();
+}
+
+/** The table in `serialise.ts`: the props this package lists for its own. */
+function tabled(): readonly string[] {
   const source = readFileSync(
     new URL("../../core/src/serialise.ts", import.meta.url),
     "utf8",
@@ -64,7 +69,45 @@ function crossing(): readonly string[] {
       out.push(`${entry[1] ?? ""}.${prop[1] ?? ""}`);
     }
   }
-  return [...new Set(out)].sort();
+  return out;
+}
+
+/**
+ * The same thing said on a class: `get sends()`, beside the type it belongs to.
+ *
+ * Read as well as the table, because a component may say it either way and one
+ * of the two would otherwise be a documented route around this file. Measured
+ * before this: moving `Radio.inline` onto its class and taking `Radio` off the
+ * list below left every mention of `inline` renameable with nothing failing.
+ *
+ * Paired with the nearest type above it rather than by file, since one file
+ * holds three of them — the prime components do.
+ */
+function declared(): readonly string[] {
+  const out: string[] = [];
+  for (const file of coreSources()) {
+    const source = readFileSync(file, "utf8");
+    const types = [...source.matchAll(/get type\(\): string \{\s*return "(\w+)";/g)];
+
+    for (const sends of source.matchAll(
+      /get sends\(\): readonly string\[\] \{\s*return \[([\s\S]*?)\]/g,
+    )) {
+      const owner = types.filter((one) => one.index < sends.index).at(-1)?.[1];
+      if (owner === undefined) continue;
+      for (const prop of (sends[1] ?? "").matchAll(/"(\w+)"/g)) {
+        out.push(`${owner}.${prop[1] ?? ""}`);
+      }
+    }
+  }
+  return out;
+}
+
+/** Every source file in core, since a component may live anywhere in it. */
+function coreSources(): readonly URL[] {
+  const root = new URL("../../core/src/", import.meta.url);
+  return readdirSync(root, { recursive: true, encoding: "utf8" })
+    .filter((name) => name.endsWith(".ts") && !name.includes(".test."))
+    .map((name) => new URL(name, root));
 }
 
 /** The prop half of `Section.collapsible`. */

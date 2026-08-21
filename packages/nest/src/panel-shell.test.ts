@@ -133,3 +133,39 @@ describe("the rest of the page", () => {
     expect(shell({})).toContain('<script type="module"');
   });
 });
+
+describe("scripts an application asked for", () => {
+  const shell = (scripts?: readonly string[]) =>
+    renderShell({
+      root: "/admin",
+      api: "/admin/api/people",
+      title: "People",
+      operation: "list",
+      payload: {},
+      scriptFile: "panel-a1b2c3d4.js",
+      styleFile: "panel-e5f6a7b8.css",
+      ...(scripts === undefined ? {} : { scripts }),
+    });
+
+  it("are loaded after the panel's own, so it has published what they use", () => {
+    // A renderer registering before the bundle exists has nothing to register
+    // against; one registering after the page is drawn is a renderer for the
+    // next page. Modules run in order, and the mount waits for all of them.
+    const html = shell(["/plugin/stars.js"]);
+
+    expect(html.indexOf("panel-a1b2c3d4.js")).toBeLessThan(
+      html.indexOf("/plugin/stars.js"),
+    );
+    expect(html).toContain('<script type="module" src="/plugin/stars.js">');
+  });
+
+  it("are escaped like every other address that came from outside", () => {
+    expect(shell(['/x.js"></script><script>alert(1)</script>'])).not.toContain(
+      "<script>alert(1)",
+    );
+  });
+
+  it("add nothing where an application asked for none", () => {
+    expect(shell().match(/<script/g)).toHaveLength(1);
+  });
+});

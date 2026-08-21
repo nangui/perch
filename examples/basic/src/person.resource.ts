@@ -38,6 +38,7 @@ import {
 } from "@perchjs/core";
 import { Action, Notification } from "@perchjs/core";
 import { PanelResource, RelationManager } from "@perchjs/nest";
+import { Stars } from "./stars.js";
 
 /** An action a host writes, which is the only kind that carries a callback. */
 class ArchiveAction extends Action {
@@ -336,6 +337,9 @@ export class PersonResource {
       Text.make(
         "Everything below is saved together. Tasks are their own, under the tabs.",
       ),
+      // A field this framework does not ship, drawn by a script the panel
+      // loads. Nothing in `@perchjs/*` has heard of a star.
+      Stars.make("rating").label("Rating").most(5),
       Callout.make("Before you edit")
         .tone("warning")
         .description(({ get }) =>

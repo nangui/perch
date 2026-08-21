@@ -60,7 +60,14 @@ export interface SchemaPayload {
   readonly errors: FieldErrors;
 }
 
-/** Copied verbatim onto `props`, per component type. */
+/**
+ * Copied verbatim onto `props`, per component type.
+ *
+ * The components this package ships, listed in one place so one guard can read
+ * them all. Anything else declares its own through `Component.sends` — a
+ * component nobody here wrote cannot edit this table, and a framework whose
+ * extension points only work for the framework has none.
+ */
 const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   TextInput: ["flavour", "minLength", "maxLength", "step"],
   Select: ["searchable", "multiple", "preload", "optionsLimit"],
@@ -133,7 +140,12 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     .filter((child): child is SchemaNode => child !== undefined);
 
   const extras: Record<string, unknown> = {};
-  for (const key of EXTRA_PROPS[component.type] ?? []) {
+  // What the component says first, the table second. Nothing is ever silently
+  // ignored: a type in the table that also declares its own is a type moving
+  // out of the table, not one being overruled by it.
+  const sending =
+    component.sends.length > 0 ? component.sends : (EXTRA_PROPS[component.type] ?? []);
+  for (const key of sending) {
     const value = (component.state as unknown as Record<string, unknown>)[key];
     // A resolver would have been evaluated already if it were resolvable here;
     // anything still a function is not part of the wire format.

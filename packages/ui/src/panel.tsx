@@ -10,6 +10,7 @@
  * path and the same file works under any `setGlobalPrefix`.
  */
 import type { ReactNode } from "react";
+import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import type { FormState, SchemaPayload } from "@perchjs/core";
 import { Breadcrumb } from "./Breadcrumb.js";
@@ -25,6 +26,7 @@ import type { ManagedRelation } from "./PanelRelations.js";
 import { PanelRelations } from "./PanelRelations.js";
 import { registerBuiltInColumns } from "./columns.js";
 import { registerBuiltInComponents } from "./renderers.js";
+import { registerComponent } from "./registry.js";
 import type {
   SaveRequest,
   SaveResponse,
@@ -288,8 +290,67 @@ async function send(
   return { payload: (await response.json()) as SchemaPayload };
 }
 
-const element = document.getElementById(MOUNT_ID);
-if (element !== null) mount(element);
+/**
+ * What a renderer written outside this bundle reaches for.
+ *
+ * A component nobody here wrote arrives as a type string like any other, and
+ * the registry has always been keyed by that string. What it had no way to do
+ * was register: this file is a bundle an application does not import, so the
+ * call has to be reachable without one — which is what a global is for, and the
+ * only thing this bundle puts on `window`.
+ *
+ * `createElement` rides with it because a renderer with no bundler has no JSX,
+ * and one that brought its own React would have two copies and no hooks.
+ */
+declare global {
+  interface Window {
+    perch?: PerchGlobal;
+  }
+}
+
+/**
+ * Versioned like the manifest and for the same reason.
+ *
+ * A plugin compiles against this object and nothing else, so renaming a key on
+ * it breaks every plugin at once — silently, at run time, in somebody else's
+ * deployment. The number is what a plugin checks before it trusts the rest, and
+ * bumping it is what says the check should fail.
+ */
+export interface PerchGlobal {
+  readonly version: number;
+  readonly registerComponent: typeof registerComponent;
+  readonly createElement: typeof createElement;
+}
+
+/** Bumped whenever a key here is renamed, removed, or changes meaning. */
+export const PANEL_GLOBAL_VERSION = 1;
+
+export const PERCH_GLOBAL: PerchGlobal = {
+  version: PANEL_GLOBAL_VERSION,
+  registerComponent,
+  createElement,
+};
+
+window.perch = PERCH_GLOBAL;
+
+/**
+ * Mounted once every deferred script has run, not at the end of this one.
+ *
+ * A module script registering a renderer is deferred like this one and executes
+ * after it, so mounting here drew the page before anything else could say what
+ * it draws. `DOMContentLoaded` is the first moment they have all finished —
+ * and it has already fired if this bundle was loaded some other way.
+ */
+function start(): void {
+  const element = document.getElementById(MOUNT_ID);
+  if (element !== null) mount(element);
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", start, { once: true });
+} else {
+  start();
+}
 
 /**
  * Sends a file the reader chose, and answers with what was staged.

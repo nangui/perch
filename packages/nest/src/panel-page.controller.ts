@@ -41,7 +41,7 @@ import {
 import { fileUrls } from "./file-urls.js";
 import { withOptions } from "./relationship-options.js";
 import type { PanelAssets } from "./panel-assets.js";
-import { PANEL_ASSETS } from "./panel-assets.js";
+import { PANEL_ASSETS, PANEL_SCRIPTS } from "./panel-assets.js";
 import { renderShell } from "./panel-shell.js";
 import { authorize } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
@@ -62,6 +62,7 @@ import { PANEL_USER_RESOLVER } from "./user-resolver.js";
 export class PanelPageController {
   readonly #registry: ResourceRegistry;
   readonly #assets: PanelAssets;
+  readonly #scripts: readonly string[];
   readonly #users: UserResolver;
   readonly #data: DataAdapter | null;
   readonly #groups: readonly string[];
@@ -70,6 +71,7 @@ export class PanelPageController {
   constructor(
     registry: ResourceRegistry,
     @Inject(PANEL_ASSETS) assets: PanelAssets,
+    @Inject(PANEL_SCRIPTS) scripts: readonly string[],
     @Inject(PANEL_USER_RESOLVER) users: UserResolver,
     @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
     @Inject(PANEL_NAVIGATION_GROUPS) groups: readonly string[],
@@ -78,6 +80,7 @@ export class PanelPageController {
     this.#groups = groups;
     this.#registry = registry;
     this.#assets = assets;
+    this.#scripts = scripts;
     this.#users = users;
     this.#data = data;
     this.#urls = fileUrls(disks);
@@ -119,6 +122,7 @@ export class PanelPageController {
       payload: records,
       navigation: await this.#navigation(request, root, slug),
       scriptFile: entry(this.#assets, "panel.js"),
+      ...(this.#scripts.length === 0 ? {} : { scripts: this.#scripts }),
       styleFile: entry(this.#assets, "panel.css"),
     });
   }
@@ -314,6 +318,7 @@ export class PanelPageController {
         : { relations: page.relations }),
       payload: serialise(resolved),
       scriptFile: entry(this.#assets, "panel.js"),
+      ...(this.#scripts.length === 0 ? {} : { scripts: this.#scripts }),
       styleFile: entry(this.#assets, "panel.css"),
     });
   }

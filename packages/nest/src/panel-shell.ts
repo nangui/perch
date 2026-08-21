@@ -39,6 +39,14 @@ export interface ShellOptions {
   readonly relations?: unknown;
   readonly payload: unknown;
   readonly scriptFile: string;
+  /**
+   * Scripts an application asked the panel to load, by address.
+   *
+   * After the panel's own and as modules, so they run once it has published
+   * what they register against and before it draws anything — a renderer that
+   * arrived after the page was drawn would be a renderer for the next page.
+   */
+  readonly scripts?: readonly string[];
   readonly styleFile: string;
 }
 
@@ -70,6 +78,9 @@ export function renderShell(options: ShellOptions): string {
       : ` data-relations="${attribute(JSON.stringify(options.relations))}"`
   } data-title="${attribute(options.title)}" data-payload="${payload}"></div>
 <script type="module" src="${attribute(`${options.root}/assets/${options.scriptFile}`)}"></script>
+${(options.scripts ?? [])
+  .map((src) => `<script type="module" src="${attribute(src)}"></script>`)
+  .join("\n")}
 </body>
 </html>
 `;

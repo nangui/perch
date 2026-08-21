@@ -27,7 +27,7 @@ import { PanelRecordsController } from "./panel-records.controller.js";
 import { PanelSaveController } from "./panel-save.controller.js";
 import { PanelStateController } from "./panel-state.controller.js";
 import type { PanelAssets } from "./panel-assets.js";
-import { loadPanelAssets, PANEL_ASSETS } from "./panel-assets.js";
+import { loadPanelAssets, PANEL_ASSETS, PANEL_SCRIPTS } from "./panel-assets.js";
 import { PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import type { ResourceClass } from "./resource-registry.js";
 import { PANEL_RESOURCE_TYPES, ResourceRegistry } from "./resource-registry.js";
@@ -89,6 +89,20 @@ export interface PanelModuleOptions {
    * no route yet, so `edit` is what there is; `none` stays put.
    */
   readonly redirectAfterCreate?: RedirectAfterCreate;
+  /**
+   * Scripts to load beside the panel's own, by address.
+   *
+   * How a renderer written outside the panel gets into the page: the bundle is
+   * one an application does not import, so a component nobody here wrote is
+   * drawn by a script the panel loads and a registration it makes through the
+   * global that bundle publishes.
+   *
+   * Served by the application, not by this: an address here is put in a
+   * `<script>` tag verbatim, and a panel that also served the file would be a
+   * second static file server with a second set of rules about what may be
+   * read from disk.
+   */
+  readonly scripts?: readonly string[];
   /** Resolved from `@perchjs/ui` when absent; passing it is for tests. */
   readonly assets?: PanelAssets;
 }
@@ -120,6 +134,7 @@ export class PanelModule {
       ],
       providers: [
         { provide: PANEL_ASSETS, useValue: assets },
+        { provide: PANEL_SCRIPTS, useValue: options.scripts ?? [] },
         { provide: PANEL_NAVIGATION_GROUPS, useValue: options.navigationGroups ?? [] },
         { provide: PANEL_RESOURCE_TYPES, useValue: options.resources ?? [] },
         {

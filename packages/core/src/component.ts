@@ -54,6 +54,22 @@ export abstract class Component {
    */
   abstract get type(): string;
 
+  /**
+   * Which of its own state keys cross to the browser as `props`.
+   *
+   * Empty unless a component says otherwise. The ones this package ships are
+   * listed together where a guard can read them in one place — a list that goes
+   * quiet when a line gets long is worse than none — and this is how anything
+   * else says what it needs: a component nobody here wrote can carry its own
+   * configuration to its own renderer without editing that list.
+   *
+   * Static values only, which the serialiser enforces rather than trusts: a
+   * resolver still a function when it gets there is not part of the wire.
+   */
+  get sends(): readonly string[] {
+    return [];
+  }
+
   /** Public because `configureUsing` needs the class constructible. */
   constructor(state: ComponentState) {
     this.state = state;
