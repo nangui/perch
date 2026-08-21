@@ -69,7 +69,15 @@ function violatedRules(): string[] {
   const run = spawnSync(DEPCRUISE, [...ARGS, "--output-type", "json"], {
     cwd: ROOT,
     encoding: "utf8",
+    // The report is one line per module in the repository and passed a
+    // megabyte the day it outgrew the default. Cut there, it arrives as
+    // half a JSON document and every assertion below fails on the parse
+    // rather than on a boundary.
+    maxBuffer: 64 * 1024 * 1024,
   });
+  if (run.stdout === "" || run.error !== undefined) {
+    throw new Error(`depcruise gave no report to read:\n${run.stderr}`);
+  }
   const report = JSON.parse(run.stdout) as {
     summary: { violations: { rule: { name: string; severity: string } }[] };
   };
