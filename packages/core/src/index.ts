@@ -90,8 +90,8 @@ export { admittedRecords, runAction } from "./run-action.js";
 export { Notification } from "./notification.js";
 
 // Tables, and the column layer.
-export type { ColumnState } from "./column.js";
-export { Column, IconColumn, TextColumn } from "./column.js";
+export type { ColumnState, PresentContext } from "./column.js";
+export { Column, ColorColumn, IconColumn, ImageColumn, TextColumn } from "./column.js";
 export type {
   ActionNode,
   ColumnNode,
@@ -113,6 +113,7 @@ export {
   declaredActions,
   declaredFilters,
   searchablePaths,
+  presentRows,
   serialiseTable,
   sortablePaths,
   Table,

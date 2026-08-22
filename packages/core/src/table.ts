@@ -8,10 +8,10 @@
  * than an absent one.
  */
 import type { Action, Confirmation } from "./action.js";
-import type { Column } from "./column.js";
+import type { Column, PresentContext } from "./column.js";
 import type { Filter } from "./filter.js";
 import { SelectFilter, TernaryFilter, TrashedFilter } from "./filter.js";
-import type { SortDirection } from "./data-adapter.js";
+import type { Row, SortDirection } from "./data-adapter.js";
 
 export interface TableState {
   readonly columns: readonly Column[];
@@ -44,6 +44,11 @@ export interface ColumnNode {
   readonly label?: string;
   readonly sortable?: true;
   readonly boolean?: true;
+  readonly circular?: true;
+  readonly stacked?: true;
+  readonly size?: number;
+  readonly limit?: number;
+  readonly copyable?: true;
 }
 
 /**
@@ -170,6 +175,67 @@ export class Table {
  * reaches is not: the client asks for a search, and naming the columns behind
  * it would answer a question nobody asked.
  */
+/**
+ * Every row, as the columns that draw it say it should leave the server.
+ *
+ * Almost every column hands its value straight through — a table shows what a
+ * row holds. The ones that do not are the ones whose value is an instruction to
+ * a browser: an address bound for an attribute is judged here, where the rule
+ * about addresses lives, rather than in a package that may not import this one.
+ *
+ * Through a relation as readily as beside one. A row carries the whole related
+ * object, so `author.avatar` is a value that reaches a browser like any other,
+ * and a column that only judged the paths without a dot in them would be a rule
+ * with a way around it written on the label.
+ */
+export function presentRows(
+  rows: readonly Row[],
+  table: Table | undefined,
+  context: PresentContext = {},
+): readonly Row[] {
+  const shown = table?.state.columns ?? [];
+  if (shown.length === 0) return rows;
+
+  return rows.map((row) => {
+    let out: Row = row;
+    for (const column of shown) {
+      out = presentAt(out, column.state.path.split("."), (value) =>
+        column.present(value, context),
+      ) as Row;
+    }
+    return out;
+  });
+}
+
+/**
+ * One value inside a row, replaced, with everything above it copied.
+ *
+ * Copied rather than written into, because the row belongs to whoever handed it
+ * over: an adapter that caches its rows would find them edited by the act of
+ * being listed. A segment that is not there is left alone — a column may name a
+ * path this row has nothing at.
+ */
+function presentAt(
+  held: unknown,
+  segments: readonly string[],
+  present: (value: unknown) => unknown,
+): unknown {
+  const [head, ...rest] = segments;
+  if (head === undefined) return present(held);
+  if (held === null || held === undefined) return held;
+
+  // A to-many relation arrives as a list of rows, and the column names one
+  // value in each of them.
+  if (Array.isArray(held)) {
+    return held.map((one) => presentAt(one, segments, present));
+  }
+  if (typeof held !== "object") return held;
+
+  const row = held as Record<string, unknown>;
+  if (!(head in row)) return held;
+  return { ...row, [head]: presentAt(row[head], rest, present) };
+}
+
 export function serialiseTable(table: Table): ColumnTree {
   return {
     columns: table.state.columns.map((column) => ({
@@ -178,6 +244,11 @@ export function serialiseTable(table: Table): ColumnTree {
       ...(column.state.label === undefined ? {} : { label: column.state.label }),
       ...(column.state.sortable ? { sortable: true as const } : {}),
       ...(column.state.boolean === undefined ? {} : { boolean: true as const }),
+      ...(column.state.circular === undefined ? {} : { circular: true as const }),
+      ...(column.state.stacked === undefined ? {} : { stacked: true as const }),
+      ...(column.state.size === undefined ? {} : { size: column.state.size }),
+      ...(column.state.limit === undefined ? {} : { limit: column.state.limit }),
+      ...(column.state.copyable === undefined ? {} : { copyable: true as const }),
     })),
     ...(searchablePaths(table).size === 0 ? {} : { searchable: true as const }),
     filters: table.state.filters.map((filter) => ({
