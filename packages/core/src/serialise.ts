@@ -72,6 +72,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   TextInput: ["flavour", "minLength", "maxLength", "step"],
   Select: ["searchable", "multiple", "preload", "optionsLimit"],
   Radio: ["inline"],
+  ToggleButtons: ["inline", "grouped"],
   CheckboxList: ["columns", "bulkToggleable"],
   TagsInput: ["separator", "suggestions"],
   KeyValue: ["keyLabel", "valueLabel"],

@@ -23,6 +23,7 @@ import { CheckboxList } from "./fields/checkbox-list.js";
 import { KeyValue } from "./fields/key-value.js";
 import { TagsInput } from "./fields/tags-input.js";
 import { Radio } from "./fields/radio.js";
+import { ToggleButtons } from "./fields/toggle-buttons.js";
 import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
 import { TextInput } from "./fields/text-input.js";
@@ -303,7 +304,9 @@ function walk(component: Component, into: Complaint[]): void {
   // Both of them, from one check — a select is the one that has somewhere else
   // its values could come from, and these two do not.
   if (
-    (component instanceof Radio || component instanceof CheckboxList) &&
+    (component instanceof Radio ||
+      component instanceof CheckboxList ||
+      component instanceof ToggleButtons) &&
     component.declaredOptions === undefined
   ) {
     into.push({
