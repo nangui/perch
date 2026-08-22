@@ -17,10 +17,30 @@ interface Kept {
   readonly at: number;
 }
 
+/**
+ * One file already on the disk, so the table has a face to draw.
+ *
+ * A column of uploads shows nothing until something has been uploaded, and an
+ * example that has to be used before it demonstrates anything demonstrates
+ * nothing. Sixteen pixels of the panel's own green.
+ */
+const SEEDED = "avatars/ada.png";
+const SEEDED_BYTES =
+  "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGNQjPQiCTGMahjVMHw1AAALpMQBnAuhhAAAAABJRU5ErkJggg==";
+
 @Injectable()
 export class MemoryDisk implements StorageAdapter {
   readonly #files = new Map<string, Kept>();
   #next = 1;
+
+  constructor() {
+    this.#files.set(SEEDED, {
+      bytes: Uint8Array.from(globalThis.Buffer.from(SEEDED_BYTES, "base64")),
+      name: "ada.png",
+      type: "image/png",
+      at: 0,
+    });
+  }
 
   stage(file: IncomingFile): Promise<StagedFile> {
     const key = `staging/${String(this.#next++)}-${file.name}`;

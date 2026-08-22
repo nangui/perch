@@ -7,6 +7,7 @@ import type {
 } from "@perchjs/core";
 import {
   Checkbox,
+  ColorColumn,
   ColorPicker,
   CreateAction,
   DateTimePicker,
@@ -18,6 +19,7 @@ import {
   ForceDeleteAction,
   FileUpload,
   Hidden,
+  ImageColumn,
   KeyValue,
   Placeholder,
   Radio,
@@ -169,12 +171,18 @@ export class PersonResource {
     return (
       Table.make()
         .columns([
+          // The address is judged on the server: what a browser may fetch is
+          // sent and what it may not is dropped, so nothing reaches an `src`
+          // unread.
+          ImageColumn.make("avatar").label("").disk("default").circular().size(28),
           TextColumn.make("firstName").label("First name").sortable().searchable(),
           TextColumn.make("lastName").label("Last name").searchable(),
           TextColumn.make("city").label("City"),
           // Reads through the relation. One `include` for the page, never one
           // query per row.
           TextColumn.make("team.name").label("Team"),
+          // Whatever notation the column keeps — this one keeps `hsl()`.
+          ColorColumn.make("tint").label("Tint").copyable(),
         ])
         .filters([
           // Three states, one of which is the ordinary page. It lifts the read's

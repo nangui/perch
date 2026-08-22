@@ -185,7 +185,8 @@ export class MemoryAdapter implements DataAdapter {
       active: true,
       onCall: false,
       startsAt: new Date("2026-06-15T08:00:00Z"),
-      avatar: "",
+      // What the seeded disk already holds, so the table has a face to draw.
+      avatar: "avatars/ada.png",
       links: { homepage: "https://example.com/ada", notes: "Kept by hand." },
       tint: "hsl(164, 46%, 24%)",
       access: "admin",
