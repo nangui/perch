@@ -23,6 +23,7 @@ import { CheckboxList } from "./fields/checkbox-list.js";
 import { KeyValue } from "./fields/key-value.js";
 import { TagsInput } from "./fields/tags-input.js";
 import { Radio } from "./fields/radio.js";
+import { RICH_EDITOR_TOOLS, RichEditor } from "./fields/rich-editor.js";
 import { ToggleButtons } from "./fields/toggle-buttons.js";
 import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
@@ -41,6 +42,7 @@ export interface Complaint {
 export function auditSchema(root: Component): readonly Complaint[] {
   const complaints: Complaint[] = [];
   walk(root, complaints);
+  inspectPaths(root, complaints);
 
   // A hook may `set()` any path at all, and what it sets is opaque from here.
   // So the hidden-field complaint below is only made where nothing in the form
@@ -112,6 +114,70 @@ function inspectPairLabels(field: KeyValue, into: Complaint[]): void {
       problem: `names a column with nothing in .${method}(), which leaves the heading blank and the boxes under it named only by their row`,
     });
   }
+}
+
+/**
+ * A path claimed by two fields.
+ *
+ * The state is one map keyed by path, so the second field to claim one is a
+ * field with no value: it draws, it takes a place on the page, and nothing ever
+ * reaches it. Silence is what makes it expensive — the form looks right, and
+ * the reader finds out by saving.
+ *
+ * Scoped rather than global, because a repeater's rows namespace their fields
+ * by row: `body` inside one and `body` outside it are two paths.
+ */
+function inspectPaths(root: Component, into: Complaint[]): void {
+  for (const scope of scopes(root)) {
+    const seen = new Set<string>();
+    for (const name of scope) {
+      if (name === "") continue;
+      if (seen.has(name)) {
+        into.push({
+          field: name,
+          problem:
+            "is declared twice in one form, and the state has one entry per " +
+            "path — so only one of the two can hold a value and neither says which",
+        });
+        continue;
+      }
+      seen.add(name);
+    }
+  }
+}
+
+/** The field names of each place a path means one thing: the form, and each row. */
+function scopes(component: Component): readonly (readonly string[])[] {
+  const here: string[] = [];
+  const below: (readonly string[])[] = [];
+
+  const visit = (one: Component): void => {
+    // A repeater's schema is its own place: what its rows call a field is a
+    // path under the row, not beside this one.
+    if (one instanceof Repeater) {
+      below.push(...scopes(one));
+      return;
+    }
+    if (one instanceof Field) here.push(one.name);
+    for (const child of one.children) visit(child);
+  };
+
+  for (const child of component.children) visit(child);
+  return [here, ...below];
+}
+
+function inspectToolbar(field: RichEditor, into: Complaint[]): void {
+  const unknown = field.state.toolbar.filter(
+    (tool) => !RICH_EDITOR_TOOLS.includes(tool),
+  );
+  if (unknown.length === 0) return;
+
+  into.push({
+    field: named(field),
+    problem:
+      `asks for ${unknown.join(", ")} in its toolbar, and no button is drawn ` +
+      `for that. What there is: ${RICH_EDITOR_TOOLS.join(", ")}`,
+  });
 }
 
 function inspectSeparator(field: TagsInput, into: Complaint[]): void {
@@ -293,6 +359,8 @@ function walk(component: Component, into: Complaint[]): void {
   // as declared and refuses nothing.
   if (component instanceof TextInput) inspectStep(component, into);
   if (component instanceof TagsInput) inspectSeparator(component, into);
+  // A button no editor can draw is a word in a list and nothing else.
+  if (component instanceof RichEditor) inspectToolbar(component, into);
   // A column named with nothing is a heading that draws blank and a box whose
   // only name is the row it is on — declared, and naming nothing.
   if (component instanceof KeyValue) inspectPairLabels(component, into);
