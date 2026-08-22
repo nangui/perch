@@ -73,6 +73,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   Select: ["searchable", "multiple", "preload", "optionsLimit"],
   Radio: ["inline"],
   ToggleButtons: ["inline", "grouped"],
+  RichEditor: ["toolbar"],
   CheckboxList: ["columns", "bulkToggleable"],
   TagsInput: ["separator", "suggestions"],
   KeyValue: ["keyLabel", "valueLabel"],

@@ -197,6 +197,8 @@ export { Placeholder } from "./fields/placeholder.js";
 export type { CheckboxListState } from "./fields/checkbox-list.js";
 export { CheckboxList } from "./fields/checkbox-list.js";
 export type { ColorFormat, ColorPickerState } from "./fields/color-picker.js";
+export type { RichEditorState, RichEditorTool } from "./fields/rich-editor.js";
+export { RICH_EDITOR_TOOLS, RichEditor } from "./fields/rich-editor.js";
 export type { ToggleButtonsState } from "./fields/toggle-buttons.js";
 export { ToggleButtons } from "./fields/toggle-buttons.js";
 export { ColorPicker } from "./fields/color-picker.js";
