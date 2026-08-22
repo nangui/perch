@@ -22,6 +22,7 @@ import {
   Placeholder,
   Radio,
   Repeater,
+  RichEditor,
   RestoreAction,
   RepeatableEntry,
   Schema,
@@ -370,6 +371,13 @@ export class PersonResource {
             .keyLabel("Name")
             .valueLabel("Address")
             .helperText("Kept as one JSON column."),
+          // A document rather than a string of HTML: what the column keeps is
+          // the tree the editor makes, and what the boundary admits is what
+          // these buttons can produce.
+          RichEditor.make("story")
+            .label("Story")
+            .toolbar(["bold", "italic", "link", "h2", "bulletList", "blockquote"])
+            .helperText("Kept as a document, not as HTML."),
           Textarea.make("bio")
             .label("Biography")
             .rows(4)
