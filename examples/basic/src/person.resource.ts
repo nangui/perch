@@ -31,6 +31,7 @@ import {
   Table,
   TagsInput,
   Textarea,
+  ToggleButtons,
   IconColumn,
   Text,
   TextColumn,
@@ -103,6 +104,9 @@ const SKILLS = {
 };
 
 const ROLES = { lead: "Lead", member: "Member", guest: "Guest" };
+
+/** The other closed set on the page, drawn as a segmented control. */
+const ACCESS = { read: "Read", write: "Write", admin: "Admin" };
 
 /** What each role is worth saying about it, for the badge on the View page. */
 const ROLE_TONES: Readonly<Record<string, EntryTone>> = {
@@ -374,6 +378,14 @@ export class PersonResource {
             .placeholder("A line or two about them.")
             .helperText("Counted in characters, and refused on the server too."),
           Radio.make("role").label("Role").options(ROLES).inline(),
+          // The same closed set as the radios above, in clothes a thumb can
+          // hit: joined into one block, which is what "one of these" looks
+          // like when the choices are a word each.
+          ToggleButtons.make("access")
+            .label("Access")
+            .options(ACCESS)
+            .grouped()
+            .helperText("What they may do here."),
         ]),
 
       // Static content, which is neither a control nor a reading of the row:
