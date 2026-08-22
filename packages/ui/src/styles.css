@@ -930,6 +930,183 @@
   opacity: 0.5;
 }
 
+/* ------------------------------------------------------------ rich editor */
+
+/*
+ * A row of buttons over a page to write on. The page is the editor's own
+ * element, so what is styled here is the frame around it and the text inside
+ * it — everything between belongs to the editor.
+ */
+.perch-rich {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+  overflow: hidden;
+}
+
+.perch-rich:focus-within {
+  border-color: var(--perch-accent);
+  box-shadow: var(--perch-focus-ring);
+}
+
+.perch-rich[data-disabled="true"] {
+  border-color: var(--perch-border);
+  background: var(--perch-surface-muted);
+}
+
+/* A document this editor cannot draw. Not an empty page: an empty page over a
+   document that exists is the mistake, not the fix. */
+.perch-rich--unreadable {
+  border-style: dashed;
+  background: var(--perch-surface-muted);
+}
+
+.perch-rich__notice {
+  margin: 0;
+  padding: var(--perch-space-5);
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+  line-height: 1.5;
+}
+
+/* The height a resting editor takes, so the page does not move when the chunk
+   carrying it arrives. */
+.perch-rich--waiting {
+  min-height: 140px;
+  background: var(--perch-surface-muted);
+}
+
+.perch-rich__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--perch-space-1);
+  padding: var(--perch-space-2);
+  border-bottom: 1px solid var(--perch-border);
+  background: var(--perch-surface-muted);
+}
+
+.perch-rich__tool {
+  /* WCAG's pointer target, the floor every other control here keeps. */
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 var(--perch-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--perch-radius-sm);
+  background: none;
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.perch-rich__tool:hover:not(:disabled) {
+  background: var(--perch-surface-sunken);
+  color: var(--perch-content);
+}
+
+.perch-rich__tool[aria-pressed="true"] {
+  border-color: var(--perch-accent-border);
+  background: var(--perch-accent-surface);
+  color: var(--perch-accent);
+}
+
+.perch-rich__tool:focus-visible {
+  outline: none;
+  border-color: var(--perch-accent);
+  box-shadow: var(--perch-focus-ring);
+}
+
+.perch-rich__tool:disabled {
+  color: var(--perch-content-subtle);
+  cursor: not-allowed;
+}
+
+/* Where the address is asked for: on the page, under the buttons, rather than
+   in a dialog the browser draws and a sandboxed frame refuses to. */
+.perch-rich__link {
+  display: flex;
+  gap: var(--perch-space-2);
+  padding: var(--perch-space-2);
+  border-bottom: 1px solid var(--perch-border);
+  background: var(--perch-surface-muted);
+}
+
+.perch-rich__address {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--perch-font-mono);
+}
+
+/* The editor's own element. Its ring is the frame's, drawn above. */
+.perch-rich__page {
+  min-height: 120px;
+  padding: var(--perch-space-5);
+  color: var(--perch-content);
+  font-size: var(--perch-text-control);
+  line-height: 1.6;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+
+.perch-rich__page > * + * {
+  margin-top: var(--perch-space-5);
+}
+
+.perch-rich__page h2 {
+  margin: 0;
+  font-size: var(--perch-text-xl);
+  font-weight: 600;
+}
+
+.perch-rich__page h3 {
+  margin: 0;
+  font-size: var(--perch-text-lg);
+  font-weight: 600;
+}
+
+.perch-rich__page p {
+  margin: 0;
+}
+
+.perch-rich__page ul,
+.perch-rich__page ol {
+  margin: 0;
+  padding-left: var(--perch-space-8);
+}
+
+.perch-rich__page blockquote {
+  margin: 0;
+  padding-left: var(--perch-space-5);
+  border-left: 2px solid var(--perch-border);
+  color: var(--perch-content-secondary);
+}
+
+.perch-rich__page pre {
+  margin: 0;
+  padding: var(--perch-space-4);
+  border-radius: var(--perch-radius-sm);
+  background: var(--perch-surface-sunken);
+  font-family: var(--perch-font-mono);
+  overflow-x: auto;
+}
+
+.perch-rich__page code {
+  font-family: var(--perch-font-mono);
+}
+
+.perch-rich__page a {
+  color: var(--perch-accent);
+}
+
+.perch-rich__page hr {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--perch-border);
+}
+
 /* --------------------------------------------------------- toggle buttons */
 
 /*

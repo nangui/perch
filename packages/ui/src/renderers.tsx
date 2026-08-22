@@ -15,6 +15,9 @@ import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
 import { CheckboxList } from "./fields/CheckboxList.js";
+import { RichEditor } from "./fields/RichEditor.js";
+import type { RichDocument, Tool } from "./fields/rich-document.js";
+import { TOOLS } from "./fields/rich-document.js";
 import { ColorPicker } from "./fields/ColorPicker.js";
 import { ToggleButtons } from "./fields/ToggleButtons.js";
 import type { Pair } from "./fields/KeyValue.js";
@@ -631,6 +634,59 @@ function CheckboxListRenderer({
         />
       )}
     </FieldShell>
+  );
+}
+
+/** A document the reader writes. The editor arrives in its own chunk. */
+function RichEditorRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const label = node.label ?? node.path ?? "";
+  const declared = node.props?.["toolbar"];
+  // Whatever the wire says, drawn only where a button exists for it. The
+  // server refuses what its own toolbar cannot make, so a name this does not
+  // know would be a button that writes what the boundary turns away.
+  const toolbar = (Array.isArray(declared) ? declared : []).filter(
+    (one): one is Tool =>
+      typeof one === "string" && (TOOLS as readonly string[]).includes(one),
+  );
+
+  return (
+    <FieldShell
+      label={label}
+      status={status}
+      required={node.required === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <RichEditor
+          value={isDocument(value) ? value : null}
+          onValueChange={(next) => {
+            if (node.path !== undefined) onChange(node.path, next);
+          }}
+          toolbar={toolbar}
+          status={status}
+          binding={binding}
+          label={label}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
+/** A document, or something else the column held. */
+function isDocument(value: unknown): value is RichDocument {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    (value as { type?: unknown }).type === "doc"
   );
 }
 
@@ -1294,6 +1350,7 @@ export function registerBuiltInComponents(): void {
   registerComponent("KeyValue", KeyValueRenderer);
   registerComponent("ColorPicker", ColorPickerRenderer);
   registerComponent("ToggleButtons", ToggleButtonsRenderer);
+  registerComponent("RichEditor", RichEditorRenderer);
   registerComponent("DateTimePicker", DateTimePickerRenderer);
   registerComponent("FileUpload", FileUploadRenderer);
   registerComponent("Placeholder", PlaceholderRenderer);

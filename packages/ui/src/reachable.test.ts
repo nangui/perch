@@ -34,6 +34,7 @@ const NOT_YET_CONNECTED: Readonly<Record<string, string>> = {
  */
 const WORN_BY_ANOTHER: Readonly<Record<string, string>> = {
   ChoiceGroup: "the radios under a radio group and a set of toggle buttons",
+  RichEditorSurface: "the editor a rich editor field fetches in its own chunk",
 };
 
 function components(): readonly string[] {

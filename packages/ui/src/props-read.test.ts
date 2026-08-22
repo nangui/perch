@@ -210,6 +210,7 @@ describe("a prop the server sends", () => {
       "KeyValue",
       "Radio",
       "Repeater",
+      "RichEditor",
       "Schema",
       "Section",
       "Select",

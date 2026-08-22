@@ -26,6 +26,7 @@ const BUDGET_BYTES = 250 * 1024;
 interface Manifest {
   readonly manifestVersion: number;
   readonly entries: Record<string, string>;
+  readonly chunks: readonly string[];
 }
 
 let manifest: Manifest;
@@ -63,7 +64,10 @@ describe("the panel bundle", () => {
     // Hashed names accumulate: every build writes a new one and nothing removes
     // the last. `files: ["dist"]` would publish the lot. The package's `build`
     // script clears dist first, and this is what says so if it ever stops.
-    const named = new Set(Object.values(manifest.entries));
+    // The chunks count as named: the panel serves what the manifest lists, and
+    // a chunk left out of it is a 404 in the middle of a form rather than dead
+    // weight in the package.
+    const named = new Set([...Object.values(manifest.entries), ...manifest.chunks]);
     const stale = readdirSync(DIST).filter(
       (f) => f.startsWith("panel-") && !named.has(f),
     );
@@ -90,6 +94,31 @@ describe("the panel bundle", () => {
       `panel.js is ${(size / 1024).toFixed(1)} KB gzip (${String(statSync(join(DIST, js!)).size)} B raw), ` +
         `against a ${String(BUDGET_BYTES / 1024)} KB budget. Bundling reopens if no split brings it back.`,
     ).toBeLessThan(BUDGET_BYTES);
+  });
+
+  it("keeps the editor out of the bundle every page loads", () => {
+    // 121 KB gzip of ProseMirror against a 250 KB budget: bundled in, the
+    // editor would spend half of it on the pages that have no editor. The
+    // split is a dynamic import and nothing else, so one static import
+    // anywhere undoes it silently — this is what says so.
+    const entry = readFileSync(join(DIST, manifest.entries["panel.js"]!), "utf8");
+
+    for (const trace of ["prosemirror", "tiptap", "EditorState"]) {
+      expect(
+        entry.includes(trace),
+        `panel.js carries ${trace}, so the editor is no longer in a chunk of its own`,
+      ).toBe(false);
+    }
+
+    // And it is somewhere: a split that dropped the editor entirely would pass
+    // the line above and leave every rich editor on the panel blank.
+    const chunks = manifest.chunks.map((file) =>
+      readFileSync(join(DIST, file), "utf8"),
+    );
+    expect(
+      chunks.some((chunk) => chunk.includes("prosemirror")),
+      "no chunk carries the editor at all",
+    ).toBe(true);
   });
 
   it("keeps the library entry free of the panel's weight", () => {
