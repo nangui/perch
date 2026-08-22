@@ -16,6 +16,7 @@ import type { Resolvable } from "../component.js";
 import type { FieldState, ValueRefusal } from "../field.js";
 import { baseFieldState, Field, isScalarValue, isUnset } from "../field.js";
 import type { Option, OptionsInput } from "../option.js";
+import { choosableValues } from "../option.js";
 
 export interface CheckboxListState extends FieldState {
   readonly options?: Resolvable<OptionsInput>;
@@ -99,8 +100,7 @@ export class CheckboxList extends Field {
       return "wrong-shape";
     }
 
-    // Matched as text, because a form returns `"2"` for a key declared as `2`.
-    const names = new Set((options ?? []).map((option) => String(option.value)));
+    const names = choosableValues(options);
     return value.every((one) => names.has(String(one)))
       ? undefined
       : "undeclared-value";

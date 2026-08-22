@@ -6,6 +6,7 @@ import type { Resolvable } from "../component.js";
 import { configured } from "../component.js";
 import type { FieldState, ValueRefusal } from "../field.js";
 import type { Option, OptionsInput } from "../option.js";
+import { choosableValues } from "../option.js";
 import { baseFieldState, Field, isScalarValue, isUnset } from "../field.js";
 
 export interface SelectState extends FieldState {
@@ -106,12 +107,10 @@ export class Select extends Field {
     if (held.some((one) => !isScalarValue(one))) return "wrong-shape";
     if (this.state.relationship !== undefined) return undefined;
 
-    // Matched as text, because a form returns `"2"` for a key declared as `2`.
-    //
     // An emptied multiple select arrives as `[]` and passes here, because
     // every member of nothing was declared. Said out loud rather than left to
     // be rediscovered: it is a clearing, and clearing is always allowed.
-    const names = new Set((options ?? []).map((option) => String(option.value)));
+    const names = choosableValues(options);
     return held.every((one) => names.has(String(one))) ? undefined : "undeclared-value";
   }
 

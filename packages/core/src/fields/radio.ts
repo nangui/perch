@@ -15,6 +15,7 @@ import type { Resolvable } from "../component.js";
 import type { FieldState, ValueRefusal } from "../field.js";
 import { baseFieldState, Field, isScalarValue, isUnset } from "../field.js";
 import type { Option, OptionsInput } from "../option.js";
+import { choosableValues } from "../option.js";
 
 export interface RadioState extends FieldState {
   readonly options?: Resolvable<OptionsInput>;
@@ -68,8 +69,6 @@ export class Radio extends Field {
     if (isUnset(value)) return undefined;
     if (!isScalarValue(value)) return "wrong-shape";
 
-    // Matched as text, because a form returns `"2"` for a key declared as `2`.
-    const names = new Set((options ?? []).map((option) => String(option.value)));
-    return names.has(String(value)) ? undefined : "undeclared-value";
+    return choosableValues(options).has(String(value)) ? undefined : "undeclared-value";
   }
 }

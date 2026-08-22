@@ -16,6 +16,26 @@ export interface Option {
   readonly disabled?: boolean;
 }
 
+/**
+ * The values a reader may actually choose, as text.
+ *
+ * An option declared `disabled` is one the server said cannot be chosen, and a
+ * restriction only drawn is not a restriction — the same reading a disabled
+ * field gets at the boundary, one level down. Left in this set, the flag would
+ * grey a control out and accept the value anyway.
+ *
+ * Text, because a form returns `"2"` for a key declared as `2`.
+ */
+export function choosableValues(
+  options: readonly Option[] | undefined,
+): ReadonlySet<string> {
+  return new Set(
+    (options ?? [])
+      .filter((option) => option.disabled !== true)
+      .map((option) => String(option.value)),
+  );
+}
+
 /** `{ draft: "Draft" }` is the shorthand; `Option[]` is the full form. */
 export type OptionsInput = readonly Option[] | Readonly<Record<string, string>>;
 
