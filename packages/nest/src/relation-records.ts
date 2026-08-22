@@ -13,6 +13,7 @@ import type { RecordsResponse } from "./records.js";
 import { listOf } from "./records.js";
 import { reachManager } from "./relation-reach.js";
 import type { RegisteredResource } from "./resource-registry.js";
+import type { PanelDisks } from "./storage.token.js";
 
 export async function listChildren(options: {
   readonly data: DataAdapter | null;
@@ -21,6 +22,13 @@ export async function listChildren(options: {
   readonly relation: string;
   readonly raw: RawQuery;
   readonly user: unknown;
+  /**
+   * What a column of uploads here resolves its keys through — the same disks
+   * the resource's own table is listed with. Without them a manager's image
+   * column draws an empty cell in every row, and the boot check that reads
+   * these tables would have said the disk was fine.
+   */
+  readonly disks?: PanelDisks;
 }): Promise<RecordsResponse> {
   const { data, manager, parent, scope, owner } = await reachManager({
     ...options,
@@ -29,6 +37,7 @@ export async function listChildren(options: {
 
   return await listOf({
     data,
+    ...(options.disks === undefined ? {} : { disks: options.disks }),
     model: scope.model,
     table: manager.state.table,
     raw: options.raw,

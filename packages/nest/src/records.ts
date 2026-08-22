@@ -17,13 +17,19 @@ import type {
   Sort,
   Table,
 } from "@perchjs/core";
-import { findModel, serialiseTable, SOFT_DELETE_FIELD } from "@perchjs/core";
+import {
+  findModel,
+  presentRows,
+  serialiseTable,
+  SOFT_DELETE_FIELD,
+} from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import { authorize, mayReach } from "./authorization.js";
 import { sameOrigin } from "./panel-root.js";
 import type { RawQuery } from "./records-query.js";
 import { DEFAULT_PER_PAGE, readList } from "./records-query.js";
 import type { RegisteredResource } from "./resource-registry.js";
+import type { PanelDisks } from "./storage.token.js";
 import { project, visibleKeys } from "./row-projection.js";
 
 export interface RecordsResponse {
@@ -112,6 +118,7 @@ export async function listRecords(
   raw: RawQuery,
   user: unknown,
   root: string,
+  disks: PanelDisks = {},
 ): Promise<RecordsResponse> {
   if (resource === undefined || data === null) throw new NotFoundException();
 
@@ -119,6 +126,7 @@ export async function listRecords(
   if (!(await mayReach(can, user)) || !mayList(can)) throw new NotFoundException();
 
   return await listOf({
+    disks,
     data,
     model: resource.metadata.model,
     table: resource.instance.table?.(),
@@ -138,6 +146,11 @@ export async function listRecords(
  */
 export async function listOf(options: {
   readonly data: DataAdapter;
+  /**
+   * What a column of uploads resolves its keys through. A key is not an
+   * address, and which disk answers is the host's arrangement.
+   */
+  readonly disks?: PanelDisks;
   readonly model: string;
   readonly table: Table | undefined;
   readonly raw: RawQuery;
@@ -175,7 +188,9 @@ export async function listOf(options: {
       : [];
 
   return {
-    rows: project(found.rows, visibleKeys(model, ir, table)),
+    rows: presentRows(project(found.rows, visibleKeys(model, ir, table)), table, {
+      fileUrl: (disk, key) => (options.disks ?? {})[disk]?.url(key),
+    }),
     total: found.total,
     page: Math.floor((query.skip ?? 0) / perPage) + 1,
     perPage,

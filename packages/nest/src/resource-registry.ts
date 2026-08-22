@@ -163,6 +163,8 @@ export class ResourceRegistry implements OnModuleInit {
         ...(infolist === undefined ? [] : auditInfolist(infolist)),
         ...(table === undefined ? [] : auditTable(table)),
         ...this.#unknownDisks(form),
+        ...this.#unknownColumnDisks(table),
+        ...managers.flatMap((manager) => this.#unknownColumnDisks(manager.state.table)),
         ...this.#unwritableFields(metadata.model, form),
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
@@ -529,6 +531,27 @@ export class ResourceRegistry implements OnModuleInit {
    * either way, which is the point — a field that cannot work stops the boot
    * wherever the reason for it happens to live.
    */
+  /**
+   * Columns pointed at a disk nobody provided.
+   *
+   * The same complaint as an upload's, for the same reason: a column of keys
+   * with no disk to resolve them draws an empty cell in every row and says
+   * nothing about why.
+   */
+  #unknownColumnDisks(
+    table: Table | undefined,
+  ): readonly { field: string; problem: string }[] {
+    return (table?.state.columns ?? [])
+      .map((column) => column.state)
+      .filter((state) => state.disk !== undefined && !(state.disk in this.#disks))
+      .map((state) => ({
+        field: state.path,
+        problem:
+          `names the disk \`${String(state.disk)}\`, which the panel was not given — ` +
+          `it has ${describeDisks(this.#disks)}`,
+      }));
+  }
+
   #unknownDisks(form: Component): readonly { field: string; problem: string }[] {
     const uploads = flatten(form).filter(
       (component): component is FileUpload => component instanceof FileUpload,

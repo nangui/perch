@@ -64,6 +64,7 @@ export class PanelRecordsController {
       this.#users.resolve(request),
       // `/admin/api/posts/records` → `/admin`, whatever prefix the host added.
       rootOf(request, "api"),
+      this.#disks,
     );
   }
 
@@ -168,6 +169,7 @@ export class PanelRecordsController {
       relation: name,
       raw: query,
       user: this.#users.resolve(request),
+      disks: this.#disks,
     });
   }
 }

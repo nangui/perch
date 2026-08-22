@@ -22,7 +22,7 @@ import type {
   Row,
   Schema as SchemaTree,
 } from "@perchjs/core";
-import { Schema, TextColumn, TextInput } from "@perchjs/core";
+import { ImageColumn, Schema, TextColumn, TextInput } from "@perchjs/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
@@ -72,7 +72,7 @@ const POSTS: Row[] = [
 ];
 
 const COMMENTS: Row[] = [
-  { id: 10, body: "On the first", postId: 1 },
+  { id: 10, body: "On the first", postId: 1, cover: "covers/one.png" },
   { id: 11, body: "Also the first", postId: 1 },
   { id: 12, body: "On the second", postId: 2 },
 ];
@@ -140,7 +140,14 @@ class PostResource {
   relations(): readonly RelationManager[] {
     const comments = RelationManager.make("comments")
       .label("Comments")
-      .table((table) => table.columns([TextColumn.make("body")]))
+      .table((table) =>
+        table.columns([
+          TextColumn.make("body"),
+          // A column of uploads inside a manager: its keys resolve through the
+          // same disks the resource's own table is listed with.
+          ImageColumn.make("cover").disk("default"),
+        ]),
+      )
       .form((schema) => schema.schema([TextInput.make("body").required()]));
     return [managerPolicy === undefined ? comments : comments.authorize(managerPolicy)];
   }
@@ -173,6 +180,20 @@ beforeEach(async () => {
         resources: [PostResource],
         dataAdapter: MemoryAdapter,
         assets: assets(),
+        // One disk, so a column of uploads has something to resolve through.
+        disks: {
+          default: {
+            stage: () => {
+              throw new Error("not needed here");
+            },
+            commit: () => {
+              throw new Error("not needed here");
+            },
+            remove: () => Promise.resolve(),
+            sweepStaged: () => Promise.resolve(0),
+            url: (key: string) => `/uploads/${key}`,
+          },
+        },
       }),
     ],
   }).compile();
@@ -194,6 +215,18 @@ const children = async (
     body: (await response.json()) as Record<string, unknown>,
   };
 };
+
+describe("a column of uploads inside a manager", () => {
+  it("resolves its keys, the way the resource's own table does", async () => {
+    // Listed without the disks, the column draws an empty cell in every row —
+    // and the boot check that reads a manager's table would have said the disk
+    // was fine.
+    const { body } = await children("/admin/api/posts/1/relations/comments/records");
+    const rows = body["rows"] as readonly Record<string, unknown>[];
+
+    expect(rows[0]?.["cover"]).toBe("/uploads/covers/one.png");
+  });
+});
 
 describe("a parent's children", () => {
   it("are the ones that belong to it, and no others", async () => {
@@ -221,7 +254,7 @@ describe("a parent's children", () => {
     const { body } = await children("/admin/api/posts/1/relations/comments/records");
     const columns = body["columns"] as { columns: { path: string }[] };
 
-    expect(columns.columns.map((one) => one.path)).toEqual(["body"]);
+    expect(columns.columns.map((one) => one.path)).toEqual(["body", "cover"]);
   });
 });
 

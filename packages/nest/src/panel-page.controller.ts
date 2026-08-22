@@ -67,6 +67,7 @@ export class PanelPageController {
   readonly #data: DataAdapter | null;
   readonly #groups: readonly string[];
   readonly #urls: Pick<ResolveOptions, "fileUrl">;
+  readonly #disks: PanelDisks;
 
   constructor(
     registry: ResourceRegistry,
@@ -84,6 +85,7 @@ export class PanelPageController {
     this.#users = users;
     this.#data = data;
     this.#urls = fileUrls(disks);
+    this.#disks = disks;
   }
 
   /**
@@ -112,6 +114,7 @@ export class PanelPageController {
       query,
       this.#users.resolve(request),
       root,
+      this.#disks,
     );
 
     return renderShell({
