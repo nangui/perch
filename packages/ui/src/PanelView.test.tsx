@@ -290,6 +290,19 @@ describe("a value that can be copied", () => {
     ).toBeNull();
   });
 
+  it("offers none where the browser carries the name and nothing behind it", () => {
+    // What an insecure origin looks like: `"clipboard" in navigator` answers
+    // yes, and pressing the button throws.
+    Object.defineProperty(globalThis.navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+
+    expect(
+      copyable({}, "ada@example.com").querySelector(".perch-entry__copy"),
+    ).toBeNull();
+  });
+
   it("copies the whole value, not the shortened one", async () => {
     const { written } = withClipboard();
     const container = copyable({ limit: 3 }, "ada@example.com");

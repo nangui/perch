@@ -930,6 +930,96 @@
   opacity: 0.5;
 }
 
+/* ------------------------------------------------------------ table cells */
+
+.perch-cell__images {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+}
+
+/* Overlapping, which is how a row shows a group in the width of one and a bit. */
+.perch-cell__images[data-stacked="true"] {
+  gap: 0;
+}
+
+.perch-cell__images[data-stacked="true"] > * + * {
+  margin-left: -10px;
+}
+
+.perch-cell__image {
+  flex: none;
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-sm);
+  background: var(--perch-surface-muted);
+  object-fit: cover;
+}
+
+.perch-cell__image[data-circular="true"] {
+  border-radius: 50%;
+}
+
+/* The ones there was no room for, counted. A stack keeps its own edge visible
+   against the image it overlaps. */
+.perch-cell__more {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--perch-border);
+  border-radius: 50%;
+  background: var(--perch-surface-sunken);
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.perch-cell__images[data-stacked="true"] .perch-cell__image,
+.perch-cell__images[data-stacked="true"] .perch-cell__more {
+  box-shadow: 0 0 0 2px var(--perch-surface);
+}
+
+.perch-cell__colour {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--perch-space-3);
+}
+
+.perch-cell__swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-sm);
+}
+
+.perch-cell__code {
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-base);
+}
+
+.perch-cell__copy {
+  /* WCAG's pointer target, the floor every other control here keeps. */
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--perch-content-muted);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.perch-cell__copy:hover {
+  color: var(--perch-content);
+}
+
+/* Said on the button itself, because a cell renderer has no state to say it
+   with — and taken off again by the timer that put it there. */
+.perch-cell__copy[data-copied="true"] {
+  color: var(--perch-accent);
+}
+
 /* ------------------------------------------------------------ rich editor */
 
 /*

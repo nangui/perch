@@ -143,10 +143,13 @@ function CopyButton({
   readonly label?: string;
 }): ReactNode {
   const [copied, setCopied] = useState(false);
-  // `in`, not a comparison: the DOM types say the clipboard is always there and
-  // an insecure origin says otherwise, so this asks the object rather than the
-  // type.
-  if (typeof navigator === "undefined" || !("clipboard" in navigator)) return null;
+  // Asked of the thing rather than of the name: an insecure origin carries the
+  // key with nothing behind it, so `in` answers yes and pressing the button
+  // throws. Read through a type that admits it can be missing, because the DOM
+  // library says it never is.
+  const clipboard = (globalThis as { navigator?: { clipboard?: Clipboard } }).navigator
+    ?.clipboard;
+  if (clipboard === undefined) return null;
 
   return (
     <button
@@ -158,7 +161,7 @@ function CopyButton({
       // before saying what the button did.
       aria-label={label === undefined || label === "" ? "Copy" : `Copy ${label}`}
       onClick={() => {
-        void navigator.clipboard.writeText(value).then(
+        void clipboard.writeText(value).then(
           () => {
             setCopied(true);
           },
