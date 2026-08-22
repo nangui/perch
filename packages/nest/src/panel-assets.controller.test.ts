@@ -24,7 +24,7 @@ beforeEach(() => {
   // Exists, and no entry names it.
   writeFileSync(join(directory, "secret.js"), "const key = 1;\n");
 
-  assets = { directory, entries: { "panel.js": JS, "panel.css": CSS } };
+  assets = { directory, entries: { "panel.js": JS, "panel.css": CSS }, chunks: [] };
   controller = new PanelAssetsController(assets);
 });
 
@@ -62,6 +62,7 @@ describe("refusing everything else", () => {
     const odd = new PanelAssetsController({
       directory: assets.directory,
       entries: { "panel.js": JS, "panel.css": CSS, "panel.wasm": "panel-x.wasm" },
+      chunks: [],
     });
 
     expect(() => odd.read("panel-x.wasm")).toThrow(NotFoundException);
@@ -82,6 +83,7 @@ describe("reading from disk", () => {
         new PanelAssetsController({
           directory: assets.directory,
           entries: { "panel.js": "panel-missing.js", "panel.css": CSS },
+          chunks: [],
         }),
     ).toThrow();
   });

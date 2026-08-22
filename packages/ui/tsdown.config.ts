@@ -24,7 +24,7 @@ function hash(path: string): string {
  * Bump it whenever an entry is renamed, removed, or when the shell contract in
  * `src/panel.tsx` changes.
  */
-const MANIFEST_VERSION = 2;
+const MANIFEST_VERSION = 3;
 
 export default defineConfig([
   {
@@ -69,7 +69,8 @@ export default defineConfig([
     hooks: {
       "build:done": (context) => {
         const { outDir } = context.options;
-        const js = context.chunks.find((c) => /^panel-[^.]+\.js$/.test(c.fileName));
+        const scripts = context.chunks.filter((c) => c.type === "chunk");
+        const js = scripts.find((c) => c.isEntry);
         const css = context.chunks.find((c) => c.fileName === "panel.css");
         // Failing here beats shipping a manifest that names a file nobody
         // wrote: the error lands at build time rather than as a 404 in a
@@ -90,6 +91,14 @@ export default defineConfig([
             {
               manifestVersion: MANIFEST_VERSION,
               entries: { "panel.js": js.fileName, "panel.css": hashed },
+              // Everything else the entry reaches: the shared chunk it imports
+              // on sight and the heavy ones it fetches when a page needs them.
+              // The manifest is the allowlist the panel serves from, so a chunk
+              // missing here is a 404 in the middle of a form.
+              chunks: scripts
+                .filter((chunk) => !chunk.isEntry)
+                .map((chunk) => chunk.fileName)
+                .sort(),
             },
             null,
             2,

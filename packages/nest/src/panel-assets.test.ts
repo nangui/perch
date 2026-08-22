@@ -26,6 +26,7 @@ function fixture(manifest: unknown, files: readonly string[] = []): string {
 const valid = {
   manifestVersion: SUPPORTED_MANIFEST_VERSION,
   entries: { "panel.js": "panel-abc12345.js", "panel.css": "panel-def67890.css" },
+  chunks: [],
 };
 
 describe("reading the asset manifest", () => {

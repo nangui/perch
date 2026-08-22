@@ -69,7 +69,11 @@ function assets(): PanelAssets {
   const directory = mkdtempSync(join(tmpdir(), "perch-guards-"));
   writeFileSync(join(directory, JS), "export const panel = 1;\n");
   writeFileSync(join(directory, "panel-e5f6a7b8.css"), "");
-  return { directory, entries: { "panel.js": JS, "panel.css": "panel-e5f6a7b8.css" } };
+  return {
+    directory,
+    entries: { "panel.js": JS, "panel.css": "panel-e5f6a7b8.css" },
+    chunks: [],
+  };
 }
 
 let app: INestApplication | undefined;

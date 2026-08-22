@@ -163,6 +163,7 @@ describe("who runs it", () => {
               "panel.js": "panel-a1b2c3d4.js",
               "panel.css": "panel-e5f6a7b8.css",
             },
+            chunks: [],
           },
         }),
       ],

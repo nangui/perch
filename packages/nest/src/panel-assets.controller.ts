@@ -40,7 +40,10 @@ export class PanelAssetsController {
   /** Read once, at bootstrap, so the handler stays free of I/O. */
   constructor(@Inject(PANEL_ASSETS) assets: PanelAssets) {
     const loaded = new Map<string, Asset>();
-    for (const file of Object.values(assets.entries)) {
+    // The named entries and the chunks alike: the browser asks for a chunk by
+    // the name the entry imports it under, which is a filename and not a
+    // logical name. Left out, a form with a rich editor on it fetches a 404.
+    for (const file of [...Object.values(assets.entries), ...assets.chunks]) {
       const type = CONTENT_TYPES[extensionOf(file)];
       // Serving bytes under the wrong type is how a stylesheet becomes a script.
       if (type === undefined) continue;

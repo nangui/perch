@@ -180,6 +180,7 @@ function assets(): PanelAssets {
   return {
     directory,
     entries: { "panel.js": "panel-a1b2c3d4.js", "panel.css": "panel-e5f6a7b8.css" },
+    chunks: [],
   };
 }
 

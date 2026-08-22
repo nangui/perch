@@ -32,7 +32,7 @@ function assets(): PanelAssets {
   const directory = mkdtempSync(join(tmpdir(), "perch-page-"));
   writeFileSync(join(directory, JS), "export const panel = 1;\n");
   writeFileSync(join(directory, CSS), ".perch-root{}\n");
-  return { directory, entries: { "panel.js": JS, "panel.css": CSS } };
+  return { directory, entries: { "panel.js": JS, "panel.css": CSS }, chunks: [] };
 }
 
 let app: INestApplication | undefined;

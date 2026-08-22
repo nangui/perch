@@ -21,7 +21,7 @@ function assets(): PanelAssets {
   writeFileSync(join(directory, JS), BODY);
   writeFileSync(join(directory, CSS), ".perch-root{color:red}\n");
   writeFileSync(join(directory, "secret.js"), "const key = 1;\n");
-  return { directory, entries: { "panel.js": JS, "panel.css": CSS } };
+  return { directory, entries: { "panel.js": JS, "panel.css": CSS }, chunks: [] };
 }
 
 let app: INestApplication | undefined;

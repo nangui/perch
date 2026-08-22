@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 const MANIFEST = "@perchjs/ui/manifest.json";
 
 /** Bumped by `@perchjs/ui` whenever an entry is renamed or removed. */
-export const SUPPORTED_MANIFEST_VERSION = 2;
+export const SUPPORTED_MANIFEST_VERSION = 3;
 
 /** The entries version 1 promises. Adding one here is a version bump. */
 const REQUIRED_ENTRIES = ["panel.js", "panel.css"] as const;
@@ -27,6 +27,15 @@ export interface PanelAssets {
   readonly directory: string;
   /** Logical name → filename on disk, content-hashed. */
   readonly entries: Readonly<Record<string, string>>;
+  /**
+   * The rest of what the bundle is made of, named by filename alone.
+   *
+   * The entry imports some of these on sight and fetches others when a page
+   * needs them — the editor's ProseMirror is a chunk nobody loads until a form
+   * has a rich editor on it. Nothing here has a logical name because nothing
+   * asks for one by name: the entry names them itself, in its own imports.
+   */
+  readonly chunks: readonly string[];
 }
 
 /**
@@ -65,7 +74,17 @@ export function loadPanelAssets(manifestPath = resolveManifest()): PanelAssets {
     }
   }
 
-  return { directory, entries: manifest.entries };
+  const chunks = chunksOf(manifest.chunks, manifestPath);
+  for (const file of chunks) {
+    if (!isFile(join(directory, file))) {
+      throw new Error(
+        `the asset manifest names the chunk ${file}, and that is not a file in ${directory}. ` +
+          `Rebuild @perchjs/ui.`,
+      );
+    }
+  }
+
+  return { directory, entries: manifest.entries, chunks };
 }
 
 function isFile(path: string): boolean {
@@ -91,6 +110,8 @@ function resolveManifest(): string {
 interface Manifest {
   readonly manifestVersion: unknown;
   readonly entries: Readonly<Record<string, string>>;
+  /** Read once the version is known to be one this package understands. */
+  readonly chunks: unknown;
 }
 
 /** Shape-checked so a malformed manifest fails here, not as `undefined` in a URL. */
@@ -106,7 +127,7 @@ function parse(path: string): Manifest {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error(`the asset manifest at ${path} is not an object.`);
   }
-  const { manifestVersion, entries } = value as Record<string, unknown>;
+  const { manifestVersion, entries, chunks } = value as Record<string, unknown>;
 
   if (typeof entries !== "object" || entries === null || Array.isArray(entries)) {
     throw new Error(`the asset manifest at ${path} has no entries.`);
@@ -126,5 +147,26 @@ function parse(path: string): Manifest {
     }
   }
 
-  return { manifestVersion, entries: entries as Record<string, string> };
+  return { manifestVersion, entries: entries as Record<string, string>, chunks };
+}
+
+/**
+ * The chunk list, read after the version and not before it.
+ *
+ * A manifest from an older `@perchjs/ui` has no chunks in it, and what that
+ * needs said is "reinstall" rather than a complaint about a field its version
+ * never had.
+ */
+function chunksOf(chunks: unknown, path: string): readonly string[] {
+  if (!Array.isArray(chunks)) {
+    throw new Error(`the asset manifest at ${path} has no chunks.`);
+  }
+  for (const file of chunks) {
+    if (typeof file !== "string" || file.length === 0 || /[/\\]|\.\./.test(file)) {
+      throw new Error(
+        `the asset manifest at ${path} lists a chunk that is not a filename: ${String(file)}`,
+      );
+    }
+  }
+  return chunks as readonly string[];
 }
