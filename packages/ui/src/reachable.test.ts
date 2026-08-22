@@ -24,6 +24,18 @@ const NOT_YET_CONNECTED: Readonly<Record<string, string>> = {
   CodeEditor: "v0.3 — outside the v0.1 catalogue entirely",
 };
 
+/**
+ * Named by no renderer because another component wears it.
+ *
+ * A different answer from the list above, and worth keeping apart: those are
+ * finished components no form can put on a page, these are pieces that reach
+ * one through something else. Taking a name off this list means the thing that
+ * wore it is gone — which is the moment to ask whether it should be here at all.
+ */
+const WORN_BY_ANOTHER: Readonly<Record<string, string>> = {
+  ChoiceGroup: "the radios under a radio group and a set of toggle buttons",
+};
+
 function components(): readonly string[] {
   // Recursive, like the stylesheet's own guard: a component in a subdirectory
   // is a component, and the one that slips past a check is always the one
@@ -66,7 +78,9 @@ describe("what a panel can reach", () => {
     const reachable = imported();
     const unreachable = components().filter((name) => !reachable.has(name));
 
-    expect(unreachable).toEqual(Object.keys(NOT_YET_CONNECTED).sort());
+    expect(unreachable).toEqual(
+      [...Object.keys(NOT_YET_CONNECTED), ...Object.keys(WORN_BY_ANOTHER)].sort(),
+    );
   });
 
   it("finds the renderers file naming something at all", () => {

@@ -220,6 +220,7 @@ describe("a prop the server sends", () => {
       "TextInput",
       "Textarea",
       "Toggle",
+      "ToggleButtons",
     ]);
   });
 

@@ -84,6 +84,12 @@ const TARGETS: readonly {
     selectors: [".perch-calendar__nav-button"],
   },
   { name: "the repeater's drag handle", selectors: [".perch-repeater__handle"] },
+  {
+    name: "a toggle button",
+    selectors: [".perch-toggles__label"],
+    // The width is the words in it, which is not this file's to vouch for.
+    bothAxes: false,
+  },
 ];
 
 describe("2.5.8 Target Size — 24 × 24 CSS px minimum", () => {

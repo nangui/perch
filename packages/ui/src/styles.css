@@ -930,6 +930,157 @@
   opacity: 0.5;
 }
 
+/* --------------------------------------------------------- toggle buttons */
+
+/*
+ * A radio group wearing buttons: the same native inputs, taken out of sight
+ * rather than out of the tab order, with the label beside each one drawn as the
+ * thing the reader presses.
+ */
+/*
+ * Stacked, one column as wide as the longest choice, so the buttons share a
+ * width without taking the whole field: three widths in a column read as an
+ * accident rather than as a set, and three full-width bars are a lot of weight
+ * for a word each.
+ */
+.perch-toggles {
+  display: grid;
+  grid-template-columns: max-content;
+  gap: var(--perch-space-3);
+  min-width: 0;
+}
+
+.perch-toggles[data-inline="true"],
+/* Sharing an edge means standing in a row, whatever was said about inline. */
+.perch-toggles[data-grouped="true"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.perch-toggles[data-grouped="true"] {
+  gap: 0;
+  /* One block or nothing. Wrapped, the joined edges pull the rows sideways and
+     only the first and last are rounded — three overlapping strips where a
+     segmented control was. Too narrow to fit, it scrolls as one. */
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.perch-toggles__option {
+  display: flex;
+  min-width: 0;
+}
+
+/* Out of sight, not out of the layout: `display: none` would take the input
+   out of the tab order, and the arrow keys with it. */
+.perch-toggles__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.perch-toggles__label {
+  /* Fills the option it stands in: the column's width when they are stacked,
+     and its own words when they are in a row. */
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  /* Centred, because stacked they are as wide as the field. */
+  justify-content: center;
+  height: var(--perch-control-height);
+  padding: 0 var(--perch-space-5);
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.perch-toggles__input:not(:disabled) + .perch-toggles__label:hover {
+  border-color: var(--perch-border-hover);
+  background: var(--perch-surface-raised);
+  color: var(--perch-content);
+}
+
+.perch-toggles__input:checked + .perch-toggles__label {
+  border-color: var(--perch-accent);
+  background: var(--perch-accent-surface);
+  color: var(--perch-accent);
+}
+
+/* The ring is on the label, because the input it belongs to cannot be seen. */
+.perch-toggles__input:focus-visible + .perch-toggles__label {
+  border-color: var(--perch-accent);
+  box-shadow: var(--perch-focus-ring);
+}
+
+.perch-toggles__input:disabled + .perch-toggles__label {
+  border-color: var(--perch-border);
+  background: var(--perch-surface-muted);
+  color: var(--perch-content-subtle);
+  cursor: not-allowed;
+}
+
+/*
+ * Joined into one block: the edges between two buttons are one line rather than
+ * two, and only the ends of the row are rounded.
+ */
+.perch-toggles[data-grouped="true"] .perch-toggles__option {
+  flex: none;
+}
+
+.perch-toggles[data-grouped="true"] .perch-toggles__option + .perch-toggles__option {
+  margin-left: -1px;
+}
+
+.perch-toggles[data-grouped="true"] .perch-toggles__label {
+  border-radius: 0;
+}
+
+.perch-toggles[data-grouped="true"]
+  .perch-toggles__option:first-child
+  .perch-toggles__label {
+  border-start-start-radius: var(--perch-radius);
+  border-end-start-radius: var(--perch-radius);
+}
+
+.perch-toggles[data-grouped="true"]
+  .perch-toggles__option:last-child
+  .perch-toggles__label {
+  border-start-end-radius: var(--perch-radius);
+  border-end-end-radius: var(--perch-radius);
+}
+
+/* The chosen one draws both of its edges, so its border is not half covered by
+   the neighbour it shares one with. */
+.perch-toggles[data-grouped="true"]
+  .perch-toggles__input:checked
+  + .perch-toggles__label {
+  position: relative;
+  z-index: 1;
+}
+
+.perch-toggles__empty {
+  display: inline-flex;
+  align-items: center;
+  height: var(--perch-control-height);
+  color: var(--perch-content-subtle);
+  font-size: var(--perch-text-control);
+}
+
 /* ------------------------------------------------------------ colour picker */
 
 /*
