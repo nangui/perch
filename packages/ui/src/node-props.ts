@@ -18,6 +18,10 @@ export interface UploadedFile {
 export interface SearchedOption {
   readonly value: string | number | boolean | null;
   readonly label: string;
+  /** Right-aligned annotation: a price, a duration, a code. */
+  readonly meta?: string;
+  /** The server saying it will not take this one, whoever asked for it. */
+  readonly disabled?: boolean;
 }
 
 export interface NodeProps {

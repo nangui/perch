@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
-import type { SchemaNode } from "@perchjs/core";
+import type { Option, SchemaNode } from "@perchjs/core";
 import { FieldShell } from "./FieldShell.js";
 import type { TabHead } from "./Tabs.js";
 import { TabStrip } from "./Tabs.js";
@@ -16,6 +16,7 @@ import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
 import { CheckboxList } from "./fields/CheckboxList.js";
 import { ColorPicker } from "./fields/ColorPicker.js";
+import { ToggleButtons } from "./fields/ToggleButtons.js";
 import type { Pair } from "./fields/KeyValue.js";
 import { KeyValue } from "./fields/KeyValue.js";
 import { TagsInput } from "./fields/TagsInput.js";
@@ -32,7 +33,7 @@ import { SearchableSelect } from "./fields/SearchableSelect.js";
 import { TextInput } from "./fields/TextInput.js";
 import { TextEntry } from "./entries/TextEntry.js";
 import type { TextFlavour } from "./fields/TextInput.js";
-import type { NodeProps } from "./node-props.js";
+import type { NodeProps, SearchedOption } from "./node-props.js";
 import { registerComponent } from "./registry.js";
 
 function statusOf(
@@ -321,6 +322,42 @@ function TextInputRenderer({
   );
 }
 
+/** A choice as every control here draws one: what it is worth saying about it. */
+interface Choice {
+  readonly value: string;
+  readonly label: string;
+  readonly meta?: string;
+  readonly disabled?: boolean;
+}
+
+/**
+ * The options the server sent, kept whole.
+ *
+ * A choice is more than a word. `disabled` is the server saying it will not
+ * take that value, and `meta` is the annotation beside it — both were sent,
+ * and a mapping that kept only the label meant every control drew a set the
+ * reader could pick anything from and no annotation at all.
+ *
+ * A value nothing can stand for is dropped rather than drawn: a choice with no
+ * value is one that cannot be chosen.
+ */
+function choices(
+  options: readonly SearchedOption[] | readonly Option[] | undefined,
+): readonly Choice[] {
+  return (options ?? []).flatMap((option) => {
+    const value = scalar(option.value);
+    if (value === null) return [];
+    return [
+      {
+        value,
+        label: option.label,
+        ...(option.meta === undefined ? {} : { meta: option.meta }),
+        ...(option.disabled === undefined ? {} : { disabled: option.disabled }),
+      },
+    ];
+  });
+}
+
 function SelectRenderer({
   node,
   value,
@@ -331,11 +368,7 @@ function SelectRenderer({
   searchOptions,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
-  const options = (node.options ?? [])
-    .map((option) => ({ value: scalar(option.value), label: option.label }))
-    .filter(
-      (option): option is { value: string; label: string } => option.value !== null,
-    );
+  const options = choices(node.options);
 
   const label = node.label ?? node.path ?? "";
   const path = node.path;
@@ -345,11 +378,7 @@ function SelectRenderer({
     async (term: string) => {
       if (searchOptions === undefined || path === undefined) return [];
       const answer = await searchOptions(path, term);
-      return answer
-        .map((option) => ({ value: scalar(option.value), label: option.label }))
-        .filter(
-          (option): option is { value: string; label: string } => option.value !== null,
-        );
+      return choices(answer);
     },
     [searchOptions, path],
   );
@@ -566,11 +595,7 @@ function CheckboxListRenderer({
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
   const label = node.label ?? node.path ?? "";
-  const options = (node.options ?? [])
-    .map((option) => ({ value: scalar(option.value), label: option.label }))
-    .filter(
-      (option): option is { value: string; label: string } => option.value !== null,
-    );
+  const options = choices(node.options);
 
   // Anything that is not a list reads as nothing ticked. The server refuses
   // the shape at the boundary; drawing it is not the place to argue about it.
@@ -609,6 +634,45 @@ function CheckboxListRenderer({
   );
 }
 
+/** The same choice a radio group offers, in clothes a thumb can hit. */
+function ToggleButtonsRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const label = node.label ?? node.path ?? "";
+  const options = choices(node.options);
+
+  return (
+    <FieldShell
+      label={label}
+      status={status}
+      required={node.required === true}
+      inline={node.inlineLabel === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <ToggleButtons
+          value={scalar(value)}
+          onValueChange={(next) => {
+            if (node.path !== undefined) onChange(node.path, next);
+          }}
+          options={options}
+          status={status}
+          binding={binding}
+          label={label}
+          inline={node.props?.["inline"] === true}
+          grouped={node.props?.["grouped"] === true}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
 function RadioRenderer({
   node,
   value,
@@ -619,11 +683,7 @@ function RadioRenderer({
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
   const label = node.label ?? node.path ?? "";
-  const options = (node.options ?? [])
-    .map((option) => ({ value: scalar(option.value), label: option.label }))
-    .filter(
-      (option): option is { value: string; label: string } => option.value !== null,
-    );
+  const options = choices(node.options);
 
   return (
     <FieldShell
@@ -1233,6 +1293,7 @@ export function registerBuiltInComponents(): void {
   registerComponent("TagsInput", TagsInputRenderer);
   registerComponent("KeyValue", KeyValueRenderer);
   registerComponent("ColorPicker", ColorPickerRenderer);
+  registerComponent("ToggleButtons", ToggleButtonsRenderer);
   registerComponent("DateTimePicker", DateTimePickerRenderer);
   registerComponent("FileUpload", FileUploadRenderer);
   registerComponent("Placeholder", PlaceholderRenderer);
