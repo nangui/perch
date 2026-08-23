@@ -73,6 +73,7 @@ export function mount(element: HTMLElement): void {
           {...(flash === undefined ? {} : { flash })}
           fetchPage={(request) => records(api, request)}
           runAction={(name, ids, data, key) => runAction(api, name, ids, data, key)}
+          writeCell={(id, path, value) => writeCell(api, id, path, value)}
           actionForm={(name, ids) => actionForm(api, name, ids)}
           actionState={(name) => (request) =>
             send(api, "create", undefined, request, name)
@@ -456,6 +457,31 @@ async function records(api: string, request: PageRequest): Promise<RecordsPage> 
   if (!response.ok) throw new Error(`/records answered ${String(response.status)}`);
 
   return (await response.json()) as RecordsPage;
+}
+
+/**
+ * Flipping a switch in a table.
+ *
+ * One path and one value. Which columns may be written, by whom, and what the
+ * value has to be are all the server's, which is why this sends so little and
+ * reads the answer rather than assuming it.
+ */
+async function writeCell(
+  api: string,
+  id: string | number,
+  path: string,
+  value: unknown,
+): Promise<{ value: unknown; notification?: ActionAnswer["notification"] }> {
+  const response = await fetch(`${api}/${encodeURIComponent(String(id))}/cell`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ path, value }),
+  });
+  if (!response.ok) throw new Error("That did not work. Nothing was changed.");
+  return (await response.json()) as {
+    value: unknown;
+    notification?: ActionAnswer["notification"];
+  };
 }
 
 /**

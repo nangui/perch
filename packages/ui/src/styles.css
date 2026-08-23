@@ -979,6 +979,106 @@
   box-shadow: 0 0 0 2px var(--perch-surface);
 }
 
+/*
+ * A switch in a cell. Smaller than the form's, because a table of them is a
+ * column of controls rather than a page of decisions — and the input is real,
+ * taken out of sight rather than out of the tab order.
+ */
+.perch-cell__toggle,
+.perch-cell__tick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.perch-cell__toggle[data-pending="true"],
+.perch-cell__tick[data-pending="true"] {
+  opacity: 0.6;
+}
+
+.perch-cell__toggle-input {
+  /* WCAG's pointer target, which for a switch is the switch. */
+  width: 34px;
+  height: 24px;
+  margin: 0;
+  border-radius: 999px;
+  appearance: none;
+  background: var(--perch-surface-sunken);
+  border: 1px solid var(--perch-border-strong);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.perch-cell__toggle-input::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--perch-surface);
+  box-shadow: var(--perch-shadow-popover);
+  transform: translateY(-50%);
+  transition: left 120ms ease;
+}
+
+.perch-cell__toggle-input:checked {
+  border-color: var(--perch-accent);
+  background: var(--perch-accent);
+}
+
+.perch-cell__toggle-input:checked::after {
+  left: 16px;
+}
+
+.perch-cell__toggle-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.perch-cell__toggle-input:focus-visible,
+.perch-cell__tick-input:focus-visible {
+  outline: none;
+  box-shadow: var(--perch-focus-ring);
+}
+
+/* A box, which is the same value said the other way. */
+.perch-cell__tick-input {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius-sm);
+  appearance: none;
+  background: var(--perch-surface);
+  cursor: pointer;
+}
+
+.perch-cell__tick-input:checked {
+  border-color: var(--perch-accent);
+  background: var(--perch-accent-surface);
+}
+
+.perch-cell__tick-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* The tick itself, over the box the input draws. */
+.perch-cell__tick .perch-cell__mark {
+  position: absolute;
+  left: 0;
+  width: 24px;
+  color: var(--perch-accent);
+  font-size: var(--perch-text-control);
+  line-height: 24px;
+  text-align: center;
+  pointer-events: none;
+}
+
 .perch-cell__colour {
   display: inline-flex;
   align-items: center;

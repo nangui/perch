@@ -215,7 +215,7 @@ describe("flat rendering, which is non-negotiable", () => {
     expect(render_).toHaveBeenCalledTimes(COLUMNS.columns.length * ROWS.length);
   });
 
-  it("hands the renderer the value, the row and the column", () => {
+  it("hands the renderer the value, the row, the column and the cell", () => {
     resetColumnRegistry();
     const render_ = vi.fn(() => "x");
     registerColumn("TextColumn", render_);
@@ -223,6 +223,34 @@ describe("flat rendering, which is non-negotiable", () => {
 
     table();
 
-    expect(render_).toHaveBeenCalledWith("Ada", ROWS[0], COLUMNS.columns[0]);
+    // A renderer holds nothing, so what a cell needs to remember — whether it
+    // is waiting, and how to ask for a new value — is handed to it.
+    expect(render_).toHaveBeenCalledWith("Ada", ROWS[0], COLUMNS.columns[0], {
+      pending: false,
+      // What the row is called, read from the first text column rather than
+      // from the row: a projected row carries an address as readily as a name.
+      rowName: "Ada",
+    });
+  });
+
+  it("offers no way to write where the host would not carry one out", () => {
+    // The column says this reader may; the host says nobody would. Either
+    // missing is a control that does nothing when pressed.
+    resetColumnRegistry();
+    const render_ = vi.fn(() => "x");
+    registerColumn("ToggleColumn", render_);
+    render(
+      <DataTable
+        columns={{
+          ...COLUMNS,
+          columns: [{ type: "ToggleColumn", path: "published", editable: true }],
+        }}
+        rows={ROWS}
+        caption="Posts"
+      />,
+    );
+
+    const handed = render_.mock.calls[0] as unknown as readonly unknown[];
+    expect(handed[3]).toEqual({ pending: false });
   });
 });

@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import type {
   ActionNode,
+  ColumnNode,
   ColumnTree,
   FormState,
   Row,
@@ -96,6 +97,19 @@ export interface PanelListProps {
     idempotencyKey?: string,
   ) => Promise<ActionAnswer>;
   /**
+   * Writes one cell, and answers with what it holds now.
+   *
+   * Absent means the table draws no cell controls: nobody would carry them out.
+   * The answer is the server's reading of the value, not an echo — a write it
+   * refused comes back as what the row held before, and the cell goes back to
+   * showing that.
+   */
+  readonly writeCell?: (
+    id: string | number,
+    path: string,
+    value: unknown,
+  ) => Promise<{ value: unknown; notification?: ActionAnswer["notification"] }>;
+  /**
    * Asks for a modal's resolved schema, and for its round trips afterwards.
    * Absent means an action that collects something cannot be opened.
    */
@@ -150,6 +164,7 @@ export function PanelList({
   onPage,
   flash,
   runAction,
+  writeCell,
   actionForm,
   actionState,
 }: PanelListProps): ReactNode {
@@ -312,10 +327,58 @@ export function PanelList({
    */
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
 
+  /**
+   * The cells waiting on an answer, by row and path.
+   *
+   * Per cell rather than per table: a reader flipping three switches in a row
+   * should not be stopped by the first one, and a table that greys out entirely
+   * on every write reads as broken.
+   */
+  const [writing, setWriting] = useState<ReadonlySet<string>>(new Set());
+
   const keyOf = (row: Row): string | number | undefined => {
     const key = row[page.recordKey];
     return typeof key === "string" || typeof key === "number" ? key : undefined;
   };
+
+  /** One cell, named by the row it is in and the path it holds. */
+  const cellKey = (row: Row, column: ColumnNode): string =>
+    `${String(keyOf(row))}:${column.path}`;
+
+  /**
+   * Writes one cell and puts the server's answer back into the row.
+   *
+   * The row rather than the page: refetching after every switch would lose the
+   * reader's place and re-sort the page under them, and what changed is one
+   * value the server has just told us.
+   */
+  async function write(row: Row, column: ColumnNode, value: unknown): Promise<void> {
+    const id = keyOf(row);
+    if (writeCell === undefined || id === undefined) return;
+
+    const at = cellKey(row, column);
+    setWriting((was) => new Set([...was, at]));
+    try {
+      const answer = await writeCell(id, column.path, value);
+      setPage((was) => ({
+        ...was,
+        rows: was.rows.map((one) =>
+          keyOf(one) === id ? { ...one, [column.path]: answer.value } : one,
+        ),
+      }));
+      if (answer.notification !== undefined) setSaid(answer.notification);
+    } catch {
+      // The row is not touched, so the cell goes back to what the server last
+      // said it held — which is the truth until something says otherwise.
+      setSaid({ title: "That could not be saved", tone: "danger" });
+    } finally {
+      setWriting((was) => {
+        const next = new Set(was);
+        next.delete(at);
+        return next;
+      });
+    }
+  }
 
   // A selection describes rows on a page. Once the page is not that one, the
   // ticks belong to rows the reader can no longer see.
@@ -506,6 +569,15 @@ export function PanelList({
           {...(runAction === undefined && onRowAction === undefined
             ? {}
             : { onAction: press, actionsBusy: busy })}
+          {...(writeCell === undefined
+            ? {}
+            : {
+                onCellWrite: (row: Row, column: ColumnNode, value: unknown) => {
+                  void write(row, column, value);
+                },
+                cellPending: (row: Row, column: ColumnNode) =>
+                  writing.has(cellKey(row, column)),
+              })}
           {...(bulk.length === 0 || runAction === undefined
             ? {}
             : {

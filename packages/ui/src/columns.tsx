@@ -7,6 +7,7 @@
  */
 import type { ReactNode } from "react";
 import type { ColumnNode, Row } from "@perchjs/core";
+import type { CellHandle } from "./column-registry.js";
 import { registerColumn } from "./column-registry.js";
 
 /**
@@ -188,6 +189,65 @@ function copy(value: string): ReactNode {
   );
 }
 
+/**
+ * A switch or a box in a cell, and the same value under both.
+ *
+ * Drawn as a control only where the server said this reader may write and the
+ * host said it would carry one out; otherwise it is the state, out of reach.
+ * The value on screen is the row's, never a copy kept here — the server owns
+ * it, so a refused write shows itself by the cell going back to what it was.
+ *
+ * Named for the row it is in. A page of switches all called "Active" is a list
+ * of identical controls to anybody not reading it by eye, and the row's own
+ * name is what tells them apart.
+ */
+function toggle(
+  value: unknown,
+  column: ColumnNode,
+  cell: CellHandle,
+  look: "switch" | "box",
+): ReactNode {
+  const on = Boolean(value);
+  const locked = cell.write === undefined || cell.pending;
+
+  return (
+    <span
+      className={look === "switch" ? "perch-cell__toggle" : "perch-cell__tick"}
+      data-pending={cell.pending ? "true" : undefined}
+    >
+      <input
+        type="checkbox"
+        role={look === "switch" ? "switch" : undefined}
+        className={
+          look === "switch" ? "perch-cell__toggle-input" : "perch-cell__tick-input"
+        }
+        aria-label={nameOf(column, cell)}
+        checked={on}
+        disabled={locked}
+        onChange={(event) => {
+          cell.write?.(event.target.checked);
+        }}
+      />
+      <span className="perch-cell__mark" aria-hidden="true">
+        {look === "switch" ? null : on ? "✓" : ""}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * What this cell is called, out loud.
+ *
+ * The column says which cell and the table says which row. A page of switches
+ * all called "Active" is a list of identical controls to anybody not reading it
+ * by eye; a switch called "Active: /files/avatars/ada.png" is worse, and that
+ * is what reading the row's own first string gave.
+ */
+function nameOf(column: ColumnNode, cell: CellHandle): string {
+  const what = column.label ?? column.path;
+  return cell.rowName === undefined ? what : `${what}: ${cell.rowName}`;
+}
+
 export function registerBuiltInColumns(): void {
   registerColumn("TextColumn", (value) => text(value));
   registerColumn("IconColumn", (value, _row: Row, column: ColumnNode) =>
@@ -198,5 +258,11 @@ export function registerBuiltInColumns(): void {
   );
   registerColumn("ColorColumn", (value, _row: Row, column: ColumnNode) =>
     colour(value, column),
+  );
+  registerColumn("ToggleColumn", (value, _row: Row, column, cell) =>
+    toggle(value, column, cell, "switch"),
+  );
+  registerColumn("CheckboxColumn", (value, _row: Row, column, cell) =>
+    toggle(value, column, cell, "box"),
   );
 }

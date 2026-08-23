@@ -22,7 +22,11 @@ afterEach(() => {
   registerBuiltInColumns();
 });
 
-const draw = (column: ColumnNode, rows: readonly Row[]): HTMLElement => {
+const draw = (
+  column: ColumnNode,
+  rows: readonly Row[],
+  over: Partial<Parameters<typeof DataTable>[0]> = {},
+): HTMLElement => {
   const columns: ColumnTree = {
     actions: [],
     filters: [],
@@ -31,7 +35,7 @@ const draw = (column: ColumnNode, rows: readonly Row[]): HTMLElement => {
     columns: [column],
   };
   const { container } = render(
-    <DataTable columns={columns} rows={rows} caption="People" />,
+    <DataTable columns={columns} rows={rows} caption="People" {...over} />,
   );
   return container;
 };
@@ -136,6 +140,96 @@ describe("a column of colours", () => {
 
     expect(container.querySelector(".perch-cell__swatch")).toBeNull();
     expect(container.innerHTML).not.toContain('track.png")');
+  });
+});
+
+describe("a cell this reader may write", () => {
+  const ROW = [{ id: 1, title: "Ada", active: false }];
+
+  it("draws a control, named for the row it is in", () => {
+    // A page of switches all called "Active" is a list of identical controls to
+    // anybody not reading it by eye. What names the row is the table's own
+    // reading column, not whatever string the row carries first: a projected
+    // row holds an avatar's address as readily as a name.
+    const columns: ColumnTree = {
+      actions: [],
+      filters: [],
+      headerActions: [],
+      bulkActions: [],
+      columns: [
+        { type: "ImageColumn", path: "avatar" },
+        { type: "TextColumn", path: "title" },
+        { type: "ToggleColumn", path: "active", label: "Active", editable: true },
+      ],
+    };
+    render(
+      <DataTable
+        columns={columns}
+        rows={[{ id: 1, avatar: "/files/ada.png", title: "Ada", active: false }]}
+        caption="People"
+        onCellWrite={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("switch", { name: "Active: Ada" })).toBeTruthy();
+  });
+
+  it("asks for the value the reader chose", () => {
+    const onCellWrite = vi.fn();
+    draw({ type: "ToggleColumn", path: "active", editable: true }, ROW, {
+      onCellWrite,
+    });
+
+    fireEvent.click(screen.getByRole("switch"));
+
+    expect(onCellWrite).toHaveBeenCalledWith(ROW[0], expect.anything(), true);
+  });
+
+  it("draws a box where the column asked for one", () => {
+    draw({ type: "CheckboxColumn", path: "active", editable: true }, ROW, {
+      onCellWrite: vi.fn(),
+    });
+
+    expect(screen.getByRole("checkbox")).toBeTruthy();
+    expect(screen.queryByRole("switch")).toBeNull();
+  });
+
+  it("shows what the row holds, never a copy of its own", () => {
+    // The server owns the value, so a refused write shows itself by the cell
+    // going back to what it was.
+    draw(
+      { type: "ToggleColumn", path: "active", editable: true },
+      [{ id: 1, title: "Ada", active: true }],
+      { onCellWrite: vi.fn() },
+    );
+
+    expect(screen.getByRole("switch")).toHaveProperty("checked", true);
+  });
+
+  it("refuses input while it is waiting on an answer", () => {
+    draw({ type: "ToggleColumn", path: "active", editable: true }, ROW, {
+      onCellWrite: vi.fn(),
+      cellPending: () => true,
+    });
+
+    expect(screen.getByRole("switch")).toHaveProperty("disabled", true);
+  });
+});
+
+describe("a cell this reader may not write", () => {
+  const ROW = [{ id: 1, title: "Ada", active: true }];
+
+  it("shows the value out of reach rather than a control that does nothing", () => {
+    draw({ type: "ToggleColumn", path: "active" }, ROW, { onCellWrite: vi.fn() });
+
+    expect(screen.getByRole("switch")).toHaveProperty("disabled", true);
+    expect(screen.getByRole("switch")).toHaveProperty("checked", true);
+  });
+
+  it("does the same where the host would carry nothing out", () => {
+    draw({ type: "ToggleColumn", path: "active", editable: true }, ROW);
+
+    expect(screen.getByRole("switch")).toHaveProperty("disabled", true);
   });
 });
 
