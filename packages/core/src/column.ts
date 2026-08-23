@@ -11,6 +11,7 @@
  * it.
  */
 import { safeHref } from "./entries/text-entry.js";
+import type { Field } from "./field.js";
 
 export interface ColumnState {
   /** The path into the row: `title`, or `author.name`. */
@@ -235,6 +236,26 @@ export class ColorColumn extends Column {
 export abstract class WritableColumn extends Column {
   /** What a cell of this kind may be set to, before the form is asked. */
   abstract admits(value: unknown): boolean;
+
+  /**
+   * Whether the form's field at this path can carry what this column writes.
+   *
+   * Asked of the field rather than decided from a list of classes, for the
+   * reason `Field.admits` gives about itself: a chain of `instanceof` is a
+   * chain every new field type has to be added to, and nothing would remind
+   * anybody. Two questions, because one is not enough — `Field.admits` takes
+   * any scalar unless a field narrows it, so a text input answers yes to
+   * `true` and the boolean would reach the column.
+   */
+  abstract fits(field: Field): boolean;
+}
+
+/** Both halves of the boolean question, asked once. */
+function holdsBooleans(field: Field): boolean {
+  return (
+    field.admits(true, undefined) === undefined &&
+    field.admits("perch", undefined) !== undefined
+  );
 }
 
 /**
@@ -258,6 +279,10 @@ export class ToggleColumn extends WritableColumn {
     return typeof value === "boolean";
   }
 
+  override fits(field: Field): boolean {
+    return holdsBooleans(field);
+  }
+
   protected override with(state: ColumnState): this {
     return new ToggleColumn(state) as this;
   }
@@ -275,6 +300,10 @@ export class CheckboxColumn extends WritableColumn {
 
   override admits(value: unknown): boolean {
     return typeof value === "boolean";
+  }
+
+  override fits(field: Field): boolean {
+    return holdsBooleans(field);
   }
 
   protected override with(state: ColumnState): this {

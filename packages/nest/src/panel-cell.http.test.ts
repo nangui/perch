@@ -36,6 +36,7 @@ import type { Authorization } from "./authorization.js";
 import type { CellWriteResponse } from "./cell-write.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
+import { RelationManager } from "./relation-manager.js";
 import { PanelResource } from "./resource.js";
 import { key, model, scalar } from "./__fixtures__/ir.js";
 
@@ -46,6 +47,7 @@ const META = model({
     scalar("active", { type: "Boolean" }),
     scalar("onCall", { type: "Boolean" }),
     scalar("locked", { type: "Boolean" }),
+    scalar("sealed", { type: "Boolean" }),
   ],
 });
 
@@ -115,6 +117,8 @@ class PersonResource {
       // Writable on the page and not from a table: the column decides whether a
       // cell offers one, and no column declares this.
       Toggle.make("locked"),
+      // Offered by the table and refused by the form, on every row.
+      Toggle.make("sealed").disabled(() => true),
     ]);
   }
   table(): TableTree {
@@ -124,6 +128,7 @@ class PersonResource {
       CheckboxColumn.make("onCall"),
       // Drawn, never written: a column that only reads.
       TextColumn.make("locked"),
+      ToggleColumn.make("sealed"),
     ]);
   }
 }
@@ -143,7 +148,9 @@ let app: INestApplication | undefined;
 let url = "";
 
 beforeEach(async () => {
-  rows = [{ id: 1, title: "Ada", active: false, onCall: false, locked: false }];
+  rows = [
+    { id: 1, title: "Ada", active: false, onCall: false, locked: false, sealed: false },
+  ];
   writes = [];
   policy = undefined;
 
@@ -184,6 +191,23 @@ const write = async (
       ? ((await response.json()) as CellWriteResponse)
       : { value: null },
   };
+};
+
+/** Starting a panel with one resource in it, and nothing else. */
+const boot = async (resource: unknown): Promise<void> => {
+  const ref = await Test.createTestingModule({
+    imports: [
+      PanelModule.forRoot({
+        path: "/admin",
+        resources: [resource as never],
+        dataAdapter: MemoryAdapter,
+        assets: assets(),
+      }),
+    ],
+  }).compile();
+  const started = ref.createNestApplication();
+  await started.init();
+  await started.close();
 };
 
 describe("a cell a table declared writable", () => {
@@ -253,7 +277,39 @@ describe("what the route refuses", () => {
   });
 });
 
+describe("a control the form refuses on the row", () => {
+  it("changes nothing, and says so rather than flipping back in silence", async () => {
+    // The boundary is silent for a path a client typed. This control was drawn
+    // by the server, and a switch that flips back for ever with nothing said is
+    // a panel that looks broken to the one person who trusted it.
+    const { status, body } = await write({ path: "sealed", value: true });
+
+    expect(status).toBe(200);
+    expect(body.value).toBe(false);
+    expect(body.notification?.tone).toBe("warning");
+    expect(writes).toEqual([]);
+  });
+});
+
 describe("a control the form cannot carry", () => {
+  it("stops the boot where the field holds something else entirely", async () => {
+    // The path existing is not enough: a text field takes any scalar, so a
+    // switch over one wrote `true` into a text column and nothing objected.
+    @PanelResource({ model: "Person", slug: "mistyped" })
+    class MistypedResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): TableTree {
+        return Table.make().columns([ToggleColumn.make("title")]);
+      }
+    }
+
+    await expect(boot(MistypedResource)).rejects.toThrow(
+      /offers a ToggleColumn in the table over a TextInput/,
+    );
+  });
+
   it("stops the boot rather than flipping and changing nothing", async () => {
     // A path the form has no field for is dropped by the trust boundary, in
     // silence. The reader would press a switch that works everywhere except on
@@ -268,24 +324,29 @@ describe("a control the form cannot carry", () => {
       }
     }
 
-    await expect(
-      Test.createTestingModule({
-        imports: [
-          PanelModule.forRoot({
-            path: "/admin",
-            resources: [GhostResource],
-            dataAdapter: MemoryAdapter,
-            assets: assets(),
-          }),
-        ],
-      })
-        .compile()
-        .then(async (ref) => {
-          const started = ref.createNestApplication();
-          await started.init();
-          await started.close();
-        }),
-    ).rejects.toThrow(/active/);
+    await expect(boot(GhostResource)).rejects.toThrow(/active/);
+  });
+});
+
+describe("a control inside a relation manager", () => {
+  it("stops the boot, because nothing there would carry it", async () => {
+    // A manager's rows are listed by a route that does not say who may write
+    // them, and there is no route to write one through.
+    @PanelResource({ model: "Person", slug: "parents" })
+    class ParentResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      relations(): readonly RelationManager[] {
+        return [
+          RelationManager.make("children").table((table) =>
+            table.columns([ToggleColumn.make("active")]),
+          ),
+        ];
+      }
+    }
+
+    await expect(boot(ParentResource)).rejects.toThrow(/children\.active/);
   });
 });
 

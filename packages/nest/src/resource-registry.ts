@@ -176,11 +176,7 @@ export class ResourceRegistry implements OnModuleInit {
         ...this.#unknownDisks(form),
         ...this.#unknownColumnDisks(table),
         ...this.#unwritableCells(table, form),
-        ...managers.flatMap((manager) =>
-          manager.state.form === undefined
-            ? []
-            : this.#unwritableCells(manager.state.table, manager.state.form),
-        ),
+        ...managers.flatMap((manager) => this.#uneditableManager(manager)),
         ...managers.flatMap((manager) => this.#unknownColumnDisks(manager.state.table)),
         ...this.#unwritableFields(metadata.model, form),
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
@@ -560,20 +556,63 @@ export class ResourceRegistry implements OnModuleInit {
     table: Table | undefined,
     form: Component,
   ): readonly { field: string; problem: string }[] {
-    const fields = new Set(
+    const fields = new Map(
       flatten(form)
         .filter((component): component is Field => component instanceof Field)
-        .map((field) => field.name),
+        .map((field) => [field.name, field] as const),
     );
 
     return (table?.state.columns ?? [])
+      .filter((column): column is WritableColumn => column instanceof WritableColumn)
+      .flatMap((column) => {
+        const field = fields.get(column.state.path);
+        if (field === undefined) {
+          return [
+            {
+              field: column.state.path,
+              problem:
+                "offers a control in the table and the form has no field at that " +
+                "path — a cell is written through the form, so the value would be " +
+                "dropped in silence",
+            },
+          ];
+        }
+        // The path existing is not enough: a switch over a text field wrote a
+        // boolean into a text column, because the field takes any scalar and
+        // the column only ever asked itself what it wanted.
+        if (!column.fits(field)) {
+          return [
+            {
+              field: column.state.path,
+              problem:
+                `offers a ${column.type} in the table over a ${field.type} on the ` +
+                "form, which does not hold what that control writes",
+            },
+          ];
+        }
+        return [];
+      });
+  }
+
+  /**
+   * A control offered inside a relation manager, where nothing carries it.
+   *
+   * A manager's rows are listed by a route that does not say who may write
+   * them, and there is no route to write one through — so the switch draws for
+   * ever and does nothing. Refused rather than drawn dead, and refused here
+   * rather than half-answered somewhere else: the day a manager can be written
+   * from, this is the line that comes out.
+   */
+  #uneditableManager(
+    manager: RelationManager,
+  ): readonly { field: string; problem: string }[] {
+    return manager.state.table.state.columns
       .filter((column) => column instanceof WritableColumn)
-      .filter((column) => !fields.has(column.state.path))
       .map((column) => ({
-        field: column.state.path,
+        field: `${manager.state.relation}.${column.state.path}`,
         problem:
-          "offers a control in the table and the form has no field at that path — " +
-          "a cell is written through the form, so the value would be dropped in silence",
+          "offers a control inside a relation manager, and a manager's rows are " +
+          "not written from the table — the control would draw and do nothing",
       }));
   }
 

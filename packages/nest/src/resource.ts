@@ -64,6 +64,14 @@ export interface PanelResource {
   mutateFormDataBeforeCreate?: (
     data: Record<string, unknown>,
   ) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  /**
+   * The same, for a save — and it does not always receive the whole form.
+   *
+   * A cell written from the table is a save of one field, so this is handed the
+   * one key that was written. Adding to what arrives is safe; reading a field
+   * that was not sent is not, and a hook that needs the whole row should read
+   * it rather than expect it here.
+   */
   mutateFormDataBeforeSave?: (
     data: Record<string, unknown>,
   ) => Record<string, unknown> | Promise<Record<string, unknown>>;

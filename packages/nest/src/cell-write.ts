@@ -81,9 +81,18 @@ export async function writeCell(request: CellWrite): Promise<CellWriteResponse> 
     ...fileUrls(request.disks),
   });
 
-  // Stage 5 said no: an invisible field, a disabled one, a value the field
-  // would not hold. Silently, and the cell goes back to what it showed.
-  if (!(path in accepted)) return { value: record[path] };
+  // Stage 5 said no: an invisible field, a disabled one on this row, a value
+  // the field would not hold. The cell goes back to what it showed — and it
+  // says so, which is the one place this differs from the boundary's usual
+  // silence. Silence is for a path a client typed; this control was drawn by
+  // the server, and a switch that flips back for ever with nothing said is a
+  // panel that looks broken to the one person who trusted it.
+  if (!(path in accepted)) {
+    return {
+      value: record[path],
+      notification: { title: "That cannot be changed here", tone: "warning" },
+    };
+  }
 
   const failed = tree.errors[path];
   if (failed !== undefined) {
