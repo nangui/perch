@@ -223,6 +223,65 @@ export class ColorColumn extends Column {
   }
 }
 
+/**
+ * A column a reader may write from the table.
+ *
+ * The write is a form save of one field, so what this class carries is not a
+ * rule of its own but the fact that the column offers one at all. Every rule
+ * the value has to keep is the form's, and it is asked there: a table that
+ * validated a value its own way would be a second boundary, and two boundaries
+ * over one row is one of them being out of date.
+ */
+export abstract class WritableColumn extends Column {
+  /** What a cell of this kind may be set to, before the form is asked. */
+  abstract admits(value: unknown): boolean;
+}
+
+/**
+ * `ToggleColumn` — a switch in a cell.
+ *
+ * The same value an `IconColumn` draws and the opposite intent: one says what a
+ * row is, the other changes it. A table of flags nobody may change wants the
+ * icon, and a reader who may is spared the round trip through an edit page.
+ */
+export class ToggleColumn extends WritableColumn {
+  static make(path: string): ToggleColumn {
+    return new ToggleColumn({ path, sortable: false, searchable: false });
+  }
+
+  override get type(): string {
+    return "ToggleColumn";
+  }
+
+  /** A switch holds one of two things and there is no third. */
+  override admits(value: unknown): boolean {
+    return typeof value === "boolean";
+  }
+
+  protected override with(state: ColumnState): this {
+    return new ToggleColumn(state) as this;
+  }
+}
+
+/** `CheckboxColumn` — the same as a toggle, drawn as a box. */
+export class CheckboxColumn extends WritableColumn {
+  static make(path: string): CheckboxColumn {
+    return new CheckboxColumn({ path, sortable: false, searchable: false });
+  }
+
+  override get type(): string {
+    return "CheckboxColumn";
+  }
+
+  override admits(value: unknown): boolean {
+    return typeof value === "boolean";
+  }
+
+  protected override with(state: ColumnState): this {
+    return new CheckboxColumn(state) as this;
+  }
+}
+
 export class IconColumn extends Column {
   static make(path: string): IconColumn {
     return new IconColumn({ path, sortable: false, searchable: false });

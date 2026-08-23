@@ -91,7 +91,16 @@ export { Notification } from "./notification.js";
 
 // Tables, and the column layer.
 export type { ColumnState, PresentContext } from "./column.js";
-export { Column, ColorColumn, IconColumn, ImageColumn, TextColumn } from "./column.js";
+export {
+  CheckboxColumn,
+  Column,
+  ColorColumn,
+  IconColumn,
+  ImageColumn,
+  TextColumn,
+  ToggleColumn,
+  WritableColumn,
+} from "./column.js";
 export type {
   ActionNode,
   ColumnNode,

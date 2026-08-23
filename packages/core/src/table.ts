@@ -49,6 +49,15 @@ export interface ColumnNode {
   readonly size?: number;
   readonly limit?: number;
   readonly copyable?: true;
+  /**
+   * This reader may write this cell.
+   *
+   * Not part of what a table declares — a column is writable or it is not, and
+   * that is the same for everybody. This says whether the one asking may, which
+   * is the server's answer to the reader in front of it, and a cell without it
+   * draws what it holds and no control.
+   */
+  readonly editable?: true;
 }
 
 /**
