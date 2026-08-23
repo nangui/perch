@@ -334,7 +334,7 @@ export function PanelList({
    * should not be stopped by the first one, and a table that greys out entirely
    * on every write reads as broken.
    */
-  const [writing, setWriting] = useState<ReadonlySet<string>>(new Set());
+  const [writing, setWriting] = useState<ReadonlyMap<string, unknown>>(new Map());
 
   const keyOf = (row: Row): string | number | undefined => {
     const key = row[page.recordKey];
@@ -357,7 +357,10 @@ export function PanelList({
     if (writeCell === undefined || id === undefined) return;
 
     const at = cellKey(row, column);
-    setWriting((was) => new Set([...was, at]));
+    // What was asked for, kept only until the answer lands. A control that does
+    // not move when it is pressed reads as one that did not hear, and the
+    // server still decides: what comes back replaces this, refusal included.
+    setWriting((was) => new Map([...was, [at, value]]));
     try {
       const answer = await writeCell(id, column.path, value);
       setPage((was) => ({
@@ -373,7 +376,7 @@ export function PanelList({
       setSaid({ title: "That could not be saved", tone: "danger" });
     } finally {
       setWriting((was) => {
-        const next = new Set(was);
+        const next = new Map(was);
         next.delete(at);
         return next;
       });
@@ -577,6 +580,8 @@ export function PanelList({
                 },
                 cellPending: (row: Row, column: ColumnNode) =>
                   writing.has(cellKey(row, column)),
+                cellAsked: (row: Row, column: ColumnNode) =>
+                  writing.get(cellKey(row, column)),
               })}
           {...(bulk.length === 0 || runAction === undefined
             ? {}

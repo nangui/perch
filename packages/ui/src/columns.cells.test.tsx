@@ -214,6 +214,28 @@ describe("a cell this reader may write", () => {
 
     expect(screen.getByRole("switch")).toHaveProperty("disabled", true);
   });
+
+  it("shows what was asked for while it waits, not what the row still holds", () => {
+    // A control that does not move when it is pressed reads as one that did
+    // not hear. The server still decides: what comes back replaces this.
+    draw({ type: "ToggleColumn", path: "active", editable: true }, ROW, {
+      onCellWrite: vi.fn(),
+      cellPending: () => true,
+      cellAsked: () => true,
+    });
+
+    expect(screen.getByRole("switch")).toHaveProperty("checked", true);
+  });
+
+  it("goes back to the row once the answer has landed", () => {
+    draw({ type: "ToggleColumn", path: "active", editable: true }, ROW, {
+      onCellWrite: vi.fn(),
+      cellPending: () => false,
+      cellAsked: () => true,
+    });
+
+    expect(screen.getByRole("switch")).toHaveProperty("checked", false);
+  });
 });
 
 describe("a cell this reader may not write", () => {
