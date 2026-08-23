@@ -6,44 +6,50 @@ import type {
   Table as TableTree,
 } from "@perchjs/core";
 import {
+  Callout,
   Checkbox,
   CheckboxColumn,
+  CheckboxList,
   ColorColumn,
   ColorPicker,
   CreateAction,
   DateTimePicker,
-  Callout,
-  CheckboxList,
   DeleteAction,
   EditAction,
   Fieldset,
-  ForceDeleteAction,
   FileUpload,
+  ForceDeleteAction,
+  Grid,
   Hidden,
+  Icon,
+  IconColumn,
+  Image,
   ImageColumn,
   KeyValue,
   Placeholder,
   Radio,
-  Repeater,
-  RichEditor,
-  RestoreAction,
   RepeatableEntry,
+  Repeater,
+  RestoreAction,
+  RichEditor,
   Schema,
   Section,
   Select,
   SelectFilter,
+  Tab,
   Table,
+  Tabs,
   TagsInput,
-  Textarea,
-  ToggleButtons,
-  ToggleColumn,
-  IconColumn,
+  TernaryFilter,
   Text,
+  Textarea,
   TextColumn,
-  TextFilter,
   TextEntry,
+  TextFilter,
   TextInput,
   Toggle,
+  ToggleButtons,
+  ToggleColumn,
   TrashedFilter,
   ViewAction,
 } from "@perchjs/core";
@@ -197,6 +203,10 @@ export class PersonResource {
           SelectFilter.make("country").label("Country").options(COUNTRIES),
           SelectFilter.make("role").label("Role").options(ROLES),
           TextFilter.make("email").label("Email contains"),
+          // Yes, no, and the ordinary page. Three states rather than a checkbox,
+          // because "not filtered" and "filtered to false" are different
+          // questions and a checkbox can only ask one of them.
+          TernaryFilter.make("onCall").label("On call"),
         ])
         // Restore brings a marked row back and asks nothing; force delete leaves
         // nothing to bring back, so it asks first and takes its own policy.
@@ -428,11 +438,16 @@ export class PersonResource {
       Section.make("Status")
         .columns(2)
         .schema([
-          // Live, because the callout above says something different about a
-          // person who cannot sign in. A resolvable line only tracks a field
-          // that asks the server when it changes.
-          Toggle.make("active").label("Active").onColor("success").live(),
-          Checkbox.make("onCall").label("On call this week").inlineLabel(),
+          // A grid rather than a fieldset: these two belong side by side and
+          // have nothing to be called between them. A fieldset would name a
+          // group that is only a layout.
+          Grid.make(2).schema([
+            // Live, because the callout above says something different about a
+            // person who cannot sign in. A resolvable line only tracks a field
+            // that asks the server when it changes.
+            Toggle.make("active").label("Active").onColor("success").live(),
+            Checkbox.make("onCall").label("On call this week").inlineLabel(),
+          ]),
           DateTimePicker.make("startsAt")
             .label("Starts at")
             .timezone("Europe/Paris")
@@ -469,20 +484,36 @@ export class PersonResource {
         })
         .schema([TextInput.make("body").label("Note").required()]),
 
-      Section.make("Photo").schema([
-        FileUpload.make("avatar")
-          .label("Avatar")
-          .image()
-          .maxSize(2 * 1024 * 1024)
-          .directory("avatars")
-          .helperText("Goes up when you choose it; kept when you save."),
-        // The page holds hex, because that is what a colour control speaks.
-        // The column holds `hsl()`, because this one was told to.
-        ColorPicker.make("tint")
-          .label("Tint")
-          .hsl()
-          .placeholder("#21594a")
-          .helperText("Picked as hex, kept as hsl()."),
+      // Two panels, one at a time. A section for each would put both on the
+      // page and make it longer; tabs say these are alternatives rather than
+      // parts, and the one that is open is remembered in the address.
+      Tabs.make().tabs([
+        Tab.make("Photo").schema([
+          FileUpload.make("avatar")
+            .label("Avatar")
+            .image()
+            .maxSize(2 * 1024 * 1024)
+            .directory("avatars")
+            .helperText("Goes up when you choose it; kept when you save."),
+          // The page holds hex, because that is what a colour control speaks.
+          // The column holds `hsl()`, because this one was told to.
+          ColorPicker.make("tint")
+            .label("Tint")
+            .hsl()
+            .placeholder("#21594a")
+            .helperText("Picked as hex, kept as hsl()."),
+        ]),
+        Tab.make("Badge")
+          .icon("🐦")
+          .schema([
+            // Static content: neither a control nor a reading of the row.
+            Icon.make("🐦").tone("success"),
+            Text.make("What the panel puts beside this person's name."),
+            // The alternative first, because it is not optional: a picture
+            // with nothing said instead of it is one a reader who cannot see
+            // it is never told about.
+            Image.make("The house style", "/files/avatars/ada.png"),
+          ]),
       ]),
     ]);
   }
