@@ -33,6 +33,7 @@ import {
   FileUpload,
   Repeater,
   resolvePath,
+  WritableColumn,
 } from "@perchjs/core";
 import type { PanelResource, ResourceMetadata } from "./resource.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
@@ -125,6 +126,16 @@ export class ResourceRegistry implements OnModuleInit {
   }
 
   /**
+   * The table the resource declares, or nothing.
+   *
+   * Read per call rather than kept, for the reason `formFor` gives: a route
+   * that needs it twice reads it once and carries it.
+   */
+  tableFor(resource: RegisteredResource): Table | undefined {
+    return resource.instance.table?.();
+  }
+
+  /**
    * What the View page reads, or nothing where the resource declares none.
    *
    * The extension hooks are not applied. They were written for the form, and
@@ -164,6 +175,12 @@ export class ResourceRegistry implements OnModuleInit {
         ...(table === undefined ? [] : auditTable(table)),
         ...this.#unknownDisks(form),
         ...this.#unknownColumnDisks(table),
+        ...this.#unwritableCells(table, form),
+        ...managers.flatMap((manager) =>
+          manager.state.form === undefined
+            ? []
+            : this.#unwritableCells(manager.state.table, manager.state.form),
+        ),
         ...managers.flatMap((manager) => this.#unknownColumnDisks(manager.state.table)),
         ...this.#unwritableFields(metadata.model, form),
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
@@ -531,6 +548,35 @@ export class ResourceRegistry implements OnModuleInit {
    * either way, which is the point — a field that cannot work stops the boot
    * wherever the reason for it happens to live.
    */
+  /**
+   * A column offering a control over a path the form does not own.
+   *
+   * An inline edit is a form save of one field, so a path the form has no field
+   * for is a switch that flips, sends, and changes nothing: the trust boundary
+   * drops what no field claims, and it drops it in silence. The reader is left
+   * pressing a control that works everywhere except on the row.
+   */
+  #unwritableCells(
+    table: Table | undefined,
+    form: Component,
+  ): readonly { field: string; problem: string }[] {
+    const fields = new Set(
+      flatten(form)
+        .filter((component): component is Field => component instanceof Field)
+        .map((field) => field.name),
+    );
+
+    return (table?.state.columns ?? [])
+      .filter((column) => column instanceof WritableColumn)
+      .filter((column) => !fields.has(column.state.path))
+      .map((column) => ({
+        field: column.state.path,
+        problem:
+          "offers a control in the table and the form has no field at that path — " +
+          "a cell is written through the form, so the value would be dropped in silence",
+      }));
+  }
+
   /**
    * Columns pointed at a disk nobody provided.
    *

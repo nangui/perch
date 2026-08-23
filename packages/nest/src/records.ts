@@ -22,6 +22,7 @@ import {
   presentRows,
   serialiseTable,
   SOFT_DELETE_FIELD,
+  WritableColumn,
 } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import { authorize, mayReach } from "./authorization.js";
@@ -132,6 +133,10 @@ export async function listRecords(
     table: resource.instance.table?.(),
     raw,
     mayReadDeleted: (await authorize(can, "viewDeleted", user)) === "allowed",
+    // Asked of the principal, because there is no row in hand yet. A policy
+    // that wants one answers `needs-record`, and the cell is offered: the write
+    // itself asks again with the row, which is where the answer is real.
+    mayWrite: (await authorize(can, "edit", user)) !== "denied",
     ...pathOrNothing(resourcePath(root, resource.metadata.slug)),
   });
 }
@@ -165,6 +170,11 @@ export async function listOf(options: {
    * caller with no policy to ask is a caller with nothing to refuse.
    */
   readonly mayReadDeleted?: boolean;
+  /**
+   * Whether this reader may write a cell at all. Default `false`: a caller that
+   * has not thought about it offers no control, which is the safe way round.
+   */
+  readonly mayWrite?: boolean;
 }): Promise<RecordsResponse> {
   const { data, model, table, raw, scope } = options;
   const mayReadDeleted = options.mayReadDeleted ?? true;
@@ -197,7 +207,12 @@ export async function listOf(options: {
     columns:
       table === undefined
         ? { columns: [], filters: [], actions: [], headerActions: [], bulkActions: [] }
-        : offered(serialiseTable(table), mayReadDeleted),
+        : offered(
+            serialiseTable(table),
+            table,
+            mayReadDeleted,
+            options.mayWrite === true,
+          ),
     recordKey: key,
     ...(marked.length === 0 ? {} : { deleted: marked }),
     ...(options.resourcePath === undefined
@@ -216,11 +231,32 @@ export async function listOf(options: {
  * reading `filters` already gets: what comes back names what was applied, so a
  * box a reader can move and nothing answers has no business being there.
  */
-function offered(columns: ColumnTree, mayReadDeleted: boolean): ColumnTree {
-  if (mayReadDeleted) return columns;
+/**
+ * The table as this reader gets it.
+ *
+ * Which columns offer a control is not a fact about the table — a column is
+ * writable or it is not, and that is the same for everybody. It is a fact about
+ * the one asking, so it is added here rather than serialised, and it is read
+ * off the declared column beside its node rather than from a list of type names
+ * this file would have to be told to update.
+ */
+function offered(
+  columns: ColumnTree,
+  table: Table,
+  mayReadDeleted: boolean,
+  mayWrite: boolean,
+): ColumnTree {
+  const declared = table.state.columns;
   return {
     ...columns,
-    filters: columns.filters.filter((one) => one.type !== "TrashedFilter"),
+    columns: columns.columns.map((column, at) =>
+      mayWrite && declared[at] instanceof WritableColumn
+        ? { ...column, editable: true as const }
+        : column,
+    ),
+    filters: mayReadDeleted
+      ? columns.filters
+      : columns.filters.filter((one) => one.type !== "TrashedFilter"),
   };
 }
 

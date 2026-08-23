@@ -63,6 +63,8 @@ export { RelationManager } from "./relation-manager.js";
 export type { RelationScope } from "./relation-scope.js";
 export { relationScope, ScopeError } from "./relation-scope.js";
 export type { ManagedRelation } from "./relation-records.js";
+export type { CellWrite, CellWriteResponse } from "./cell-write.js";
+export { writeCell } from "./cell-write.js";
 export { listChildren, managedRelations } from "./relation-records.js";
 export type { ChildWrite } from "./relation-save.js";
 export { saveChild } from "./relation-save.js";

@@ -36,6 +36,8 @@ import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
 import { admit } from "./admission.js";
+import type { CellWriteResponse } from "./cell-write.js";
+import { writeCell } from "./cell-write.js";
 import { commitUploads, dropReplaced, undoCommitted } from "./commit-uploads.js";
 import { fileUrls } from "./file-urls.js";
 import { readState } from "./form-body.js";
@@ -152,6 +154,37 @@ export class PanelSaveController {
     return where === undefined
       ? { record: shown, notification: said }
       : { record: shown, redirect: where, notification: said };
+  }
+
+  /**
+   * `PATCH {path}/api/:resource/:id/cell` — one value, from a table.
+   *
+   * Beside the save rather than inside it, because what it takes is not a form
+   * body: one path and one value, and the path has to be a column the table
+   * declared writable before anything else is read. Everything after that is
+   * the save's own pipeline.
+   */
+  @Patch(":id/cell")
+  async cell(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @Req() request: unknown,
+  ): Promise<CellWriteResponse> {
+    const { resource, data, user } = this.#context(slug, request);
+    const asked = (body ?? {}) as { path?: unknown; value?: unknown };
+
+    return await writeCell({
+      data,
+      resource,
+      table: this.#registry.tableFor(resource),
+      id,
+      path: asked.path,
+      value: asked.value,
+      user,
+      disks: this.#disks,
+      formFor: (one) => this.#registry.formFor(one),
+    });
   }
 
   @Patch(":id")
