@@ -7,6 +7,7 @@ import type {
 } from "@perchjs/core";
 import {
   Checkbox,
+  CheckboxColumn,
   ColorColumn,
   ColorPicker,
   CreateAction,
@@ -35,6 +36,7 @@ import {
   TagsInput,
   Textarea,
   ToggleButtons,
+  ToggleColumn,
   IconColumn,
   Text,
   TextColumn,
@@ -183,6 +185,10 @@ export class PersonResource {
           TextColumn.make("team.name").label("Team"),
           // Whatever notation the column keeps — this one keeps `hsl()`.
           ColorColumn.make("tint").label("Tint").copyable(),
+          // Written from the table, through the form that owns the field: the
+          // same policy, the same boundary, the same rules.
+          ToggleColumn.make("active").label("Active"),
+          CheckboxColumn.make("onCall").label("On call"),
         ])
         .filters([
           // Three states, one of which is the ordinary page. It lifts the read's
