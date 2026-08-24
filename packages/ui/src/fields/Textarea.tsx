@@ -11,24 +11,7 @@ import { useMemo } from "react";
 import type { FieldStatus } from "../field-state.js";
 import { statusAttributes } from "../field-state.js";
 import type { ControlBinding } from "../FieldShell.js";
-
-/**
- * Counted in graphemes, because that is what the person typing counts.
- *
- * The same count the server makes, written a second time on purpose: the
- * renderer takes types from the domain and no behaviour, so a rule that has to
- * hold on both sides is expressed on both sides. The two must not drift — a
- * footer reading "7 / 3" over a field the server saves without complaint is
- * worse than no footer.
- */
-const GRAPHEMES = new Intl.Segmenter(undefined, { granularity: "grapheme" });
-
-function count(text: string): number {
-  let seen = 0;
-  const walk = GRAPHEMES.segment(text)[Symbol.iterator]();
-  while (!walk.next().done) seen += 1;
-  return seen;
-}
+import { countGraphemes } from "../graphemes.js";
 
 export interface TextareaProps {
   readonly value: string;
@@ -62,7 +45,7 @@ export function Textarea({
   rows,
   autosize = false,
 }: TextareaProps): ReactNode {
-  const length = useMemo(() => count(value), [value]);
+  const length = useMemo(() => countGraphemes(value), [value]);
   const over = maxLength !== undefined && length > maxLength;
   const readOnly = status.readOnly === true;
 
