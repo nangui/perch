@@ -99,8 +99,11 @@ describe("what the rule stays out of", () => {
     expect(await saving("", 0.5)).toBeUndefined();
   });
 
-  it("says nothing about text, which is a complaint nothing makes yet", async () => {
-    expect(await saving("abc", 0.5)).toBeUndefined();
+  it("leaves text to the rule that is about text", async () => {
+    // The step rule says nothing about `abc` — a multiple of half of nothing
+    // is not a sentence. What refuses it is the flavour, which used to be a
+    // control a browser draws and nothing else.
+    expect(await saving("abc", 0.5)).toBe("Must be a number.");
   });
 });
 

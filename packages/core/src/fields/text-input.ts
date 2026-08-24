@@ -31,6 +31,7 @@ export class TextInput extends Field {
     return [
       ...lengthRules(this.state.minLength, this.state.maxLength),
       ...stepRules(this.state.step),
+      ...flavourRules(this.state.flavour),
     ];
   }
 
@@ -96,6 +97,57 @@ export class TextInput extends Field {
  * A value that is not a number passes. That is a different complaint, and one
  * nothing makes yet.
  */
+/**
+ * What the flavour promises, kept.
+ *
+ * `.email()` and `.numeric()` chose the control a browser draws, and that was
+ * the whole enforcement: an `input[type=email]` refuses what a person types and
+ * refuses nothing else. Anything that reaches the field another way — a forged
+ * state, a cell in a table — was writing `not-an-address` into the column the
+ * form promised held an address.
+ *
+ * Deliberately loose on email. There is no expression that matches every
+ * address and no other, and a form that turns away a valid one is worse than a
+ * column with a curious value in it: one is a bug the reader cannot get past,
+ * the other is a row somebody fixes. So: something, an `@`, something with a
+ * dot in it, and no spaces.
+ */
+function flavourRules(flavour: TextFlavour): readonly ValidationRule[] {
+  if (flavour === "email") {
+    return [
+      (value) =>
+        !isText(value) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+          ? true
+          : "Must be an email address.",
+    ];
+  }
+  if (flavour === "url") {
+    return [(value) => (!isText(value) || isUrl(value) ? true : "Must be a link.")];
+  }
+  if (flavour === "numeric") {
+    return [
+      (value) =>
+        !isText(value) || numberOf(value) !== undefined ? true : "Must be a number.",
+    ];
+  }
+  return [];
+}
+
+/** Anything else is the field's own business: `admits` has already had its say. */
+function isText(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+/** Asked of the parser a browser uses, rather than of a pattern. */
+function isUrl(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function stepRules(step: number | undefined): readonly ValidationRule[] {
   if (step === undefined) return [];
   return [
