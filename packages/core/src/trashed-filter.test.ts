@@ -30,7 +30,7 @@ describe("what a trashed filter answers", () => {
   });
 
   it("never narrows, whatever it is given", () => {
-    expect(filter.clause()).toBeUndefined();
+    expect(filter.clauses()[0]).toBeUndefined();
   });
 });
 

@@ -7,7 +7,7 @@ import { SelectFilter, TextFilter } from "./filter.js";
 
 describe("what a value becomes", () => {
   it("is a clause naming the path and the comparison the filter declared", () => {
-    expect(TextFilter.make("title").clause("ada")).toEqual({
+    expect(TextFilter.make("title").clauses("ada")[0]).toEqual({
       path: "title",
       operator: "contains",
       value: "ada",
@@ -16,13 +16,15 @@ describe("what a value becomes", () => {
 
   it("filters a column it was not named after, when told to", () => {
     // A filter called `author` reaching `author.name`.
-    expect(TextFilter.make("author").path("author.name").clause("ada")).toMatchObject({
+    expect(
+      TextFilter.make("author").path("author.name").clauses("ada")[0],
+    ).toMatchObject({
       path: "author.name",
     });
   });
 
   it("matches the whole value when asked to be exact", () => {
-    expect(TextFilter.make("slug").exact().clause("ada")).toMatchObject({
+    expect(TextFilter.make("slug").exact().clauses("ada")[0]).toMatchObject({
       operator: "equals",
     });
   });
@@ -30,14 +32,14 @@ describe("what a value becomes", () => {
   it("is nothing at all when the value is blank", () => {
     // Different from matching nothing: a blank control is a control nobody
     // used, and a clause built from it would hide every row.
-    expect(TextFilter.make("title").clause("")).toBeUndefined();
-    expect(TextFilter.make("title").clause("   ")).toBeUndefined();
+    expect(TextFilter.make("title").clauses("")[0]).toBeUndefined();
+    expect(TextFilter.make("title").clauses("   ")[0]).toBeUndefined();
   });
 
   it("takes only the value from outside, whatever the value says", () => {
     // The path and the comparison are the declaration's, and nothing a caller
     // writes reaches them.
-    const clause = TextFilter.make("title").clause("author.email");
+    const clause = TextFilter.make("title").clauses("author.email")[0];
 
     expect(clause).toEqual({
       path: "title",
@@ -69,7 +71,7 @@ describe("a choice among declared values", () => {
   });
 
   it("answers to a value it declared", () => {
-    expect(status.clause("draft")).toEqual({
+    expect(status.clauses("draft")[0]).toEqual({
       path: "status",
       operator: "equals",
       value: "draft",
@@ -79,8 +81,8 @@ describe("a choice among declared values", () => {
   it("answers to nothing else", () => {
     // The closed set is the point. Without it `filter.status=<anything>` asks
     // whether a row exists with that value in that column, one guess at a time.
-    expect(status.clause("secret")).toBeUndefined();
-    expect(status.clause("")).toBeUndefined();
+    expect(status.clauses("secret")[0]).toBeUndefined();
+    expect(status.clauses("")[0]).toBeUndefined();
   });
 
   it("sends the declared value, not the string that arrived", () => {
@@ -91,7 +93,7 @@ describe("a choice among declared values", () => {
       { value: 2, label: "Belgium" },
     ]);
 
-    expect(country.clause("1")).toEqual({
+    expect(country.clauses("1")[0]).toEqual({
       path: "country",
       operator: "equals",
       value: 1,
@@ -103,17 +105,17 @@ describe("a choice among declared values", () => {
       .path("author.id")
       .options([{ value: 7, label: "Ada" }]);
 
-    expect(filter.clause("7")).toMatchObject({ path: "author.id" });
+    expect(filter.clauses("7")[0]).toMatchObject({ path: "author.id" });
   });
 
   it("keeps its choices through a clone", () => {
     // Every fluent method clones, and a clone that forgot them would answer to
     // nothing at all.
-    expect(status.label("Status").clause("draft")).toBeDefined();
-    expect(status.path("state").clause("draft")).toMatchObject({ path: "state" });
+    expect(status.label("Status").clauses("draft")[0]).toBeDefined();
+    expect(status.path("state").clauses("draft")[0]).toMatchObject({ path: "state" });
   });
 
   it("answers to nothing before it has any", () => {
-    expect(SelectFilter.make("status").clause("draft")).toBeUndefined();
+    expect(SelectFilter.make("status").clauses("draft")[0]).toBeUndefined();
   });
 });

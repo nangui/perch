@@ -13,6 +13,7 @@
  * exist.
  */
 import type { Clause, ClauseOperator, DeletedRows } from "./data-adapter.js";
+import { isRealDay, toInstant } from "./zoned.js";
 import type { Option, OptionsInput } from "./option.js";
 import { normaliseOptions } from "./option.js";
 
@@ -51,13 +52,27 @@ export abstract class Filter {
   }
 
   /**
-   * The clause a value produces, or nothing.
+   * The clauses a value produces, which is usually one and sometimes two.
    *
    * The value is the only thing here that came from outside, and it lands in
-   * `value` alone. Returning nothing is how a filter says it was left blank,
-   * which is different from saying it matched nothing.
+   * `value` alone. Returning none is how a filter says it was left blank,
+   * which is different from saying it matched nothing — a range whose ends
+   * cross produces both of its clauses and an empty table, because a reader
+   * who asked for an impossible range should see that they did.
    */
-  abstract clause(value: string): Clause | undefined;
+  abstract clauses(value: string): readonly Clause[];
+
+  /**
+   * The value as it was actually used, which is what a client is told.
+   *
+   * Almost always the one that arrived. A filter that reads part of a value
+   * and drops the rest says so here, or the control draws itself from a half
+   * the server never applied — an empty box beside a link that claims
+   * otherwise, and no way for a reader to tell which is true.
+   */
+  applied(value: string): string {
+    return value;
+  }
 
   /**
    * Which rows a value asks a list to show, for the one filter that decides it.
@@ -97,11 +112,11 @@ export class TernaryFilter extends Filter {
     return new TernaryFilter(state) as this;
   }
 
-  override clause(value: string): Clause | undefined {
-    if (value !== "yes" && value !== "no") return undefined;
+  override clauses(value: string): readonly Clause[] {
+    if (value !== "yes" && value !== "no") return [];
     // The boolean, not the word: a column that holds `true` compared against
     // `"yes"` finds nothing and reads as an empty table rather than as a bug.
-    return { path: this.state.path, operator: "equals", value: value === "yes" };
+    return [{ path: this.state.path, operator: "equals", value: value === "yes" }];
   }
 
   /** Drawn like any other closed set, so the client needs nothing new. */
@@ -136,8 +151,8 @@ export class TrashedFilter extends Filter {
   }
 
   /** Never a clause. What it decides is which rows the read returns at all. */
-  override clause(): Clause | undefined {
-    return undefined;
+  override clauses(): readonly Clause[] {
+    return [];
   }
 
   override deleted(value: string): DeletedRows | undefined {
@@ -172,11 +187,11 @@ export class TextFilter extends Filter {
     return this.with({ ...this.state, operator: on ? "equals" : "contains" });
   }
 
-  override clause(value: string): Clause | undefined {
+  override clauses(value: string): readonly Clause[] {
     const term = value.trim();
-    if (term === "") return undefined;
+    if (term === "") return [];
 
-    return { path: this.state.path, operator: this.state.operator, value: term };
+    return [{ path: this.state.path, operator: this.state.operator, value: term }];
   }
 }
 
@@ -218,16 +233,132 @@ export class SelectFilter extends Filter {
     return new SelectFilter(this.state, normaliseOptions(input)) as this;
   }
 
-  override clause(value: string): Clause | undefined {
+  override clauses(value: string): readonly Clause[] {
     // Matched as a string because that is what a URL carries, and answered with
     // the declared value because that is what the column holds.
     const chosen = this.choices.find((option) => String(option.value) === value);
-    if (chosen === undefined) return undefined;
+    if (chosen === undefined) return [];
 
-    return {
-      path: this.state.path,
-      operator: this.state.operator,
-      value: chosen.value,
-    };
+    return [
+      {
+        path: this.state.path,
+        operator: this.state.operator,
+        value: chosen.value,
+      },
+    ];
   }
+}
+
+/**
+ * Between two dates, either end left open.
+ *
+ * The whole difficulty is the far end. A reader asking for the 1st to the 30th
+ * means the 30th included, and comparing a column of instants against midnight
+ * on the 30th drops everything that happened during it — the last day of every
+ * range, silently, in a table that otherwise looks right. So the far end is the
+ * midnight that *starts the day after*, compared with `lt`, which includes the
+ * whole of the day asked for and nothing of the next.
+ *
+ * Whose midnight is a question with no default worth guessing. A panel is read
+ * from several places and written to one database: the browser's zone would put
+ * a row in or out of the range depending on who looked, and the server's would
+ * move every range on a deployment. So the zone is declared, exactly as the
+ * date field declares its own, and the same conversion runs — which is also
+ * what makes the two mornings a year with no single midnight come out right.
+ *
+ * The value crosses as `from..to`, one parameter, so a filtered page is still
+ * one link a reader can send someone. Either side may be empty: `2026-01-01..`
+ * is everything since, `..2026-06-30` everything until.
+ */
+export interface DateRangeFilterState extends FilterState {
+  /** IANA, and declared: a date with no zone is a date with an opinion. */
+  readonly timezone: string;
+}
+
+/** `YYYY-MM-DD`, and nothing else. A URL is not a place to parse dates from. */
+const DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+export class DateRangeFilter extends Filter {
+  declare readonly state: DateRangeFilterState;
+
+  private constructor(state: DateRangeFilterState) {
+    super(state);
+  }
+
+  static make(name: string): DateRangeFilter {
+    return new DateRangeFilter({ name, path: name, operator: "gte", timezone: "UTC" });
+  }
+
+  override get type(): string {
+    return "DateRangeFilter";
+  }
+
+  protected override with(state: FilterState): this {
+    return new DateRangeFilter({ ...this.state, ...state }) as this;
+  }
+
+  /** The zone the business keeps its days in, which decides where one ends. */
+  timezone(zone: string): this {
+    return new DateRangeFilter({ ...this.state, timezone: zone }) as this;
+  }
+
+  /** Only the ends it could read, so the two boxes and the link agree. */
+  override applied(value: string): string {
+    const [from, to] = split(value);
+    return `${from ?? ""}..${to ?? ""}`;
+  }
+
+  override clauses(value: string): readonly Clause[] {
+    const [from, to] = split(value);
+    const clauses: Clause[] = [];
+
+    const start = from === undefined ? undefined : toInstant(from, this.state.timezone);
+    if (start !== undefined) {
+      clauses.push({ path: this.state.path, operator: "gte", value: start });
+    }
+
+    // The day after the one asked for, so the day asked for is included whole.
+    const after = to === undefined ? undefined : dayAfter(to);
+    const end = after === undefined ? undefined : toInstant(after, this.state.timezone);
+    if (end !== undefined) {
+      clauses.push({ path: this.state.path, operator: "lt", value: end });
+    }
+
+    return clauses;
+  }
+}
+
+/** The two ends, each present only if it is shaped like a day. */
+function split(value: string): readonly [string | undefined, string | undefined] {
+  const at = value.indexOf("..");
+  if (at === -1) return [undefined, undefined];
+
+  const from = value.slice(0, at).trim();
+  const to = value.slice(at + 2).trim();
+  // Shaped like a day and also a day: `2026-02-30` passes the first test and is
+  // read as the 2nd of March by anything that parses it.
+  return [isRealDay(from) ? from : undefined, isRealDay(to) ? to : undefined];
+}
+
+/**
+ * The next day on the calendar, month and year ends included.
+ *
+ * Counted in UTC and read back in UTC, which is not the filter's zone and does
+ * not need to be: this is arithmetic on a date nobody has attached an hour to
+ * yet. The zone is applied afterwards, once, where midnight is decided.
+ */
+function dayAfter(day: string): string | undefined {
+  const parts = DAY.exec(day);
+  if (parts === null) return undefined;
+
+  const next = new Date(
+    Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]) + 1),
+  );
+  if (Number.isNaN(next.getTime())) return undefined;
+
+  // Checked rather than trusted: past the year 9999 `toISOString` writes the
+  // extended form, `+010000-01-01`, and the first ten characters of that are
+  // not a day. It parses anyway, which is how it would have gone unnoticed.
+  const after = next.toISOString().slice(0, 10);
+  return isRealDay(after) ? after : undefined;
 }

@@ -15,25 +15,25 @@ describe("what a ternary filter narrows to", () => {
   it("compares against the boolean, never the word", () => {
     // A column holding `true` compared against `"yes"` finds nothing, and reads
     // as an empty table rather than as a bug.
-    expect(filter.clause("yes")).toEqual({
+    expect(filter.clauses("yes")[0]).toEqual({
       path: "published",
       operator: "equals",
       value: true,
     });
-    expect(filter.clause("no")?.value).toBe(false);
+    expect(filter.clauses("no")[0]?.value).toBe(false);
   });
 
   it("narrows nothing where the reader asked for either", () => {
-    expect(filter.clause("")).toBeUndefined();
+    expect(filter.clauses("")[0]).toBeUndefined();
   });
 
   it("narrows nothing for a value nobody declared", () => {
-    expect(filter.clause("maybe")).toBeUndefined();
-    expect(filter.clause("true")).toBeUndefined();
+    expect(filter.clauses("maybe")[0]).toBeUndefined();
+    expect(filter.clauses("true")[0]).toBeUndefined();
   });
 
   it("reads the column it was pointed at, not the one it is named after", () => {
-    expect(TernaryFilter.make("live").path("isPublished").clause("yes")?.path).toBe(
+    expect(TernaryFilter.make("live").path("isPublished").clauses("yes")[0]?.path).toBe(
       "isPublished",
     );
   });
