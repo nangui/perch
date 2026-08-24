@@ -26,6 +26,7 @@ import {
   Image,
   ImageColumn,
   KeyValue,
+  MarkdownEditor,
   Placeholder,
   Radio,
   RepeatableEntry,
@@ -409,6 +410,16 @@ export class PersonResource {
             .label("Story")
             .toolbar(["bold", "italic", "link", "h2", "bulletList", "blockquote"])
             .helperText("Kept as a document, not as HTML."),
+          // The other way round from the story above it. Markdown is text in
+          // the column and text on the wire, so there is nothing to convert
+          // and nothing to sanitise: the preview draws elements from a tree,
+          // never markup from a string.
+          MarkdownEditor.make("readme")
+            .label("Notes")
+            .rows(8)
+            .maxLength(2000)
+            .placeholder("Write in markdown. Switch to Preview to see it.")
+            .helperText("Kept as text. The preview draws what the buttons write."),
           Textarea.make("bio")
             .label("Biography")
             .rows(4)

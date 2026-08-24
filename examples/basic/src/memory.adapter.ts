@@ -42,7 +42,7 @@ const scalar = (name: string, type: FieldMeta["type"]): FieldMeta => ({
   isUnique: name === "id",
   isReadOnly: name === "id",
   hasDefault: name === "id",
-  isLongText: name === "bio",
+  isLongText: name === "bio" || name === "readme",
 });
 
 const TEAM: ModelMeta = {
@@ -122,6 +122,7 @@ const PERSON: ModelMeta = {
     scalar("tint", "String"),
     scalar("access", "String"),
     scalar("story", "Json"),
+    scalar("readme", "String"),
     scalar("teamId", "Int"),
     scalar("tenantId", "Int"),
     // The tombstone. Named by convention, which is what sets `hasSoftDelete`
@@ -203,6 +204,12 @@ export class MemoryAdapter implements DataAdapter {
           },
         ],
       },
+      readme:
+        "## Notes\n\n" +
+        "Kept as **text**, and drawn from it. See the " +
+        "[Analytical Engine](https://example.com/engine).\n\n" +
+        "- one line per thought\n" +
+        "- and nothing that has to be sanitised",
       teamId: 1,
       tenantId: 1,
     },
