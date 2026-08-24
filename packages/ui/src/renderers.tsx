@@ -15,6 +15,8 @@ import type { FieldStatus } from "./field-state.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
 import { CheckboxList } from "./fields/CheckboxList.js";
+import type { Tool as MarkdownTool } from "./fields/MarkdownEditor.js";
+import { MarkdownEditor, TOOLS as MARKDOWN_TOOLS } from "./fields/MarkdownEditor.js";
 import { RichEditor } from "./fields/RichEditor.js";
 import type { RichDocument, Tool } from "./fields/rich-document.js";
 import { TOOLS } from "./fields/rich-document.js";
@@ -631,6 +633,53 @@ function CheckboxListRenderer({
             ? { columns: node.props["columns"] }
             : {})}
           bulkToggleable={node.props?.["bulkToggleable"] === true}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
+/** Text that is already what it means, and what it will look like. */
+function MarkdownEditorRenderer({
+  node,
+  value,
+  error,
+  pending,
+  inFlight,
+  onChange,
+}: NodeProps): ReactNode {
+  const status = statusOf(node, error, pending, inFlight);
+  const label = node.label ?? node.path ?? "";
+  const declared = node.props?.["toolbar"];
+  const toolbar = (Array.isArray(declared) ? declared : []).filter(
+    (one): one is MarkdownTool =>
+      typeof one === "string" && (MARKDOWN_TOOLS as readonly string[]).includes(one),
+  );
+
+  return (
+    <FieldShell
+      label={label}
+      status={status}
+      required={node.required === true}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+    >
+      {(binding) => (
+        <MarkdownEditor
+          value={typeof value === "string" ? value : ""}
+          onValueChange={(next) => {
+            onChange(node.path ?? "", next);
+          }}
+          toolbar={toolbar}
+          status={status}
+          binding={binding}
+          label={label}
+          {...(typeof node.props?.["rows"] === "number"
+            ? { rows: node.props["rows"] }
+            : {})}
+          {...(typeof node.props?.["maxLength"] === "number"
+            ? { maxLength: node.props["maxLength"] }
+            : {})}
+          {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
         />
       )}
     </FieldShell>
@@ -1351,6 +1400,7 @@ export function registerBuiltInComponents(): void {
   registerComponent("ColorPicker", ColorPickerRenderer);
   registerComponent("ToggleButtons", ToggleButtonsRenderer);
   registerComponent("RichEditor", RichEditorRenderer);
+  registerComponent("MarkdownEditor", MarkdownEditorRenderer);
   registerComponent("DateTimePicker", DateTimePickerRenderer);
   registerComponent("FileUpload", FileUploadRenderer);
   registerComponent("Placeholder", PlaceholderRenderer);

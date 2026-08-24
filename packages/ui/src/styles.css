@@ -1145,6 +1145,207 @@
   color: var(--perch-accent);
 }
 
+/* -------------------------------------------------------- markdown editor */
+
+/*
+ * A box of text and what it will look like, one at a time. The box is a plain
+ * textarea on purpose: markdown is text, and a field that starts intercepting
+ * keystrokes owes the reader every shortcut their editor has.
+ */
+.perch-markdown {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+  overflow: hidden;
+}
+
+.perch-markdown:focus-within {
+  border-color: var(--perch-accent);
+  box-shadow: var(--perch-focus-ring);
+}
+
+.perch-markdown[data-disabled="true"] {
+  border-color: var(--perch-border);
+  background: var(--perch-surface-muted);
+}
+
+.perch-markdown__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--perch-space-4);
+  padding: var(--perch-space-2);
+  border-bottom: 1px solid var(--perch-border);
+  background: var(--perch-surface-muted);
+}
+
+.perch-markdown__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--perch-space-1);
+}
+
+.perch-markdown__tool {
+  /* WCAG's pointer target, the floor every other control here keeps. */
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 var(--perch-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--perch-radius-sm);
+  background: none;
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-control);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.perch-markdown__tool:hover:not(:disabled) {
+  background: var(--perch-surface-sunken);
+  color: var(--perch-content);
+}
+
+.perch-markdown__tool:focus-visible {
+  outline: none;
+  border-color: var(--perch-accent);
+  box-shadow: var(--perch-focus-ring);
+}
+
+.perch-markdown__tool:disabled {
+  color: var(--perch-content-subtle);
+  cursor: not-allowed;
+}
+
+/* Which of the two panels is showing. Named as what they are, so a reader
+   reads the one they are on rather than what pressing it would do. */
+.perch-markdown__panels {
+  display: flex;
+  flex: none;
+  gap: var(--perch-space-1);
+}
+
+.perch-markdown__panel {
+  min-height: 28px;
+  padding: 0 var(--perch-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--perch-radius-sm);
+  background: none;
+  color: var(--perch-content-muted);
+  font-size: var(--perch-text-base);
+  cursor: pointer;
+}
+
+.perch-markdown__panel[aria-selected="true"] {
+  border-color: var(--perch-accent-border);
+  background: var(--perch-accent-surface);
+  color: var(--perch-accent);
+}
+
+.perch-markdown__panel:focus-visible {
+  outline: none;
+  border-color: var(--perch-accent);
+  box-shadow: var(--perch-focus-ring);
+}
+
+.perch-markdown__box {
+  min-height: 120px;
+  padding: var(--perch-space-5);
+  border: 0;
+  background: none;
+  color: var(--perch-content);
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-control);
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+}
+
+/* The same box, drawn. Its spacing matches the rich editor's page, so moving
+   between the two fields does not move the text. */
+.perch-markdown__footer {
+  display: flex;
+  padding: var(--perch-space-3) var(--perch-space-5);
+  border-top: 1px solid var(--perch-border);
+}
+
+.perch-markdown__count {
+  margin-left: auto;
+  font-family: var(--perch-font-mono);
+  font-size: var(--perch-text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--perch-content-muted);
+}
+
+.perch-markdown__count--error {
+  color: var(--perch-danger-content);
+}
+
+.perch-markdown__preview {
+  min-height: 120px;
+  padding: var(--perch-space-5);
+  color: var(--perch-content);
+  font-size: var(--perch-text-control);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.perch-markdown__preview > * + * {
+  margin-top: var(--perch-space-5);
+}
+
+.perch-markdown__preview h2 {
+  margin: 0;
+  font-size: var(--perch-text-xl);
+  font-weight: 600;
+}
+
+.perch-markdown__preview h3 {
+  margin: 0;
+  font-size: var(--perch-text-lg);
+  font-weight: 600;
+}
+
+.perch-markdown__preview p {
+  margin: 0;
+}
+
+.perch-markdown__preview ul,
+.perch-markdown__preview ol {
+  margin: 0;
+  padding-left: var(--perch-space-8);
+}
+
+.perch-markdown__preview blockquote {
+  margin: 0;
+  padding-left: var(--perch-space-5);
+  border-left: 2px solid var(--perch-border);
+  color: var(--perch-content-secondary);
+}
+
+.perch-markdown__preview pre {
+  margin: 0;
+  padding: var(--perch-space-4);
+  border-radius: var(--perch-radius-sm);
+  background: var(--perch-surface-sunken);
+  font-family: var(--perch-font-mono);
+  overflow-x: auto;
+}
+
+.perch-markdown__preview code {
+  font-family: var(--perch-font-mono);
+}
+
+.perch-markdown__preview a {
+  color: var(--perch-accent);
+}
+
+.perch-markdown__nothing {
+  margin: 0;
+  color: var(--perch-content-subtle);
+}
+
 /* ------------------------------------------------------------ rich editor */
 
 /*
