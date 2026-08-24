@@ -784,6 +784,70 @@ function narrowing(
             </label>
           );
         }
+        // Two ends of one value. They travel as `from..to` in a single
+        // parameter, so a narrowed page stays one link a reader can send —
+        // and either end may be left empty, which is what "since" and "until"
+        // are. Both empty is the control put back, and an empty value is what
+        // the bar drops rather than sends.
+        //
+        // Neither end bounds the other. `min` and `max` between them read as
+        // help and are not: a reader who picks the far end first makes both
+        // boxes invalid, and the bar is one form — so the browser refuses to
+        // submit it and the search box and every other filter stop working
+        // with it. The server already answers a range whose ends cross, with
+        // the empty table that range describes.
+        if (filter.type === "DateRangeFilter") {
+          const entered = state.entered[filter.name] ?? "";
+          const at = entered.indexOf("..");
+          // Only a half a box can hold. A date input silently blanks a value
+          // it refuses, so an end the server dropped would otherwise sit in an
+          // empty box beside a link that still claims it.
+          const half = (value: string): string =>
+            DAY.test(value.trim()) ? value.trim() : "";
+          const from = at === -1 ? "" : half(entered.slice(0, at));
+          const to = at === -1 ? "" : half(entered.slice(at + 2));
+          const set = (start: string, end: string): void => {
+            state.setEntered({
+              ...state.entered,
+              [filter.name]: start === "" && end === "" ? "" : `${start}..${end}`,
+            });
+          };
+
+          return (
+            <fieldset key={filter.name} className="perch-list__range">
+              {/* A group with a name, because two boxes under one word is what
+                  it is. Each box is named again for a screen reader, which
+                  reads them one at a time and would otherwise meet two dates
+                  with nothing to tell them apart. */}
+              <legend className="perch-list__narrow-name">{named}</legend>
+              <label className="perch-list__range-end">
+                <span className="perch-visually-hidden">{named} from</span>
+                <input
+                  className="perch-control"
+                  type="date"
+                  value={from}
+                  onChange={(event) => {
+                    set(event.target.value, to);
+                  }}
+                />
+              </label>
+              <span className="perch-list__range-to" aria-hidden="true">
+                –
+              </span>
+              <label className="perch-list__range-end">
+                <span className="perch-visually-hidden">{named} to</span>
+                <input
+                  className="perch-control"
+                  type="date"
+                  value={to}
+                  onChange={(event) => {
+                    set(from, event.target.value);
+                  }}
+                />
+              </label>
+            </fieldset>
+          );
+        }
         // A type the renderer has no meaning for is skipped, not guessed at.
         return null;
       })}
@@ -793,6 +857,9 @@ function narrowing(
     </form>
   );
 }
+
+/** `YYYY-MM-DD`, which is the only value a date box will take. */
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * What the table says when it has nothing to show.

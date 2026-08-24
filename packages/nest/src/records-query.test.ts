@@ -4,7 +4,13 @@
  */
 import { describe, expect, it } from "vitest";
 import type { Ir, ModelMeta } from "@perchjs/core";
-import { Table, TextColumn, TextFilter, TrashedFilter } from "@perchjs/core";
+import {
+  DateRangeFilter,
+  Table,
+  TextColumn,
+  TextFilter,
+  TrashedFilter,
+} from "@perchjs/core";
 import {
   DEFAULT_PER_PAGE,
   MAX_PER_PAGE,
@@ -167,6 +173,63 @@ describe("searching and filtering", () => {
     expect(readQuery("User", IR, { "filter.title": "ada" }, table).clauses).toEqual([
       { path: "title", operator: "contains", value: "ada" },
     ]);
+  });
+
+  it("turns one filter's value into both ends of a range", () => {
+    // A filter is one control and not always one comparison. Collecting a
+    // single clause per filter would have kept whichever end was built first
+    // and shown a page half again as long as the reader asked for.
+    const table = Table.make().filters([DateRangeFilter.make("createdAt")]);
+
+    expect(
+      readQuery("User", IR, { "filter.createdAt": "2026-01-01..2026-06-30" }, table)
+        .clauses,
+    ).toEqual([
+      { path: "createdAt", operator: "gte", value: new Date("2026-01-01T00:00:00Z") },
+      { path: "createdAt", operator: "lt", value: new Date("2026-07-01T00:00:00Z") },
+    ]);
+  });
+
+  it("keeps a range beside the filters around it", () => {
+    const table = Table.make().filters([
+      TextFilter.make("title"),
+      DateRangeFilter.make("createdAt"),
+    ]);
+
+    const query = readQuery(
+      "User",
+      IR,
+      { "filter.title": "ada", "filter.createdAt": "2026-01-01.." },
+      table,
+    );
+
+    expect(query.clauses).toHaveLength(2);
+  });
+
+  it("drops a range it cannot read, and keeps the page unfiltered by it", () => {
+    // Silently, like every other refusal here. A message would say which
+    // filters exist and what shape each of them takes.
+    const table = Table.make().filters([DateRangeFilter.make("createdAt")]);
+
+    expect(
+      readQuery("User", IR, { "filter.createdAt": "yesterday..tomorrow" }, table)
+        .clauses,
+    ).toBeUndefined();
+  });
+
+  it("names the range it applied, not the one that arrived", () => {
+    // What comes back is what the control draws itself from and what the
+    // address bar carries. Saying back the whole of a value half of which was
+    // dropped leaves an unreadable date in a box that will not show it.
+    const table = Table.make().filters([DateRangeFilter.make("createdAt")]);
+    const { filters } = readList(
+      "User",
+      IR,
+      { "filter.createdAt": "2026-02-30..2026-06-30" },
+      table,
+    );
+
+    expect(filters).toEqual({ createdAt: "..2026-06-30" });
   });
 
   it("drops a name nothing declared, without a word", () => {

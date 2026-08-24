@@ -95,7 +95,8 @@ export const FILTER_PREFIX = "filter.";
 /** What a filter contributed: a clause, a reading mode, or one of each. */
 export interface AcceptedFilter {
   readonly value: string;
-  readonly clause?: Clause;
+  /** Usually one. A range contributes both of its ends. */
+  readonly clauses?: readonly Clause[];
   readonly deleted?: DeletedRows;
 }
 
@@ -165,9 +166,7 @@ export function readQuery(
   const skip = (page - 1) * perPage;
   const sort = sortOf(model, ir, raw.sort, table);
   const search = searchOf(model, ir, raw.search, table);
-  const clauses = [...accepted.values()].flatMap((one) =>
-    one.clause === undefined ? [] : [one.clause],
-  );
+  const clauses = [...accepted.values()].flatMap((one) => one.clauses ?? []);
   // The one filter that lifts the read's own exclusion rather than narrowing
   // what it returned. One per table, which the boot enforces — so the reduce
   // below has at most one thing to find.
@@ -236,15 +235,18 @@ export function acceptedFilters(
     const term = text(raw_)?.slice(0, MAX_TERM);
     if (filter === undefined || term === undefined) continue;
 
-    // Either contribution counts. A filter that narrows produces a clause; the
+    // Either contribution counts. A filter that narrows produces clauses; the
     // one that decides which rows are read at all produces neither a clause nor
     // nothing — treating "no clause" as "not accepted" dropped it silently.
-    const clause = filter.clause(term);
+    const clauses = filter.clauses(term);
     const deleted = mayReadDeleted ? filter.deleted(term) : undefined;
-    if (clause !== undefined || deleted !== undefined) {
+    if (clauses.length > 0 || deleted !== undefined) {
       accepted.set(name, {
-        value: term,
-        ...(clause === undefined ? {} : { clause }),
+        // What was used, not what arrived. A filter that read half a value and
+        // dropped the rest would otherwise send the whole of it back, and the
+        // control would draw itself from a half nothing applied.
+        value: filter.applied(term),
+        ...(clauses.length === 0 ? {} : { clauses }),
         ...(deleted === undefined ? {} : { deleted }),
       });
     }

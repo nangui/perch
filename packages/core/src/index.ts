@@ -111,8 +111,9 @@ export type {
   FilterNode,
   TableState,
 } from "./table.js";
-export type { FilterState } from "./filter.js";
+export type { DateRangeFilterState, FilterState } from "./filter.js";
 export {
+  DateRangeFilter,
   Filter,
   SelectFilter,
   TernaryFilter,

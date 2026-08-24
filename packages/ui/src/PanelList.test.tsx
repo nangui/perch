@@ -738,6 +738,145 @@ describe("narrowing by a filter", () => {
   });
 });
 
+describe("narrowing by a range of dates", () => {
+  /** A table declaring one range and nothing else. */
+  const ranged = (over: Partial<RecordsPage> = {}): RecordsPage => ({
+    ...PAGE,
+    columns: {
+      ...PAGE.columns,
+      filters: [{ type: "DateRangeFilter", name: "createdAt", label: "Created" }],
+    },
+    ...over,
+  });
+
+  it("draws two boxes under one name, each named for a screen reader", () => {
+    // A row of date boxes all reading "Created" is a row a screen reader cannot
+    // tell apart, and one that reads nothing at all is worse.
+    render(<PanelList initial={ranged()} title="Posts" fetchPage={vi.fn()} />);
+
+    expect(screen.getByRole("group", { name: "Created" })).toBeTruthy();
+    expect(screen.getByLabelText("Created from")).toBeTruthy();
+    expect(screen.getByLabelText("Created to")).toBeTruthy();
+  });
+
+  it("sends both ends as one value, under one name", () => {
+    // One parameter, so a narrowed page is still one link a reader can send.
+    const fetchPage = vi.fn(() => Promise.resolve(ranged()));
+    render(<PanelList initial={ranged()} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.change(screen.getByLabelText("Created from"), {
+      target: { value: "2026-01-01" },
+    });
+    fireEvent.change(screen.getByLabelText("Created to"), {
+      target: { value: "2026-06-30" },
+    });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ filters: { createdAt: "2026-01-01..2026-06-30" } }),
+    );
+  });
+
+  it("sends one end as a range with the other left open", () => {
+    const fetchPage = vi.fn(() => Promise.resolve(ranged()));
+    render(<PanelList initial={ranged()} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.change(screen.getByLabelText("Created from"), {
+      target: { value: "2026-01-01" },
+    });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ filters: { createdAt: "2026-01-01.." } }),
+    );
+  });
+
+  it("sends both boxes emptied as no filter at all", () => {
+    // Otherwise `..` crosses the wire and the control cannot be put back.
+    const fetchPage = vi.fn(() => Promise.resolve(ranged()));
+    render(<PanelList initial={ranged()} title="Posts" fetchPage={fetchPage} />);
+
+    const from = screen.getByLabelText("Created from");
+    fireEvent.change(from, { target: { value: "2026-01-01" } });
+    fireEvent.change(from, { target: { value: "" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.not.objectContaining({ filters: expect.anything() }),
+    );
+  });
+
+  it("shows the range the server applied, split back into its two ends", () => {
+    // What comes back names what was applied. A control drawn from the value
+    // the reader typed rather than the one that was honoured would keep a
+    // refused range on screen as though it had worked.
+    render(
+      <PanelList
+        initial={ranged({ filters: { createdAt: "2026-01-01..2026-06-30" } })}
+        title="Posts"
+        fetchPage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText<HTMLInputElement>("Created from").value).toBe(
+      "2026-01-01",
+    );
+    expect(screen.getByLabelText<HTMLInputElement>("Created to").value).toBe(
+      "2026-06-30",
+    );
+  });
+
+  it("bounds neither box by the other, so the bar always applies", () => {
+    // `min` and `max` between the two ends made both boxes invalid the moment
+    // a reader picked the far end first — and the bar is one form, so the
+    // browser refused to submit it and the search box and every other filter
+    // stopped working with it.
+    const fetchPage = vi.fn(() => Promise.resolve(ranged()));
+    render(<PanelList initial={ranged()} title="Posts" fetchPage={fetchPage} />);
+
+    const from = screen.getByLabelText("Created from");
+    const to = screen.getByLabelText("Created to");
+    fireEvent.change(from, { target: { value: "2026-06-30" } });
+    fireEvent.change(to, { target: { value: "2026-01-01" } });
+
+    expect(from.hasAttribute("max")).toBe(false);
+    expect(to.hasAttribute("min")).toBe(false);
+
+    fireEvent.submit(screen.getByRole("search"));
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ filters: { createdAt: "2026-06-30..2026-01-01" } }),
+    );
+  });
+
+  it("leaves out an end no box can hold, rather than claiming it", () => {
+    // A hand-edited link. A date input silently blanks a value it refuses, so
+    // without this the reader saw an empty box while the address bar and the
+    // state behind it both still said 30 February.
+    const fetchPage = vi.fn(() => Promise.resolve(ranged()));
+    render(
+      <PanelList
+        initial={ranged({ filters: { createdAt: "not-a-day..2026-06-30" } })}
+        title="Posts"
+        fetchPage={fetchPage}
+      />,
+    );
+
+    expect(screen.getByLabelText<HTMLInputElement>("Created from").value).toBe("");
+    expect(screen.getByLabelText<HTMLInputElement>("Created to").value).toBe(
+      "2026-06-30",
+    );
+
+    fireEvent.change(screen.getByLabelText("Created to"), {
+      target: { value: "2026-07-31" },
+    });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ filters: { createdAt: "..2026-07-31" } }),
+    );
+  });
+});
+
 describe("narrowing by a choice", () => {
   const chooser = (over: Partial<RecordsPage> = {}): RecordsPage => ({
     ...PAGE,

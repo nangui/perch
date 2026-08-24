@@ -120,3 +120,37 @@ export function isWallClock(value: unknown, withTime: boolean): value is WallClo
     ? /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)
     : /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
+
+/**
+ * Whether a date names a day that exists.
+ *
+ * `Date.parse` rolls one that does not over rather than refusing it, so
+ * `2026-02-30` is read as the 2nd of March and `2026-04-31` as the 1st of May —
+ * quietly, with nothing downstream able to tell that the day it was handed is
+ * not the day that was asked for.
+ */
+export function isRealDay(day: string): boolean {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  if (parts === null) return false;
+
+  const made = new Date(
+    Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])),
+  );
+  return made.toISOString().slice(0, 10) === day;
+}
+
+/**
+ * Whether a zone is one this runtime has heard of.
+ *
+ * `Intl` throws on a name it does not know rather than falling back, so an
+ * unchecked zone is a request that returns a 500 — every request, once the
+ * control is touched. Asked at boot instead, where a typo is a line to fix.
+ */
+export function knownZone(zone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+}

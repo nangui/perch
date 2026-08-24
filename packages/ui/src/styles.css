@@ -3427,6 +3427,45 @@
   text-transform: uppercase;
 }
 
+/* Two dates under one name. Laid out along the row rather than stacked, so the
+   pair reads as one control and the bar keeps its height. */
+.perch-list__range {
+  display: grid;
+  grid-template-areas: "name name name" "from dash to";
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--perch-space-1) var(--perch-space-2);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.perch-list__range > .perch-list__narrow-name {
+  grid-area: name;
+}
+
+.perch-list__range-end {
+  display: block;
+  min-width: 0;
+}
+
+.perch-list__range-end:first-of-type {
+  grid-area: from;
+}
+
+.perch-list__range-end:last-of-type {
+  grid-area: to;
+}
+
+.perch-list__range-end > .perch-control {
+  width: 100%;
+}
+
+.perch-list__range-to {
+  grid-area: dash;
+  color: var(--perch-content-muted);
+}
+
 /* Turning a page is a button, not a link: it replaces the rows in place rather
    than going anywhere the browser knows about. */
 .perch-pagination {

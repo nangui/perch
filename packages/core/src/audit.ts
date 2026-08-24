@@ -29,10 +29,10 @@ import { ToggleButtons } from "./fields/toggle-buttons.js";
 import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
 import { TextInput } from "./fields/text-input.js";
-import { SelectFilter, TrashedFilter } from "./filter.js";
+import { DateRangeFilter, SelectFilter, TrashedFilter } from "./filter.js";
 import type { Table } from "./table.js";
 import { declaredActions, declaredFilters } from "./table.js";
-import { isWallClock } from "./zoned.js";
+import { isWallClock, knownZone } from "./zoned.js";
 
 export interface Complaint {
   /** The field's name, or its position when it has none. */
@@ -462,8 +462,10 @@ function entriesIn(component: Component): readonly Entry[] {
  */
 function inspectDates(picker: DateTimePicker, into: Complaint[]): void {
   const name = named(picker);
-  const { withTime, minDate, maxDate } = picker.state;
+  const { withTime, minDate, maxDate, timezone } = picker.state;
   const wanted = withTime ? "YYYY-MM-DDTHH:mm" : "YYYY-MM-DD";
+
+  if (!knownZone(timezone)) into.push(unknownZone(name, timezone));
 
   for (const [which, bound] of [
     ["minDate", minDate],
@@ -481,6 +483,23 @@ function inspectDates(picker: DateTimePicker, into: Complaint[]): void {
         `bounds — this field holds \`${wanted}\``,
     });
   }
+}
+
+/**
+ * A zone nothing has heard of.
+ *
+ * `Intl` throws on one rather than falling back to anything, so this is not a
+ * date drawn an hour out — it is every request that touches the control
+ * failing, with a stack trace naming a formatter instead of the line that was
+ * mistyped.
+ */
+function unknownZone(name: string, zone: string): Complaint {
+  return {
+    field: name,
+    problem:
+      `keeps its days in \`${zone}\`, which this runtime has never heard of — ` +
+      "an IANA name, like `Europe/Paris` or `UTC`",
+  };
 }
 
 function inspectUpload(upload: FileUpload, into: Complaint[]): void {
@@ -575,6 +594,9 @@ export function auditTable(table: Table): readonly Complaint[] {
           `points at \`${filter.state.path}\`, and a filter for deleted rows ` +
           "reads no column — it decides which rows are read at all",
       });
+    }
+    if (filter instanceof DateRangeFilter && !knownZone(filter.state.timezone)) {
+      complaints.push(unknownZone(filter.state.name, filter.state.timezone));
     }
     if (filter instanceof SelectFilter && filter.choices.length === 0) {
       complaints.push({
