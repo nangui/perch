@@ -250,11 +250,32 @@ export abstract class WritableColumn extends Column {
   abstract fits(field: Field): boolean;
 }
 
-/** Both halves of the boolean question, asked once. */
+/**
+ * Both halves of the boolean question, asked once.
+ *
+ * A field that holds two values takes one of them and turns text away. One
+ * question would not do it: `Field.admits` takes any scalar unless a field
+ * narrows it, so a text input says yes to `true`.
+ */
 function holdsBooleans(field: Field): boolean {
   return (
     field.admits(true, undefined) === undefined &&
     field.admits("perch", undefined) !== undefined
+  );
+}
+
+/**
+ * The other side of the same coin: a field that narrows nothing.
+ *
+ * Free text is what a field holds when it has declined to say what it holds, so
+ * the question is not "does it take a string" — a stored file key is a string
+ * and a colour is a string — but "does it take a string *and* anything else".
+ * The fields that say yes to both are the ones with no shape of their own.
+ */
+function holdsAnyText(field: Field): boolean {
+  return (
+    field.admits("perch", undefined) === undefined &&
+    field.admits(true, undefined) === undefined
   );
 }
 
@@ -308,6 +329,40 @@ export class CheckboxColumn extends WritableColumn {
 
   protected override with(state: ColumnState): this {
     return new CheckboxColumn(state) as this;
+  }
+}
+
+/**
+ * `TextInputColumn` — a line of text, edited where it is read.
+ *
+ * For the column somebody retypes twenty times in an afternoon: a title, a
+ * reference, a note. Anything with a shape — a date, a colour, a choice — has a
+ * field that knows its shape, and a cell that let text into one of those would
+ * be writing past the only thing that understands it.
+ */
+export class TextInputColumn extends WritableColumn {
+  static make(path: string): TextInputColumn {
+    return new TextInputColumn({ path, sortable: false, searchable: false });
+  }
+
+  override get type(): string {
+    return "TextInputColumn";
+  }
+
+  /**
+   * Text, and the empty string with it: clearing a cell is a thing a reader
+   * does, and the field decides whether nothing is allowed there.
+   */
+  override admits(value: unknown): boolean {
+    return typeof value === "string";
+  }
+
+  override fits(field: Field): boolean {
+    return holdsAnyText(field);
+  }
+
+  protected override with(state: ColumnState): this {
+    return new TextInputColumn(state) as this;
   }
 }
 

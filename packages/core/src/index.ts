@@ -98,6 +98,7 @@ export {
   IconColumn,
   ImageColumn,
   TextColumn,
+  TextInputColumn,
   ToggleColumn,
   WritableColumn,
 } from "./column.js";

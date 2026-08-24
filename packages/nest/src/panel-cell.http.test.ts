@@ -24,10 +24,13 @@ import type {
 import {
   Checkbox,
   CheckboxColumn,
+  FileUpload,
+  Hidden,
   Schema,
   Table,
   TextColumn,
   TextInput,
+  TextInputColumn,
   Toggle,
   ToggleColumn,
 } from "@perchjs/core";
@@ -48,6 +51,7 @@ const META = model({
     scalar("onCall", { type: "Boolean" }),
     scalar("locked", { type: "Boolean" }),
     scalar("sealed", { type: "Boolean" }),
+    scalar("note"),
   ],
 });
 
@@ -119,6 +123,7 @@ class PersonResource {
       Toggle.make("locked"),
       // Offered by the table and refused by the form, on every row.
       Toggle.make("sealed").disabled(() => true),
+      TextInput.make("note").maxLength(20),
     ]);
   }
   table(): TableTree {
@@ -129,6 +134,7 @@ class PersonResource {
       // Drawn, never written: a column that only reads.
       TextColumn.make("locked"),
       ToggleColumn.make("sealed"),
+      TextInputColumn.make("note"),
     ]);
   }
 }
@@ -149,7 +155,15 @@ let url = "";
 
 beforeEach(async () => {
   rows = [
-    { id: 1, title: "Ada", active: false, onCall: false, locked: false, sealed: false },
+    {
+      id: 1,
+      title: "Ada",
+      active: false,
+      onCall: false,
+      locked: false,
+      sealed: false,
+      note: "short",
+    },
   ];
   writes = [];
   policy = undefined;
@@ -225,6 +239,43 @@ describe("a cell a table declared writable", () => {
     await write({ path: "onCall", value: true });
 
     expect(writes[0]?.data.set).toEqual({ onCall: true });
+  });
+});
+
+describe("a line of text written from a table", () => {
+  it("writes what was typed", async () => {
+    const { status, body } = await write({ path: "note", value: "a longer note" });
+
+    expect(status).toBe(200);
+    expect(body.value).toBe("a longer note");
+    expect(writes).toEqual([{ id: 1, data: { set: { note: "a longer note" } } }]);
+  });
+
+  it("clears the cell where the reader emptied it", async () => {
+    const { status, body } = await write({ path: "note", value: "" });
+
+    expect(status).toBe(200);
+    expect(body.value).toBe("");
+  });
+
+  it("keeps the form's own rules, and says which one refused", async () => {
+    // The whole point of writing through the form: `maxLength` is declared
+    // once, on the field, and a table cannot get around it.
+    const { status, body } = await write({
+      path: "note",
+      value: "far longer than twenty characters",
+    });
+
+    expect(status).toBe(200);
+    expect(body.value).toBe("short");
+    expect(body.notification?.tone).toBe("danger");
+    expect(writes).toEqual([]);
+  });
+
+  it("refuses a value that is not text at all", async () => {
+    expect((await write({ path: "note", value: 12 })).status).toBe(404);
+    expect((await write({ path: "note", value: true })).status).toBe(404);
+    expect(writes).toEqual([]);
   });
 });
 
@@ -307,6 +358,42 @@ describe("a control the form cannot carry", () => {
 
     await expect(boot(MistypedResource)).rejects.toThrow(
       /offers a ToggleColumn in the table over a TextInput/,
+    );
+  });
+
+  it("stops the boot over a field no client may set at all", async () => {
+    // A hidden field takes text and takes anything else, so it answers yes to
+    // every question a column asks about shape. What it does not do is accept
+    // client state, and the write would be turned away before anything read it.
+    @PanelResource({ model: "Person", slug: "hiding" })
+    class HidingResource {
+      form(): Schema {
+        return Schema.make([Hidden.make("title").default("x")]);
+      }
+      table(): TableTree {
+        return Table.make().columns([TextInputColumn.make("title")]);
+      }
+    }
+
+    await expect(boot(HidingResource)).rejects.toThrow(/no client may set/);
+  });
+
+  it("stops the boot over a field that takes text and is not text", async () => {
+    // A stored file key is a string, and a colour is a string. What a free-text
+    // field has is no shape at all — it takes a string and anything else — so
+    // asking only "does it take a string" would offer a box over an upload.
+    @PanelResource({ model: "Person", slug: "shaped" })
+    class ShapedResource {
+      form(): Schema {
+        return Schema.make([FileUpload.make("title").disk("default")]);
+      }
+      table(): TableTree {
+        return Table.make().columns([TextInputColumn.make("title")]);
+      }
+    }
+
+    await expect(boot(ShapedResource)).rejects.toThrow(
+      /offers a TextInputColumn in the table over a FileUpload/,
     );
   });
 

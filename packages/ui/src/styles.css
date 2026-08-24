@@ -1079,6 +1079,19 @@
   pointer-events: none;
 }
 
+/* A line of text in a cell: the panel's own control, narrower, and never wider
+   than the column it sits in. */
+.perch-cell__line {
+  width: 100%;
+  min-width: 0;
+  height: var(--perch-control-height-sm);
+  font-size: var(--perch-text-base);
+}
+
+.perch-cell__line[data-pending="true"] {
+  opacity: 0.6;
+}
+
 .perch-cell__colour {
   display: inline-flex;
   align-items: center;

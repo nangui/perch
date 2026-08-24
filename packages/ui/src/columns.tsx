@@ -236,6 +236,56 @@ function toggle(
 }
 
 /**
+ * A line of text, edited where it is read.
+ *
+ * Uncontrolled on purpose. A renderer is a function and may hold nothing, so
+ * the half-typed value lives in the input itself — which is where a browser
+ * keeps one anyway, and which is why this needs no state and breaks no rule.
+ *
+ * `key` is what puts the server's answer back: React leaves an uncontrolled
+ * input alone on re-render, so the element is replaced when the value it was
+ * given changes. That costs the focus, and only when the value actually moves —
+ * by which time the reader has already left the box.
+ *
+ * It commits when the box is left and on Enter, never on a keystroke: a write
+ * per character is a write per character.
+ */
+function line(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode {
+  const held = typeof value === "string" ? value : "";
+  if (cell.write === undefined) return text(value);
+
+  const commit = (input: HTMLInputElement): void => {
+    if (input.value === held) return;
+    cell.write?.(input.value);
+  };
+
+  return (
+    <input
+      key={held}
+      type="text"
+      className="perch-control perch-cell__line"
+      aria-label={nameOf(column, cell)}
+      defaultValue={held}
+      data-pending={cell.pending ? "true" : undefined}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          commit(event.currentTarget);
+          return;
+        }
+        if (event.key !== "Escape") return;
+        // Back to what the row holds, which is what the server last said.
+        event.currentTarget.value = held;
+        event.currentTarget.blur();
+      }}
+      onBlur={(event) => {
+        commit(event.currentTarget);
+      }}
+    />
+  );
+}
+
+/**
  * What this cell is called, out loud.
  *
  * The column says which cell and the table says which row. A page of switches
@@ -264,5 +314,8 @@ export function registerBuiltInColumns(): void {
   );
   registerColumn("CheckboxColumn", (value, _row: Row, column, cell) =>
     toggle(value, column, cell, "box"),
+  );
+  registerColumn("TextInputColumn", (value, _row: Row, column, cell) =>
+    line(value, column, cell),
   );
 }

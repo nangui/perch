@@ -238,6 +238,92 @@ describe("a cell this reader may write", () => {
   });
 });
 
+describe("a line of text in a cell", () => {
+  const ROW = [{ id: 1, title: "Ada", note: "Wrote the first algorithm" }];
+  const COLUMN: ColumnNode = { type: "TextInputColumn", path: "note", editable: true };
+
+  it("shows what the row holds, in a box the reader may type in", () => {
+    draw(COLUMN, ROW, { onCellWrite: vi.fn() });
+
+    expect(screen.getByRole("textbox")).toHaveProperty(
+      "value",
+      "Wrote the first algorithm",
+    );
+  });
+
+  it("says nothing while it is being typed", () => {
+    // A write per keystroke is a write per keystroke.
+    const onCellWrite = vi.fn();
+    draw(COLUMN, ROW, { onCellWrite });
+
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Wrote t" } });
+
+    expect(onCellWrite).not.toHaveBeenCalled();
+  });
+
+  it("commits when the box is left", () => {
+    const onCellWrite = vi.fn();
+    draw(COLUMN, ROW, { onCellWrite });
+    const box = screen.getByRole("textbox");
+
+    fireEvent.change(box, { target: { value: "Wrote the first compiler" } });
+    fireEvent.blur(box);
+
+    expect(onCellWrite).toHaveBeenCalledWith(
+      ROW[0],
+      expect.anything(),
+      "Wrote the first compiler",
+    );
+  });
+
+  it("commits on Enter, without submitting the page", () => {
+    const onCellWrite = vi.fn();
+    draw(COLUMN, ROW, { onCellWrite });
+    const box = screen.getByRole("textbox");
+
+    fireEvent.change(box, { target: { value: "Something else" } });
+    fireEvent.keyDown(box, { key: "Enter" });
+
+    expect(onCellWrite).toHaveBeenCalledWith(
+      ROW[0],
+      expect.anything(),
+      "Something else",
+    );
+  });
+
+  it("says nothing where nothing was changed", () => {
+    // Leaving a box the reader only looked at is not a write, and announcing
+    // one asks the server about a value it already has.
+    const onCellWrite = vi.fn();
+    draw(COLUMN, ROW, { onCellWrite });
+
+    fireEvent.blur(screen.getByRole("textbox"));
+
+    expect(onCellWrite).not.toHaveBeenCalled();
+  });
+
+  it("puts the row's value back on Escape", () => {
+    const onCellWrite = vi.fn();
+    draw(COLUMN, ROW, { onCellWrite });
+    const box = screen.getByRole("textbox");
+
+    fireEvent.change(box, { target: { value: "Half a thought" } });
+    fireEvent.keyDown(box, { key: "Escape" });
+
+    expect(box).toHaveProperty("value", "Wrote the first algorithm");
+    expect(onCellWrite).not.toHaveBeenCalled();
+  });
+
+  it("shows the value out of reach where nobody would carry a write", () => {
+    const container = draw({ type: "TextInputColumn", path: "note" }, ROW, {
+      onCellWrite: vi.fn(),
+    });
+
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(container.textContent).toContain("Wrote the first algorithm");
+  });
+});
+
 describe("a cell this reader may not write", () => {
   const ROW = [{ id: 1, title: "Ada", active: true }];
 

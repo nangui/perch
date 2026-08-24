@@ -577,6 +577,18 @@ export class ResourceRegistry implements OnModuleInit {
             },
           ];
         }
+        // A field no client may set can never be written from a cell, whatever
+        // kind of control the column draws over it.
+        if (!field.acceptsClient) {
+          return [
+            {
+              field: column.state.path,
+              problem:
+                "offers a control in the table over a field no client may set, " +
+                "so the write would be turned away before anything read it",
+            },
+          ];
+        }
         // The path existing is not enough: a switch over a text field wrote a
         // boolean into a text column, because the field takes any scalar and
         // the column only ever asked itself what it wanted.
