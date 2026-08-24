@@ -13,6 +13,7 @@ import {
   ColorColumn,
   ColorPicker,
   CreateAction,
+  DateRangeFilter,
   DateTimePicker,
   DeleteAction,
   EditAction,
@@ -215,6 +216,10 @@ export class PersonResource {
           // because "not filtered" and "filtered to false" are different
           // questions and a checkbox can only ask one of them.
           TernaryFilter.make("onCall").label("On call"),
+          // Two boxes, one value, one parameter — and the far end is the day
+          // asked for included whole, which is the arithmetic that quietly
+          // drops the last day of every range when nobody does it.
+          DateRangeFilter.make("startsAt").label("Starts").timezone("Europe/Paris"),
         ])
         // Restore brings a marked row back and asks nothing; force delete leaves
         // nothing to bring back, so it asks first and takes its own policy.

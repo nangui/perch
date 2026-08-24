@@ -471,8 +471,35 @@ function matches(row: Row, clauses: readonly Clause[] | undefined): boolean {
     if (clause.operator === "in") {
       return Array.isArray(clause.value) && clause.value.includes(value);
     }
-    return value === clause.value;
+    // What a range is made of. Ordered rather than compared for equality, and
+    // dates unwrapped to the number they stand for — two `Date` objects for the
+    // same instant are never `===`, so the fall-through below would have drawn
+    // the control and ignored it.
+    const ordered = ORDERINGS[clause.operator];
+    if (ordered !== undefined) {
+      const left = ordinal(value);
+      const right = ordinal(clause.value);
+      return left === undefined || right === undefined ? false : ordered(left, right);
+    }
+    return ordinal(value) === undefined
+      ? value === clause.value
+      : ordinal(value) === ordinal(clause.value);
   });
+}
+
+const ORDERINGS: Partial<
+  Record<Clause["operator"], (a: number, b: number) => boolean>
+> = {
+  lt: (a, b) => a < b,
+  lte: (a, b) => a <= b,
+  gt: (a, b) => a > b,
+  gte: (a, b) => a >= b,
+};
+
+/** What a value is worth in an ordering, or nothing where it cannot be placed. */
+function ordinal(value: unknown): number | undefined {
+  if (value instanceof Date) return value.getTime();
+  return typeof value === "number" ? value : undefined;
 }
 
 /** Sorting and searching compare text; anything a cell cannot show is nothing. */
