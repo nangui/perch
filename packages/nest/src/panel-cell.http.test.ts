@@ -320,6 +320,16 @@ describe("a choice written from a table", () => {
     expect(writes).toEqual([{ id: 1, data: { set: { role: "member" } } }]);
   });
 
+  it("clears the cell where the reader chose nothing", async () => {
+    // Nothing is a value a reader chooses, and whether the field allows it is
+    // the field's own answer.
+    const { status, body } = await write({ path: "role", value: null });
+
+    expect(status).toBe(200);
+    expect(body.value).toBeNull();
+    expect(writes).toEqual([{ id: 1, data: { set: { role: null } } }]);
+  });
+
   it("refuses one it did not, whatever the cell sent", async () => {
     // Membership is the field's answer, given once, at the boundary.
     const { status, body } = await write({ path: "role", value: "owner" });

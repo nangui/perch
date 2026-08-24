@@ -336,7 +336,11 @@ function choose(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode
   return (
     <select
       ref={(element) => {
-        if (element === null || element === document.activeElement) return;
+        // Unconditionally, unlike a line of text: there is nothing half-typed
+        // in a list to protect, and choosing leaves the focus on the control —
+        // so skipping a focused one left a refused choice on screen, over a row
+        // that says otherwise.
+        if (element === null) return;
         const now = held ?? "";
         if (element.value !== now) element.value = now;
       }}
@@ -346,14 +350,23 @@ function choose(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode
       disabled={cell.pending}
       data-pending={cell.pending ? "true" : undefined}
       onChange={(event) => {
-        cell.write?.(event.target.value);
+        // Nothing is `null` rather than the empty string: a column that may hold
+        // nothing should come back to nothing, not to a blank.
+        cell.write?.(event.target.value === "" ? null : event.target.value);
       }}
     >
-      {/* What a cell holding nothing shows. Not a choice anybody may pick: the
-          field decides whether it may be emptied, and it says so by refusing. */}
-      {held === null ? <option value="">—</option> : null}
+      {/* Always offered, whatever the cell holds: a control that can take a
+          value and never give it back is a one-way door. Whether the field
+          allows nothing is the field's answer, and it gives it by refusing. */}
+      <option value="">—</option>
       {options.map((option) => (
-        <option key={String(option.value)} value={String(option.value)}>
+        <option
+          key={String(option.value)}
+          value={String(option.value)}
+          // The server said this one may not be chosen. Offered anyway, it is
+          // picked, refused at the boundary, and nothing happens.
+          disabled={option.disabled === true}
+        >
           {option.label}
         </option>
       ))}

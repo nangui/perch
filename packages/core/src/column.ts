@@ -393,14 +393,18 @@ export class SelectColumn extends WritableColumn {
   }
 
   /**
-   * One value, and the field says which ones.
+   * One value, or none, and the field says which ones.
    *
    * Nothing about membership here: the field holds the list, resolves it per
    * request, and refuses what is not in it. Asking the same question twice is
    * how the two answers come to differ.
+   *
+   * Nothing is a value a reader can choose — a cell that could take a value and
+   * never give it back is a one-way door — and whether the field allows it is
+   * the field's own answer, given by `required` like everywhere else.
    */
   override admits(value: unknown): boolean {
-    return typeof value === "string" || typeof value === "number";
+    return value === null || typeof value === "string" || typeof value === "number";
   }
 
   override fits(field: Field): boolean {

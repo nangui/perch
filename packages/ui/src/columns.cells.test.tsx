@@ -482,7 +482,9 @@ describe("a choice in a cell", () => {
     // the row by, which is its own test above.
     const box = screen.getByRole("combobox", { name: "Role" });
 
+    // The way back to nothing, then the field's own list and nothing else.
     expect([...box.querySelectorAll("option")].map((one) => one.textContent)).toEqual([
+      "—",
       "Lead",
       "Member",
     ]);
@@ -497,6 +499,68 @@ describe("a choice in a cell", () => {
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "member" } });
 
     expect(onCellWrite).toHaveBeenCalledWith(ROW[0], expect.anything(), "member");
+  });
+
+  it("offers a way back to nothing, whatever it holds", () => {
+    // A control that can take a value and never give it back is a one-way
+    // door. Whether the field allows nothing is the field's answer.
+    const onCellWrite = vi.fn();
+    draw(COLUMN, ROW, { onCellWrite });
+    const box = screen.getByRole("combobox");
+
+    expect([...box.querySelectorAll("option")].map((one) => one.value)).toContain("");
+
+    fireEvent.change(box, { target: { value: "" } });
+
+    // `null` rather than a blank: a column that may hold nothing comes back to
+    // nothing.
+    expect(onCellWrite).toHaveBeenCalledWith(ROW[0], expect.anything(), null);
+  });
+
+  it("does not offer a choice the server closed", () => {
+    draw(
+      {
+        ...COLUMN,
+        options: [
+          { value: "lead", label: "Lead" },
+          { value: "guest", label: "Guest", disabled: true },
+        ],
+      },
+      ROW,
+      { onCellWrite: vi.fn() },
+    );
+
+    const shut = [...screen.getByRole("combobox").querySelectorAll("option")].filter(
+      (one) => one.disabled,
+    );
+
+    expect(shut.map((one) => one.value)).toEqual(["guest"]);
+  });
+
+  it("goes back to the row when a choice is refused", () => {
+    // Choosing leaves the focus on the control, and there is nothing
+    // half-typed in a list to protect — so the answer is taken back whatever
+    // the reader is standing in.
+    const columns: ColumnTree = {
+      actions: [],
+      filters: [],
+      headerActions: [],
+      bulkActions: [],
+      columns: [COLUMN],
+    };
+    const { rerender } = render(
+      <DataTable columns={columns} rows={ROW} caption="People" onCellWrite={vi.fn()} />,
+    );
+    const box = screen.getByRole("combobox");
+    box.focus();
+    fireEvent.change(box, { target: { value: "member" } });
+
+    // Refused: the row still holds what it held.
+    rerender(
+      <DataTable columns={columns} rows={ROW} caption="People" onCellWrite={vi.fn()} />,
+    );
+
+    expect(screen.getByRole("combobox")).toHaveProperty("value", "lead");
   });
 
   it("shows a cell holding nothing as holding nothing", () => {
