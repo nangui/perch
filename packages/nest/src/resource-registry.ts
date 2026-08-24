@@ -25,6 +25,7 @@ import {
   declaredActions,
   entryPaths,
   entryRelations,
+  DateRangeFilter,
   TernaryFilter,
   TrashedFilter,
   describeComplaints,
@@ -47,6 +48,35 @@ export const PANEL_RESOURCE_TYPES = Symbol("PERCH_PANEL_RESOURCE_TYPES");
 
 /** Segments the panel already routes under its own path. */
 const RESERVED_SLUGS = new Set(["assets", "api"]);
+
+/**
+ * Which filters need a column of a particular type, and what goes wrong.
+ *
+ * A list rather than a chain of `instanceof`, so the next one that compares
+ * rather than matches is a line here instead of a check somebody forgets.
+ */
+const ASKS: readonly {
+  /** A predicate rather than a class: a private constructor is not a type. */
+  readonly of: (filter: object) => boolean;
+  readonly wants: string;
+  readonly asking: string;
+  readonly consequence: string;
+}[] = [
+  {
+    of: (filter) => filter instanceof TernaryFilter,
+    wants: "Boolean",
+    asking: "asks yes or no of",
+    consequence: "the comparison matches nothing, on every row",
+  },
+  {
+    of: (filter) => filter instanceof DateRangeFilter,
+    wants: "DateTime",
+    asking: "asks for a range of dates in",
+    consequence:
+      "a date compared against a column that holds none is an empty table on " +
+      "one adapter and a failed request on another",
+  },
+];
 
 export type ResourceClass = new (...args: never[]) => PanelResource;
 
@@ -303,10 +333,14 @@ export class ResourceRegistry implements OnModuleInit {
   }
 
   /**
-   * A ternary filter on a column that does not hold one of two answers.
+   * A filter asking a column a question its type cannot answer.
    *
    * `equals true` against a `String` matches nothing, on every row, for ever —
-   * an empty table that reads as a table with nothing in it.
+   * an empty table that reads as a table with nothing in it. A range is worse,
+   * because the two adapters disagree about it: Prisma refuses a `Date`
+   * against a `String` column and the request becomes a 500, while an
+   * in-memory one compares what it can and returns nothing. Either way the
+   * line that was wrong is not the one that says so.
    */
   #unaskableFilters(
     model: string,
@@ -317,7 +351,9 @@ export class ResourceRegistry implements OnModuleInit {
     if (findModel(ir, model) === undefined) return [];
 
     return table.state.filters.flatMap((filter) => {
-      if (!(filter instanceof TernaryFilter)) return [];
+      const asks = ASKS.find(({ of }) => of(filter));
+      if (asks === undefined) return [];
+
       let type: string | undefined;
       try {
         type = resolvePath(ir, model, filter.state.path).field.type;
@@ -326,13 +362,13 @@ export class ResourceRegistry implements OnModuleInit {
         // saying it twice helps nobody.
         return [];
       }
-      if (type === "Boolean") return [];
+      if (type === asks.wants) return [];
       return [
         {
           field: filter.state.name,
           problem:
-            `asks yes or no of \`${filter.state.path}\`, which is a \`${type}\` — ` +
-            "the comparison matches nothing, on every row",
+            `${asks.asking} \`${filter.state.path}\`, which is a \`${type}\` — ` +
+            asks.consequence,
         },
       ];
     });

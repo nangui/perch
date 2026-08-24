@@ -29,6 +29,7 @@ import {
   Table,
   TextColumn,
   TextFilter,
+  DateRangeFilter,
   TernaryFilter,
   TextInput,
   TrashedFilter,
@@ -603,6 +604,42 @@ describe("a ternary filter on a column that holds no yes or no", () => {
           await ref.init();
         }),
     ).rejects.toThrow(/matches nothing/);
+  });
+});
+
+describe("a range of dates over a column that holds none", () => {
+  it("stops the boot rather than failing on the first filtered request", async () => {
+    // The two adapters disagree about it, which is the worst way to be wrong:
+    // Prisma refuses a `Date` against a `String` column and the request is a
+    // 500, while an in-memory one compares what it can and returns nothing.
+    @PanelResource({ model: "Post", slug: "unrangeable" })
+    class UnrangeableResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .filters([DateRangeFilter.make("title")]);
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [UnrangeableResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/range of dates/);
   });
 });
 
