@@ -115,6 +115,7 @@ export type { DateRangeFilterState, FilterState } from "./filter.js";
 export {
   DateRangeFilter,
   Filter,
+  NumberRangeFilter,
   SelectFilter,
   TernaryFilter,
   TextFilter,

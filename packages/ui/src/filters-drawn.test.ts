@@ -24,12 +24,19 @@ function declared(): readonly string[] {
     .sort();
 }
 
-/** The type names the bar tests before it draws anything. */
+/**
+ * The type names the bar knows what to do with.
+ *
+ * Two ways to know one, because two of them are drawn by the same pair of
+ * boxes and are looked up in a table rather than compared one at a time. A
+ * pattern that only knew the comparison stopped seeing them the day they moved
+ * — passing, with two filters no longer drawn.
+ */
 function drawn(): readonly string[] {
   const source = readFileSync(new URL("./PanelList.tsx", import.meta.url), "utf8");
-  return [...source.matchAll(/filter\.type === "(\w+Filter)"/g)]
-    .map((found) => found[1] as string)
-    .sort();
+  const compared = [...source.matchAll(/filter\.type === "(\w+Filter)"/g)];
+  const tabled = [...source.matchAll(/^ {2}(\w+Filter): \{/gm)];
+  return [...compared, ...tabled].map((found) => found[1] as string).sort();
 }
 
 describe("the filters a table can declare", () => {

@@ -877,6 +877,117 @@ describe("narrowing by a range of dates", () => {
   });
 });
 
+describe("narrowing by a range of numbers", () => {
+  const ranged = (over: Partial<RecordsPage> = {}): RecordsPage => ({
+    ...PAGE,
+    columns: {
+      ...PAGE.columns,
+      filters: [{ type: "NumberRangeFilter", name: "price", label: "Price" }],
+    },
+    ...over,
+  });
+
+  it("draws two boxes under one name, each named for a screen reader", () => {
+    render(<PanelList initial={ranged()} title="Posts" fetchPage={vi.fn()} />);
+
+    expect(screen.getByRole("group", { name: "Price" })).toBeTruthy();
+    expect(screen.getByLabelText("Price from")).toBeTruthy();
+    expect(screen.getByLabelText("Price to")).toBeTruthy();
+  });
+
+  it("asks for a numeric keypad without asking for a number input", () => {
+    // A number input brings spinners, silent locale parsing and a scroll-wheel
+    // trap — and it holds `1e` as an empty value it calls bad input, which
+    // makes it invalid. One invalid box in this form stops every filter in it.
+    render(<PanelList initial={ranged()} title="Posts" fetchPage={vi.fn()} />);
+
+    for (const name of ["Price from", "Price to"]) {
+      const box = screen.getByLabelText(name);
+      expect(box.getAttribute("type")).toBe("text");
+      expect(box.getAttribute("inputmode")).toBe("decimal");
+    }
+  });
+
+  it("sends both ends as one value, under one name", () => {
+    const fetchPage = vi.fn(() => Promise.resolve(ranged()));
+    render(<PanelList initial={ranged()} title="Posts" fetchPage={fetchPage} />);
+
+    fireEvent.change(screen.getByLabelText("Price from"), { target: { value: "10" } });
+    fireEvent.change(screen.getByLabelText("Price to"), { target: { value: "20" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ filters: { price: "10..20" } }),
+    );
+  });
+
+  it("sends both boxes emptied as no filter at all", () => {
+    const fetchPage = vi.fn(() => Promise.resolve(ranged()));
+    render(<PanelList initial={ranged()} title="Posts" fetchPage={fetchPage} />);
+
+    const from = screen.getByLabelText("Price from");
+    fireEvent.change(from, { target: { value: "10" } });
+    fireEvent.change(from, { target: { value: "" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.not.objectContaining({ filters: expect.anything() }),
+    );
+  });
+
+  it("leaves out an end no box can hold, rather than claiming it", () => {
+    render(
+      <PanelList
+        initial={ranged({ filters: { price: "1e3..20" } })}
+        title="Posts"
+        fetchPage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText<HTMLInputElement>("Price from").value).toBe("");
+    expect(screen.getByLabelText<HTMLInputElement>("Price to").value).toBe("20");
+  });
+
+  it("lets a decimal and a negative be typed, a character at a time", () => {
+    // The boxes used to be tidied on every render, so a half-typed value was
+    // erased as it was written: `1.` is not a number yet and `-` is not yet
+    // anything, which made `1.5` come out as `15` and `-4` as `4`. Both are
+    // values the server accepts.
+    const fetchPage = vi.fn(() => Promise.resolve(ranged()));
+    render(<PanelList initial={ranged()} title="Posts" fetchPage={fetchPage} />);
+
+    const from = screen.getByLabelText<HTMLInputElement>("Price from");
+    for (const so_far of ["1", "1.", "1.5"]) {
+      fireEvent.change(from, { target: { value: so_far } });
+      expect(from.value).toBe(so_far);
+    }
+
+    const to = screen.getByLabelText<HTMLInputElement>("Price to");
+    for (const so_far of ["-", "-4"]) {
+      fireEvent.change(to, { target: { value: so_far } });
+      expect(to.value).toBe(so_far);
+    }
+
+    fireEvent.submit(screen.getByRole("search"));
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ filters: { price: "1.5..-4" } }),
+    );
+  });
+
+  it("holds a decimal and a number below nothing", () => {
+    render(
+      <PanelList
+        initial={ranged({ filters: { price: "-40..2.75" } })}
+        title="Posts"
+        fetchPage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText<HTMLInputElement>("Price from").value).toBe("-40");
+    expect(screen.getByLabelText<HTMLInputElement>("Price to").value).toBe("2.75");
+  });
+});
+
 describe("narrowing by a choice", () => {
   const chooser = (over: Partial<RecordsPage> = {}): RecordsPage => ({
     ...PAGE,

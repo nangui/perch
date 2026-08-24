@@ -185,13 +185,13 @@ export function PanelList({
    */
   const [typed, setTyped] = useState(initial.search ?? "");
   const [entered, setEntered] = useState<Readonly<Record<string, string>>>(
-    initial.filters ?? {},
+    asEntered(initial),
   );
   const [reconciled, setReconciled] = useState(stamp(initial));
   if (stamp(page) !== reconciled) {
     setReconciled(stamp(page));
     setTyped(page.search ?? "");
-    setEntered(page.filters ?? {});
+    setEntered(asEntered(page));
   }
 
   /**
@@ -796,16 +796,20 @@ function narrowing(
         // submit it and the search box and every other filter stop working
         // with it. The server already answers a range whose ends cross, with
         // the empty table that range describes.
-        if (filter.type === "DateRangeFilter") {
-          const entered = state.entered[filter.name] ?? "";
-          const at = entered.indexOf("..");
-          // Only a half a box can hold. A date input silently blanks a value
-          // it refuses, so an end the server dropped would otherwise sit in an
-          // empty box beside a link that still claims it.
-          const half = (value: string): string =>
-            DAY.test(value.trim()) ? value.trim() : "";
-          const from = at === -1 ? "" : half(entered.slice(0, at));
-          const to = at === -1 ? "" : half(entered.slice(at + 2));
+        const range = RANGES[filter.type];
+        if (range !== undefined) {
+          // Split and shown as they are. Tidying here instead — dropping a half
+          // that is not yet a value — erases what a reader is halfway through
+          // typing: `1.` is not a number yet and `-` is not yet anything, so a
+          // decimal and a negative could not be entered at all. What the server
+          // would not read is dropped once, where the answer arrives.
+          const held = state.entered[filter.name] ?? "";
+          // Cut at the last separator, the same way the server does: `1.` and
+          // an empty far end join into `1...`, and cutting at the front takes
+          // the reader's decimal point for the separator.
+          const at = held.lastIndexOf("..");
+          const from = at === -1 ? "" : held.slice(0, at);
+          const to = at === -1 ? "" : held.slice(at + 2);
           const set = (start: string, end: string): void => {
             state.setEntered({
               ...state.entered,
@@ -824,7 +828,7 @@ function narrowing(
                 <span className="perch-visually-hidden">{named} from</span>
                 <input
                   className="perch-control"
-                  type="date"
+                  {...range.box}
                   value={from}
                   onChange={(event) => {
                     set(event.target.value, to);
@@ -838,7 +842,7 @@ function narrowing(
                 <span className="perch-visually-hidden">{named} to</span>
                 <input
                   className="perch-control"
-                  type="date"
+                  {...range.box}
                   value={to}
                   onChange={(event) => {
                     set(from, event.target.value);
@@ -858,8 +862,64 @@ function narrowing(
   );
 }
 
-/** `YYYY-MM-DD`, which is the only value a date box will take. */
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
+/**
+ * What the boxes start from, once an answer has arrived.
+ *
+ * The server says which filters it applied and with what, and a range it could
+ * only half read comes back with the half it dropped left out. This does the
+ * same for anything the box itself will not show, so the control never claims
+ * a narrowing that never happened — and it happens here, once, rather than on
+ * every render: the same tidying applied while a reader types erases `1.` on
+ * the way to `1.5`.
+ */
+function asEntered(page: RecordsPage): Readonly<Record<string, string>> {
+  const applied = page.filters ?? {};
+  const shapes = new Map(
+    page.columns.filters.map((filter) => [filter.name, RANGES[filter.type]?.holds]),
+  );
+
+  return Object.fromEntries(
+    Object.entries(applied).map(([name, value]) => {
+      const holds = shapes.get(name);
+      if (holds === undefined) return [name, value];
+
+      const at = value.lastIndexOf("..");
+      if (at === -1) return [name, ""];
+      const half = (part: string): string =>
+        holds.test(part.trim()) ? part.trim() : "";
+      return [name, `${half(value.slice(0, at))}..${half(value.slice(at + 2))}`];
+    }),
+  );
+}
+
+/**
+ * The filters drawn as two boxes, and what each box takes.
+ *
+ * A number is a text box with a numeric keypad rather than `type="number"`,
+ * which is the decision a text field already made here: spinners, silent
+ * locale parsing and a scroll-wheel trap. It also keeps the bar submitting —
+ * a number input holds `1e` as an empty value it calls bad input, which makes
+ * it `:invalid`, and one invalid box in this form stops every filter in it.
+ *
+ * `holds` is what a box will show. An end the server dropped has to leave the
+ * box empty rather than sit in it, or the control claims a narrowing that was
+ * never applied.
+ */
+const RANGES: Readonly<
+  Record<
+    string,
+    {
+      readonly holds: RegExp;
+      readonly box: Readonly<Record<string, string>>;
+    }
+  >
+> = {
+  DateRangeFilter: { holds: /^\d{4}-\d{2}-\d{2}$/, box: { type: "date" } },
+  NumberRangeFilter: {
+    holds: /^-?\d+(?:\.\d+)?$/,
+    box: { type: "text", inputMode: "decimal" },
+  },
+};
 
 /**
  * What the table says when it has nothing to show.

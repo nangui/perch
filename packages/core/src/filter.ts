@@ -328,9 +328,17 @@ export class DateRangeFilter extends Filter {
   }
 }
 
-/** The two ends, each present only if it is shaped like a day. */
+/**
+ * The two ends, each present only if it is shaped like a day.
+ *
+ * Cut at the last separator rather than the first, which is the same rule the
+ * range of numbers needs and so the same rule here. A value ending in a dot is
+ * a decimal halfway through being typed, and joining it to an empty far end
+ * makes three dots — read from the front, the reader's dot becomes the
+ * separator and disappears from under them.
+ */
 function split(value: string): readonly [string | undefined, string | undefined] {
-  const at = value.indexOf("..");
+  const at = value.lastIndexOf("..");
   if (at === -1) return [undefined, undefined];
 
   const from = value.slice(0, at).trim();
@@ -361,4 +369,112 @@ function dayAfter(day: string): string | undefined {
   // not a day. It parses anyway, which is how it would have gone unnoticed.
   const after = next.toISOString().slice(0, 10);
   return isRealDay(after) ? after : undefined;
+}
+
+/**
+ * Between two numbers, either end left open.
+ *
+ * Simpler than the range of dates above it, and for one reason: a number names
+ * a point where a date names a whole day. So both ends are inclusive — "10 to
+ * 20" holds 20 — and there is no zone to argue about and no day-after to work
+ * out. What is left is deciding what counts as a number, which a URL has an
+ * opinion about and this does not have to share.
+ *
+ * The shape is deliberately narrow: an optional sign, digits, and at most one
+ * decimal part. No exponent, no `Infinity`, no hex, no leading `+`, no spaces
+ * inside. Everything `Number()` would quietly accept and nobody would type.
+ *
+ * The value crosses as `from..to`, the same way the range of dates does, so a
+ * narrowed page is still one link. Either side may be empty: `10..` is
+ * everything from, `..20` everything up to.
+ */
+const NUMBER = /^-?\d+(?:\.\d+)?$/;
+
+export class NumberRangeFilter extends Filter {
+  static make(name: string): NumberRangeFilter {
+    return new NumberRangeFilter({ name, path: name, operator: "gte" });
+  }
+
+  override get type(): string {
+    return "NumberRangeFilter";
+  }
+
+  protected override with(state: FilterState): this {
+    return new NumberRangeFilter(state) as this;
+  }
+
+  /** Only the ends it could read, so the two boxes and the link agree. */
+  override applied(value: string): string {
+    const [from, to] = ends(value);
+    return `${from ?? ""}..${to ?? ""}`;
+  }
+
+  override clauses(value: string): readonly Clause[] {
+    const [from, to] = ends(value);
+    const clauses: Clause[] = [];
+
+    // Both inclusive. A number is a point, not a span, so there is nothing at
+    // the far end that `lte` would wrongly take in.
+    if (from !== undefined) {
+      clauses.push({ path: this.state.path, operator: "gte", value: figure(from) });
+    }
+    if (to !== undefined) {
+      clauses.push({ path: this.state.path, operator: "lte", value: figure(to) });
+    }
+
+    return clauses;
+  }
+}
+
+/** The number, and never minus nothing: `-0` is a value no column holds. */
+function figure(text: string): number {
+  const parsed = Number(text);
+  return Object.is(parsed, -0) ? 0 : parsed;
+}
+
+/**
+ * Whether a double names this number and not one beside it.
+ *
+ * A bound that rounds is a bound nobody asked for, and the rows on it end up
+ * on the wrong side of a comparison with nothing to show that it moved:
+ * `9007199254740993` comes back as `...992`, and `1.0000000000000001` comes
+ * back as `1` — which is exactly the value a `Decimal` column exists to keep
+ * apart from its neighbours.
+ *
+ * Asked by printing the double and comparing it with the text written the same
+ * way. That also refuses the magnitudes where printing switches to an exponent
+ * — a billion billion and up, a ten-millionth and down — which is the safe
+ * direction and far outside anything typed into a box.
+ */
+function survives(text: string): boolean {
+  return String(Number(text)) === plainly(text);
+}
+
+/** The same number without the zeros that carry no meaning. */
+function plainly(text: string): string {
+  const negative = text.startsWith("-");
+  const [whole = "", fraction = ""] = (negative ? text.slice(1) : text).split(".");
+  const left = whole.replace(/^0+(?=\d)/, "");
+  const right = fraction.replace(/0+$/, "");
+  const body = right === "" ? left : `${left}.${right}`;
+  // Minus nothing is nothing, which is what printing a double says too.
+  return negative && Number(body) !== 0 ? `-${body}` : body;
+}
+
+/** The two ends, each present only if it is a number this can carry exactly. */
+function ends(value: string): readonly [string | undefined, string | undefined] {
+  // The last separator, not the first: `1.` and an empty far end join into
+  // `1...`, and cutting at the front hands the reader's decimal point to the
+  // separator. A far end can never begin with a dot — a number here starts
+  // with a digit — so the last cut is the only one that can be meant.
+  const at = value.lastIndexOf("..");
+  if (at === -1) return [undefined, undefined];
+
+  const read = (text: string): string | undefined => {
+    const trimmed = text.trim();
+    if (!NUMBER.test(trimmed)) return undefined;
+    return survives(trimmed) ? trimmed : undefined;
+  };
+
+  return [read(value.slice(0, at)), read(value.slice(at + 2))];
 }
