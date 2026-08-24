@@ -47,6 +47,7 @@ import {
   TextEntry,
   TextFilter,
   TextInput,
+  TextInputColumn,
   Toggle,
   ToggleButtons,
   ToggleColumn,
@@ -184,7 +185,9 @@ export class PersonResource {
           // unread.
           ImageColumn.make("avatar").label("").disk("default").circular().size(28),
           TextColumn.make("firstName").label("First name").sortable().searchable(),
-          TextColumn.make("lastName").label("Last name").searchable(),
+          // A line of text, edited where it is read — and still written through
+          // the form, so `required` on the field holds here too.
+          TextInputColumn.make("lastName").label("Last name").searchable(),
           TextColumn.make("city").label("City"),
           // Reads through the relation. One `include` for the page, never one
           // query per row.
