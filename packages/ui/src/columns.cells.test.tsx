@@ -251,6 +251,52 @@ describe("a line of text in a cell", () => {
     );
   });
 
+  it("names the row even where the reading column is an editable one", () => {
+    // A column of text is what a reader reads the row by, editable or not.
+    // Counting only the read-only ones left every control named after its
+    // column and nothing else, a hundred times down the page.
+    const columns: ColumnTree = {
+      actions: [],
+      filters: [],
+      headerActions: [],
+      bulkActions: [],
+      columns: [
+        { type: "TextInputColumn", path: "title", label: "Title", editable: true },
+        { type: "ToggleColumn", path: "active", label: "Active", editable: true },
+      ],
+    };
+    render(
+      <DataTable
+        columns={columns}
+        rows={[{ id: 1, title: "Ada", active: false }]}
+        caption="People"
+        onCellWrite={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("switch", { name: "Active: Ada" })).toBeTruthy();
+  });
+
+  it("draws the box the field asked for, and takes what it takes", () => {
+    // The form owns the rules; the cell is told rather than left to guess. A
+    // bare line of text over an address only says no after the round trip.
+    draw(
+      {
+        type: "TextInputColumn",
+        path: "note",
+        editable: true,
+        flavour: "email",
+        maxLength: 20,
+      },
+      ROW,
+      { onCellWrite: vi.fn() },
+    );
+    const box = screen.getByRole("textbox");
+
+    expect(box.getAttribute("type")).toBe("email");
+    expect(box.getAttribute("maxlength")).toBe("20");
+  });
+
   it("says nothing while it is being typed", () => {
     // A write per keystroke is a write per keystroke.
     const onCellWrite = vi.fn();
@@ -300,6 +346,97 @@ describe("a line of text in a cell", () => {
     fireEvent.blur(screen.getByRole("textbox"));
 
     expect(onCellWrite).not.toHaveBeenCalled();
+  });
+
+  it("keeps the cursor where it was when Enter commits", () => {
+    // The element is replaced when the value it was given changes, and the
+    // value in flight is not that value: a box the reader is still standing in
+    // must not be pulled out from under them.
+    const onCellWrite = vi.fn();
+    const columns: ColumnTree = {
+      actions: [],
+      filters: [],
+      headerActions: [],
+      bulkActions: [],
+      columns: [COLUMN],
+    };
+    const { rerender } = render(
+      <DataTable
+        columns={columns}
+        rows={ROW}
+        caption="People"
+        onCellWrite={onCellWrite}
+      />,
+    );
+
+    const box = screen.getByRole("textbox");
+    box.focus();
+    fireEvent.change(box, { target: { value: "Wrote the first compiler" } });
+    fireEvent.keyDown(box, { key: "Enter" });
+
+    // The write is in flight now, and the row still holds what it held.
+    rerender(
+      <DataTable
+        columns={columns}
+        rows={ROW}
+        caption="People"
+        onCellWrite={onCellWrite}
+        cellPending={() => true}
+        cellAsked={() => "Wrote the first compiler"}
+      />,
+    );
+
+    expect(document.activeElement).toBe(screen.getByRole("textbox"));
+    expect(screen.getByRole("textbox")).toHaveProperty(
+      "value",
+      "Wrote the first compiler",
+    );
+
+    // And when the answer lands, the row itself changes. That is the moment the
+    // cursor used to go: the element was replaced because the value it had been
+    // given was no longer the same.
+    rerender(
+      <DataTable
+        columns={columns}
+        rows={[{ id: 1, title: "Ada", note: "Wrote the first compiler" }]}
+        caption="People"
+        onCellWrite={onCellWrite}
+      />,
+    );
+
+    expect(document.activeElement).toBe(screen.getByRole("textbox"));
+  });
+
+  it("takes the server's answer where nobody is standing in the box", () => {
+    const columns: ColumnTree = {
+      actions: [],
+      filters: [],
+      headerActions: [],
+      bulkActions: [],
+      columns: [COLUMN],
+    };
+    const { rerender } = render(
+      <DataTable columns={columns} rows={ROW} caption="People" onCellWrite={vi.fn()} />,
+    );
+
+    expect(screen.getByRole("textbox")).toHaveProperty(
+      "value",
+      "Wrote the first algorithm",
+    );
+
+    rerender(
+      <DataTable
+        columns={columns}
+        rows={[{ id: 1, title: "Ada", note: "Something the server said" }]}
+        caption="People"
+        onCellWrite={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("textbox")).toHaveProperty(
+      "value",
+      "Something the server said",
+    );
   });
 
   it("puts the row's value back on Escape", () => {

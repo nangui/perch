@@ -27,6 +27,14 @@ export interface CellHandle {
   /** A write is in flight for this cell. The control says so and refuses input. */
   readonly pending: boolean;
   /**
+   * What was asked for, while it is in flight.
+   *
+   * Beside the value rather than in place of it, because the two are for
+   * different controls: one the reader cannot type into shows what was asked
+   * so the click registers, and one they can type into is already showing it.
+   */
+  readonly asked?: unknown;
+  /**
    * What this row is called, for naming a control inside it.
    *
    * Read from the table rather than from the row: a cell cannot tell an avatar's

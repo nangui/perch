@@ -10,6 +10,7 @@ import { NotFoundException } from "@nestjs/common";
 import type {
   Clause,
   ColumnTree,
+  Component,
   DataAdapter,
   Id,
   Query,
@@ -18,6 +19,7 @@ import type {
   Table,
 } from "@perchjs/core";
 import {
+  Field,
   findModel,
   presentRows,
   serialiseTable,
@@ -137,6 +139,7 @@ export async function listRecords(
     // that wants one answers `needs-record`, and the cell is offered: the write
     // itself asks again with the row, which is where the answer is real.
     mayWrite: (await authorize(can, "edit", user)) !== "denied",
+    form: resource.instance.form(),
     ...pathOrNothing(resourcePath(root, resource.metadata.slug)),
   });
 }
@@ -175,6 +178,8 @@ export async function listOf(options: {
    * has not thought about it offers no control, which is the safe way round.
    */
   readonly mayWrite?: boolean;
+  /** The form that owns the fields a writable column writes through. */
+  readonly form?: Component;
 }): Promise<RecordsResponse> {
   const { data, model, table, raw, scope } = options;
   const mayReadDeleted = options.mayReadDeleted ?? true;
@@ -210,6 +215,7 @@ export async function listOf(options: {
         : offered(
             serialiseTable(table),
             table,
+            options.form,
             mayReadDeleted,
             options.mayWrite === true,
           ),
@@ -243,20 +249,48 @@ export async function listOf(options: {
 function offered(
   columns: ColumnTree,
   table: Table,
+  form: Component | undefined,
   mayReadDeleted: boolean,
   mayWrite: boolean,
 ): ColumnTree {
   const declared = table.state.columns;
+  const fields = new Map(
+    (form === undefined ? [] : everything(form))
+      .filter((component): component is Field => component instanceof Field)
+      .map((field) => [field.name, field] as const),
+  );
+
   return {
     ...columns,
     columns: columns.columns.map((column, at) =>
       mayWrite && declared[at] instanceof WritableColumn
-        ? { ...column, editable: true as const }
+        ? { ...column, editable: true as const, ...hints(fields.get(column.path)) }
         : column,
     ),
     filters: mayReadDeleted
       ? columns.filters
       : columns.filters.filter((one) => one.type !== "TrashedFilter"),
+  };
+}
+
+/** Every component in a tree, so a path can be looked up wherever it sits. */
+function everything(component: Component): readonly Component[] {
+  return [component, ...component.children.flatMap(everything)];
+}
+
+/**
+ * What a field says about itself that a cell needs to draw a control.
+ *
+ * The form owns the rules, so the cell is told rather than asked to guess: the
+ * kind of box, and how much it takes. Without this a cell draws a bare line of
+ * text over an address and only says no after the round trip.
+ */
+function hints(field: Field | undefined): { flavour?: string; maxLength?: number } {
+  if (field === undefined) return {};
+  const state = field.state as { flavour?: unknown; maxLength?: unknown };
+  return {
+    ...(typeof state.flavour === "string" ? { flavour: state.flavour } : {}),
+    ...(typeof state.maxLength === "number" ? { maxLength: state.maxLength } : {}),
   };
 }
 

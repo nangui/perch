@@ -242,6 +242,19 @@ describe("a cell a table declared writable", () => {
   });
 });
 
+describe("what the table tells the browser about a text cell", () => {
+  it("hands on what the field says about itself", async () => {
+    // The form owns the rules, so the cell is told rather than asked to guess.
+    const response = await fetch(`${url}/admin/api/people/records`);
+    const body = (await response.json()) as {
+      columns: { columns: { path: string; maxLength?: number }[] };
+    };
+    const note = body.columns.columns.find((one) => one.path === "note");
+
+    expect(note?.maxLength).toBe(20);
+  });
+});
+
 describe("a line of text written from a table", () => {
   it("writes what was typed", async () => {
     const { status, body } = await write({ path: "note", value: "a longer note" });

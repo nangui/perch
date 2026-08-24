@@ -58,6 +58,16 @@ export interface ColumnNode {
    * draws what it holds and no control.
    */
   readonly editable?: true;
+  /**
+   * What the field at this path says about itself, for a cell that draws a
+   * control over it: which kind of box, and how much it takes.
+   *
+   * Copied from the form rather than declared on the column, because the form
+   * owns the rules and a column that repeated them would be a second place to
+   * change and a second place to forget.
+   */
+  readonly flavour?: string;
+  readonly maxLength?: number;
 }
 
 /**

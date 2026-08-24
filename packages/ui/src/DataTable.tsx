@@ -82,6 +82,9 @@ export interface DataTableProps {
   };
 }
 
+/** The column types a row can be named by. */
+const READS_TEXT = new Set(["TextColumn", "TextInputColumn"]);
+
 export function DataTable({
   columns,
   rows,
@@ -110,11 +113,21 @@ export function DataTable({
    * row: a projected row carries an avatar's address as readily as a name, and
    * a control announced as a file path is worse than one announced twice.
    */
-  /** What a cell was asked to become, until the server answers about it. */
-  const asked = (row: Row, column: ColumnNode): unknown =>
-    cellPending?.(row, column) === true ? cellAsked?.(row, column) : undefined;
+  /**
+   * What a cell was asked to become, until the server answers about it.
+   *
+   * Handed beside the row's value rather than in place of it: a control the
+   * reader cannot type into needs it to move when pressed, and one they can
+   * type into is already showing what they typed.
+   */
+  const asked = (row: Row, column: ColumnNode): { asked?: unknown } => {
+    if (cellPending?.(row, column) !== true) return {};
+    const value = cellAsked?.(row, column);
+    return value === undefined ? {} : { asked: value };
+  };
 
-  const reading = columns.columns.filter((column) => column.type === "TextColumn");
+  // Editable or not, a column of text is what a reader reads the row by.
+  const reading = columns.columns.filter((column) => READS_TEXT.has(column.type));
   const named = (row: Row): { rowName?: string } => {
     for (const column of reading) {
       const held = readPath(row, column.path);
@@ -234,25 +247,21 @@ export function DataTable({
               <td key={column.path} className="perch-table__cell">
                 {render === undefined
                   ? unknownColumn(column)
-                  : render(
-                      asked(row, column) ?? readPath(row, column.path),
-                      row,
-                      column,
-                      {
-                        // Offered only where the server said this reader may and
-                        // the host said it would carry one out. Either missing is
-                        // a control that does nothing.
-                        ...(column.editable === true && onCellWrite !== undefined
-                          ? {
-                              write: (value: unknown) => {
-                                onCellWrite(row, column, value);
-                              },
-                            }
-                          : {}),
-                        pending: cellPending?.(row, column) === true,
-                        ...named(row),
-                      },
-                    )}
+                  : render(readPath(row, column.path), row, column, {
+                      // Offered only where the server said this reader may and
+                      // the host said it would carry one out. Either missing is
+                      // a control that does nothing.
+                      ...(column.editable === true && onCellWrite !== undefined
+                        ? {
+                            write: (value: unknown) => {
+                              onCellWrite(row, column, value);
+                            },
+                          }
+                        : {}),
+                      pending: cellPending?.(row, column) === true,
+                      ...asked(row, column),
+                      ...named(row),
+                    })}
               </td>
             ))}
             {actions.length === 0 ? null : (

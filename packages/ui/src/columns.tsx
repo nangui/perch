@@ -207,7 +207,10 @@ function toggle(
   cell: CellHandle,
   look: "switch" | "box",
 ): ReactNode {
-  const on = Boolean(value);
+  // What was asked for while it is in flight, and the row's own value the rest
+  // of the time: a switch that does not move when it is pressed reads as one
+  // that did not hear.
+  const on = Boolean(cell.asked ?? value);
   const locked = cell.write === undefined || cell.pending;
 
   return (
@@ -235,6 +238,18 @@ function toggle(
   );
 }
 
+/** The control a flavour asks for, which is the one the form draws. */
+const BOXES: Readonly<Record<string, string>> = {
+  text: "text",
+  email: "email",
+  url: "url",
+  tel: "tel",
+  // Deliberately not `number`: the form's own control is not one either, and a
+  // spinner in a table cell is a scroll wheel that edits the row underneath.
+  numeric: "text",
+  password: "password",
+};
+
 /**
  * A line of text, edited where it is read.
  *
@@ -242,10 +257,11 @@ function toggle(
  * the half-typed value lives in the input itself — which is where a browser
  * keeps one anyway, and which is why this needs no state and breaks no rule.
  *
- * `key` is what puts the server's answer back: React leaves an uncontrolled
- * input alone on re-render, so the element is replaced when the value it was
- * given changes. That costs the focus, and only when the value actually moves —
- * by which time the reader has already left the box.
+ * The server's answer is put back through the element rather than through a
+ * key. Replacing the input on a new value costs the focus, and the value moves
+ * exactly when the answer to the reader's own write lands — so pressing Enter
+ * took the cursor out of the box they were still standing in. Written straight
+ * onto the element, and only while nobody is in it, nothing moves under them.
  *
  * It commits when the box is left and on Enter, never on a keystroke: a write
  * per character is a write per character.
@@ -261,11 +277,20 @@ function line(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode {
 
   return (
     <input
-      key={held}
-      type="text"
+      ref={(element) => {
+        // Left alone while the reader is in it: what they have typed is theirs
+        // until they commit it or leave.
+        if (element === null || element === document.activeElement) return;
+        if (element.value !== held) element.value = held;
+      }}
+      // What the form would have drawn. A bare line of text over an address is
+      // a box that takes anything and only says no after the round trip — and
+      // on a phone it brings up the wrong keyboard.
+      type={BOXES[column.flavour ?? "text"] ?? "text"}
       className="perch-control perch-cell__line"
       aria-label={nameOf(column, cell)}
       defaultValue={held}
+      {...(column.maxLength === undefined ? {} : { maxLength: column.maxLength })}
       data-pending={cell.pending ? "true" : undefined}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
