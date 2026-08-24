@@ -55,9 +55,9 @@ const press = (
 
 describe("a button", () => {
   it("wraps what the reader chose", () => {
-    expect(press("Bold", { value: "Ada Lovelace", from: 0, to: 3 })).toHaveBeenCalledWith(
-      "**Ada** Lovelace",
-    );
+    expect(
+      press("Bold", { value: "Ada Lovelace", from: 0, to: 3 }),
+    ).toHaveBeenCalledWith("**Ada** Lovelace");
   });
 
   it("opens the syntax where they chose nothing", () => {
@@ -128,9 +128,9 @@ describe("the two panels", () => {
     const { container } = draw();
 
     expect(container.querySelector("textarea")?.closest("[hidden]")).toBeNull();
-    expect(container.querySelector(".perch-markdown__preview")?.hasAttribute("hidden")).toBe(
-      true,
-    );
+    expect(
+      container.querySelector(".perch-markdown__preview")?.hasAttribute("hidden"),
+    ).toBe(true);
   });
 
   it("name each other, so a tab controls something", () => {
@@ -141,7 +141,9 @@ describe("the two panels", () => {
 
     expect(tabs).toHaveLength(2);
     for (const tab of tabs) {
-      const panel = container.querySelector(`#${CSS.escape(tab.getAttribute("aria-controls") ?? "")}`);
+      const panel = container.querySelector(
+        `#${CSS.escape(tab.getAttribute("aria-controls") ?? "")}`,
+      );
       expect(panel?.getAttribute("role")).toBe("tabpanel");
       expect(panel?.getAttribute("aria-labelledby")).toBe(tab.id);
     }
@@ -207,7 +209,9 @@ describe("a declared limit", () => {
   it("is counted where the reader can see it", () => {
     const { container } = draw({ value: "Ada", maxLength: 10 });
 
-    expect(container.querySelector(".perch-markdown__count")?.textContent).toBe("3 / 10");
+    expect(container.querySelector(".perch-markdown__count")?.textContent).toBe(
+      "3 / 10",
+    );
   });
 
   it("counts what the person typing counts", () => {
@@ -215,7 +219,9 @@ describe("a declared limit", () => {
     // must agree with the error the server would write under it.
     const { container } = draw({ value: "👨‍👩‍👧", maxLength: 10 });
 
-    expect(container.querySelector(".perch-markdown__count")?.textContent).toBe("1 / 10");
+    expect(container.querySelector(".perch-markdown__count")?.textContent).toBe(
+      "1 / 10",
+    );
   });
 
   it("does not clip the box, nor stop a button", () => {

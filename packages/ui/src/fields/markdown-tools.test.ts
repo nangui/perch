@@ -49,7 +49,9 @@ describe("what a toolbar may name", () => {
       core.indexOf(";", core.indexOf("export type MarkdownTool")),
     );
 
-    expect([...union.matchAll(/"([a-zA-Z0-9]+)"/g)].map((f) => f[1])).toEqual([...TOOLS]);
+    expect([...union.matchAll(/"([a-zA-Z0-9]+)"/g)].map((f) => f[1])).toEqual([
+      ...TOOLS,
+    ]);
   });
 
   it("is drawn by a button that says what it is", () => {
