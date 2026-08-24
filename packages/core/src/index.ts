@@ -97,6 +97,7 @@ export {
   ColorColumn,
   IconColumn,
   ImageColumn,
+  SelectColumn,
   TextColumn,
   TextInputColumn,
   ToggleColumn,

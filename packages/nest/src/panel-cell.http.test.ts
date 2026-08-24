@@ -27,6 +27,8 @@ import {
   FileUpload,
   Hidden,
   Schema,
+  Select,
+  SelectColumn,
   Table,
   TextColumn,
   TextInput,
@@ -52,6 +54,7 @@ const META = model({
     scalar("locked", { type: "Boolean" }),
     scalar("sealed", { type: "Boolean" }),
     scalar("note"),
+    scalar("role"),
   ],
 });
 
@@ -124,6 +127,7 @@ class PersonResource {
       // Offered by the table and refused by the form, on every row.
       Toggle.make("sealed").disabled(() => true),
       TextInput.make("note").maxLength(20),
+      Select.make("role").options({ lead: "Lead", member: "Member" }),
     ]);
   }
   table(): TableTree {
@@ -135,6 +139,7 @@ class PersonResource {
       TextColumn.make("locked"),
       ToggleColumn.make("sealed"),
       TextInputColumn.make("note"),
+      SelectColumn.make("role"),
     ]);
   }
 }
@@ -163,6 +168,7 @@ beforeEach(async () => {
       locked: false,
       sealed: false,
       note: "short",
+      role: "lead",
     },
   ];
   writes = [];
@@ -292,6 +298,39 @@ describe("a line of text written from a table", () => {
   });
 });
 
+describe("a choice written from a table", () => {
+  it("hands the field's own list to the browser", async () => {
+    // The choices are the field's. A column that declared its own would be a
+    // second list to keep in step, and the one that drifted would be the one
+    // nobody looked at.
+    const response = await fetch(`${url}/admin/api/people/records`);
+    const body = (await response.json()) as {
+      columns: { columns: { path: string; options?: { value: unknown }[] }[] };
+    };
+    const role = body.columns.columns.find((one) => one.path === "role");
+
+    expect(role?.options?.map((one) => one.value)).toEqual(["lead", "member"]);
+  });
+
+  it("writes a choice the field declared", async () => {
+    const { status, body } = await write({ path: "role", value: "member" });
+
+    expect(status).toBe(200);
+    expect(body.value).toBe("member");
+    expect(writes).toEqual([{ id: 1, data: { set: { role: "member" } } }]);
+  });
+
+  it("refuses one it did not, whatever the cell sent", async () => {
+    // Membership is the field's answer, given once, at the boundary.
+    const { status, body } = await write({ path: "role", value: "owner" });
+
+    expect(status).toBe(200);
+    expect(body.value).toBe("lead");
+    expect(body.notification?.tone).toBe("warning");
+    expect(writes).toEqual([]);
+  });
+});
+
 describe("what the route refuses", () => {
   it("a column the table did not declare writable", async () => {
     const { status } = await write({ path: "locked", value: true });
@@ -389,6 +428,25 @@ describe("a control the form cannot carry", () => {
     }
 
     await expect(boot(HidingResource)).rejects.toThrow(/no client may set/);
+  });
+
+  it("stops the boot over a list that is not written down", async () => {
+    // A list from a resolver is a different list per row, and a list from a
+    // relationship is a query per row. Both are a page of dropdowns nobody
+    // asked for, so a cell may not offer either.
+    @PanelResource({ model: "Person", slug: "resolved" })
+    class ResolvedResource {
+      form(): Schema {
+        return Schema.make([Select.make("title").options(() => ({ a: "A" }))]);
+      }
+      table(): TableTree {
+        return Table.make().columns([SelectColumn.make("title")]);
+      }
+    }
+
+    await expect(boot(ResolvedResource)).rejects.toThrow(
+      /offers a SelectColumn in the table over a Select/,
+    );
   });
 
   it("stops the boot over a field that takes text and is not text", async () => {

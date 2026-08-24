@@ -10,8 +10,10 @@
  * `Component` gives: a minifier rewrites the second, and a plugin cannot choose
  * it.
  */
+import { isResolver } from "./component.js";
 import { safeHref } from "./entries/text-entry.js";
 import type { Field } from "./field.js";
+import { normaliseOptions } from "./option.js";
 
 export interface ColumnState {
   /** The path into the row: `title`, or `author.name`. */
@@ -363,6 +365,58 @@ export class TextInputColumn extends WritableColumn {
 
   protected override with(state: ColumnState): this {
     return new TextInputColumn(state) as this;
+  }
+}
+
+/**
+ * `SelectColumn` — one of a few, chosen where it is read.
+ *
+ * The choices are the form field's, never the column's. A column that declared
+ * its own list would be a second list to keep in step with the first, and the
+ * one that drifted would be the one nobody looked at — the boundary matches
+ * against the field's, so a cell offering anything else offers a value that
+ * cannot be saved.
+ *
+ * Which is also why it fits only a field whose list is written down. A list
+ * that comes from a resolver is a different list per row, and a list that comes
+ * from a relationship is a query per row: both are a page of dropdowns nobody
+ * asked for. A select in a cell is for the handful of fixed choices — a status,
+ * a role — and the boot says so for the rest.
+ */
+export class SelectColumn extends WritableColumn {
+  static make(path: string): SelectColumn {
+    return new SelectColumn({ path, sortable: false, searchable: false });
+  }
+
+  override get type(): string {
+    return "SelectColumn";
+  }
+
+  /**
+   * One value, and the field says which ones.
+   *
+   * Nothing about membership here: the field holds the list, resolves it per
+   * request, and refuses what is not in it. Asking the same question twice is
+   * how the two answers come to differ.
+   */
+  override admits(value: unknown): boolean {
+    return typeof value === "string" || typeof value === "number";
+  }
+
+  override fits(field: Field): boolean {
+    const declared = field.declaredOptions;
+    // Nothing declared, or declared as a function: neither is a list this
+    // column can put in a cell.
+    if (declared === undefined || isResolver(declared)) return false;
+
+    const options = normaliseOptions(declared);
+    // A field that holds several is not a field one cell chooses for, and one
+    // that turns away its own first choice is not offering a list at all.
+    return options.length > 0 && field.admits(options[0]?.value, options) === undefined;
+  }
+
+  protected override with(state: ColumnState): this {
+    return new SelectColumn(state) as this;
   }
 }
 

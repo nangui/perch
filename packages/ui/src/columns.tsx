@@ -310,6 +310,57 @@ function line(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode {
   );
 }
 
+/** What a cell holds, as the string a control compares against. */
+function chosen(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return null;
+}
+
+/**
+ * One of a few, chosen where it is read.
+ *
+ * The choices come from the field, over the wire, so the cell offers exactly
+ * what the boundary will take. A choice commits the moment it is made: unlike a
+ * line of text there is nothing half-typed to wait for.
+ *
+ * Uncontrolled, like the line of text, and for the same reason — a renderer
+ * holds nothing. The server's answer is written onto the element when nobody is
+ * standing in it.
+ */
+function choose(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode {
+  const held = chosen(value);
+  const options = column.options ?? [];
+  if (cell.write === undefined || options.length === 0) return text(value);
+
+  return (
+    <select
+      ref={(element) => {
+        if (element === null || element === document.activeElement) return;
+        const now = held ?? "";
+        if (element.value !== now) element.value = now;
+      }}
+      className="perch-control perch-cell__choice"
+      aria-label={nameOf(column, cell)}
+      defaultValue={held ?? ""}
+      disabled={cell.pending}
+      data-pending={cell.pending ? "true" : undefined}
+      onChange={(event) => {
+        cell.write?.(event.target.value);
+      }}
+    >
+      {/* What a cell holding nothing shows. Not a choice anybody may pick: the
+          field decides whether it may be emptied, and it says so by refusing. */}
+      {held === null ? <option value="">—</option> : null}
+      {options.map((option) => (
+        <option key={String(option.value)} value={String(option.value)}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 /**
  * What this cell is called, out loud.
  *
@@ -342,5 +393,8 @@ export function registerBuiltInColumns(): void {
   );
   registerColumn("TextInputColumn", (value, _row: Row, column, cell) =>
     line(value, column, cell),
+  );
+  registerColumn("SelectColumn", (value, _row: Row, column, cell) =>
+    choose(value, column, cell),
   );
 }

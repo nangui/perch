@@ -9,6 +9,7 @@
  */
 import type { Action, Confirmation } from "./action.js";
 import type { Column, PresentContext } from "./column.js";
+import type { Option } from "./option.js";
 import type { Filter } from "./filter.js";
 import { SelectFilter, TernaryFilter, TrashedFilter } from "./filter.js";
 import type { Row, SortDirection } from "./data-adapter.js";
@@ -68,6 +69,8 @@ export interface ColumnNode {
    */
   readonly flavour?: string;
   readonly maxLength?: number;
+  /** The choices a cell offers, which are the field's and never the column's. */
+  readonly options?: readonly Option[];
 }
 
 /**

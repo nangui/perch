@@ -11,6 +11,7 @@ import type {
   Clause,
   ColumnTree,
   Component,
+  Option,
   DataAdapter,
   Id,
   Query,
@@ -21,6 +22,8 @@ import type {
 import {
   Field,
   findModel,
+  isResolver,
+  normaliseOptions,
   presentRows,
   serialiseTable,
   SOFT_DELETE_FIELD,
@@ -285,12 +288,23 @@ function everything(component: Component): readonly Component[] {
  * kind of box, and how much it takes. Without this a cell draws a bare line of
  * text over an address and only says no after the round trip.
  */
-function hints(field: Field | undefined): { flavour?: string; maxLength?: number } {
+function hints(field: Field | undefined): {
+  flavour?: string;
+  maxLength?: number;
+  options?: readonly Option[];
+} {
   if (field === undefined) return {};
   const state = field.state as { flavour?: unknown; maxLength?: unknown };
+  const declared = field.declaredOptions;
   return {
     ...(typeof state.flavour === "string" ? { flavour: state.flavour } : {}),
     ...(typeof state.maxLength === "number" ? { maxLength: state.maxLength } : {}),
+    // Only a list that is written down. One that comes from a resolver is a
+    // different list per row, and the boot has already refused a column over
+    // one — this is the same rule, on the other side of the wire.
+    ...(declared === undefined || isResolver(declared)
+      ? {}
+      : { options: normaliseOptions(declared) }),
   };
 }
 

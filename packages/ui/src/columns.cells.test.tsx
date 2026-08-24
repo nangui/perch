@@ -461,6 +461,90 @@ describe("a line of text in a cell", () => {
   });
 });
 
+describe("a choice in a cell", () => {
+  const ROW = [{ id: 1, title: "Ada", role: "lead" }];
+  const COLUMN: ColumnNode = {
+    type: "SelectColumn",
+    path: "role",
+    label: "Role",
+    editable: true,
+    options: [
+      { value: "lead", label: "Lead" },
+      { value: "member", label: "Member" },
+    ],
+  };
+
+  it("offers exactly what the field declared, and shows what is held", () => {
+    // The choices are the field's, over the wire: a cell offering anything else
+    // offers a value the boundary will not take.
+    draw(COLUMN, ROW, { onCellWrite: vi.fn() });
+    // Named for the column alone here: this table has no text column to read
+    // the row by, which is its own test above.
+    const box = screen.getByRole("combobox", { name: "Role" });
+
+    expect([...box.querySelectorAll("option")].map((one) => one.textContent)).toEqual([
+      "Lead",
+      "Member",
+    ]);
+    expect(box).toHaveProperty("value", "lead");
+  });
+
+  it("commits the moment a choice is made", () => {
+    // Nothing half-typed to wait for, unlike a line of text.
+    const onCellWrite = vi.fn();
+    draw(COLUMN, ROW, { onCellWrite });
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "member" } });
+
+    expect(onCellWrite).toHaveBeenCalledWith(ROW[0], expect.anything(), "member");
+  });
+
+  it("shows a cell holding nothing as holding nothing", () => {
+    draw(COLUMN, [{ id: 1, title: "Ada", role: null }], { onCellWrite: vi.fn() });
+
+    expect(screen.getByRole("combobox")).toHaveProperty("value", "");
+  });
+
+  it("takes the server's answer where nobody is standing in it", () => {
+    const columns: ColumnTree = {
+      actions: [],
+      filters: [],
+      headerActions: [],
+      bulkActions: [],
+      columns: [COLUMN],
+    };
+    const { rerender } = render(
+      <DataTable columns={columns} rows={ROW} caption="People" onCellWrite={vi.fn()} />,
+    );
+
+    rerender(
+      <DataTable
+        columns={columns}
+        rows={[{ id: 1, title: "Ada", role: "member" }]}
+        caption="People"
+        onCellWrite={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("combobox")).toHaveProperty("value", "member");
+  });
+
+  it("reads rather than offers where the column carries no list", () => {
+    // A list that could not cross the wire — one from a resolver — is a control
+    // with nothing in it, which is worse than the value written out.
+    const container = draw(
+      { type: "SelectColumn", path: "role", editable: true },
+      ROW,
+      {
+        onCellWrite: vi.fn(),
+      },
+    );
+
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(container.textContent).toContain("lead");
+  });
+});
+
 describe("a cell this reader may not write", () => {
   const ROW = [{ id: 1, title: "Ada", active: true }];
 

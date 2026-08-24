@@ -1092,6 +1092,18 @@
   opacity: 0.6;
 }
 
+/* A choice in a cell: the panel's own control, at the height a row allows. */
+.perch-cell__choice {
+  width: 100%;
+  min-width: 0;
+  height: var(--perch-control-height-sm);
+  font-size: var(--perch-text-base);
+}
+
+.perch-cell__choice[data-pending="true"] {
+  opacity: 0.6;
+}
+
 .perch-cell__colour {
   display: inline-flex;
   align-items: center;
