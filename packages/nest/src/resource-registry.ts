@@ -26,6 +26,7 @@ import {
   entryPaths,
   entryRelations,
   DateRangeFilter,
+  NumberRangeFilter,
   TernaryFilter,
   TrashedFilter,
   describeComplaints,
@@ -58,23 +59,32 @@ const RESERVED_SLUGS = new Set(["assets", "api"]);
 const ASKS: readonly {
   /** A predicate rather than a class: a private constructor is not a type. */
   readonly of: (filter: object) => boolean;
-  readonly wants: string;
+  /** Every column type that can answer it. More than one where a number is. */
+  readonly wants: readonly string[];
   readonly asking: string;
   readonly consequence: string;
 }[] = [
   {
     of: (filter) => filter instanceof TernaryFilter,
-    wants: "Boolean",
+    wants: ["Boolean"],
     asking: "asks yes or no of",
     consequence: "the comparison matches nothing, on every row",
   },
   {
     of: (filter) => filter instanceof DateRangeFilter,
-    wants: "DateTime",
+    wants: ["DateTime"],
     asking: "asks for a range of dates in",
     consequence:
       "a date compared against a column that holds none is an empty table on " +
       "one adapter and a failed request on another",
+  },
+  {
+    of: (filter) => filter instanceof NumberRangeFilter,
+    wants: ["Int", "BigInt", "Float", "Decimal"],
+    asking: "asks for a range of numbers in",
+    consequence:
+      "a number compared against a column of text is an ordering nobody " +
+      "declared — `9` after `10`, and every row on the wrong side of it",
   },
 ];
 
@@ -354,7 +364,7 @@ export class ResourceRegistry implements OnModuleInit {
       const asks = ASKS.find(({ of }) => of(filter));
       if (asks === undefined) return [];
 
-      let type: string | undefined;
+      let type: string;
       try {
         type = resolvePath(ir, model, filter.state.path).field.type;
       } catch {
@@ -362,7 +372,7 @@ export class ResourceRegistry implements OnModuleInit {
         // saying it twice helps nobody.
         return [];
       }
-      if (type === asks.wants) return [];
+      if (asks.wants.includes(type)) return [];
       return [
         {
           field: filter.state.name,

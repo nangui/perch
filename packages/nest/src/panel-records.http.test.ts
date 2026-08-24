@@ -30,6 +30,7 @@ import {
   TextColumn,
   TextFilter,
   DateRangeFilter,
+  NumberRangeFilter,
   TernaryFilter,
   TextInput,
   TrashedFilter,
@@ -640,6 +641,41 @@ describe("a range of dates over a column that holds none", () => {
           await ref.init();
         }),
     ).rejects.toThrow(/range of dates/);
+  });
+});
+
+describe("a range of numbers over a column that holds none", () => {
+  it("stops the boot rather than ordering text nobody meant to order", async () => {
+    // A `String` column compared with `gte` is an ordering nobody declared:
+    // `9` comes after `10`, and every row lands on the wrong side of it.
+    @PanelResource({ model: "Post", slug: "unnumberable" })
+    class UnnumberableResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .filters([NumberRangeFilter.make("title")]);
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [UnnumberableResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/range of numbers/);
   });
 });
 
