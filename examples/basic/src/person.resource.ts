@@ -34,6 +34,7 @@ import {
   RichEditor,
   Schema,
   Section,
+  SelectColumn,
   Select,
   SelectFilter,
   Tab,
@@ -194,6 +195,9 @@ export class PersonResource {
           TextColumn.make("team.name").label("Team"),
           // Whatever notation the column keeps — this one keeps `hsl()`.
           ColorColumn.make("tint").label("Tint").copyable(),
+          // The choices are the form field's own, over the wire: one list, in
+          // one place, and the boundary matches against it.
+          SelectColumn.make("role").label("Role"),
           // Written from the table, through the form that owns the field: the
           // same policy, the same boundary, the same rules.
           ToggleColumn.make("active").label("Active"),
