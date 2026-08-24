@@ -191,6 +191,7 @@ export class MemoryAdapter implements DataAdapter {
       links: { homepage: "https://example.com/ada", notes: "Kept by hand." },
       tint: "hsl(164, 46%, 24%)",
       access: "admin",
+      rating: 5,
       story: {
         type: "doc",
         content: [
@@ -226,6 +227,7 @@ export class MemoryAdapter implements DataAdapter {
       onCall: true,
       startsAt: new Date("2026-10-25T06:30:00Z"),
       avatar: "",
+      rating: 3,
       teamId: 2,
       tenantId: 1,
     },
@@ -242,6 +244,7 @@ export class MemoryAdapter implements DataAdapter {
       onCall: false,
       startsAt: null,
       avatar: "",
+      rating: 1,
       teamId: 1,
       tenantId: 1,
     },

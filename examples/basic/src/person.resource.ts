@@ -28,6 +28,7 @@ import {
   ImageColumn,
   KeyValue,
   MarkdownEditor,
+  NumberRangeFilter,
   Placeholder,
   Radio,
   RepeatableEntry,
@@ -220,6 +221,9 @@ export class PersonResource {
           // asked for included whole, which is the arithmetic that quietly
           // drops the last day of every range when nobody does it.
           DateRangeFilter.make("startsAt").label("Starts").timezone("Europe/Paris"),
+          // The same pair of boxes, and both ends inclusive: a number is a
+          // point where a day is a span, so there is no day-after to work out.
+          NumberRangeFilter.make("rating").label("Rating"),
         ])
         // Restore brings a marked row back and asks nothing; force delete leaves
         // nothing to bring back, so it asks first and takes its own policy.
