@@ -39,7 +39,9 @@ const scalar = (name: string, type: FieldMeta["type"]): FieldMeta => ({
   isRequired: false,
   isList: false,
   isId: name === "id",
-  isUnique: name === "id",
+  // An address belongs to one person, which is what makes a copy of a person
+  // something the boot has an opinion about.
+  isUnique: name === "id" || name === "email",
   isReadOnly: name === "id",
   hasDefault: name === "id",
   isLongText: name === "bio" || name === "readme",

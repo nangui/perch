@@ -33,6 +33,7 @@ import {
   Radio,
   RepeatableEntry,
   Repeater,
+  ReplicateAction,
   RestoreAction,
   RichEditor,
   Schema,
@@ -258,6 +259,19 @@ export class PersonResource {
         .actions([
           ViewAction.make(),
           EditAction.make(),
+          // The address is left behind because the column keeps it unique, and
+          // a copy carrying it is a constraint error rather than a row. The
+          // boot says so if this line is ever dropped.
+          ReplicateAction.make()
+            .label("Duplicate")
+            .excludeAttributes(["email"])
+            .beforeReplicaSaved((replica) => {
+              const surname = replica["lastName"];
+              return {
+                ...replica,
+                lastName: typeof surname === "string" ? `${surname} (copy)` : "(copy)",
+              };
+            }),
           archive,
           remove,
           restore,
