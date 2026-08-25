@@ -168,7 +168,9 @@ describe("the top of the calendar", () => {
     // Past 9999 the ISO form grows a sign and a fifth digit, and the first ten
     // characters of `+010000-01-01` are not a day. It parses anyway, which is
     // how it would have gone unnoticed.
-    expect(between("9999-12-31..9999-12-31").map((one) => one.operator)).toEqual(["gte"]);
+    expect(between("9999-12-31..9999-12-31").map((one) => one.operator)).toEqual([
+      "gte",
+    ]);
   });
 });
 

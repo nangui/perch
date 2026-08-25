@@ -129,7 +129,9 @@ describe("a number a double would name only approximately", () => {
     // Which is the harder half, and the one a `Decimal` column exists for:
     // this comes back as `1`, so a bound meant to sit just above one lands on
     // it and takes in every row that equals it.
-    expect(between("1.0000000000000001..2").map((one) => one.operator)).toEqual(["lte"]);
+    expect(between("1.0000000000000001..2").map((one) => one.operator)).toEqual([
+      "lte",
+    ]);
     expect(between("..1.00000000000000001")).toEqual([]);
     // And the other way: a fraction a double does name exactly is let through,
     // however long it looks.
