@@ -21,8 +21,11 @@ import type {
 } from "@perchjs/core";
 import {
   DeleteAction,
+  actsOn,
   ForceDeleteAction,
+  ReplicateAction,
   RestoreAction,
+  SOFT_DELETE_FIELD,
   admittedRecords,
   declaredActions,
   runAction,
@@ -183,6 +186,31 @@ export async function carryAction(options: {
       return { processed, refused };
     }
 
+    // Written one at a time, and inside the same transaction: fifty copies
+    // either all land or none do, the same promise a batch delete makes.
+    if (action instanceof ReplicateAction) {
+      const admitted = await admittedRecords(action, rows, user);
+      const refused = refusedAlready + (rows.length - admitted.length);
+
+      let processed = 0;
+      for (const row of admitted) {
+        const draft = withoutIdentity(row, action.state.excludeAttributes, primaryKey);
+        const answered = (await action.state.beforeReplicaSaved?.(draft, row)) ?? draft;
+        // Taken off again, after the hook rather than only before it. A hook is
+        // server code and therefore trusted — but the identity coming off is
+        // what makes a copy a copy, and a guarantee a hook can undo by writing
+        // one key back is not a guarantee.
+        const settled = withoutIdentity(
+          answered,
+          action.state.excludeAttributes,
+          primaryKey,
+        );
+        await tx.create(model, { set: settled });
+        processed += 1;
+      }
+      return { processed, refused };
+    }
+
     // What reaches the callback is what the schema admitted, never what the
     // body carried. An action with no form hands it an empty object.
     const outcome = await runAction({ action, records: rows, user, data: collected });
@@ -198,9 +226,36 @@ export async function carryAction(options: {
  * page they were looking at.
  */
 function reads(action: Action): DeletedRows {
-  return action instanceof RestoreAction || action instanceof ForceDeleteAction
-    ? "with"
-    : "without";
+  // Derived from the same answer the button is drawn from, so the two cannot
+  // disagree: an action offered on a marked row has to be able to load one,
+  // and one that is not offered there has no business finding it.
+  return actsOn(action) === "live" ? "without" : "with";
+}
+
+/**
+ * The row again, without the parts that were about that row rather than about
+ * what it holds.
+ *
+ * The primary key first: it is what tells two rows apart, so a copy carrying it
+ * is not a copy but the original written twice. Then the deletion mark, because
+ * a copy of a hidden row is a new row and it starts visible. Then whatever the
+ * resource named — the columns a database keeps unique, which are the ones that
+ * turn the second copy into a constraint error.
+ *
+ * Relations are not carried. What a copy of a row means for the rows pointing
+ * at it is a question with more than one answer, and a framework that picked
+ * one silently would be wrong half the time. `beforeReplicaSaved` is where a
+ * resource that knows its own answer says so.
+ */
+function withoutIdentity(
+  row: Readonly<Record<string, unknown>>,
+  excluded: readonly string[] | undefined,
+  primaryKey: string,
+): Readonly<Record<string, unknown>> {
+  const dropped = new Set([primaryKey, SOFT_DELETE_FIELD, ...(excluded ?? [])]);
+  return Object.fromEntries(
+    Object.entries(row).filter(([column]) => !dropped.has(column)),
+  );
 }
 
 /** Which port method carries this action out, where the framework does. */

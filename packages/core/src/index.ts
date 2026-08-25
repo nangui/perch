@@ -74,13 +74,18 @@ export type {
   ActionState,
   Confirmation,
   RecordPage,
+  ActsOn,
+  BeforeReplicaSaved,
+  ReplicateActionState,
 } from "./action.js";
 export {
   Action,
+  actsOn,
   CreateAction,
   DeleteAction,
   EditAction,
   ForceDeleteAction,
+  ReplicateAction,
   RestoreAction,
   ViewAction,
 } from "./action.js";

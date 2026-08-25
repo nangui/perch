@@ -56,6 +56,29 @@ export interface Confirmation {
   readonly cancelLabel?: string;
 }
 
+/**
+ * Which rows an action means anything on.
+ *
+ * A restore has nothing to do to a row that was never hidden, a delete has
+ * nothing to do to one already hidden, and a copy cannot reach one at all — the
+ * read that finds its subject leaves marked rows out. Everything else works on
+ * either.
+ *
+ * Answered here rather than in the client, which kept its own list of two. A
+ * button drawn on a row the route will refuse is a button that does nothing
+ * when pressed, and the third action needing the rule is what shows that a list
+ * of two was a list waiting to be wrong.
+ */
+export type ActsOn = "live" | "marked" | "either";
+
+export function actsOn(action: Action): ActsOn {
+  if (action instanceof RestoreAction) return "marked";
+  if (action instanceof ForceDeleteAction) return "either";
+  if (action instanceof DeleteAction) return "live";
+  if (action instanceof ReplicateAction) return "live";
+  return "either";
+}
+
 export interface ActionState {
   /** How a request names it. Defaults to the type; `.name()` tells two apart. */
   readonly name?: string;
@@ -265,6 +288,77 @@ export class ForceDeleteAction extends Action {
 
   protected override with(state: ActionState): this {
     return new ForceDeleteAction(state) as this;
+  }
+}
+
+/**
+ * What a replica is handed to before it is written.
+ *
+ * The copy, and the row it was copied from. Returning a tree replaces it;
+ * returning nothing keeps the one that was passed in, which is the shape a
+ * hook that only wants to change one column should be able to take.
+ */
+export type BeforeReplicaSaved = (
+  replica: Readonly<Record<string, unknown>>,
+  original: Row,
+) =>
+  | Readonly<Record<string, unknown>>
+  | undefined
+  | Promise<Readonly<Record<string, unknown>> | undefined>;
+
+export interface ReplicateActionState extends ActionState {
+  readonly excludeAttributes?: readonly string[];
+  readonly beforeReplicaSaved?: BeforeReplicaSaved;
+}
+
+/**
+ * Writes the row again, as a new one.
+ *
+ * The identity never comes with it. A primary key is what tells two rows apart,
+ * and a copy carrying the original's is not a copy — it is the original,
+ * written twice. The deletion mark goes the same way: a copy of a hidden row is
+ * a new row, and it starts visible.
+ *
+ * Everything else does come, which is the point and also the trap: a column the
+ * database keeps unique is copied into a value that already exists, and the
+ * second copy is a constraint error rather than a row. `.excludeAttributes()`
+ * is how a resource says which those are, and the boot says which it has found.
+ *
+ * It asks the `create` policy and not the `edit` one. It makes a row, and a
+ * reader who may change what is there is not thereby allowed to add to it.
+ */
+export class ReplicateAction extends Action {
+  declare readonly state: ReplicateActionState;
+
+  static make(): ReplicateAction {
+    return new ReplicateAction({});
+  }
+
+  override get type(): string {
+    return "ReplicateAction";
+  }
+
+  override get isBuiltIn(): boolean {
+    return true;
+  }
+
+  protected override with(state: ActionState): this {
+    return new ReplicateAction({ ...this.state, ...state }) as this;
+  }
+
+  /** Columns the copy leaves behind: the unique ones, and the dated ones. */
+  excludeAttributes(names: readonly string[]): this {
+    return this.#also({ excludeAttributes: [...names] });
+  }
+
+  /** A last word before it is written, for what a copy cannot simply carry. */
+  beforeReplicaSaved(hook: BeforeReplicaSaved): this {
+    return this.#also({ beforeReplicaSaved: hook });
+  }
+
+  /** Its own clone, the base's taking only what every action has. */
+  #also(patch: Partial<ReplicateActionState>): this {
+    return new ReplicateAction({ ...this.state, ...patch }) as this;
   }
 }
 

@@ -888,8 +888,25 @@ describe("an action offered where it can do nothing", () => {
       headerActions: [],
       bulkActions: [],
       actions: [
-        { type: "DeleteAction", name: "DeleteAction", trigger: "run" },
-        { type: "RestoreAction", name: "RestoreAction", trigger: "run" },
+        // `actsOn` is the server's answer to "which rows does this mean
+        // anything on". The client used to work it out from a list of two type
+        // names, which is a list that goes wrong on the third action to need it.
+        { type: "DeleteAction", name: "DeleteAction", trigger: "run", actsOn: "live" },
+        {
+          type: "RestoreAction",
+          name: "RestoreAction",
+          trigger: "run",
+          actsOn: "marked",
+        },
+        // One the client has never heard of, offered on live rows only because
+        // the server said so and for no other reason.
+        {
+          type: "ReplicateAction",
+          name: "ReplicateAction",
+          label: "Duplicate",
+          trigger: "run",
+          actsOn: "live",
+        },
       ],
     },
   });
@@ -921,6 +938,15 @@ describe("an action offered where it can do nothing", () => {
 
     expect(within(container).queryByText("Delete")).toBeNull();
     expect(within(container).queryByText("Restore")).not.toBeNull();
+  });
+
+  it("hides one it has never heard of, on the server's word alone", async () => {
+    // The whole point of moving the rule: a copy cannot reach a marked row —
+    // the read that finds its subject leaves those out — and the client knows
+    // that without knowing what a copy is.
+    expect(within(await opened()).queryByText("Duplicate")).not.toBeNull();
+    cleanup();
+    expect(within(await opened([1])).queryByText("Duplicate")).toBeNull();
   });
 });
 

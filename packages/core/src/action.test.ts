@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { Action, CreateAction, EditAction } from "./action.js";
+import {
+  Action,
+  actsOn,
+  CreateAction,
+  DeleteAction,
+  EditAction,
+  ForceDeleteAction,
+  ReplicateAction,
+  RestoreAction,
+} from "./action.js";
 import { Schema } from "./layout.js";
 import { auditTable } from "./audit.js";
 import { Notification } from "./notification.js";
@@ -217,5 +226,35 @@ describe("a form on an action that only navigates", () => {
 
   it("says nothing about a link that collects nothing", () => {
     expect(auditTable(Table.make().actions([EditAction.make()]))).toEqual([]);
+  });
+});
+
+describe("which rows an action means anything on", () => {
+  it("is answered here, so a client does not have to know what each one does", () => {
+    // A restore has nothing to do to a row that was never hidden; a delete has
+    // nothing to do to one already hidden; a copy cannot reach one at all,
+    // because the read that finds its subject leaves marked rows out.
+    expect(actsOn(RestoreAction.make())).toBe("marked");
+    expect(actsOn(DeleteAction.make())).toBe("live");
+    expect(actsOn(ReplicateAction.make())).toBe("live");
+    // Destroying for good is the one that works on both: a row can be
+    // destroyed whether or not it was hidden first.
+    expect(actsOn(ForceDeleteAction.make())).toBe("either");
+  });
+
+  it("is either, for an action nothing was said about", () => {
+    expect(actsOn(EditAction.make())).toBe("either");
+    expect(actsOn(ArchiveAction.make())).toBe("either");
+  });
+
+  it("crosses the wire, except where it is the answer silence gives", () => {
+    const drawn = serialiseTable(
+      Table.make().actions([ReplicateAction.make(), EditAction.make()]),
+    ).actions;
+
+    expect(drawn[0]?.actsOn).toBe("live");
+    // Sending "either" would put a word on every action in every tree to say
+    // what its absence already says.
+    expect(drawn[1]?.actsOn).toBeUndefined();
   });
 });

@@ -7,7 +7,8 @@
  * renderer that does not exist yet, and an option that does nothing is worse
  * than an absent one.
  */
-import type { Action, Confirmation } from "./action.js";
+import type { Action, ActsOn, Confirmation } from "./action.js";
+import { actsOn } from "./action.js";
 import type { Column, PresentContext } from "./column.js";
 import type { Option } from "./option.js";
 import type { Filter } from "./filter.js";
@@ -113,6 +114,14 @@ export interface ActionNode {
   /** Present when the reader is asked first. Its absence means it is not. */
   readonly confirmation?: Confirmation;
   readonly danger?: true;
+  /**
+   * Which rows it means anything on: `live`, `marked`, or either.
+   *
+   * Sent because the client cannot work it out. Knowing that a restore has
+   * nothing to do to a row that was never hidden means knowing what a restore
+   * is, and that is the knowledge this tree exists to keep on the server.
+   */
+  readonly actsOn?: ActsOn;
 }
 
 export interface ColumnTree {
@@ -334,6 +343,10 @@ function node(action: Action): ActionNode {
       ? {}
       : { confirmation: action.state.confirmation }),
     ...(action.state.danger === true ? { danger: true as const } : {}),
+    // Omitted where it is "either", which is what the client does with an
+    // action it is told nothing about. Sending the default would put a word on
+    // every action in every tree to say what silence already says.
+    ...(actsOn(action) === "either" ? {} : { actsOn: actsOn(action) }),
   };
 }
 

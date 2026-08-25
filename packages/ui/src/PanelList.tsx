@@ -1141,9 +1141,13 @@ function offered(page: RecordsPage, row: Row): readonly ActionNode[] {
   const marked =
     (key === undefined ? false : page.deleted?.some((one) => one === key)) === true;
 
+  // The server says which rows each action means anything on. This used to be
+  // a list of two kept here, which is a list that goes wrong on the third
+  // action to need it — and being wrong means drawing a button that the route
+  // refuses when it is pressed.
   return page.columns.actions.filter((action) => {
-    if (action.type === "RestoreAction") return marked;
-    if (action.type === "DeleteAction") return !marked;
+    if (action.actsOn === "marked") return marked;
+    if (action.actsOn === "live") return !marked;
     return true;
   });
 }
