@@ -85,6 +85,12 @@ const TARGETS: readonly {
   },
   { name: "the repeater's drag handle", selectors: [".perch-repeater__handle"] },
   {
+    name: "a dialog's way out",
+    // Held here as well as by the modal's own guard, because this is the list
+    // somebody reads to ask what the floor covers.
+    selectors: [".perch-modal__close"],
+  },
+  {
     name: "a toggle button",
     selectors: [".perch-toggles__label"],
     // The width is the words in it, which is not this file's to vouch for.

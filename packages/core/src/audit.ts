@@ -14,6 +14,7 @@
 import type { Component } from "./component.js";
 import { isResolver } from "./component.js";
 import { normaliseOptions } from "./option.js";
+import { MODAL_WIDTHS } from "./action.js";
 import { Entry } from "./entry.js";
 import { TextEntry } from "./entries/text-entry.js";
 import { Field } from "./field.js";
@@ -731,6 +732,20 @@ export function auditTable(table: Table): readonly Complaint[] {
       complaints.push({
         field: action.state.label ?? action.type,
         problem: "has no `action()`, so pressing it would do nothing at all",
+      });
+    }
+    // A closed set is only closed where something closes it. The union holds
+    // while the resource is written in TypeScript; a plugin written in
+    // JavaScript, or one cast, puts any string on the wire — and the stylesheet
+    // finds no rule for it, falls back to the default width, and opens a panel
+    // that is not the one the declaration asked for with nothing to say so.
+    const width = action.state.modalWidth;
+    if (width !== undefined && !MODAL_WIDTHS.includes(width)) {
+      complaints.push({
+        field: action.state.label ?? action.type,
+        problem:
+          `opens its modal at \`${width}\`, which is not a width — ` +
+          `one of: ${MODAL_WIDTHS.join(", ")}`,
       });
     }
     // A link is followed by the browser without asking the server anything, so
