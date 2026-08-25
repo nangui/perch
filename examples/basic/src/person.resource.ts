@@ -157,6 +157,13 @@ export class PersonResource {
     const archive = ArchiveAction.make()
       .label("Archive")
       .requiresConfirmation({ heading: "Archive them", confirmLabel: "Archive" })
+      // Against the side, because the form under it grows a second field when
+      // the reason is answered, and a centred box that changes height under a
+      // reader is a box that moves what they were about to press. Same dialog
+      // either way: the focus trap, the Escape key and the inert background
+      // come from `showModal()` and not from where the panel sits.
+      .slideOver()
+      .modalWidth("lg")
       .form(
         Schema.make([
           Select.make("reason")
