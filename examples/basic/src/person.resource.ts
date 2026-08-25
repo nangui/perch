@@ -373,16 +373,39 @@ export class PersonResource {
       Section.make("Identity")
         .columns(2)
         .schema([
-          TextInput.make("firstName").label("First name").placeholder("Ada").required(),
+          // The cursor starts here on a create, and the tour marker is a name
+          // this panel's own tooling reads — a description, never an
+          // instruction, which is the only kind an attribute may be.
+          TextInput.make("firstName")
+            .label("First name")
+            .placeholder("Ada")
+            .required()
+            .autofocus()
+            .extraAttributes({ "data-tour": "first-name" }),
+          // Inside the frame, and not in the column: what is stored is what
+          // was typed, so nobody has to remember whether the scheme is in
+          // there twice.
+          TextInput.make("homepage")
+            .label("Homepage")
+            .prefix("https://")
+            .prefixIcon("🌐")
+            .placeholder("example.com/ada")
+            .hint("Optional"),
           TextInput.make("lastName")
             .label("Last name")
             .placeholder("Lovelace")
             .required(),
+          // A word beside the label rather than under the box, because the
+          // line under the box belongs to the error — and a reader who has
+          // just got the address wrong is the one who most needs to be told
+          // what it is for.
           TextInput.make("email")
             .email()
             .placeholder("ada@example.com")
             .required()
-            .maxLength(255),
+            .maxLength(255)
+            .hint("Where sign-in links go")
+            .hintIcon("✉"),
           // Never shown, never settable from the browser, and written all the
           // same: the value comes from the row or from this default.
           Hidden.make("tenantId").default(1),
