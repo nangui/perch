@@ -36,6 +36,7 @@ import {
   RestoreAction,
   RichEditor,
   Schema,
+  SchemaFilter,
   Section,
   SelectColumn,
   Select,
@@ -224,6 +225,33 @@ export class PersonResource {
           // The same pair of boxes, and both ends inclusive: a number is a
           // point where a day is a span, so there is no day-after to work out.
           NumberRangeFilter.make("rating").label("Rating"),
+          // A question no column filter can be asked. `TextFilter` settles its
+          // comparison when it is declared, so a reader can change the term and
+          // never how it is read. Here the comparison is a field — chosen from
+          // a set the server wrote, which is what keeps an operator out of the
+          // URL while still letting somebody pick one.
+          SchemaFilter.make("named")
+            .label("Last name")
+            .schema([
+              TextInput.make("term").label("Term").placeholder("hop"),
+              Select.make("how")
+                .label("Read as")
+                .options([
+                  { value: "contains", label: "Contains" },
+                  { value: "starts", label: "Starts with" },
+                  { value: "is", label: "Is exactly" },
+                ])
+                .default("contains"),
+            ])
+            .query(({ get }) => {
+              const term = get("term");
+              if (typeof term !== "string" || term.trim() === "") return [];
+
+              const how = get("how");
+              const operator =
+                how === "starts" ? "startsWith" : how === "is" ? "equals" : "contains";
+              return [{ path: "lastName", operator, value: term.trim() }];
+            }),
         ])
         // Restore brings a marked row back and asks nothing; force delete leaves
         // nothing to bring back, so it asks first and takes its own policy.

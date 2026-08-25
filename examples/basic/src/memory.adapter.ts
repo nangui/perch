@@ -466,8 +466,13 @@ function wanted(row: Row, deleted: DeletedRows | undefined): boolean {
 function matches(row: Row, clauses: readonly Clause[] | undefined): boolean {
   return (clauses ?? []).every((clause) => {
     const value = row[clause.path];
-    if (clause.operator === "contains") {
-      return text(value).toLowerCase().includes(text(clause.value).toLowerCase());
+    // The three ways of comparing text, all of them blind to case, because a
+    // reader typing `hop` means Hopper. Without the last two a filter offering
+    // "starts with" drew the choice and compared for equality instead — the
+    // demo exists to run the declarations, not to illustrate them.
+    const looked = MATCHES[clause.operator];
+    if (looked !== undefined) {
+      return looked(text(value).toLowerCase(), text(clause.value).toLowerCase());
     }
     // What an action's selection is built from. Without it the fall-through
     // below compares a value to an array and finds nothing, every time.
@@ -489,6 +494,13 @@ function matches(row: Row, clauses: readonly Clause[] | undefined): boolean {
       : ordinal(value) === ordinal(clause.value);
   });
 }
+
+const MATCHES: Partial<Record<Clause["operator"], (a: string, b: string) => boolean>> =
+  {
+    contains: (a, b) => a.includes(b),
+    startsWith: (a, b) => a.startsWith(b),
+    endsWith: (a, b) => a.endsWith(b),
+  };
 
 const ORDERINGS: Partial<
   Record<Clause["operator"], (a: number, b: number) => boolean>
