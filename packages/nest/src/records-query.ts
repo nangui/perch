@@ -12,9 +12,12 @@
 import type {
   Clause,
   DeletedRows,
+  FormState,
   IncludePlan,
   Ir,
+  Option,
   Query,
+  SchemaNode,
   Search,
   Sort,
   SortDirection,
@@ -25,9 +28,14 @@ import {
   columnPaths,
   declaredFilters,
   findModel,
+  Schema,
+  SchemaFilter,
   searchablePaths,
+  serialise,
   sortablePaths,
 } from "@perchjs/core";
+import type { OptionLoader } from "./relationship-options.js";
+import { admit } from "./admission.js";
 
 export const DEFAULT_PER_PAGE = 25;
 
@@ -98,6 +106,72 @@ export interface AcceptedFilter {
   /** Usually one. A range contributes both of its ends. */
   readonly clauses?: readonly Clause[];
   readonly deleted?: DeletedRows;
+  /** A filter with a form of its own: what its fields settled on. */
+  readonly state?: FormState;
+  /** And the tree its controls are drawn from, options and all. */
+  readonly tree?: SchemaNode;
+}
+
+/**
+ * A value as the column holds it, not as a link wrote it.
+ *
+ * A closed set is declared with the values the column keeps — the number `1`,
+ * not `"1"` — and a link can only carry the written form. The field takes that
+ * form back, because it compares its choices by how they are written, so
+ * nothing refuses it and nothing looks wrong. Then the query compares a string
+ * against an `Int` column, finds no rows, and reads as an empty table rather
+ * than as a mistake.
+ *
+ * The same trap `SelectFilter` names and answers, in the one filter that had no
+ * answer for it.
+ */
+function chosen(options: readonly Option[] | undefined, value: unknown): unknown {
+  if (options === undefined || value === null || value === undefined) return value;
+  if (Array.isArray(value)) return value.map((one) => chosen(options, one));
+
+  // Compared the way a link writes them, which is the same rule that decides
+  // what may be put in one at all — so a value no link could carry matches
+  // nothing rather than matching everything as `[object Object]`.
+  const written = inALink(value);
+  const found =
+    written === undefined
+      ? undefined
+      : options.find((one) => inALink(one.value) === written);
+  return found === undefined ? value : found.value;
+}
+
+/** Every path in a filter's form that offers a closed set, and what it offers. */
+function closedSets(node: SchemaNode): ReadonlyMap<string, readonly Option[]> {
+  const sets = new Map<string, readonly Option[]>();
+  const walk = (one: SchemaNode): void => {
+    if (one.path !== undefined && one.options !== undefined) {
+      sets.set(one.path, one.options);
+    }
+    for (const child of one.children ?? []) walk(child);
+  };
+  walk(node);
+  return sets;
+}
+
+/**
+ * A value as a link can carry it, or nothing where it cannot.
+ *
+ * The boot refuses a field holding anything else, so this is the second half of
+ * a rule rather than a guess — and the half that runs where a forged request
+ * can reach it.
+ */
+function inALink(value: unknown): string | undefined {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  return typeof value === "number" || typeof value === "boolean"
+    ? String(value)
+    : undefined;
+}
+
+/** What running a filter's own form needs, which a plain filter does not. */
+export interface FilterAdmission {
+  readonly user: unknown;
+  readonly loadOptions?: OptionLoader;
 }
 
 /**
@@ -119,18 +193,41 @@ export interface AcceptedFilter {
  * clauses and the response names them, and nothing but this would keep those
  * from drifting apart.
  */
-export function readList(
+export async function readList(
   model: string,
   ir: Ir,
   raw: RawQuery,
   table?: Table,
   mayReadDeleted = true,
-): { readonly query: Query; readonly filters: Readonly<Record<string, string>> } {
-  const accepted = acceptedFilters(raw, table, mayReadDeleted);
+  /** What a filter carrying its own form needs to resolve it. */
+  admission?: FilterAdmission,
+): Promise<{
+  readonly query: Query;
+  readonly filters: Readonly<Record<string, string>>;
+  /** The trees and values of the filters that carry a form of their own. */
+  readonly forms: ReadonlyMap<string, AcceptedFilter>;
+}> {
+  const accepted = await acceptedFilters(raw, table, mayReadDeleted, admission);
 
   return {
     query: readQuery(model, ir, raw, table, accepted),
-    filters: Object.fromEntries([...accepted].map(([name, one]) => [name, one.value])),
+    filters: Object.fromEntries(
+      [...accepted].flatMap(([name, one]) =>
+        // A filter with a form of its own is named once per field, under the
+        // parameter each of them arrived as. Left out, the address bar carries
+        // no sign of it and a narrowed page stops being a link somebody can
+        // send — which is most of what putting filters in a URL is for.
+        one.tree === undefined
+          ? [[name, one.value] as const]
+          : Object.entries(one.state ?? {}).flatMap(([path, value]) => {
+              const written = inALink(value);
+              return written === undefined
+                ? []
+                : [[`${name}.${path}`, written] as const];
+            }),
+      ),
+    ),
+    forms: new Map([...accepted].filter(([, one]) => one.tree !== undefined)),
   };
 }
 
@@ -154,8 +251,14 @@ export function readQuery(
   model: string,
   ir: Ir,
   raw: RawQuery,
-  table?: Table,
-  accepted = acceptedFilters(raw, table),
+  table: Table | undefined,
+  /**
+   * Required, and not defaulted to reading them here: a filter carrying its own
+   * form has to be resolved before it can say anything, and resolving is not
+   * something this can do while staying synchronous. A default would have made
+   * every caller that forgot get a query with no filters in it and no sign.
+   */
+  accepted: ReadonlyMap<string, AcceptedFilter>,
 ): Query {
   const perPage = clamp(integer(raw.perPage) ?? DEFAULT_PER_PAGE, 1, MAX_PER_PAGE);
   // The page is capped, not the offset it produces. Clamping the offset instead
@@ -209,7 +312,7 @@ export function readQuery(
  * server accepted, not what was asked, in the way the sort and the page already
  * answer.
  */
-export function acceptedFilters(
+export async function acceptedFilters(
   raw: Record<string, unknown>,
   table: Table | undefined,
   /**
@@ -221,19 +324,24 @@ export function acceptedFilters(
    * something worth hiding.
    */
   mayReadDeleted = true,
-): ReadonlyMap<string, AcceptedFilter> {
+  /** What a filter carrying its own form needs to resolve it. */
+  admission?: FilterAdmission,
+): Promise<ReadonlyMap<string, AcceptedFilter>> {
   const accepted = new Map<string, AcceptedFilter>();
   if (table === undefined) return accepted;
 
   const declared = declaredFilters(table);
+  const { terms, forms } = gathered(raw);
 
-  for (const [parameter, raw_] of Object.entries(raw)) {
-    if (!parameter.startsWith(FILTER_PREFIX)) continue;
+  for (const [name, filter] of declared) {
+    if (filter instanceof SchemaFilter) {
+      const applied = await narrowed(filter, forms.get(name) ?? {}, admission);
+      if (applied !== undefined) accepted.set(name, applied);
+      continue;
+    }
 
-    const name = parameter.slice(FILTER_PREFIX.length);
-    const filter = declared.get(name);
-    const term = text(raw_)?.slice(0, MAX_TERM);
-    if (filter === undefined || term === undefined) continue;
+    const term = terms.get(name);
+    if (term === undefined) continue;
 
     // Either contribution counts. A filter that narrows produces clauses; the
     // one that decides which rows are read at all produces neither a clause nor
@@ -252,6 +360,99 @@ export function acceptedFilters(
     }
   }
   return accepted;
+}
+
+/**
+ * The filter parameters, sorted into the two shapes they come in.
+ *
+ * `filter.status=draft` is one value for one filter. `filter.where.country=fr`
+ * is one field of a filter that carries a form, and the part after the second
+ * dot is the path inside it — which is why the split is on the first dot and
+ * not the last: a path may have dots of its own, and they belong to the form.
+ */
+function gathered(raw: Record<string, unknown>): {
+  readonly terms: ReadonlyMap<string, string>;
+  readonly forms: ReadonlyMap<string, FormState>;
+} {
+  const terms = new Map<string, string>();
+  const forms = new Map<string, Record<string, unknown>>();
+
+  for (const [parameter, value] of Object.entries(raw)) {
+    if (!parameter.startsWith(FILTER_PREFIX)) continue;
+
+    const rest = parameter.slice(FILTER_PREFIX.length);
+    const dot = rest.indexOf(".");
+    const term = text(value)?.slice(0, MAX_TERM);
+    if (term === undefined) continue;
+
+    if (dot === -1) {
+      terms.set(rest, term);
+      continue;
+    }
+    const name = rest.slice(0, dot);
+    const path = rest.slice(dot + 1);
+    if (name === "" || path === "") continue;
+
+    const held = forms.get(name) ?? {};
+    held[path] = term;
+    forms.set(name, held);
+  }
+
+  return { terms, forms };
+}
+
+/**
+ * A filter's own form, run the way a form is run.
+ *
+ * The same admission the save and the state pass use, so what a query is handed
+ * has been through the tree: an unknown path, an invisible field, a disabled
+ * one, a value the field would not take — none of them reaches it, and none of
+ * them says so. A filter is not a save; there is nobody to report to.
+ *
+ * The resolved tree comes back with the clauses because the controls are drawn
+ * from it. A `Select` inside a filter gets its options the same way a form's
+ * does, which is the whole reason the fields go through the cycle at all.
+ */
+async function narrowed(
+  filter: SchemaFilter,
+  values: FormState,
+  admission: FilterAdmission | undefined,
+): Promise<AcceptedFilter | undefined> {
+  if (admission === undefined) return undefined;
+
+  const schema = Schema.make([...filter.state.schema]);
+  const { tree } = await admit({
+    schema,
+    state: values,
+    operation: "create",
+    user: admission.user,
+    record: null,
+    ...(admission.loadOptions === undefined
+      ? {}
+      : { loadOptions: admission.loadOptions }),
+  });
+
+  // The resolved tree's state and not the sanitized values, because they are
+  // not the same thing: what a client sent is in both, and what the field
+  // declared as its `default()` is only in the first. Reading the second left
+  // a default declared and applied nowhere — the control showed nothing
+  // chosen, and the query read `undefined` for a choice the form had made.
+  //
+  // Safe for the query to read: everything here is either a value that got
+  // through the boundary or a value the server itself declared.
+  const settled = serialise(tree);
+  const sets = closedSets(settled.schema);
+  const clauses = filter.narrow({
+    get: (path) => chosen(sets.get(path), settled.state[path]),
+  });
+  return {
+    // Named per field rather than as one string; this is the shape the others
+    // use and there is nothing to put in it.
+    value: "",
+    state: settled.state,
+    tree: settled.schema,
+    ...(clauses.length === 0 ? {} : { clauses }),
+  };
 }
 
 /**

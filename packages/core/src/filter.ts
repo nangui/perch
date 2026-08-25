@@ -12,6 +12,7 @@
  * undeclared column, and for the same reason: an error would say which filters
  * exist.
  */
+import type { Component } from "./component.js";
 import type { Clause, ClauseOperator, DeletedRows } from "./data-adapter.js";
 import { isRealDay, toInstant } from "./zoned.js";
 import type { Option, OptionsInput } from "./option.js";
@@ -477,4 +478,90 @@ function ends(value: string): readonly [string | undefined, string | undefined] 
   };
 
   return [read(value.slice(0, at)), read(value.slice(at + 2))];
+}
+
+/**
+ * What a schema filter's query is handed.
+ *
+ * `get` reads a value that has already been through the tree — visible, not
+ * disabled, and admitted by the field that owns the path. A value the form
+ * would have refused is not here to be read, so a query never has to ask
+ * whether what it was given was allowed.
+ */
+export interface FilterValues {
+  readonly get: (path: string) => unknown;
+}
+
+/** What a filter's own form decides, once its values have been admitted. */
+export type FilterQuery = (values: FilterValues) => readonly Clause[];
+
+export interface SchemaFilterState extends FilterState {
+  readonly schema: readonly Component[];
+  readonly query?: FilterQuery;
+}
+
+/**
+ * A filter that carries its own form.
+ *
+ * The others are a column and a comparison with a control drawn over them. This
+ * one is the other way round: the fields are declared, and what they mean is a
+ * function. So it asks the questions a column cannot — two columns at once,
+ * a comparison that depends on a choice, a window nobody has a name for.
+ *
+ * Its fields are fields. They go through the same cycle a form's do, which is
+ * what makes a `Select` inside one able to depend on another and what keeps
+ * the trust boundary in one place: a value arrives, is replayed against the
+ * resolved tree, and what the tree refuses never reaches the query. The
+ * refusal is silent, like every refusal at this boundary — a filter is not a
+ * save, and there is nothing to report to somebody who was not asking.
+ *
+ * The query is the security story, unchanged. Paths and operators are written
+ * here, in code nobody outside can reach; only the values ever come from a URL,
+ * and they arrive under `filter.<name>.<path>` so each field keeps its own.
+ */
+export class SchemaFilter extends Filter {
+  declare readonly state: SchemaFilterState;
+
+  private constructor(state: SchemaFilterState) {
+    super(state);
+  }
+
+  static make(name: string): SchemaFilter {
+    return new SchemaFilter({ name, path: name, operator: "equals", schema: [] });
+  }
+
+  override get type(): string {
+    return "SchemaFilter";
+  }
+
+  protected override with(state: FilterState): this {
+    return new SchemaFilter({ ...this.state, ...state }) as this;
+  }
+
+  /** The fields it asks with. Any component a form can hold. */
+  schema(children: readonly Component[]): this {
+    return new SchemaFilter({ ...this.state, schema: [...children] }) as this;
+  }
+
+  /** What those fields mean. Without one it asks and narrows nothing. */
+  query(build: FilterQuery): this {
+    return new SchemaFilter({ ...this.state, query: build }) as this;
+  }
+
+  /**
+   * Never from a string. Its values do not arrive as one, and a filter that
+   * quietly answered a single parameter would be a second way in.
+   */
+  override clauses(value: string): readonly Clause[] {
+    // Taken and dropped rather than left out of the signature, so that the
+    // door being shut is something written down and not something inferred
+    // from an arity.
+    void value;
+    return [];
+  }
+
+  /** What its fields ask for, once they have been admitted. */
+  narrow(values: FilterValues): readonly Clause[] {
+    return this.state.query?.(values) ?? [];
+  }
 }

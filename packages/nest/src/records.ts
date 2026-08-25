@@ -33,6 +33,8 @@ import type { Authorization } from "./authorization.js";
 import { authorize, mayReach } from "./authorization.js";
 import { sameOrigin } from "./panel-root.js";
 import type { RawQuery } from "./records-query.js";
+import { withOptions } from "./relationship-options.js";
+import type { AcceptedFilter } from "./records-query.js";
 import { DEFAULT_PER_PAGE, readList } from "./records-query.js";
 import type { RegisteredResource } from "./resource-registry.js";
 import type { PanelDisks } from "./storage.token.js";
@@ -143,6 +145,7 @@ export async function listRecords(
     // itself asks again with the row, which is where the answer is real.
     mayWrite: (await authorize(can, "edit", user)) !== "denied",
     form: resource.instance.form(),
+    user,
     ...pathOrNothing(resourcePath(root, resource.metadata.slug)),
   });
 }
@@ -183,11 +186,21 @@ export async function listOf(options: {
   readonly mayWrite?: boolean;
   /** The form that owns the fields a writable column writes through. */
   readonly form?: Component;
+  /**
+   * Who is reading, for the filters that carry a form of their own.
+   *
+   * A tree resolved without them decides visibility for nobody: a field a
+   * policy hides would be offered, and the value behind it admitted.
+   */
+  readonly user?: unknown;
 }): Promise<RecordsResponse> {
   const { data, model, table, raw, scope } = options;
   const mayReadDeleted = options.mayReadDeleted ?? true;
   const ir = data.ir();
-  const read = readList(model, ir, raw, table, mayReadDeleted);
+  const read = await readList(model, ir, raw, table, mayReadDeleted, {
+    user: options.user,
+    ...withOptions(data, model),
+  });
   const filters = read.filters;
   const query: Query =
     scope === undefined
@@ -221,6 +234,7 @@ export async function listOf(options: {
             options.form,
             mayReadDeleted,
             options.mayWrite === true,
+            read.forms,
           ),
     recordKey: key,
     ...(marked.length === 0 ? {} : { deleted: marked }),
@@ -255,6 +269,8 @@ function offered(
   form: Component | undefined,
   mayReadDeleted: boolean,
   mayWrite: boolean,
+  /** The resolved trees of the filters that carry a form of their own. */
+  forms: ReadonlyMap<string, AcceptedFilter>,
 ): ColumnTree {
   const declared = table.state.columns;
   const fields = new Map(
@@ -270,9 +286,18 @@ function offered(
         ? { ...column, editable: true as const, ...hints(fields.get(column.path)) }
         : column,
     ),
-    filters: mayReadDeleted
+    filters: (mayReadDeleted
       ? columns.filters
-      : columns.filters.filter((one) => one.type !== "TrashedFilter"),
+      : columns.filters.filter((one) => one.type !== "TrashedFilter")
+    ).map((one) => {
+      // A filter with a form of its own is drawn from the tree the server
+      // resolved, options and all — the declaration alone would draw a `Select`
+      // with nothing in it.
+      const own = forms.get(one.name);
+      return own?.tree === undefined
+        ? one
+        : { ...one, schema: own.tree, state: own.state ?? {} };
+    }),
   };
 }
 

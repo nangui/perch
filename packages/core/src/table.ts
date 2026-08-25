@@ -13,6 +13,7 @@ import type { Option } from "./option.js";
 import type { Filter } from "./filter.js";
 import { SelectFilter, TernaryFilter, TrashedFilter } from "./filter.js";
 import type { Row, SortDirection } from "./data-adapter.js";
+import type { SchemaNode } from "./serialise.js";
 
 export interface TableState {
   readonly columns: readonly Column[];
@@ -84,6 +85,17 @@ export interface FilterNode {
   readonly label?: string;
   /** What a choice may be set to. Absent where a filter has no closed set. */
   readonly options?: readonly { readonly value: string; readonly label: string }[];
+  /**
+   * The form a filter carries, already resolved.
+   *
+   * Sent as a tree because that is what it is: the same nodes a form is drawn
+   * from, so the same renderers draw them and a `Select` inside a filter gets
+   * its options the way any other one does. Absent for a filter that is a
+   * column and a comparison, which needs no tree to say so.
+   */
+  readonly schema?: SchemaNode;
+  /** What its fields hold, as the server settled them. */
+  readonly state?: Readonly<Record<string, unknown>>;
 }
 
 /** What a row action looks like on the wire. */

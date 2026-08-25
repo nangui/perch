@@ -19,6 +19,7 @@ import type {
 } from "@perchjs/core";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 import { PanelForm } from "./PanelForm.js";
+import { SchemaRenderer } from "./SchemaRenderer.js";
 import type { StateRequest, StateResponse } from "./transport.js";
 import { DataTable } from "./DataTable.js";
 import type { DataTableSort } from "./DataTable.js";
@@ -796,6 +797,50 @@ function narrowing(
         // submit it and the search box and every other filter stop working
         // with it. The server already answers a range whose ends cross, with
         // the empty table that range describes.
+        // A filter that carries its own form. The tree came resolved, so the
+        // same renderers that draw a form draw this — a `Select` inside one
+        // has its options because the server worked them out, not because the
+        // bar knows anything about options.
+        //
+        // Its values travel one parameter per field, `filter.<name>.<path>`,
+        // which is why they are kept under a dotted key here: the transport
+        // puts `filter.` in front of whatever it is given.
+        if (filter.type === "SchemaFilter") {
+          // No tree means the server did not resolve one — nothing to draw, and
+          // guessing a form from a name is not a thing a client may do.
+          if (filter.schema === undefined) return null;
+
+          const own: Record<string, unknown> = { ...filter.state };
+          for (const [key, value] of Object.entries(state.entered)) {
+            if (key.startsWith(`${filter.name}.`)) {
+              own[key.slice(filter.name.length + 1)] = value;
+            }
+          }
+
+          return (
+            <fieldset key={filter.name} className="perch-list__form">
+              <legend className="perch-list__narrow-name">{named}</legend>
+              <SchemaRenderer
+                payload={{ schema: filter.schema, state: own, errors: {} }}
+                onChange={(path, value) => {
+                  // Text, because a link carries text. What it means is the
+                  // field's to say, on the server, where it already has to be
+                  // said for a value that was forged. A value that could not be
+                  // written in a link is left alone rather than sent as
+                  // `[object Object]` — and the boot refuses a field that holds
+                  // one, so this is the second half of a rule, not a guess.
+                  const written = writable(value);
+                  if (written === undefined) return;
+                  state.setEntered({
+                    ...state.entered,
+                    [`${filter.name}.${path}`]: written,
+                  });
+                }}
+              />
+            </fieldset>
+          );
+        }
+
         const range = RANGES[filter.type];
         if (range !== undefined) {
           // Split and shown as they are. Tidying here instead — dropping a half
@@ -890,6 +935,15 @@ function asEntered(page: RecordsPage): Readonly<Record<string, string>> {
       return [name, `${half(value.slice(0, at))}..${half(value.slice(at + 2))}`];
     }),
   );
+}
+
+/** A field's value as a link can carry it, or nothing where it cannot. */
+function writable(value: unknown): string | undefined {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  return typeof value === "number" || typeof value === "boolean"
+    ? String(value)
+    : undefined;
 }
 
 /**

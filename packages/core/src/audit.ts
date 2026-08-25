@@ -12,6 +12,8 @@
  * of somebody's own form, and the only useful answer is which line.
  */
 import type { Component } from "./component.js";
+import { isResolver } from "./component.js";
+import { normaliseOptions } from "./option.js";
 import { Entry } from "./entry.js";
 import { TextEntry } from "./entries/text-entry.js";
 import { Field } from "./field.js";
@@ -29,7 +31,13 @@ import { ToggleButtons } from "./fields/toggle-buttons.js";
 import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
 import { TextInput } from "./fields/text-input.js";
-import { DateRangeFilter, SelectFilter, TrashedFilter } from "./filter.js";
+import { Schema } from "./layout.js";
+import {
+  DateRangeFilter,
+  SchemaFilter,
+  SelectFilter,
+  TrashedFilter,
+} from "./filter.js";
 import type { Table } from "./table.js";
 import { declaredActions, declaredFilters } from "./table.js";
 import { isWallClock, knownZone } from "./zoned.js";
@@ -165,6 +173,36 @@ function scopes(component: Component): readonly (readonly string[])[] {
 
   for (const child of component.children) visit(child);
   return [here, ...below];
+}
+
+/** Every field in a filter's schema, however it is laid out. */
+function fieldsOf(components: readonly Component[]): readonly Field[] {
+  return components.flatMap((one) => [
+    ...(one instanceof Field ? [one] : []),
+    ...fieldsOf(one.children),
+  ]);
+}
+
+/**
+ * Whether a field can hold what a link can carry.
+ *
+ * The same two-question shape a writable column uses. A field offering a closed
+ * set is asked about its own first choice written as text, because that is what
+ * a query string will hand back; anything else is asked whether it takes a word
+ * at all. A document, a list of pairs and a set of ticks all say no, which is
+ * the answer that matters — a control drawn over one of them would take a
+ * reader's input and narrow nothing.
+ */
+function readsText(field: Field): boolean {
+  const declared = field.declaredOptions;
+  if (declared !== undefined && !isResolver(declared)) {
+    const options = normaliseOptions(declared);
+    return (
+      options.length > 0 &&
+      field.admits(String(options[0]?.value), options) === undefined
+    );
+  }
+  return field.admits("perch", undefined) === undefined;
 }
 
 function inspectMarkdownToolbar(field: MarkdownEditor, into: Complaint[]): void {
@@ -597,6 +635,49 @@ export function auditTable(table: Table): readonly Complaint[] {
     }
     if (filter instanceof DateRangeFilter && !knownZone(filter.state.timezone)) {
       complaints.push(unknownZone(filter.state.name, filter.state.timezone));
+    }
+    if (filter instanceof SchemaFilter) {
+      // The two halves of the same declaration. Fields with nothing to mean
+      // draw a form that narrows nothing however it is filled in; a meaning
+      // with no fields is a control nobody can operate.
+      if (filter.state.schema.length === 0) {
+        complaints.push({
+          field: filter.state.name,
+          problem: "carries a form with no fields in it, so there is nothing to ask",
+        });
+      }
+      if (filter.state.query === undefined) {
+        complaints.push({
+          field: filter.state.name,
+          problem:
+            "has no `query()`, so whatever a reader puts in it narrows nothing " +
+            "at all",
+        });
+      }
+      // Its values travel in a query string, so a field that cannot hold what
+      // one carries is a control a reader can operate and nothing can read.
+      // Asked of the field rather than listed by type, so a field this file has
+      // never heard of answers for itself.
+      for (const field of fieldsOf(filter.state.schema)) {
+        if (readsText(field)) continue;
+        complaints.push({
+          field: `${filter.state.name}.${field.name}`,
+          problem:
+            `is a \`${field.type}\`, and a filter's values arrive as text out of ` +
+            "a link — what it holds could never be written in one",
+        });
+      }
+      // Its fields are fields, and they go through the same cycle a form's do
+      // — so a declaration that would be refused on a page has to be refused
+      // here. Without this a `Select` with no options, or a picker naming a
+      // zone nothing has heard of, boots clean inside a filter and fails or
+      // does nothing on the first request that touches it.
+      for (const inside of auditSchema(Schema.make([...filter.state.schema]))) {
+        complaints.push({
+          field: `${filter.state.name}.${inside.field}`,
+          problem: inside.problem,
+        });
+      }
     }
     if (filter instanceof SelectFilter && filter.choices.length === 0) {
       complaints.push({
