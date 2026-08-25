@@ -69,9 +69,11 @@ describe("what it means", () => {
 
   it("is nothing at all where nobody said what it means", () => {
     expect(
-      SchemaFilter.make("named").schema([TextInput.make("starts")]).narrow({
-        get: () => "Ada",
-      }),
+      SchemaFilter.make("named")
+        .schema([TextInput.make("starts")])
+        .narrow({
+          get: () => "Ada",
+        }),
     ).toEqual([]);
   });
 
@@ -102,7 +104,9 @@ describe("what a single parameter does to it", () => {
 describe("half a declaration", () => {
   const complaintsFor = (filter: SchemaFilter) =>
     auditTable(
-      Table.make().columns([TextColumn.make("name")]).filters([filter]),
+      Table.make()
+        .columns([TextColumn.make("name")])
+        .filters([filter]),
     ).map((one) => one.problem);
 
   it("stops the boot where the fields mean nothing", () => {
@@ -162,7 +166,11 @@ describe("half a declaration", () => {
     ]);
 
     expect(
-      complaintsFor(SchemaFilter.make("about").schema([numbered]).query(() => [])),
+      complaintsFor(
+        SchemaFilter.make("about")
+          .schema([numbered])
+          .query(() => []),
+      ),
     ).toEqual([]);
   });
 
