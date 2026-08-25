@@ -27,6 +27,7 @@ import {
   entryRelations,
   DateRangeFilter,
   NumberRangeFilter,
+  ReplicateAction,
   TernaryFilter,
   TrashedFilter,
   describeComplaints,
@@ -222,6 +223,7 @@ export class ResourceRegistry implements OnModuleInit {
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
         ...(table === undefined ? [] : this.#unaskableFilters(metadata.model, table)),
+        ...(table === undefined ? [] : this.#collidingCopies(metadata.model, table)),
         ...this.#unscopableRelations(metadata.model, managers),
         ...this.#reassigningFields(metadata.model, managers),
         ...this.#unwritableChildren(metadata.model, managers),
@@ -340,6 +342,65 @@ export class ResourceRegistry implements OnModuleInit {
           `filters deleted rows on \`${model}\`, which has no deletion column — ` +
           "every one of its three states shows the same page",
       }));
+  }
+
+  /**
+   * A copy that would collide with the row it was copied from.
+   *
+   * Everything a row holds is carried over except its identity, which is the
+   * point — and the trap. A column the database keeps unique is copied into a
+   * value that already exists, so the second copy is a constraint error rather
+   * than a row, and the reader meets it as a failed request with a driver's
+   * message inside it.
+   *
+   * `.excludeAttributes()` is how a resource says which columns those are. This
+   * says which it has found, at boot, where the answer is a line to write
+   * rather than a bug to reproduce.
+   */
+  #collidingCopies(
+    model: string,
+    table: Table,
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const found = findModel(this.#data.ir(), model);
+    if (found === undefined) return [];
+
+    const copies = [...table.state.actions, ...table.state.bulkActions].filter(
+      (action): action is ReplicateAction => action instanceof ReplicateAction,
+    );
+
+    return copies.flatMap((action) => {
+      const excluded = new Set(action.state.excludeAttributes ?? []);
+      // The key is dropped by the copy without being asked, so it is not
+      // something a resource has to name.
+      const carried = (name: string): boolean =>
+        !excluded.has(name) && name !== found.primaryKey.name;
+
+      const colliding = found.fields
+        .filter((field) => field.isUnique && !field.isId && carried(field.name))
+        .map((field) => field.name);
+
+      // A constraint over several columns collides only when every one of them
+      // is carried: leave one behind and the pair is a pair nothing holds yet.
+      // Reading `isUnique` alone answered half the question and said nothing
+      // about the other half, which fails on the same second press.
+      const together = found.uniqueConstraints
+        .filter((columns) => columns.length > 1 && columns.every(carried))
+        .map((columns) => columns.join(" + "));
+
+      const all = [...colliding, ...together];
+      if (all.length === 0) return [];
+
+      return [
+        {
+          field: action.state.name ?? action.type,
+          problem:
+            `copies \`${all.join("`, `")}\`, which \`${model}\` keeps unique — ` +
+            "the second copy is a constraint error rather than a row. Name them " +
+            "in `.excludeAttributes()`",
+        },
+      ];
+    });
   }
 
   /**

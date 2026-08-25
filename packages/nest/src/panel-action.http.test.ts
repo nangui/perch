@@ -24,6 +24,7 @@ import {
   Action,
   DeleteAction,
   ForceDeleteAction,
+  ReplicateAction,
   RestoreAction,
   EditAction,
   Notification,
@@ -44,8 +45,12 @@ let ran: { record: Row; data: Readonly<Record<string, unknown>> }[] = [];
 let deleted: readonly Id[][] = [];
 let destroyed: readonly Id[][] = [];
 let restored: readonly Id[][] = [];
+/** What a copy asked to be written, in the order it asked. */
+let written: readonly Readonly<Record<string, unknown>>[] = [];
 /** Rows the double is pretending are deleted. */
 let marked = new Set<Id>();
+/** Swapped per test, for the two things a copy can be told. */
+let replicate: ReplicateAction | undefined;
 let policy: Authorization | undefined;
 let guard: ((user: unknown, record: Row) => boolean) | undefined;
 let transactions = 0;
@@ -100,8 +105,13 @@ class MemoryAdapter implements DataAdapter {
   findOne(_model: string, id: Id): Promise<Row | null> {
     return Promise.resolve(ROWS[Number(id)] ?? null);
   }
-  create(): Promise<Row> {
-    throw new Error("not needed here");
+  create(
+    _model: string,
+    data: { set?: Readonly<Record<string, unknown>> },
+  ): Promise<Row> {
+    const row = { id: 900 + written.length, ...(data.set ?? {}) };
+    written = [...written, data.set ?? {}];
+    return Promise.resolve(row as Row);
   }
   update(): Promise<Row> {
     throw new Error("not needed here");
@@ -169,6 +179,7 @@ class PostResource {
         remove,
         RestoreAction.make(),
         ForceDeleteAction.make(),
+        replicate ?? ReplicateAction.make(),
       ]);
   }
 }
@@ -192,6 +203,7 @@ beforeEach(async () => {
   deleted = [];
   destroyed = [];
   restored = [];
+  written = [];
   marked = new Set();
   transactions = 0;
   queries = 0;
@@ -199,6 +211,7 @@ beforeEach(async () => {
   withForm = false;
   policy = undefined;
   guard = undefined;
+  replicate = undefined;
 
   const moduleRef = await Test.createTestingModule({
     imports: [
@@ -372,6 +385,96 @@ describe("deleting", () => {
     await press("DeleteAction");
 
     expect(ran).toEqual([]);
+  });
+});
+
+describe("copying a row", () => {
+  it("writes it again without the key that told it apart", async () => {
+    // A copy carrying the original's key is not a copy: it is the original,
+    // written twice.
+    const answer = await press("ReplicateAction");
+
+    expect(answer.body).toEqual({ processed: 1, refused: 0 });
+    expect(written).toEqual([{ title: "Row 1" }]);
+  });
+
+  it("leaves behind the columns the resource named", async () => {
+    replicate = ReplicateAction.make().excludeAttributes(["title"]);
+    await press("ReplicateAction");
+
+    expect(written).toEqual([{}]);
+  });
+
+  it("hands the copy to a last word before writing it", async () => {
+    const seen: unknown[] = [];
+    replicate = ReplicateAction.make().beforeReplicaSaved((draft, original) => {
+      seen.push({ draft, original });
+      return { ...draft, title: `${String(draft["title"])} (copy)` };
+    });
+    await press("ReplicateAction");
+
+    expect(written).toEqual([{ title: "Row 1 (copy)" }]);
+    expect(seen).toEqual([
+      { draft: { title: "Row 1" }, original: { id: 1, title: "Row 1" } },
+    ]);
+  });
+
+  it("keeps the copy a hook said nothing about", async () => {
+    // Returning nothing is how a hook says it looked and had no changes, which
+    // is what a hook that only reads should be able to do.
+    replicate = ReplicateAction.make().beforeReplicaSaved(() => undefined);
+    await press("ReplicateAction");
+
+    expect(written).toEqual([{ title: "Row 1" }]);
+  });
+
+  it("takes the identity off again after the hook has spoken", async () => {
+    // A hook is server code and therefore trusted. The identity coming off is
+    // what makes a copy a copy, though, and a guarantee a hook can undo by
+    // writing one key back is not a guarantee.
+    replicate = ReplicateAction.make().beforeReplicaSaved((draft, original) => ({
+      ...draft,
+      id: original["id"],
+    }));
+    await press("ReplicateAction");
+
+    expect(written).toEqual([{ title: "Row 1" }]);
+  });
+
+  it("takes the named columns off again too", async () => {
+    replicate = ReplicateAction.make()
+      .excludeAttributes(["title"])
+      .beforeReplicaSaved(() => ({ title: "put back" }));
+    await press("ReplicateAction");
+
+    expect(written).toEqual([{}]);
+  });
+
+  it("copies each ticked row, in one transaction", async () => {
+    // Fifty copies either all land or none do, the same promise a batch
+    // delete makes.
+    await press("ReplicateAction", { ids: [1, 2, 3] });
+
+    expect(written).toHaveLength(3);
+    expect(transactions).toBe(1);
+  });
+
+  it("asks the policy that adds a row, not the one that changes one", async () => {
+    // A reader allowed to change what is already there is not thereby allowed
+    // to add to it.
+    policy = { create: () => false, update: () => true };
+
+    // The same nothing every other refusal gives: a 404, so the route says no
+    // more about what exists than about who may reach it.
+    expect((await press("ReplicateAction")).status).toBe(404);
+    expect(written).toEqual([]);
+  });
+
+  it("is allowed where that policy allows it", async () => {
+    policy = { create: () => true, update: () => false };
+    await press("ReplicateAction");
+
+    expect(written).toHaveLength(1);
   });
 });
 

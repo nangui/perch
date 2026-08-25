@@ -7,7 +7,12 @@
  * render time, which is the one thing authorisation may not do.
  */
 import type { Action, Operation, Row } from "@perchjs/core";
-import { DeleteAction, ForceDeleteAction, RestoreAction } from "@perchjs/core";
+import {
+  DeleteAction,
+  ForceDeleteAction,
+  ReplicateAction,
+  RestoreAction,
+} from "@perchjs/core";
 
 export interface Authorization<TUser = unknown, TRecord = unknown> {
   /** Gates the resource itself: its routes and its navigation entry alike. */
@@ -61,6 +66,9 @@ export function permissionFor(action: Action): Permission {
   if (action instanceof ForceDeleteAction) return "forceDelete";
   if (action instanceof RestoreAction) return "restore";
   if (action instanceof DeleteAction) return "delete";
+  // It makes a row. A reader allowed to change what is already there is not
+  // thereby allowed to add to it, so a copy asks the policy that adds.
+  if (action instanceof ReplicateAction) return "create";
   return "edit";
 }
 

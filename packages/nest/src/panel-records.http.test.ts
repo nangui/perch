@@ -31,6 +31,7 @@ import {
   TextFilter,
   DateRangeFilter,
   NumberRangeFilter,
+  ReplicateAction,
   TernaryFilter,
   TextInput,
   TrashedFilter,
@@ -84,6 +85,9 @@ const POST: ModelMeta = {
     field("title", "String"),
     field("published", "Boolean"),
     field("authorId", "Int"),
+    // Unique, and not the key. What a copy collides with, and the reason the
+    // boot has something to say about one.
+    scalar("slug", { type: "String", isUnique: true }),
   ],
   relations: [
     {
@@ -97,7 +101,9 @@ const POST: ModelMeta = {
       isList: false,
     },
   ],
-  uniqueConstraints: [],
+  // Two columns unique together, which a copy collides with exactly as it
+  // collides with one — and which reading `isUnique` alone says nothing about.
+  uniqueConstraints: [["title", "authorId"]],
   hasSoftDelete: false,
   labelField: "title",
 };
@@ -676,6 +682,107 @@ describe("a range of numbers over a column that holds none", () => {
           await ref.init();
         }),
     ).rejects.toThrow(/range of numbers/);
+  });
+});
+
+describe("a copy that would collide with what it copied", () => {
+  it("stops the boot rather than failing on the second press", async () => {
+    // Everything a row holds is carried over except its identity. A column the
+    // database keeps unique is copied into a value that already exists, and
+    // the reader meets a driver's message instead of a row.
+    @PanelResource({ model: "Post", slug: "colliding" })
+    class CollidingResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .actions([ReplicateAction.make()]);
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [CollidingResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/keeps unique/);
+  });
+
+  it("counts a constraint made of several columns, not only a lone one", async () => {
+    // `title + authorId` collides the same way `slug` does. Leaving out `slug`
+    // alone still leaves the pair, and the boot has to say so.
+    @PanelResource({ model: "Post", slug: "half-excluded" })
+    class HalfExcludedResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .actions([ReplicateAction.make().excludeAttributes(["slug"])]);
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [HalfExcludedResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/title \+ authorId/);
+  });
+
+  it("says nothing once the resource has named them", async () => {
+    @PanelResource({ model: "Post", slug: "excluding" })
+    class ExcludingResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .actions([
+            // One column of the pair is enough: leave it behind and the pair
+            // is a pair nothing holds yet.
+            ReplicateAction.make().excludeAttributes(["slug", "title"]),
+          ]);
+      }
+    }
+
+    const ref = await Test.createTestingModule({
+      imports: [
+        PanelModule.forRoot({
+          path: "/admin",
+          resources: [ExcludingResource],
+          dataAdapter: MemoryAdapter,
+          assets: assets(),
+        }),
+      ],
+    }).compile();
+
+    await expect(ref.init()).resolves.toBeDefined();
+    await ref.close();
   });
 });
 
