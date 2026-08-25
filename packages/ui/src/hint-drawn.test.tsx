@@ -96,7 +96,9 @@ describe("a hint", () => {
 
 describe("an attribute a declaration asks for", () => {
   it("lands on the control", () => {
-    const container = draw({ extraAttributes: { "data-tour": "slug", title: "The URL" } });
+    const container = draw({
+      extraAttributes: { "data-tour": "slug", title: "The URL" },
+    });
     const box = container.querySelector("input");
 
     expect(box?.getAttribute("data-tour")).toBe("slug");
@@ -128,8 +130,7 @@ describe("an attribute a declaration asks for", () => {
   });
 });
 
-describe("an affix", () =>{
-
+describe("an affix", () => {
   it("is drawn inside the frame, on the side it was declared", () => {
     const container = draw({ props: { prefix: "https://", suffix: ".com" } });
 

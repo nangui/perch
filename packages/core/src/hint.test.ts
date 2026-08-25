@@ -106,9 +106,9 @@ describe("an attribute a declaration asks for", () => {
   it("is a clone away, like every other declaration", async () => {
     const plain = TextInput.make("slug");
 
-    expect((await drawn(plain.extraAttributes({ title: "x" })))?.extraAttributes).toEqual(
-      { title: "x" },
-    );
+    expect(
+      (await drawn(plain.extraAttributes({ title: "x" })))?.extraAttributes,
+    ).toEqual({ title: "x" });
     expect((await drawn(plain))?.extraAttributes).toBeUndefined();
   });
 });
