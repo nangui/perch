@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import type {
   ActionNode,
+  ModalWidth,
   ColumnNode,
   ColumnTree,
   FormState,
@@ -615,6 +616,7 @@ export function PanelList({
           confirmation={pending.action.confirmation ?? {}}
           danger={pending.action.danger === true}
           busy={busy}
+          {...modalOf(pending.action)}
           onConfirm={() => {
             void carry(pending.action, pending.ids);
           }}
@@ -631,6 +633,7 @@ export function PanelList({
           confirmation={pending.action.confirmation ?? {}}
           danger={pending.action.danger === true}
           busy={busy}
+          {...modalOf(pending.action)}
           onCancel={() => {
             setPending(undefined);
           }}
@@ -1150,6 +1153,20 @@ function offered(page: RecordsPage, row: Row): readonly ActionNode[] {
     if (action.actsOn === "live") return !marked;
     return true;
   });
+}
+
+/**
+ * How the action asked its modal to open.
+ *
+ * Spread rather than passed one by one, so an action that said nothing about
+ * either sends nothing at all and the dialog keeps the width its content
+ * implies.
+ */
+function modalOf(action: ActionNode): { width?: ModalWidth; slideOver?: boolean } {
+  return {
+    ...(action.modalWidth === undefined ? {} : { width: action.modalWidth }),
+    ...(action.slideOver === true ? { slideOver: true } : {}),
+  };
 }
 
 /** Which page of a row an action leads to, as a path suffix. */

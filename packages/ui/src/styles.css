@@ -2332,6 +2332,104 @@
   width: min(34rem, calc(100vw - var(--perch-space-8) * 2));
 }
 
+/* A declared width, which wins over the one the content implies. Ceilings
+   rather than widths: each is the smaller of its own size and what the window
+   has, so the largest of them is still a panel on a phone and not a page that
+   scrolls sideways. */
+.perch-modal[data-width] {
+  width: min(var(--perch-modal-width), calc(100vw - var(--perch-space-8) * 2));
+  max-width: none;
+}
+
+.perch-modal[data-width="sm"] {
+  --perch-modal-width: 24rem;
+}
+.perch-modal[data-width="md"] {
+  --perch-modal-width: 28rem;
+}
+.perch-modal[data-width="lg"] {
+  --perch-modal-width: 32rem;
+}
+.perch-modal[data-width="xl"] {
+  --perch-modal-width: 36rem;
+}
+.perch-modal[data-width="2xl"] {
+  --perch-modal-width: 42rem;
+}
+.perch-modal[data-width="3xl"] {
+  --perch-modal-width: 48rem;
+}
+.perch-modal[data-width="4xl"] {
+  --perch-modal-width: 56rem;
+}
+.perch-modal[data-width="5xl"] {
+  --perch-modal-width: 64rem;
+}
+.perch-modal[data-width="6xl"] {
+  --perch-modal-width: 72rem;
+}
+.perch-modal[data-width="7xl"] {
+  --perch-modal-width: 80rem;
+}
+
+/* The one that is not a ceiling. `screen` is the window, so the margin the
+   others keep would be a promise it is not making. */
+.perch-modal[data-width="screen"] {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+}
+
+/* Against the side rather than in the middle. The dialog is still the dialog —
+   `showModal()` gives the focus trap, the Escape key and the inert background
+   whatever this does with the box. */
+.perch-modal[data-slide-over="true"] {
+  margin: 0 0 0 auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+  border-width: 0 0 0 1px;
+}
+
+.perch-modal[data-slide-over="true"] .perch-modal__panel {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* A full-height panel puts its footer at the foot of it. Left alone, the
+   fields sit at the top and the button lands halfway up an empty column, which
+   reads as a panel that failed to finish rather than one with room to spare. */
+.perch-modal[data-slide-over="true"] .perch-modal__panel > form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.perch-modal[data-slide-over="true"] .perch-form-actions {
+  margin-top: auto;
+}
+
+/* Only where the reader has not asked for less. A panel arriving from off
+   screen is motion, and motion is a thing some people have told their machine
+   they do not want. */
+@media (prefers-reduced-motion: no-preference) {
+  .perch-modal[data-slide-over="true"][open] {
+    animation: perch-slide-in 180ms ease-out;
+  }
+}
+
+@keyframes perch-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 /* The footer is a card on a page, where it sits on the page ground. Inside a
    dialog it is already on a surface, and a second one reads as a box in a box. */
 .perch-modal .perch-form-actions {
@@ -2373,6 +2471,18 @@
   font-size: var(--perch-text-lg);
   line-height: 1;
   cursor: pointer;
+}
+
+/* A dialog holding a form ignores a click on the backdrop on purpose, so this
+   and Escape are the only ways out of one — and a touch screen has no Escape.
+   On a phone a slide-over fills the window and takes the backdrop with it,
+   which leaves this corner as the only thing left to press. WCAG's AAA target
+   rather than its AA one, because being the only way out earns it. */
+@media (pointer: coarse) {
+  .perch-modal__close {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 .perch-modal__close:hover:not(:disabled) {

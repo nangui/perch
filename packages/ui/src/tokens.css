@@ -152,6 +152,11 @@
   --perch-control-height-sm: 28px;
   --perch-radius: 4px;
   --perch-radius-lg: 6px;
+
+  /* How wide a modal opens where nothing said. Every declared size overrides
+     it; this is what a `data-width` nobody wrote a rule for falls back to,
+     which is a panel rather than a strip. */
+  --perch-modal-width: 28rem;
   --perch-radius-sm: 3px;
 
   /* Space scale, 4 px base. */

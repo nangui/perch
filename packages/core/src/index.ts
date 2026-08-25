@@ -76,6 +76,7 @@ export type {
   RecordPage,
   ActsOn,
   BeforeReplicaSaved,
+  ModalWidth,
   ReplicateActionState,
 } from "./action.js";
 export {
@@ -85,6 +86,7 @@ export {
   DeleteAction,
   EditAction,
   ForceDeleteAction,
+  MODAL_WIDTHS,
   ReplicateAction,
   RestoreAction,
   ViewAction,

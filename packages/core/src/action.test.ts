@@ -6,6 +6,7 @@ import {
   DeleteAction,
   EditAction,
   ForceDeleteAction,
+  MODAL_WIDTHS,
   ReplicateAction,
   RestoreAction,
 } from "./action.js";
@@ -256,5 +257,70 @@ describe("which rows an action means anything on", () => {
     // Sending "either" would put a word on every action in every tree to say
     // what its absence already says.
     expect(drawn[1]?.actsOn).toBeUndefined();
+  });
+});
+
+/** What the boot says about a width, and nothing it says about anything else. */
+const widthComplaints = (action: Action): readonly string[] =>
+  auditTable(Table.make().actions([action]))
+    .map((one) => one.problem)
+    .filter((problem) => problem.includes("width"));
+
+describe("how a modal opens", () => {
+  it("crosses as the width the action asked for", () => {
+    const drawn = serialiseTable(
+      Table.make().actions([ArchiveAction.make().modalWidth("3xl")]),
+    ).actions;
+
+    expect(drawn[0]?.modalWidth).toBe("3xl");
+  });
+
+  it("crosses as opening against the side, where it was asked to", () => {
+    const drawn = serialiseTable(
+      Table.make().actions([ArchiveAction.make().slideOver()]),
+    ).actions;
+
+    expect(drawn[0]?.slideOver).toBe(true);
+  });
+
+  it("says nothing where the action said nothing", () => {
+    // Absent, so the dialog keeps the width its content implies: a sentence
+    // for a question, and enough for a form that its fields are not as narrow
+    // as their placeholders.
+    const drawn = serialiseTable(Table.make().actions([ArchiveAction.make()])).actions;
+
+    expect(drawn[0]?.modalWidth).toBeUndefined();
+    expect(drawn[0]?.slideOver).toBeUndefined();
+  });
+
+  it("stops the boot where the width is not one", () => {
+    // The union holds while the resource is written in TypeScript. A plugin
+    // written in JavaScript, or one cast, puts any string on the wire — and the
+    // stylesheet finds no rule, falls back to the default, and opens a panel
+    // that is not the one that was asked for with nothing to say so.
+    const complaints = widthComplaints(
+      ArchiveAction.make().modalWidth("enormous" as never),
+    );
+
+    expect(complaints).toHaveLength(1);
+    expect(complaints[0]).toContain("enormous");
+    expect(complaints[0]).toContain("7xl");
+  });
+
+  it("says nothing about every width there is", () => {
+    for (const width of MODAL_WIDTHS) {
+      expect(widthComplaints(ArchiveAction.make().modalWidth(width)), width).toEqual(
+        [],
+      );
+    }
+  });
+
+  it("is a clone away, like every other declaration", () => {
+    const plain = ArchiveAction.make();
+
+    expect(plain.modalWidth("lg").state.modalWidth).toBe("lg");
+    expect(plain.state.modalWidth).toBeUndefined();
+    expect(plain.slideOver().state.slideOver).toBe(true);
+    expect(plain.state.slideOver).toBeUndefined();
   });
 });

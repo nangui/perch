@@ -873,6 +873,67 @@ const SCHEMA_FOR_KEY = {
   errors: {},
 };
 
+describe("how an action's modal opens", () => {
+  const asking = (over: Record<string, unknown>): RecordsPage => ({
+    rows: [{ id: 1, title: "Ada" }],
+    total: 1,
+    page: 1,
+    perPage: 25,
+    recordKey: "id",
+    columns: {
+      columns: [{ type: "TextColumn", path: "title", label: "Title" }],
+      filters: [],
+      headerActions: [],
+      bulkActions: [],
+      actions: [
+        {
+          type: "ArchiveAction",
+          name: "ArchiveAction",
+          label: "Archive",
+          trigger: "run",
+          confirmation: { heading: "Sure?" },
+          ...over,
+        },
+      ],
+    },
+  });
+
+  const pressed = async (over: Record<string, unknown>): Promise<HTMLElement> => {
+    const { container } = render(
+      <PanelList
+        initial={asking(over)}
+        title="Posts"
+        runAction={vi.fn().mockResolvedValue({ processed: 1, refused: 0 })}
+      />,
+    );
+    fireEvent.click(await screen.findByLabelText("Actions"));
+    fireEvent.click(await screen.findByText("Archive"));
+    return container;
+  };
+
+  it("opens as wide as the action said", async () => {
+    const container = await pressed({ modalWidth: "3xl" });
+
+    expect(container.querySelector("dialog")?.getAttribute("data-width")).toBe("3xl");
+  });
+
+  it("opens against the side where the action said so", async () => {
+    const container = await pressed({ slideOver: true });
+
+    expect(container.querySelector("dialog")?.getAttribute("data-slide-over")).toBe(
+      "true",
+    );
+  });
+
+  it("says nothing where the action said nothing", async () => {
+    const container = await pressed({});
+    const dialog = container.querySelector("dialog");
+
+    expect(dialog?.hasAttribute("data-width")).toBe(false);
+    expect(dialog?.getAttribute("data-slide-over")).toBe("false");
+  });
+});
+
 describe("an action offered where it can do nothing", () => {
   const page = (deleted?: (string | number)[]): RecordsPage => ({
     rows: [{ id: 1, title: "Ada" }],

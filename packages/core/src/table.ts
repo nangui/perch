@@ -7,7 +7,7 @@
  * renderer that does not exist yet, and an option that does nothing is worse
  * than an absent one.
  */
-import type { Action, ActsOn, Confirmation } from "./action.js";
+import type { Action, ActsOn, Confirmation, ModalWidth } from "./action.js";
 import { actsOn } from "./action.js";
 import type { Column, PresentContext } from "./column.js";
 import type { Option } from "./option.js";
@@ -122,6 +122,9 @@ export interface ActionNode {
    * is, and that is the knowledge this tree exists to keep on the server.
    */
   readonly actsOn?: ActsOn;
+  /** How wide its modal opens, and whether it opens against the side. */
+  readonly modalWidth?: ModalWidth;
+  readonly slideOver?: true;
 }
 
 export interface ColumnTree {
@@ -347,6 +350,10 @@ function node(action: Action): ActionNode {
     // action it is told nothing about. Sending the default would put a word on
     // every action in every tree to say what silence already says.
     ...(actsOn(action) === "either" ? {} : { actsOn: actsOn(action) }),
+    ...(action.state.modalWidth === undefined
+      ? {}
+      : { modalWidth: action.state.modalWidth }),
+    ...(action.state.slideOver === true ? { slideOver: true as const } : {}),
   };
 }
 

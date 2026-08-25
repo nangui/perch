@@ -12,6 +12,7 @@
  */
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
+import type { ModalWidth } from "@perchjs/core";
 
 export interface Confirmation {
   readonly heading?: string;
@@ -27,6 +28,20 @@ interface DialogBase {
   readonly danger?: boolean;
   /** Held while the request is in flight, so it cannot be pressed twice. */
   readonly busy?: boolean;
+  /**
+   * How wide it opens. Absent takes what the content asks for: a sentence for
+   * a question, and enough for a form that its fields are not as narrow as
+   * their placeholders.
+   */
+  readonly width?: ModalWidth;
+  /**
+   * Opens against the side of the window rather than in the middle of it.
+   *
+   * The same dialog either way. `showModal()` still gives the focus trap, the
+   * Escape key and the inert background; what changes is where it comes from
+   * and how tall it is.
+   */
+  readonly slideOver?: boolean;
   readonly onCancel: () => void;
 }
 
@@ -50,6 +65,8 @@ export function ConfirmDialog({
   children,
   danger = false,
   busy = false,
+  width,
+  slideOver = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps): ReactNode {
@@ -73,6 +90,10 @@ export function ConfirmDialog({
       // A question and a form want different widths, and the dialog is the only
       // thing that knows which it is holding.
       data-form={children !== undefined}
+      // A declared width wins over the one the content implies, and a
+      // slide-over is measured across rather than down.
+      {...(width === undefined ? {} : { "data-width": width })}
+      data-slide-over={slideOver}
       // Escape closes it whatever this thinks, so the state has to be told
       // rather than left believing the dialog is still open.
       onCancel={(event) => {

@@ -79,6 +79,31 @@ export function actsOn(action: Action): ActsOn {
   return "either";
 }
 
+/**
+ * How wide a modal opens.
+ *
+ * A closed set rather than a length, because a length is a decision about a
+ * panel that has to hold up on a phone as well as a desk, and a resource
+ * writing `640px` has made that decision for a screen it cannot see. These are
+ * ceilings: each one is the smaller of its own size and what the window has.
+ */
+export type ModalWidth =
+  "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl" | "7xl" | "screen";
+
+export const MODAL_WIDTHS: readonly ModalWidth[] = [
+  "sm",
+  "md",
+  "lg",
+  "xl",
+  "2xl",
+  "3xl",
+  "4xl",
+  "5xl",
+  "6xl",
+  "7xl",
+  "screen",
+];
+
 export interface ActionState {
   /** How a request names it. Defaults to the type; `.name()` tells two apart. */
   readonly name?: string;
@@ -90,6 +115,17 @@ export interface ActionState {
   readonly form?: Schema;
   /** Drawn as destructive, and says so before it runs. */
   readonly danger?: boolean;
+  /** How wide the modal opens. Absent takes what the content asks for. */
+  readonly modalWidth?: ModalWidth;
+  /**
+   * Opens against the side of the window rather than in the middle of it.
+   *
+   * The same dialog either way — the focus trap, the Escape key and the inert
+   * background are the platform's and do not change. What changes is where it
+   * comes from, which is worth having for a form long enough that a centred
+   * box would be a column of scroll.
+   */
+  readonly slideOver?: boolean;
 }
 
 export abstract class Action {
@@ -152,6 +188,14 @@ export abstract class Action {
 
   danger(destructive = true): this {
     return this.with({ ...this.state, danger: destructive });
+  }
+
+  modalWidth(width: ModalWidth): this {
+    return this.with({ ...this.state, modalWidth: width });
+  }
+
+  slideOver(against = true): this {
+    return this.with({ ...this.state, slideOver: against });
   }
 
   /**
