@@ -116,6 +116,10 @@ export interface ResolvedNode {
   readonly own: { readonly visible: boolean; readonly disabled: boolean };
   readonly label?: string;
   readonly helperText?: string;
+  readonly hint?: string;
+  readonly hintIcon?: string;
+  readonly extraAttributes?: Readonly<Record<string, string>>;
+  readonly autofocus?: boolean;
   /** A layout's own line of prose, already resolved. */
   readonly description?: string;
   readonly placeholder?: string;
@@ -831,6 +835,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       : false;
   const label = await value(component.state.label, rc, undefined, count);
   const helperText = await value(component.state.helperText, rc, undefined, count);
+  const hint = await value(component.state.hint, rc, undefined, count);
   // A layout's own line of prose. Resolved rather than copied from the state
   // for the reason every resolvable is: copying one ships the function's source
   // or nothing at all.
@@ -953,6 +958,16 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     readOnly,
     ...(label === undefined ? {} : { label }),
     ...(helperText === undefined ? {} : { helperText }),
+    ...(hint === undefined ? {} : { hint }),
+    ...(component.state.hintIcon === undefined
+      ? {}
+      : { hintIcon: component.state.hintIcon }),
+    ...(component.state.extraAttributes === undefined
+      ? {}
+      : { extraAttributes: component.state.extraAttributes }),
+    ...(component.state.autofocus === undefined
+      ? {}
+      : { autofocus: component.state.autofocus }),
     ...(description === undefined ? {} : { description }),
     ...(content === undefined ? {} : { content }),
     ...(entryValue === undefined ? {} : { value: entryValue }),

@@ -14,6 +14,22 @@ export interface TextInputState extends FieldState {
   /** `ignoreRecord` excludes the row being edited from the uniqueness check. */
   readonly unique?: { readonly ignoreRecord: boolean };
   readonly step?: number;
+  /**
+   * What sits inside the frame, on either side of what is typed.
+   *
+   * Part of the box rather than of the value: `https://` in front of a field
+   * says what the reader need not type, and the column keeps only what they
+   * did. A field that wanted the affix stored would have to write it in a
+   * `dehydrateStateUsing`, where the decision is visible.
+   *
+   * Here rather than on every field, because an affix is a thing that sits
+   * beside a line of text. There is no left-hand side of a checkbox.
+   */
+  readonly prefix?: string;
+  readonly suffix?: string;
+  /** Glyphs beside them. Decoration: the words carry the meaning. */
+  readonly prefixIcon?: string;
+  readonly suffixIcon?: string;
 }
 
 export class TextInput extends Field {
@@ -21,6 +37,22 @@ export class TextInput extends Field {
 
   override get type(): string {
     return "TextInput";
+  }
+
+  prefix(value: string): this {
+    return this.with({ prefix: value });
+  }
+
+  suffix(value: string): this {
+    return this.with({ suffix: value });
+  }
+
+  prefixIcon(glyph: string): this {
+    return this.with({ prefixIcon: glyph });
+  }
+
+  suffixIcon(glyph: string): this {
+    return this.with({ suffixIcon: glyph });
   }
 
   protected override with(patch: Partial<TextInputState>): this {

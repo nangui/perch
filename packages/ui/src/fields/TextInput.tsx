@@ -25,10 +25,20 @@ export interface TextInputProps {
   readonly flavour?: TextFlavour;
   readonly placeholder?: string;
   readonly maxLength?: number;
-  /** A fixed, untypeable prefix: `https://`, `@`, `#`. */
+  /**
+   * Fixed, untypeable text inside the frame: `https://`, `@`, `.com`.
+   *
+   * Part of the box and not of the value — the column keeps what was typed.
+   * Hidden from a screen reader, which reads the label and the hint instead:
+   * an affix repeated into every field's name is noise, and one that carried
+   * meaning of its own would need words, and those words are the hint.
+   */
   readonly prefix?: string;
   /** A unit or a verification mark: `seats`, `✓`. */
   readonly suffix?: string;
+  /** Glyphs beside them. Decoration, like the affixes themselves. */
+  readonly prefixIcon?: string;
+  readonly suffixIcon?: string;
   /** Marks the suffix as a confirmation rather than a unit. */
   readonly suffixOk?: boolean;
   /** Progress of the round trip, 0 to 1. Renders the hairline. */
@@ -57,6 +67,8 @@ export function TextInput({
   placeholder,
   maxLength,
   prefix,
+  prefixIcon,
+  suffixIcon,
   suffix,
   suffixOk = false,
   progress,
@@ -72,11 +84,12 @@ export function TextInput({
       className={`perch-control${showTrack ? " perch-control--tracked" : ""}`}
       {...statusAttributes(status)}
     >
-      {prefix === undefined ? null : (
+      {prefixIcon === undefined && prefix === undefined ? null : (
         <span
           className="perch-control__affix perch-control__affix--prefix"
           aria-hidden="true"
         >
+          {prefixIcon}
           {prefix}
         </span>
       )}
@@ -113,7 +126,7 @@ export function TextInput({
         </button>
       )}
 
-      {suffix === undefined ? null : (
+      {suffix === undefined && suffixIcon === undefined ? null : (
         <span
           className={`perch-control__affix perch-control__affix--suffix${
             suffixOk ? " perch-control__affix--ok" : ""
@@ -121,6 +134,7 @@ export function TextInput({
           aria-hidden="true"
         >
           {suffix}
+          {suffixIcon}
         </span>
       )}
 

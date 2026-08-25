@@ -24,6 +24,12 @@ export interface SchemaNode {
   readonly path?: string;
   readonly label?: string;
   readonly helperText?: string;
+  /** A word beside the label, and a glyph before it. */
+  readonly hint?: string;
+  readonly hintIcon?: string;
+  /** Attributes that describe the control, and only those. */
+  readonly extraAttributes?: Readonly<Record<string, string>>;
+  readonly autofocus?: boolean;
   readonly description?: string;
   readonly placeholder?: string;
   readonly disabled?: boolean;
@@ -69,7 +75,16 @@ export interface SchemaPayload {
  * extension points only work for the framework has none.
  */
 const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
-  TextInput: ["flavour", "minLength", "maxLength", "step"],
+  TextInput: [
+    "flavour",
+    "minLength",
+    "maxLength",
+    "step",
+    "prefix",
+    "suffix",
+    "prefixIcon",
+    "suffixIcon",
+  ],
   Select: ["searchable", "multiple", "preload", "optionsLimit"],
   Radio: ["inline"],
   ToggleButtons: ["inline", "grouped"],
@@ -173,6 +188,12 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
       : {}),
     ...(resolved.label === undefined ? {} : { label: resolved.label }),
     ...(resolved.helperText === undefined ? {} : { helperText: resolved.helperText }),
+    ...(resolved.hint === undefined ? {} : { hint: resolved.hint }),
+    ...(resolved.hintIcon === undefined ? {} : { hintIcon: resolved.hintIcon }),
+    ...(resolved.extraAttributes === undefined
+      ? {}
+      : { extraAttributes: resolved.extraAttributes }),
+    ...(resolved.autofocus === undefined ? {} : { autofocus: resolved.autofocus }),
     ...(resolved.description === undefined
       ? {}
       : { description: resolved.description }),

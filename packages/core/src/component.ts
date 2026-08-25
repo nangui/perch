@@ -38,6 +38,35 @@ export interface ComponentState {
   readonly disabled?: Resolvable<boolean>;
   readonly label?: Resolvable<string>;
   readonly helperText?: Resolvable<string>;
+  /**
+   * A word beside the label rather than under the control.
+   *
+   * The line under a field belongs to the error, and a hint that lived there
+   * would be replaced by one — the reader loses the instruction exactly when
+   * they have got something wrong. So it sits at the other end of the label
+   * row, where both can be true at once.
+   */
+  readonly hint?: Resolvable<string>;
+  /** A glyph before the hint. Decoration: the hint carries the meaning. */
+  readonly hintIcon?: string;
+  /**
+   * Attributes the declaration puts on the control.
+   *
+   * Narrow on purpose. This is the one option in the set that reaches the DOM
+   * as a name the author chose, and the names a browser treats as instructions
+   * live in the same namespace as the ones it treats as description: `on*` runs
+   * code, `style` is a stylesheet, and `href`, `src` and `formaction` are
+   * addresses. A resource is server code and therefore trusted — but a
+   * declaration that reads a request to build an attribute is one refactor away
+   * from being written, and the refusal belongs where the attribute is made
+   * rather than in whoever remembers.
+   *
+   * So: `data-*` and `aria-*`, plus `title` and `role`. Everything else is
+   * refused at boot, by name, with the name said out loud.
+   */
+  readonly extraAttributes?: Readonly<Record<string, string>>;
+  /** Whether the browser puts the cursor here on arrival. One per form. */
+  readonly autofocus?: boolean;
   readonly columnSpan?: ColumnSpan;
   readonly key?: string;
 }
@@ -126,6 +155,22 @@ export abstract class Component {
 
   helperText(value: Resolvable<string>): this {
     return this.with({ helperText: value });
+  }
+
+  hint(value: Resolvable<string>): this {
+    return this.with({ hint: value });
+  }
+
+  hintIcon(glyph: string): this {
+    return this.with({ hintIcon: glyph });
+  }
+
+  extraAttributes(attributes: Readonly<Record<string, string>>): this {
+    return this.with({ extraAttributes: { ...attributes } });
+  }
+
+  autofocus(value = true): this {
+    return this.with({ autofocus: value });
   }
 
   extend(fn: (component: this) => this): this {

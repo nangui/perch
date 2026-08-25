@@ -413,6 +413,7 @@ function walk(component: Component, into: Complaint[]): void {
   // A button no editor can draw is a word in a list and nothing else.
   if (component instanceof RichEditor) inspectToolbar(component, into);
   // The same reading for the other editor: a button nothing draws is a word.
+  inspectAttributes(component, into);
   if (component instanceof MarkdownEditor) inspectMarkdownToolbar(component, into);
   // A column named with nothing is a heading that draws blank and a box whose
   // only name is the row it is on — declared, and naming nothing.
@@ -538,6 +539,35 @@ function unknownZone(name: string, zone: string): Complaint {
       `keeps its days in \`${zone}\`, which this runtime has never heard of — ` +
       "an IANA name, like `Europe/Paris` or `UTC`",
   };
+}
+
+/**
+ * An attribute a declaration asked to put on a control.
+ *
+ * `data-*` and `aria-*` describe; `title` and `role` describe. Everything else
+ * in that namespace may instruct: `on*` runs code, `style` is a stylesheet,
+ * `href` and `src` and `formaction` are addresses. A resource is server code
+ * and therefore trusted — and a declaration that builds an attribute out of
+ * something a request supplied is one refactor away from being written, which
+ * is why the refusal lives where the attribute is made rather than in whoever
+ * remembers.
+ */
+const DESCRIBING = /^(?:data-[a-z][\w.:-]*|aria-[a-z-]+|title|role)$/;
+
+function inspectAttributes(component: Component, into: Complaint[]): void {
+  const extra = component.state.extraAttributes;
+  if (extra === undefined) return;
+
+  for (const name of Object.keys(extra)) {
+    if (DESCRIBING.test(name)) continue;
+    into.push({
+      field: named(component),
+      problem:
+        `puts \`${name}\` on its control, and a control takes only attributes ` +
+        "that describe it — `data-*`, `aria-*`, `title`, `role`. The rest of " +
+        "that namespace tells a browser to do something",
+    });
+  }
 }
 
 function inspectUpload(upload: FileUpload, into: Complaint[]): void {

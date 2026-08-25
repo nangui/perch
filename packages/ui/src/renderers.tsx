@@ -41,6 +41,53 @@ import type { TextFlavour } from "./fields/TextInput.js";
 import type { NodeProps, SearchedOption } from "./node-props.js";
 import { registerComponent } from "./registry.js";
 
+/**
+ * What a field asked to sit inside its frame.
+ *
+ * The control has drawn these since it was written and nothing ever passed
+ * them: declared, drawn, and fed by no one.
+ */
+function affixesOf(node: SchemaNode): {
+  prefix?: string;
+  suffix?: string;
+  prefixIcon?: string;
+  suffixIcon?: string;
+} {
+  const said = (name: string): string | undefined => {
+    const value = node.props?.[name];
+    return typeof value === "string" ? value : undefined;
+  };
+  const affixes: Record<string, string> = {};
+  for (const name of ["prefix", "suffix", "prefixIcon", "suffixIcon"]) {
+    const value = said(name);
+    if (value !== undefined) affixes[name] = value;
+  }
+  return affixes;
+}
+
+/**
+ * What a field says about itself that surrounds the control rather than being
+ * in it: the word beside the label, and the attributes it asked to carry.
+ *
+ * Spread rather than passed one by one, so a field that declared none of them
+ * sends nothing at all and the shell has one thing to check instead of four.
+ */
+function hintOf(node: SchemaNode): {
+  hint?: string;
+  hintIcon?: string;
+  extraAttributes?: Readonly<Record<string, string>>;
+  autofocus?: boolean;
+} {
+  return {
+    ...(node.hint === undefined ? {} : { hint: node.hint }),
+    ...(node.hintIcon === undefined ? {} : { hintIcon: node.hintIcon }),
+    ...(node.extraAttributes === undefined
+      ? {}
+      : { extraAttributes: node.extraAttributes }),
+    ...(node.autofocus === undefined ? {} : { autofocus: node.autofocus }),
+  };
+}
+
 function statusOf(
   node: SchemaNode,
   error?: string,
@@ -301,12 +348,22 @@ function TextInputRenderer({
   onChange,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
+  const flavour = (node.props?.["flavour"] as TextFlavour | undefined) ?? "text";
+  /**
+   * Whether the reader has asked to see what they typed.
+   *
+   * Here and not on the server: it is about this browser, this moment, and
+   * nothing else — sending it would be asking the server to remember whether
+   * somebody is looking at their own password.
+   */
+  const [revealed, setRevealed] = useState(false);
   return (
     <FieldShell
       label={node.label ?? node.path ?? ""}
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <TextInput
@@ -316,11 +373,20 @@ function TextInputRenderer({
           }}
           status={status}
           binding={binding}
-          flavour={(node.props?.["flavour"] as TextFlavour | undefined) ?? "text"}
+          flavour={flavour}
+          {...(flavour === "password"
+            ? {
+                revealed,
+                onRevealToggle: () => {
+                  setRevealed(!revealed);
+                },
+              }
+            : {})}
           {...(typeof node.props?.["maxLength"] === "number"
             ? { maxLength: node.props["maxLength"] }
             : {})}
           {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+          {...affixesOf(node)}
         />
       )}
     </FieldShell>
@@ -399,6 +465,7 @@ function SelectRenderer({
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) =>
         multiple ? (
@@ -467,6 +534,7 @@ function ColorPickerRenderer({
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <ColorPicker
@@ -515,6 +583,7 @@ function KeyValueRenderer({
       required={node.required === true}
       inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <KeyValue
@@ -562,6 +631,7 @@ function TagsInputRenderer({
       required={node.required === true}
       inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <TagsInput
@@ -618,6 +688,7 @@ function CheckboxListRenderer({
       required={node.required === true}
       inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <CheckboxList
@@ -662,6 +733,7 @@ function MarkdownEditorRenderer({
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <MarkdownEditor
@@ -712,6 +784,7 @@ function RichEditorRenderer({
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <RichEditor
@@ -759,6 +832,7 @@ function ToggleButtonsRenderer({
       required={node.required === true}
       inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <ToggleButtons
@@ -797,6 +871,7 @@ function RadioRenderer({
       required={node.required === true}
       inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <Radio
@@ -832,6 +907,7 @@ function CheckboxRenderer({
       required={node.required === true}
       inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <Checkbox
@@ -875,6 +951,7 @@ function ToggleRenderer({
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
       {...(typeof props["onIcon"] === "string" ? { onIcon: props["onIcon"] } : {})}
       {...(typeof props["offIcon"] === "string" ? { offIcon: props["offIcon"] } : {})}
       {...(typeof props["onColor"] === "string" ? { onColor: props["onColor"] } : {})}
@@ -901,6 +978,7 @@ function TextareaRenderer({
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <Textarea
@@ -1035,6 +1113,7 @@ function TextEntryRenderer({ node }: NodeProps): ReactNode {
       label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <TextEntry
@@ -1060,6 +1139,7 @@ function PlaceholderRenderer({ node, error, pending, inFlight }: NodeProps): Rea
       status={status}
       inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <Placeholder
@@ -1119,6 +1199,7 @@ function DateTimePickerRenderer({
       required={node.required === true}
       inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <DateTimePicker
@@ -1184,6 +1265,7 @@ function FileUploadRenderer({
       required={node.required === true}
       inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
     >
       {(binding) => (
         <FileUpload

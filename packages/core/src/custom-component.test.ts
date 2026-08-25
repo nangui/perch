@@ -26,7 +26,7 @@ interface StarsState extends FieldState {
   readonly most?: number;
   readonly half?: boolean;
   /** A resolver, to prove the wire refuses one however it is declared. */
-  readonly hint?: () => string;
+  readonly explain?: () => string;
   /** Anything at all, to prove what the wire cannot carry is refused. */
   readonly held?: unknown;
 }
@@ -40,7 +40,7 @@ class Stars extends Field {
   }
 
   override get sends(): readonly string[] {
-    return ["most", "half", "hint", "held"];
+    return ["most", "half", "explain", "held"];
   }
 
   protected override with(patch: Partial<StarsState>): this {
@@ -59,8 +59,8 @@ class Stars extends Field {
     return this.with({ half: value });
   }
 
-  hint(value: () => string): this {
-    return this.with({ hint: value });
+  explain(value: () => string): this {
+    return this.with({ explain: value });
   }
 
   hold(value: unknown): this {
@@ -95,10 +95,10 @@ describe("a field this package did not write", () => {
     // resolver would send the function's source or nothing at all, and the
     // browser is not where a resolver runs.
     const payload = await drawn(
-      Schema.make([Stars.make("score").hint(() => "pick one")]),
+      Schema.make([Stars.make("score").explain(() => "pick one")]),
     );
 
-    expect(payload.schema.children?.[0]?.props?.["hint"]).toBeUndefined();
+    expect(payload.schema.children?.[0]?.props?.["explain"]).toBeUndefined();
   });
 
   it("is a field like any other, so the boundary and the write know it", async () => {
@@ -199,7 +199,7 @@ describe("a prop that will not survive the trip", () => {
 
   it("says nothing about a resolver, which never leaves the server", () => {
     expect(
-      auditSchema(Schema.make([Stars.make("score").hint(() => "pick one")])),
+      auditSchema(Schema.make([Stars.make("score").explain(() => "pick one")])),
     ).toEqual([]);
   });
 });
