@@ -35,6 +35,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0021](0021-what-scopes-a-relation-manager.md) | A manager is scoped by a column derived from the IR and reached through its parent's address, never from a body | accepted |
 | [0022](0022-what-a-layout-says-about-what-it-holds.md) | A layout's `visible` and `disabled` apply to everything under it, folded in one pass after resolution | accepted |
 | [0023](0023-what-the-panel-is-allowed-to-serve.md) | The asset manifest names every chunk the bundle is made of, and stays the allowlist it was | accepted |
+| [0024](0024-what-a-base-class-may-grow.md) | `Component` may grow, and each new method on it is a breaking change for plugins | accepted |
 
 ## Format
 
