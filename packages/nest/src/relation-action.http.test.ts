@@ -22,6 +22,8 @@ import {
   Schema,
   Table,
   TextColumn,
+  TextEntry,
+  ViewAction,
   TextInput,
 } from "@perchjs/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -402,5 +404,50 @@ describe("a modal over children, taking a round trip", () => {
         })
       ).status,
     ).toBe(404);
+  });
+});
+
+describe("a view opened in place from a relation manager", () => {
+  it("stops the boot, its rows being another model with no infolist", async () => {
+    // A manager's rows are not the resource's, and a manager declares no
+    // infolist of its own — so there is nothing to draw and no route that
+    // would serve it. Threaded to the client it would have been a button that
+    // opens a dialog and then answers 404.
+    @PanelResource({ model: "Post", slug: "showing-children" })
+    class ShowingChildrenResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      infolist(): Schema {
+        return Schema.make([TextEntry.make("title")]);
+      }
+      table(): Table {
+        return Table.make().columns([TextColumn.make("title")]);
+      }
+      relations(): readonly RelationManager[] {
+        return [
+          RelationManager.make("comments")
+            .table((table) => table.columns([TextColumn.make("body")]))
+            .actions([ViewAction.make().inModal()]),
+        ];
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [ShowingChildrenResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/relation manager/);
   });
 });

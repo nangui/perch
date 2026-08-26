@@ -13,7 +13,7 @@
 import type { OnModuleInit } from "@nestjs/common";
 import { Inject, Injectable } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
-import type { Component, EntryRelation, Ir } from "@perchjs/core";
+import type { Action, Component, EntryRelation, Ir } from "@perchjs/core";
 import type { RelationManager } from "./relation-manager.js";
 import { relationScope } from "./relation-scope.js";
 import type { DataAdapter, Schema, Table } from "@perchjs/core";
@@ -223,6 +223,9 @@ export class ResourceRegistry implements OnModuleInit {
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
         ...(table === undefined ? [] : this.#unaskableFilters(metadata.model, table)),
+        ...(table === undefined
+          ? []
+          : this.#unshowableModals(table, infolist, managers)),
         ...(table === undefined ? [] : this.#collidingCopies(metadata.model, table)),
         ...this.#unscopableRelations(metadata.model, managers),
         ...this.#reassigningFields(metadata.model, managers),
@@ -342,6 +345,74 @@ export class ResourceRegistry implements OnModuleInit {
           `filters deleted rows on \`${model}\`, which has no deletion column — ` +
           "every one of its three states shows the same page",
       }));
+  }
+
+  /**
+   * A modal with nothing to show in it.
+   *
+   * A view opened in place draws the resource's infolist — the same one the
+   * View page draws, because a resource that has said how a record reads has
+   * said it once. Without one there is nothing to open, and the page it would
+   * otherwise have navigated to does not exist either.
+   *
+   * The page form says the same thing by answering 404 to a reader. A modal
+   * cannot: the button is already on their screen, and pressing it would open
+   * a dialog that says nothing and then closes.
+   */
+  #unshowableModals(
+    table: Table,
+    infolist: Schema | undefined,
+    managers: readonly RelationManager[],
+  ): readonly { field: string; problem: string }[] {
+    const named = (action: Action): string => action.state.name ?? action.type;
+    const shows = (from: Table): readonly Action[] =>
+      [
+        ...from.state.actions,
+        ...from.state.headerActions,
+        ...from.state.bulkActions,
+      ].filter((action) => action.trigger === "show");
+
+    const complaints: { field: string; problem: string }[] = [];
+
+    // One record, so where one record is. A header action on a list has none
+    // and a bulk action has however many were ticked — the route refuses both,
+    // and a button that opens a dialog which then 404s is worse than no button.
+    for (const action of [...table.state.headerActions, ...table.state.bulkActions]) {
+      if (action.trigger !== "show") continue;
+      complaints.push({
+        field: named(action),
+        problem:
+          "opens one record in a dialog, and is declared where there is not one — " +
+          "a header action has no row and a bulk action has however many were ticked",
+      });
+    }
+
+    // A manager's rows are another model, and a manager declares no infolist of
+    // its own. There is nothing to draw and no route that would serve it.
+    for (const manager of managers) {
+      for (const action of shows(manager.state.table)) {
+        complaints.push({
+          field: named(action),
+          problem:
+            "opens a record in a dialog from a relation manager, whose rows are " +
+            "another model with no `infolist()` of their own",
+        });
+      }
+    }
+
+    if (infolist === undefined) {
+      for (const action of table.state.actions) {
+        if (action.trigger !== "show") continue;
+        complaints.push({
+          field: named(action),
+          problem:
+            "opens a record in a dialog, and this resource has no `infolist()` — " +
+            "there would be nothing in it",
+        });
+      }
+    }
+
+    return complaints;
   }
 
   /**

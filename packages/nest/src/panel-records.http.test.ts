@@ -32,6 +32,8 @@ import {
   DateRangeFilter,
   NumberRangeFilter,
   ReplicateAction,
+  TextEntry,
+  ViewAction,
   TernaryFilter,
   TextInput,
   TrashedFilter,
@@ -775,6 +777,109 @@ describe("a copy that would collide with what it copied", () => {
         PanelModule.forRoot({
           path: "/admin",
           resources: [ExcludingResource],
+          dataAdapter: MemoryAdapter,
+          assets: assets(),
+        }),
+      ],
+    }).compile();
+
+    await expect(ref.init()).resolves.toBeDefined();
+    await ref.close();
+  });
+});
+
+describe("a view opened in place with nothing to show", () => {
+  it("stops the boot rather than opening an empty dialog", async () => {
+    // The page form says this by answering 404 to a reader who navigates. A
+    // modal cannot: the button is already on their screen, and pressing it
+    // would open a dialog that says nothing and then closes.
+    @PanelResource({ model: "Post", slug: "unshowable" })
+    class UnshowableResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .actions([ViewAction.make().inModal()]);
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [UnshowableResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/no `infolist\(\)`/);
+  });
+
+  it("refuses one declared where there is not one record", async () => {
+    // A header action on a list has no row, and a bulk action has however many
+    // were ticked. The route serves one, so both would draw a button that
+    // opens a dialog which then answers 404.
+    @PanelResource({ model: "Post", slug: "bulk-showing" })
+    class BulkShowingResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      infolist(): Schema {
+        return Schema.make([TextEntry.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .bulkActions([ViewAction.make().inModal()]);
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [BulkShowingResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/not one/);
+  });
+
+  it("says nothing about one that only navigates", async () => {
+    // A `ViewAction` that has not been asked to open in place is a link, and a
+    // link to a page that does not exist is the page's own 404.
+    @PanelResource({ model: "Post", slug: "navigating" })
+    class NavigatingResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .actions([ViewAction.make()]);
+      }
+    }
+
+    const ref = await Test.createTestingModule({
+      imports: [
+        PanelModule.forRoot({
+          path: "/admin",
+          resources: [NavigatingResource],
           dataAdapter: MemoryAdapter,
           assets: assets(),
         }),
