@@ -264,7 +264,11 @@ export class PersonResource {
         // Restore brings a marked row back and asks nothing; force delete leaves
         // nothing to bring back, so it asks first and takes its own policy.
         .actions([
-          ViewAction.make(),
+          // In place rather than on a page: "which one is this again" is a
+          // question a reader asks without wanting to leave the list they were
+          // reading. The same infolist the View page draws, because a resource
+          // that has said how a record reads has said it once.
+          ViewAction.make().inModal().modalWidth("2xl"),
           EditAction.make(),
           // The address is left behind because the column keeps it unique, and
           // a copy carrying it is a constraint error rather than a row. The
