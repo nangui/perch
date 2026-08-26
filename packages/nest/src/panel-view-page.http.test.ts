@@ -17,6 +17,7 @@ import type {
   DataAdapter,
   Id,
   IncludePlan,
+  ReadOptions,
   Ir,
   ModelMeta,
   Row,
@@ -121,7 +122,12 @@ class MemoryAdapter implements DataAdapter {
     reads.push({ model: "many" });
     return Promise.resolve({ rows: [ROW], total: 1 });
   }
-  findOne(name: string, id: Id, include?: IncludePlan): Promise<Row | null> {
+  // `ReadOptions`, which is what the interface says. Typed as a bare plan it
+  // agreed with a caller that was passing one and disagreed with the interface,
+  // and method parameters are bivariant — so both slid past the compiler while
+  // every relation went unloaded on a real adapter.
+  findOne(name: string, id: Id, options?: ReadOptions): Promise<Row | null> {
+    const include = options?.include;
     reads.push({ model: name, ...(include === undefined ? {} : { include }) });
     if (id !== 1) return Promise.resolve(null);
     // Only what was asked for. A double that hands back the relation either way
