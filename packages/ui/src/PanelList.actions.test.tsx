@@ -22,6 +22,7 @@ import {
   resetColumnRegistry,
   resetRegistry,
 } from "./index.js";
+import type { SchemaPayload } from "@perchjs/core";
 import type { ActionAnswer, RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
 
@@ -872,6 +873,109 @@ const SCHEMA_FOR_KEY = {
   state: { reason: "" },
   errors: {},
 };
+
+describe("a view opened in place", () => {
+  const showing = (): RecordsPage => ({
+    rows: [{ id: 1, title: "Ada" }],
+    total: 1,
+    page: 1,
+    perPage: 25,
+    recordKey: "id",
+    columns: {
+      columns: [{ type: "TextColumn", path: "title", label: "Title" }],
+      filters: [],
+      headerActions: [],
+      bulkActions: [],
+      actions: [
+        { type: "ViewAction", name: "ViewAction", label: "View", trigger: "show" },
+      ],
+    },
+  });
+
+  const infolist: SchemaPayload = {
+    schema: {
+      id: "0",
+      type: "Schema",
+      children: [
+        { id: "one", type: "TextEntry", path: "title", label: "Title", value: "Ada" },
+      ],
+    },
+    state: { title: "Ada" },
+    errors: {},
+  };
+
+  const press = async (
+    actionContent = vi.fn().mockResolvedValue(infolist),
+  ): Promise<{ container: HTMLElement; actionContent: ReturnType<typeof vi.fn> }> => {
+    const { container } = render(
+      <PanelList
+        initial={showing()}
+        title="Posts"
+        runAction={vi.fn()}
+        actionContent={actionContent}
+      />,
+    );
+    fireEvent.click(await screen.findByLabelText("Actions"));
+    fireEvent.click(await screen.findByText("View"));
+    return { container, actionContent };
+  };
+
+  it("asks the server what to show, for that row", async () => {
+    const { actionContent } = await press();
+
+    await waitFor(() => {
+      expect(actionContent).toHaveBeenCalledWith("ViewAction", [1]);
+    });
+  });
+
+  it("draws what came back, and asks for nothing", async () => {
+    const { container } = await press();
+
+    expect(await screen.findByText("Ada")).toBeTruthy();
+    // Nothing is carried out, so there is nothing to agree to — no footer, and
+    // no confirm button that would be agreeing to be shown something.
+    expect(container.querySelector(".perch-modal__actions")).toBeNull();
+  });
+
+  it("runs nothing at all", async () => {
+    // A press on a `show` opens a dialog. The route that carries actions out
+    // refuses this one, and the client must not ask it to.
+    const runAction = vi.fn();
+    render(
+      <PanelList
+        initial={showing()}
+        title="Posts"
+        runAction={runAction}
+        actionContent={vi.fn().mockResolvedValue(infolist)}
+      />,
+    );
+    fireEvent.click(await screen.findByLabelText("Actions"));
+    fireEvent.click(await screen.findByText("View"));
+    await screen.findByText("Ada");
+
+    expect(runAction).not.toHaveBeenCalled();
+  });
+
+  it("closes on a click outside, having nothing to throw away", async () => {
+    // The opposite of a form, which ignores one because the click is as likely
+    // a miss as a decision and what it would lose is the reader's.
+    const { container } = await press();
+    await screen.findByText("Ada");
+    fireEvent.click(container.querySelector("dialog") as HTMLDialogElement);
+
+    await waitFor(() => {
+      expect(container.querySelector("dialog")).toBeNull();
+    });
+  });
+
+  it("says so while it is on its way", async () => {
+    let settle: (payload: SchemaPayload) => void = () => undefined;
+    await press(vi.fn().mockReturnValue(new Promise((r) => (settle = r))));
+
+    expect(await screen.findByText("Loading…")).toBeTruthy();
+    settle(infolist);
+  });
+});
 
 describe("how an action's modal opens", () => {
   const asking = (over: Record<string, unknown>): RecordsPage => ({

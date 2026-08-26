@@ -75,6 +75,7 @@ export function mount(element: HTMLElement): void {
           runAction={(name, ids, data, key) => runAction(api, name, ids, data, key)}
           writeCell={(id, path, value) => writeCell(api, id, path, value)}
           actionForm={(name, ids) => actionForm(api, name, ids)}
+          actionContent={(name, ids) => actionContent(api, name, ids)}
           actionState={(name) => (request) =>
             send(api, "create", undefined, request, name)
           }
@@ -533,6 +534,27 @@ async function runAction(
  * through are asked here — learning you may not act before filling a form in
  * is the only kindness left.
  */
+/**
+ * What a view opened in place shows.
+ *
+ * Its own route rather than the form's with an argument: the two are different
+ * questions of the server, and only one of them is about something that will
+ * be carried out.
+ */
+async function actionContent(
+  api: string,
+  name: string,
+  ids: readonly (string | number)[],
+): Promise<SchemaPayload> {
+  const response = await fetch(`${api}/actions/${encodeURIComponent(name)}/content`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!response.ok) throw new Error("That could not be shown.");
+  return (await response.json()) as SchemaPayload;
+}
+
 async function actionForm(
   api: string,
   name: string,

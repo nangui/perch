@@ -319,7 +319,12 @@ function rowAction(
       type="button"
       className={`perch-table__action${action.danger === true ? " perch-table__action--danger" : ""}`}
       disabled={busy}
-      onClick={() => {
+      onClick={(event) => {
+        // Folded before whatever this opens. A `<details>` stays open on its
+        // own, so the menu sat above the dimmed page behind the dialog it had
+        // just opened — a list of things to press, over a modal that had taken
+        // the focus away from all of them.
+        event.currentTarget.closest("details")?.removeAttribute("open");
         onAction(action, row);
       }}
     >
@@ -333,7 +338,15 @@ function rowAction(
  * The type, as words. `ForceDeleteAction` is a class name and `ForceDelete` is
  * still one — a button says "Force delete".
  */
-function defaultLabel(action: ActionNode): string {
+/**
+ * What to call an action that did not say.
+ *
+ * Exported because three places needed it and two had written their own: the
+ * row menu, the bulk bar, and the heading of a dialog a view opens in. A
+ * built-in action reading `View` in the menu and `ViewAction` at the top of
+ * what it opened is one word too many for a reader to have to reconcile.
+ */
+export function defaultLabel(action: ActionNode): string {
   const words = action.type.replace(/Action$/, "").replace(/([a-z])([A-Z])/g, "$1 $2");
   return words.charAt(0) + words.slice(1).toLowerCase();
 }

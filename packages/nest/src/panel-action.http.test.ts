@@ -26,9 +26,11 @@ import {
   ForceDeleteAction,
   ReplicateAction,
   RestoreAction,
+  ViewAction,
   EditAction,
   Notification,
   Schema as Tree,
+  TextEntry,
   Select,
   Table,
   TextColumn,
@@ -146,6 +148,12 @@ class PostResource {
     return Tree.make([TextInput.make("title")]);
   }
 
+  // What a view opened in place shows. The same one a View page would draw,
+  // because a resource that has said how a record reads has said it once.
+  infolist(): Schema {
+    return Tree.make([TextEntry.make("title").label("Title")]);
+  }
+
   table(): TableTree {
     let archive = ArchiveAction.make()
       .label("Archive")
@@ -180,6 +188,7 @@ class PostResource {
         RestoreAction.make(),
         ForceDeleteAction.make(),
         replicate ?? ReplicateAction.make(),
+        ViewAction.make().inModal(),
       ]);
   }
 }
@@ -475,6 +484,49 @@ describe("copying a row", () => {
     await press("ReplicateAction");
 
     expect(written).toHaveLength(1);
+  });
+});
+
+describe("a view opened in place", () => {
+  const ask = async (
+    name: string,
+    body: unknown = { ids: [1] },
+  ): Promise<{ status: number; body: Record<string, unknown> }> => {
+    const response = await fetch(`${url}/admin/api/posts/actions/${name}/content`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const text = await response.text();
+    return {
+      status: response.status,
+      body: text === "" ? {} : (JSON.parse(text) as Record<string, unknown>),
+    };
+  };
+
+  it("refuses an action that is not one, so nothing is shown by surprise", async () => {
+    // The route serves the one trigger that carries nothing out. An action
+    // with a body reached through it would have its record read and drawn by a
+    // door that was never meant to open on it.
+    expect((await ask("ArchiveAction")).status).toBe(404);
+    expect((await ask("DeleteAction")).status).toBe(404);
+  });
+
+  it("refuses a name nobody declared", async () => {
+    expect((await ask("Nope")).status).toBe(404);
+  });
+
+  it("refuses a selection that is not one row", async () => {
+    // A dialog reading a record reads one of them, and a body naming fifty is
+    // not a request this answers by picking one.
+    expect((await ask("ViewAction", { ids: [1, 2] })).status).toBe(404);
+    expect((await ask("ViewAction", { ids: [] })).status).toBe(404);
+  });
+
+  it("refuses to run what it shows", async () => {
+    // The route that carries actions out turns this one away, so a press can
+    // open a dialog and can never do anything else.
+    expect((await press("ViewAction")).status).toBe(404);
   });
 });
 

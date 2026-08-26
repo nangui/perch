@@ -748,12 +748,17 @@ export function auditTable(table: Table): readonly Complaint[] {
           `one of: ${MODAL_WIDTHS.join(", ")}`,
       });
     }
-    // A link is followed by the browser without asking the server anything, so
-    // no route ever resolves the schema and no dialog ever shows it.
-    if (action.state.form !== undefined && action.trigger === "link") {
+    // Only the one that is carried out collects anything. A link is followed by
+    // the browser without asking the server anything, and a view opens on a
+    // record rather than on a question — neither resolves the schema, and
+    // neither draws it.
+    if (action.state.form !== undefined && action.trigger !== "run") {
       complaints.push({
         field: action.state.label ?? action.type,
-        problem: "collects a form but only navigates, so nothing would open it",
+        problem:
+          action.trigger === "link"
+            ? "collects a form but only navigates, so nothing would open it"
+            : "collects a form but only shows a record, so nothing would open it",
       });
     }
   }

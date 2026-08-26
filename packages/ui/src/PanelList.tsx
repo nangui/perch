@@ -20,9 +20,10 @@ import type {
 } from "@perchjs/core";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 import { PanelForm } from "./PanelForm.js";
+import { PanelView } from "./PanelView.js";
 import { SchemaRenderer } from "./SchemaRenderer.js";
 import type { StateRequest, StateResponse } from "./transport.js";
-import { DataTable } from "./DataTable.js";
+import { DataTable, defaultLabel } from "./DataTable.js";
 import type { DataTableSort } from "./DataTable.js";
 
 /**
@@ -119,6 +120,15 @@ export interface PanelListProps {
     name: string,
     ids: readonly (string | number)[],
   ) => Promise<SchemaPayload>;
+  /**
+   * What a view opened in place shows: the record's infolist, resolved against
+   * this reader. Asked for rather than held, for the reason a modal's form is —
+   * what a record reads like is the server's to decide every time.
+   */
+  readonly actionContent?: (
+    name: string,
+    ids: readonly (string | number)[],
+  ) => Promise<SchemaPayload>;
   readonly actionState?: (
     name: string,
   ) => (request: StateRequest) => Promise<StateResponse>;
@@ -154,6 +164,8 @@ interface Pending {
   readonly ids: readonly (string | number)[];
   /** The resolved schema, once the server has answered with it. */
   readonly schema?: SchemaPayload;
+  /** What a view opened in place is showing, once it has arrived. */
+  readonly content?: SchemaPayload;
 }
 
 export function PanelList({
@@ -168,6 +180,7 @@ export function PanelList({
   runAction,
   writeCell,
   actionForm,
+  actionContent,
   actionState,
 }: PanelListProps): ReactNode {
   const [page, setPage] = useState(initial);
@@ -406,6 +419,25 @@ export function PanelList({
     action: ActionNode,
     ids: readonly (string | number)[],
   ): Promise<void> {
+    // Nothing is carried out and nothing is asked: the content is fetched and
+    // drawn, and the way out is the way out of any dialog.
+    if (action.trigger === "show") {
+      if (actionContent === undefined) return;
+      setPending({ action, ids });
+      setBusy(true);
+      try {
+        setPending({ action, ids, content: await actionContent(action.name, ids) });
+      } catch (error) {
+        setSaid({
+          title: error instanceof Error ? error.message : "That did not work.",
+          tone: "danger",
+        });
+        setPending(undefined);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (action.hasForm !== true) {
       if (action.confirmation !== undefined) {
         setPending({ action, ids });
@@ -545,7 +577,7 @@ export function PanelList({
                 pressBulk(action);
               }}
             >
-              {action.label ?? action.type.replace(/Action$/, "")}
+              {action.label ?? defaultLabel(action)}
             </button>
           ))}
         </div>
@@ -609,7 +641,32 @@ export function PanelList({
 
       {/* Rendered only while something is pending, so the element is not in the
           page — and not in the accessibility tree — the rest of the time. */}
-      {pending === undefined ? null : pending.action.hasForm !== true ? (
+      {pending === undefined ? null : pending.action.trigger === "show" ? (
+        // Something to read. No footer, because there is nothing to agree to —
+        // the way out is the corner, the backdrop or Escape, and a click on the
+        // backdrop is taken because a panel that only shows something has
+        // nothing to throw away.
+        <ConfirmDialog
+          open
+          confirmation={{
+            heading: pending.action.label ?? defaultLabel(pending.action),
+          }}
+          busy={busy}
+          dismissable
+          {...modalOf(pending.action)}
+          onCancel={() => {
+            setPending(undefined);
+          }}
+        >
+          {pending.content === undefined ? (
+            <p className="perch-modal__description" role="status">
+              Loading…
+            </p>
+          ) : (
+            <PanelView payload={pending.content} />
+          )}
+        </ConfirmDialog>
+      ) : pending.action.hasForm !== true ? (
         // A question, which the dialog's own buttons answer.
         <ConfirmDialog
           open

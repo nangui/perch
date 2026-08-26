@@ -104,8 +104,13 @@ export interface ActionNode {
   readonly type: string;
   /** What a request calls it. The client sends this back, not the type. */
   readonly name: string;
-  /** A link the browser follows, or a request it makes. */
-  readonly trigger: "link" | "run";
+  /**
+   * A link the browser follows, a request it makes, or something to read.
+   *
+   * `show` changes nothing: the client asks for content and draws it, and the
+   * way out is the way out of any dialog.
+   */
+  readonly trigger: "link" | "run" | "show";
   /** For a link: which of the row's pages. The address is the client's to build. */
   readonly page?: "edit" | "view";
   /** It collects something first. The schema is asked for, never sent here. */

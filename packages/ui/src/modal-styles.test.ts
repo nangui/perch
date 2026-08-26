@@ -80,6 +80,18 @@ describe("a modal that opens against the side", () => {
   });
 });
 
+describe("a panel taller than the window", () => {
+  it("scrolls rather than spilling past the bottom of it", () => {
+    // The browser caps a dialog at the viewport in its own stylesheet, so a
+    // panel taller than that was clipped and the rest could not be reached at
+    // all — which a question never noticed and an infolist noticed at once.
+    const rule = ruleFor(".perch-modal__panel");
+
+    expect(rule).toContain("overflow-y: auto");
+    expect(rule).toContain("max-height");
+  });
+});
+
 describe("the way out of a dialog holding a form", () => {
   it("is a target a finger can hit", () => {
     // A form ignores a click on the backdrop on purpose, so this and Escape are

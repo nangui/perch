@@ -2450,6 +2450,12 @@
   flex-direction: column;
   gap: var(--perch-space-5);
   padding: var(--perch-space-8);
+  /* Scrolls rather than spills. A dialog is capped at the viewport by the
+     browser's own stylesheet, so a panel taller than that was clipped and the
+     rest of it could not be reached at all — which a question never noticed and
+     an infolist notices immediately. */
+  max-height: calc(100dvh - var(--perch-space-8) * 2);
+  overflow-y: auto;
 }
 
 .perch-modal__bar {

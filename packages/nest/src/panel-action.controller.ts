@@ -21,11 +21,14 @@ import {
   Req,
 } from "@nestjs/common";
 import type { Action, DataAdapter, FormState, SchemaPayload } from "@perchjs/core";
-import { declaredActions, serialise } from "@perchjs/core";
+import { declaredActions, resolveSchema, serialise } from "@perchjs/core";
 import type { ActionAnswer, ActionTarget } from "./action-run.js";
 import { carryAction, reachAction } from "./action-run.js";
 import { ReplayGuard, readReplayKey } from "./replay-guard.js";
 import { admit } from "./admission.js";
+import { readSelection } from "./action-selection.js";
+import { includeFor } from "./infolist-plan.js";
+import { authorize } from "./authorization.js";
 import { reachManager } from "./relation-reach.js";
 import { withOptions } from "./relationship-options.js";
 import { permissionFor } from "./authorization.js";
@@ -253,6 +256,80 @@ export class PanelActionController {
    * a reader learns whether they may act — and learning it here rather than
    * after filling it in is the only kindness available.
    */
+  /**
+   * `POST {path}/api/:resource/actions/:action/content`.
+   *
+   * What a view opened in place shows: the resource's infolist, resolved
+   * against the record, which is the same tree the View page draws.
+   *
+   * Its own reach rather than the run route's, because that one refuses
+   * anything it cannot carry out and this is the one thing not meant to be
+   * carried out at all. Widening it would make a `show` action runnable, which
+   * is a route answering 200 to a press that did nothing.
+   *
+   * The refusals are the read's: a resource nobody may reach, an action nobody
+   * declared, a row that is not there, and a policy saying this reader may not
+   * see this record. All of them 404, which is what they say on the page.
+   */
+  @Post("actions/:action/content")
+  @HttpCode(200)
+  async content(
+    @Param("resource") slug: string,
+    @Param("action") name: string,
+    @Body() body: unknown,
+    @Req() request: unknown,
+  ): Promise<SchemaPayload> {
+    const data = this.#data;
+    if (data === null) throw new NotFoundException();
+
+    const resource = this.#registry.get(slug);
+    if (resource === undefined) throw new NotFoundException();
+
+    // Read off the declaration, so a name nobody declared reaches nothing — the
+    // same oracle the run route uses, asked for the one trigger it turns away.
+    const table = resource.instance.table?.();
+    const action = table === undefined ? undefined : declaredActions(table).get(name);
+    if (action === undefined || action.trigger !== "show") {
+      throw new NotFoundException();
+    }
+
+    const infolist = this.#registry.infolistFor(resource);
+    if (infolist === undefined) throw new NotFoundException();
+
+    const model = resource.metadata.model;
+    const { keys } = readSelection(data, model, body);
+    // One row. A dialog reading a record reads one of them, and a body naming
+    // fifty is not a request this answers by picking one.
+    const key = keys.length === 1 ? keys[0] : undefined;
+    if (key === undefined) throw new NotFoundException();
+
+    const plan = includeFor(data.ir(), model, infolist);
+    const record = await data.findOne(model, key, {
+      ...(plan === undefined ? {} : { include: plan }),
+    });
+    if (record === null) throw new NotFoundException();
+
+    const user = this.#users.resolve(request);
+    // After the row, never before it: the policy is asked about a record, and
+    // asking it without one would be authorising at render time.
+    if ((await authorize(resource.instance.can, "view", user, record)) !== "allowed") {
+      throw new NotFoundException();
+    }
+
+    return serialise(
+      await resolveSchema(
+        infolist,
+        {},
+        {
+          operation: "view",
+          user,
+          record,
+          ...withOptions(data, model),
+        },
+      ),
+    );
+  }
+
   @Post("actions/:action/form")
   @HttpCode(200)
   async form(

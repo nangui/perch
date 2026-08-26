@@ -39,6 +39,11 @@ const KEPT_BACK: Readonly<Record<string, string>> = {
     "which columns a copy leaves behind, which is settled where the copy is " +
     "written",
   beforeReplicaSaved: "a last word before a copy is written. A function again",
+  inModal:
+    "whether a view opens in a dialog or on a page. The client is told by the " +
+    "trigger — `show` rather than `link` — because what it does with a press " +
+    "is the thing it needs, and a second field saying the same would be a " +
+    "second field to disagree",
 };
 
 const SOURCE = readFileSync(new URL("./action.ts", import.meta.url), "utf8");

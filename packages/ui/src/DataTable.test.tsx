@@ -254,3 +254,30 @@ describe("flat rendering, which is non-negotiable", () => {
     expect(handed[3]).toEqual({ pending: false });
   });
 });
+
+describe("the row menu, once something has been pressed", () => {
+  it("folds itself before whatever it opened", () => {
+    // A `<details>` stays open on its own, so the menu sat above the dimmed
+    // page behind the dialog it had just opened: a list of things to press,
+    // over a modal that had taken the focus away from all of them.
+    const onAction = vi.fn();
+    const { container } = render(
+      <DataTable
+        columns={{
+          ...COLUMNS,
+          actions: [{ type: "ArchiveAction", name: "ArchiveAction", trigger: "run" }],
+        }}
+        rows={ROWS}
+        caption="Posts"
+        onAction={onAction}
+      />,
+    );
+
+    const menu = container.querySelector("details") as HTMLDetailsElement;
+    fireEvent.click(container.querySelectorAll("summary")[0] as HTMLElement);
+    fireEvent.click(screen.getAllByText("Archive")[0] as HTMLElement);
+
+    expect(menu.open).toBe(false);
+    expect(onAction).toHaveBeenCalled();
+  });
+});

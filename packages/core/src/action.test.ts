@@ -9,6 +9,7 @@ import {
   MODAL_WIDTHS,
   ReplicateAction,
   RestoreAction,
+  ViewAction,
 } from "./action.js";
 import { Schema } from "./layout.js";
 import { auditTable } from "./audit.js";
@@ -243,6 +244,13 @@ describe("which rows an action means anything on", () => {
     expect(actsOn(ForceDeleteAction.make())).toBe("either");
   });
 
+  it("is live for a view, whether it navigates or opens in place", () => {
+    // A view of a hidden row is a page that answers 404 and a dialog asking for
+    // a record the read leaves out. The button should not be there either way.
+    expect(actsOn(ViewAction.make())).toBe("live");
+    expect(actsOn(ViewAction.make().inModal())).toBe("live");
+  });
+
   it("is either, for an action nothing was said about", () => {
     expect(actsOn(EditAction.make())).toBe("either");
     expect(actsOn(ArchiveAction.make())).toBe("either");
@@ -322,5 +330,54 @@ describe("how a modal opens", () => {
     expect(plain.state.modalWidth).toBeUndefined();
     expect(plain.slideOver().state.slideOver).toBe(true);
     expect(plain.state.slideOver).toBeUndefined();
+  });
+});
+
+describe("a form on an action that only shows", () => {
+  it("stops the boot, because nothing would open it", () => {
+    // The client draws the record and never looks at the schema, so it is
+    // collected by nobody and shown to nobody.
+    const complaints = auditTable(
+      Table.make().actions([ViewAction.make().inModal().form(Schema.make([]))]),
+    ).map((one) => one.problem);
+
+    expect(complaints).toEqual([expect.stringContaining("only shows a record")]);
+  });
+});
+
+describe("a view opened in place", () => {
+  it("navigates by default, which is the one that needs no client", () => {
+    const plain = ViewAction.make();
+
+    expect(plain.trigger).toBe("link");
+    expect(plain.page).toBe("view");
+  });
+
+  it("shows rather than navigates where it was asked to", () => {
+    const opened = ViewAction.make().inModal();
+
+    expect(opened.trigger).toBe("show");
+    // No page, because it is not going anywhere. A link the browser follows and
+    // a dialog it opens are not two ways of doing one thing.
+    expect(opened.page).toBeUndefined();
+  });
+
+  it("carries neither a body nor a question", () => {
+    // Nothing is carried out, so there is nothing to agree to. A confirmation
+    // would be asking a reader to consent to being shown something.
+    const node = serialiseTable(
+      Table.make().actions([ViewAction.make().inModal().modalWidth("2xl")]),
+    ).actions[0];
+
+    expect(node?.trigger).toBe("show");
+    expect(node?.hasForm).toBeUndefined();
+    expect(node?.modalWidth).toBe("2xl");
+  });
+
+  it("is a clone away, like every other declaration", () => {
+    const plain = ViewAction.make();
+
+    expect(plain.inModal().trigger).toBe("show");
+    expect(plain.trigger).toBe("link");
   });
 });

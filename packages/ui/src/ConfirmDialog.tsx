@@ -42,6 +42,17 @@ interface DialogBase {
    * and how tall it is.
    */
   readonly slideOver?: boolean;
+  /**
+   * Whether a click on the backdrop closes it.
+   *
+   * A form's does not: the click is as likely a miss as a decision, and what it
+   * would throw away is the reader's. A panel that only shows something has
+   * nothing to throw away, so it takes the easiest way out there is.
+   *
+   * Defaults to whether there is anything to lose, which is the same question
+   * asked once.
+   */
+  readonly dismissable?: boolean;
   readonly onCancel: () => void;
 }
 
@@ -67,6 +78,7 @@ export function ConfirmDialog({
   busy = false,
   width,
   slideOver = false,
+  dismissable,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps): ReactNode {
@@ -108,7 +120,7 @@ export function ConfirmDialog({
       // would throw away is theirs. Escape still closes either — that one is
       // unambiguous, and a keyboard needs a way out.
       onClick={() => {
-        if (!busy && children === undefined) onCancel();
+        if (!busy && (dismissable ?? children === undefined)) onCancel();
       }}
     >
       <div

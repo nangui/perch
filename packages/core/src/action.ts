@@ -76,6 +76,10 @@ export function actsOn(action: Action): ActsOn {
   if (action instanceof ForceDeleteAction) return "either";
   if (action instanceof DeleteAction) return "live";
   if (action instanceof ReplicateAction) return "live";
+  // A view of a hidden row is a page that answers 404 and a dialog that would
+  // ask for a record the read leaves out. True of the link and of the modal
+  // alike, so it is said once here rather than twice at the two ends.
+  if (action instanceof ViewAction) return "live";
   return "either";
 }
 
@@ -126,6 +130,8 @@ export interface ActionState {
    * box would be a column of scroll.
    */
   readonly slideOver?: boolean;
+  /** Opens what it shows in a dialog rather than sending the reader to a page. */
+  readonly inModal?: boolean;
 }
 
 export abstract class Action {
@@ -206,7 +212,16 @@ export abstract class Action {
    * names, so an action added later behaves correctly in a panel whose renderer
    * has never heard of it.
    */
-  get trigger(): "link" | "run" {
+  /**
+   * What pressing it does: follow a link, ask the server to carry it out, or
+   * open something to read.
+   *
+   * `show` is the one that changes nothing. There is no callback behind it and
+   * no route to run — the client asks for content and draws it, and the way out
+   * is the way out of any dialog. A confirmation on one would be asking a
+   * reader to agree to being shown something.
+   */
+  get trigger(): "link" | "run" | "show" {
     return "run";
   }
 
@@ -421,12 +436,32 @@ export class ViewAction extends Action {
     return "ViewAction";
   }
 
-  override get trigger(): "link" | "run" {
-    return "link";
+  /**
+   * A link, unless it was asked to open in place.
+   *
+   * Neither is more correct. A page has an address to send somebody and room
+   * for a long infolist; a modal keeps the reader on the list they were
+   * reading, which is what they want when the question is "which one is this
+   * again". So it is the resource's call, and the page is the default because
+   * it is the one that works with no client at all.
+   */
+  override get trigger(): "link" | "run" | "show" {
+    return this.state.inModal === true ? "show" : "link";
   }
 
   override get page(): RecordPage {
-    return "view";
+    return this.state.inModal === true ? undefined : "view";
+  }
+
+  /**
+   * Opens the record's infolist in a dialog rather than navigating to it.
+   *
+   * The same infolist the View page draws, resolved the same way against the
+   * same policy. There is no second declaration for what a modal shows: a
+   * resource that has said how a record reads has said it once.
+   */
+  inModal(open = true): this {
+    return this.with({ ...this.state, inModal: open });
   }
 
   override get isBuiltIn(): boolean {
