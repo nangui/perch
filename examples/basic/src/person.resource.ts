@@ -6,6 +6,7 @@ import type {
   Table as TableTree,
 } from "@perchjs/core";
 import {
+  ActionGroup,
   Callout,
   Checkbox,
   CheckboxColumn,
@@ -285,10 +286,17 @@ export class PersonResource {
             }),
           archive,
           remove,
-          restore,
-          destroy,
+          ActionGroup.make([restore, destroy]).label("Recovery").icon("↩"),
         ])
-        .bulkActions([archive, remove, restore, destroy])
+        // The two that undo and the one that cannot be undone, folded under one
+        // word. A selection bar with six buttons is six things to read before
+        // pressing any of them, and the two nobody reaches for often are the
+        // ones worth putting away.
+        .bulkActions([
+          archive,
+          remove,
+          ActionGroup.make([restore, destroy]).label("Recovery").icon("↩"),
+        ])
         // What the page says with nothing on it. Without one it says "Nothing
         // to show", which is true and tells a reader nothing they can act on.
         .emptyState({
