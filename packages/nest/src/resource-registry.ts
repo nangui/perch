@@ -26,6 +26,7 @@ import {
   entryPaths,
   entryRelations,
   DateRangeFilter,
+  everyAction,
   NumberRangeFilter,
   ReplicateAction,
   TernaryFilter,
@@ -366,18 +367,21 @@ export class ResourceRegistry implements OnModuleInit {
   ): readonly { field: string; problem: string }[] {
     const named = (action: Action): string => action.state.name ?? action.type;
     const shows = (from: Table): readonly Action[] =>
-      [
+      everyAction([
         ...from.state.actions,
         ...from.state.headerActions,
         ...from.state.bulkActions,
-      ].filter((action) => action.trigger === "show");
+      ]).filter((action) => action.trigger === "show");
 
     const complaints: { field: string; problem: string }[] = [];
 
     // One record, so where one record is. A header action on a list has none
     // and a bulk action has however many were ticked — the route refuses both,
     // and a button that opens a dialog which then 404s is worse than no button.
-    for (const action of [...table.state.headerActions, ...table.state.bulkActions]) {
+    for (const action of everyAction([
+      ...table.state.headerActions,
+      ...table.state.bulkActions,
+    ])) {
       if (action.trigger !== "show") continue;
       complaints.push({
         field: named(action),
@@ -401,7 +405,7 @@ export class ResourceRegistry implements OnModuleInit {
     }
 
     if (infolist === undefined) {
-      for (const action of table.state.actions) {
+      for (const action of everyAction(table.state.actions)) {
         if (action.trigger !== "show") continue;
         complaints.push({
           field: named(action),

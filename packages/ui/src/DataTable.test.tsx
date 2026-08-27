@@ -281,3 +281,115 @@ describe("the row menu, once something has been pressed", () => {
     expect(onAction).toHaveBeenCalled();
   });
 });
+
+describe("a group of actions in a row's menu", () => {
+  const grouped = {
+    ...COLUMNS,
+    actions: [
+      { type: "EditAction", name: "EditAction", trigger: "link" as const },
+      {
+        type: "ActionGroup",
+        name: "Recovery",
+        label: "Recovery",
+        icon: "↩",
+        trigger: "group" as const,
+        children: [
+          { type: "RestoreAction", name: "RestoreAction", trigger: "run" as const },
+          {
+            type: "ForceDeleteAction",
+            name: "ForceDeleteAction",
+            trigger: "run" as const,
+            danger: true as const,
+          },
+        ],
+      },
+    ],
+  };
+
+  it("is a section inside the menu, not a menu inside it", () => {
+    // A dropdown opening out of a dropdown is a shape a pointer loses and a
+    // keyboard cannot follow.
+    const { container } = render(
+      <DataTable
+        columns={grouped}
+        rows={ROWS}
+        caption="Posts"
+        onAction={vi.fn()}
+        rowHref={(_action, row) => `/admin/posts/${String(row["id"])}/edit`}
+      />,
+    );
+
+    const section = container.querySelector(".perch-table__action-group");
+    expect(section?.getAttribute("role")).toBe("group");
+    expect(section?.getAttribute("aria-label")).toBe("Recovery");
+    // One `<details>` on the row, which is the menu itself.
+    expect(container.querySelectorAll("tbody details")).toHaveLength(ROWS.length);
+  });
+
+  it("puts what it holds inside it, and the rest outside", () => {
+    const { container } = render(
+      <DataTable
+        columns={grouped}
+        rows={ROWS}
+        caption="Posts"
+        onAction={vi.fn()}
+        rowHref={(_action, row) => `/admin/posts/${String(row["id"])}/edit`}
+      />,
+    );
+
+    const section = container.querySelector(".perch-table__action-group");
+    expect(
+      [...(section?.querySelectorAll("button") ?? [])].map((b) => b.textContent),
+    ).toEqual(["Restore", "Force delete"]);
+    expect(section?.textContent).not.toContain("Edit");
+  });
+
+  it("runs what was pressed, not the group", () => {
+    // A group has nothing behind it. Pressing one of its items is pressing
+    // that item, and the route never hears the group's name.
+    const onAction = vi.fn();
+    const { container } = render(
+      <DataTable
+        columns={grouped}
+        rows={ROWS}
+        caption="Posts"
+        onAction={onAction}
+        rowHref={() => undefined}
+      />,
+    );
+
+    fireEvent.click(
+      container.querySelector(".perch-table__action-group button") as HTMLElement,
+    );
+
+    expect(onAction).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "RestoreAction" }),
+      expect.anything(),
+    );
+  });
+
+  it("draws nothing where everything in it was skipped", () => {
+    // A group holding only links nothing can address is an empty heading.
+    const { container } = render(
+      <DataTable
+        columns={{
+          ...COLUMNS,
+          actions: [
+            {
+              type: "ActionGroup",
+              name: "Recovery",
+              trigger: "group" as const,
+              children: [
+                { type: "EditAction", name: "EditAction", trigger: "link" as const },
+              ],
+            },
+          ],
+        }}
+        rows={ROWS}
+        caption="Posts"
+      />,
+    );
+
+    expect(container.querySelector(".perch-table__action-group")).toBeNull();
+  });
+});

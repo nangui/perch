@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   Action,
+  ActionGroup,
   actsOn,
   CreateAction,
   DeleteAction,
@@ -379,5 +380,163 @@ describe("a view opened in place", () => {
 
     expect(plain.inModal().trigger).toBe("show");
     expect(plain.trigger).toBe("link");
+  });
+});
+
+describe("several actions under one name", () => {
+  const grouped = () =>
+    ActionGroup.make([RestoreAction.make(), ForceDeleteAction.make()])
+      .label("Recovery")
+      .icon("↩");
+
+  it("is presentation, so the allowlist still names what it holds", () => {
+    // A group that hid an action from the allowlist would be a place to put
+    // one a request could reach without the route ever having declared it.
+    const table = Table.make().actions([EditAction.make(), grouped()]);
+
+    expect([...declaredActions(table).keys()].sort()).toEqual([
+      "EditAction",
+      "ForceDeleteAction",
+      "RestoreAction",
+    ]);
+  });
+
+  it("is opened out for everything the boot asks", () => {
+    // An action with no `action()` is refused whether or not it is in a group.
+    // Named by the action rather than the group, which is what says the group
+    // was opened out and not merely walked over: an unflattened list complains
+    // about the group itself, which is the same count and the wrong thing.
+    const complaints = auditTable(
+      Table.make().actions([
+        ActionGroup.make([ArchiveAction.make()]).label("Recovery"),
+      ]),
+    );
+
+    expect(complaints).toHaveLength(1);
+    expect(complaints[0]?.field).toBe("ArchiveAction");
+    expect(complaints[0]?.problem).toContain("no `action()`");
+  });
+
+  it("crosses as a node holding its own", () => {
+    const node = serialiseTable(Table.make().actions([grouped()])).actions[0];
+
+    expect(node?.type).toBe("ActionGroup");
+    expect(node?.trigger).toBe("group");
+    expect(node?.label).toBe("Recovery");
+    expect(node?.icon).toBe("↩");
+    expect(node?.children?.map((one) => one.type)).toEqual([
+      "RestoreAction",
+      "ForceDeleteAction",
+    ]);
+  });
+
+  it("keeps what each of them said about itself", () => {
+    // The grouping is the only thing a group adds. Everything an action
+    // declared reaches the client the same way it would have alone.
+    const node = serialiseTable(Table.make().actions([grouped()])).actions[0];
+
+    expect(node?.children?.[0]?.actsOn).toBe("marked");
+    expect(node?.children?.[1]?.danger).toBe(true);
+  });
+
+  it("has a name of its own, so two groups are two entries", () => {
+    const tree = serialiseTable(
+      Table.make().actions([
+        ActionGroup.make([RestoreAction.make()]).label("Recovery"),
+        ActionGroup.make([ForceDeleteAction.make()]).label("Danger"),
+      ]),
+    );
+
+    expect(tree.actions.map((one) => one.name)).toEqual(["Recovery", "Danger"]);
+  });
+
+  it("is a clone away, like every other declaration", () => {
+    const plain = ActionGroup.make([RestoreAction.make()]);
+
+    expect(plain.label("Recovery").state.label).toBe("Recovery");
+    expect(plain.state.label).toBe("More");
+  });
+});
+
+describe("a header action the panel cannot draw", () => {
+  it("is named rather than dropped in silence", () => {
+    // A header offers one thing: a link to the create page. A run there has no
+    // record to act on, and any other link is an address the client cannot
+    // build — so both crossed the wire and were drawn by nobody.
+    const complaints = auditTable(
+      Table.make().headerActions([ArchiveAction.make().action(() => undefined)]),
+    );
+
+    expect(complaints).toHaveLength(1);
+    expect(complaints[0]?.problem).toContain("not a `CreateAction`");
+  });
+
+  it("says the same of a group put there", () => {
+    // Grouping is what somebody reaches for when a header has more than one
+    // thing in it, which is exactly when they would find out it draws none.
+    const complaints = auditTable(
+      Table.make().headerActions([
+        ActionGroup.make([CreateAction.make()]).label("New"),
+      ]),
+    );
+
+    expect(complaints).toHaveLength(1);
+    expect(complaints[0]?.field).toBe("New");
+  });
+
+  it("says nothing about the one it does draw", () => {
+    expect(auditTable(Table.make().headerActions([CreateAction.make()]))).toEqual([]);
+  });
+});
+
+describe("two entries under one word", () => {
+  it("is refused for two groups, which nothing else was watching", () => {
+    // A group answers to its label the way an action answers to its name, and
+    // both end up in one list on the wire. `declaredActions` refuses the
+    // ambiguity for actions and never sees a group.
+    const complaints = auditTable(
+      Table.make().actions([
+        ActionGroup.make([RestoreAction.make()]),
+        ActionGroup.make([ForceDeleteAction.make()]),
+      ]),
+    );
+
+    expect(complaints).toHaveLength(1);
+    expect(complaints[0]?.field).toBe("More");
+    expect(complaints[0]?.problem).toContain("row");
+  });
+
+  it("is refused for a group standing where an action already is", () => {
+    const complaints = auditTable(
+      Table.make().actions([
+        ArchiveAction.make()
+          .name("Recovery")
+          .action(() => undefined),
+        ActionGroup.make([RestoreAction.make()]).label("Recovery"),
+      ]),
+    );
+
+    expect(complaints).toEqual([expect.objectContaining({ field: "Recovery" })]);
+  });
+
+  it("says nothing where the two lists happen to share one", () => {
+    // One action offered on a row and over a selection is the point: the same
+    // instance in two lists is one thing in two places.
+    const shared = ArchiveAction.make().action(() => undefined);
+
+    expect(auditTable(Table.make().actions([shared]).bulkActions([shared]))).toEqual(
+      [],
+    );
+  });
+
+  it("names the list it found them in", () => {
+    const complaints = auditTable(
+      Table.make().bulkActions([
+        ActionGroup.make([RestoreAction.make()]),
+        ActionGroup.make([ForceDeleteAction.make()]),
+      ]),
+    );
+
+    expect(complaints[0]?.problem).toContain("selection");
   });
 });

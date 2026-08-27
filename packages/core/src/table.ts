@@ -8,7 +8,7 @@
  * than an absent one.
  */
 import type { Action, ActsOn, Confirmation, ModalWidth } from "./action.js";
-import { actsOn } from "./action.js";
+import { actsOn, ActionGroup, everyAction } from "./action.js";
 import type { Column, PresentContext } from "./column.js";
 import type { Option } from "./option.js";
 import type { Filter } from "./filter.js";
@@ -19,10 +19,10 @@ import type { SchemaNode } from "./serialise.js";
 export interface TableState {
   readonly columns: readonly Column[];
   readonly filters: readonly Filter[];
-  readonly actions: readonly Action[];
-  readonly headerActions: readonly Action[];
+  readonly actions: readonly (Action | ActionGroup)[];
+  readonly headerActions: readonly (Action | ActionGroup)[];
   /** What a ticked selection may be put through. */
-  readonly bulkActions: readonly Action[];
+  readonly bulkActions: readonly (Action | ActionGroup)[];
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
   readonly empty?: EmptyState;
 }
@@ -110,7 +110,7 @@ export interface ActionNode {
    * `show` changes nothing: the client asks for content and draws it, and the
    * way out is the way out of any dialog.
    */
-  readonly trigger: "link" | "run" | "show";
+  readonly trigger: "link" | "run" | "show" | "group";
   /** For a link: which of the row's pages. The address is the client's to build. */
   readonly page?: "edit" | "view";
   /** It collects something first. The schema is asked for, never sent here. */
@@ -127,6 +127,17 @@ export interface ActionNode {
    * is, and that is the knowledge this tree exists to keep on the server.
    */
   readonly actsOn?: ActsOn;
+  /**
+   * What a group holds, where this node is one.
+   *
+   * The one place the grouping survives. Everywhere else — the allowlist, the
+   * policy each is held to, what the boot asks — a group is opened out, because
+   * all of those are about the actions and a group that changed any of them
+   * would be a place to hide one.
+   */
+  readonly children?: readonly ActionNode[];
+  /** A glyph beside a group's label. Decoration; the label carries it. */
+  readonly icon?: string;
   /** How wide its modal opens, and whether it opens against the side. */
   readonly modalWidth?: ModalWidth;
   readonly slideOver?: true;
@@ -178,12 +189,12 @@ export class Table {
   }
 
   /** What a row offers. Rendered after the last column. */
-  actions(list: readonly Action[]): Table {
+  actions(list: readonly (Action | ActionGroup)[]): Table {
     return new Table({ ...this.state, actions: [...list] });
   }
 
   /** What the table offers as a whole — creating a row, above all. */
-  headerActions(list: readonly Action[]): Table {
+  headerActions(list: readonly (Action | ActionGroup)[]): Table {
     return new Table({ ...this.state, headerActions: [...list] });
   }
 
@@ -193,7 +204,7 @@ export class Table {
    * The same action a row offers can be listed here — the same instance, not a
    * second one built the same way. One action, one name, wherever it is drawn.
    */
-  bulkActions(list: readonly Action[]): Table {
+  bulkActions(list: readonly (Action | ActionGroup)[]): Table {
     return new Table({ ...this.state, bulkActions: [...list] });
   }
 
@@ -319,9 +330,9 @@ export function serialiseTable(table: Table): ColumnTree {
           }
         : {}),
     })),
-    actions: table.state.actions.map(node),
-    headerActions: table.state.headerActions.map(node),
-    bulkActions: table.state.bulkActions.map(node),
+    actions: table.state.actions.map(drawn),
+    headerActions: table.state.headerActions.map(drawn),
+    bulkActions: table.state.bulkActions.map(drawn),
     ...(table.state.empty === undefined ? {} : { empty: table.state.empty }),
     ...(table.state.defaultSort === undefined
       ? {}
@@ -337,6 +348,26 @@ export function serialiseTable(table: Table): ColumnTree {
  * client's business. What crosses is what a button needs to draw
  * itself and what a dialog needs to ask.
  */
+/**
+ * One entry in a list, which is an action or a group of them.
+ *
+ * A group carries no trigger of its own: pressing it opens what it holds, and
+ * there is nothing behind it to run. Said as `group` rather than left out, so a
+ * client meeting one knows it is not an action it failed to understand.
+ */
+function drawn(one: Action | ActionGroup): ActionNode {
+  if (!(one instanceof ActionGroup)) return node(one);
+
+  return {
+    type: "ActionGroup",
+    name: one.state.label,
+    trigger: "group",
+    label: one.state.label,
+    ...(one.state.icon === undefined ? {} : { icon: one.state.icon }),
+    children: one.state.actions.map(node),
+  };
+}
+
 function node(action: Action): ActionNode {
   return {
     type: action.type,
@@ -401,11 +432,11 @@ export function sortablePaths(table: Table): ReadonlySet<string> {
 export function declaredActions(table: Table): ReadonlyMap<string, Action> {
   const byName = new Map<string, Action>();
 
-  const declared = [
+  const declared = everyAction([
     ...table.state.actions,
     ...table.state.headerActions,
     ...table.state.bulkActions,
-  ];
+  ]);
   for (const action of declared) {
     const name = action.state.name ?? action.type;
     const already = byName.get(name);

@@ -94,6 +94,56 @@ export function actsOn(action: Action): ActsOn {
 export type ModalWidth =
   "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl" | "7xl" | "screen";
 
+/**
+ * Several actions under one name.
+ *
+ * Presentation and nothing else. The allowlist a request is checked against,
+ * the policy each one is held to, the boot's questions about them — all of
+ * those are about the actions themselves, and a group that changed any of them
+ * would be a place to hide one. So it flattens everywhere except where things
+ * are drawn.
+ *
+ * Not an `Action`, because it is not one: there is nothing to run, nothing to
+ * confirm and nothing to authorize. Making it one would have given it a
+ * `trigger` and a `run` that mean nothing, and a route that has to remember
+ * they mean nothing.
+ */
+export interface ActionGroupState {
+  readonly label: string;
+  /** A glyph beside the label. Decoration: the label carries the meaning. */
+  readonly icon?: string;
+  readonly actions: readonly Action[];
+}
+
+export class ActionGroup {
+  readonly state: ActionGroupState;
+
+  private constructor(state: ActionGroupState) {
+    this.state = state;
+  }
+
+  static make(actions: readonly Action[]): ActionGroup {
+    return new ActionGroup({ label: "More", actions: [...actions] });
+  }
+
+  label(text: string): ActionGroup {
+    return new ActionGroup({ ...this.state, label: text });
+  }
+
+  icon(glyph: string): ActionGroup {
+    return new ActionGroup({ ...this.state, icon: glyph });
+  }
+}
+
+/** Everything in a list of actions, groups opened out. */
+export function everyAction(
+  list: readonly (Action | ActionGroup)[],
+): readonly Action[] {
+  return list.flatMap((one) =>
+    one instanceof ActionGroup ? one.state.actions : [one],
+  );
+}
+
 export const MODAL_WIDTHS: readonly ModalWidth[] = [
   "sm",
   "md",

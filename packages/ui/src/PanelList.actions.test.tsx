@@ -1166,3 +1166,179 @@ describe("a row's actions", () => {
     });
   });
 });
+
+describe("a group of actions over a selection", () => {
+  const page = (): RecordsPage => ({
+    rows: [{ id: 1, title: "Ada" }],
+    total: 1,
+    page: 1,
+    perPage: 25,
+    recordKey: "id",
+    columns: {
+      columns: [{ type: "TextColumn", path: "title", label: "Title" }],
+      filters: [],
+      headerActions: [],
+      actions: [],
+      bulkActions: [
+        {
+          type: "ArchiveAction",
+          name: "ArchiveAction",
+          label: "Archive",
+          trigger: "run",
+        },
+        {
+          type: "ActionGroup",
+          name: "Recovery",
+          label: "Recovery",
+          trigger: "group",
+          children: [
+            { type: "RestoreAction", name: "RestoreAction", trigger: "run" },
+            {
+              type: "ForceDeleteAction",
+              name: "ForceDeleteAction",
+              trigger: "run",
+              danger: true,
+            },
+          ],
+        },
+      ],
+    },
+  });
+
+  const withSelection = async (
+    runAction = vi.fn().mockResolvedValue({ processed: 1, refused: 0 }),
+  ): Promise<{ container: HTMLElement; runAction: ReturnType<typeof vi.fn> }> => {
+    const { container } = render(
+      <PanelList initial={page()} title="Posts" runAction={runAction} />,
+    );
+    fireEvent.click(await screen.findByLabelText("Select row 1"));
+    return { container, runAction };
+  };
+
+  it("becomes a menu, there being none to sit in", async () => {
+    // The opposite of a row, where the actions are already behind one control
+    // and a group folds into a section. These are laid out flat, and folding
+    // several under one button is the whole point of asking.
+    const { container } = await withSelection();
+
+    expect(container.querySelector(".perch-list__bulk-group")).not.toBeNull();
+    expect(await screen.findByText("Recovery")).toBeTruthy();
+  });
+
+  it("leaves the ones outside it where they were", async () => {
+    const { container } = await withSelection();
+    const bar = container.querySelector(".perch-list__bulk");
+
+    expect(bar?.querySelector(".perch-button")?.textContent).toBe("Archive");
+  });
+
+  it("runs what was pressed, never the group", async () => {
+    const { container, runAction } = await withSelection();
+    fireEvent.click(
+      container.querySelector(".perch-list__bulk-menu button") as HTMLElement,
+    );
+
+    await waitFor(() => {
+      expect(runAction).toHaveBeenCalledWith(
+        "RestoreAction",
+        [1],
+        undefined,
+        expect.anything(),
+      );
+    });
+  });
+});
+
+describe("a group on a row the actions inside it do not suit", () => {
+  const page = (deleted?: (string | number)[]): RecordsPage => ({
+    rows: [{ id: 1, title: "Ada" }],
+    total: 1,
+    page: 1,
+    perPage: 25,
+    recordKey: "id",
+    ...(deleted === undefined ? {} : { deleted }),
+    columns: {
+      columns: [{ type: "TextColumn", path: "title", label: "Title" }],
+      filters: [],
+      headerActions: [],
+      bulkActions: [],
+      actions: [
+        {
+          type: "ActionGroup",
+          name: "Recovery",
+          label: "Recovery",
+          trigger: "group",
+          children: [
+            {
+              type: "RestoreAction",
+              name: "RestoreAction",
+              trigger: "run",
+              actsOn: "marked",
+            },
+            { type: "ForceDeleteAction", name: "ForceDeleteAction", trigger: "run" },
+          ],
+        },
+      ],
+    },
+  });
+
+  const opened = async (deleted?: (string | number)[]): Promise<HTMLElement> => {
+    const { container } = render(
+      <PanelList initial={page(deleted)} title="Posts" runAction={vi.fn()} />,
+    );
+    fireEvent.click(await screen.findByLabelText("Actions"));
+    return container;
+  };
+
+  it("asks the question of what it holds, not of the group", async () => {
+    // A group has no `actsOn` of its own — it is not the thing that acts. Left
+    // unasked, grouping an action was a way of getting it drawn on a row the
+    // route refuses it for.
+    const container = await opened();
+
+    expect(within(container).queryByText("Restore")).toBeNull();
+    expect(within(container).queryByText("Force delete")).not.toBeNull();
+  });
+
+  it("keeps the one that suits the row it is on", async () => {
+    const container = await opened([1]);
+
+    expect(within(container).queryByText("Restore")).not.toBeNull();
+  });
+
+  it("draws no heading where nothing inside it survived", () => {
+    // A heading over an empty list is a control saying there is something
+    // behind it when there is not.
+    const only = page();
+    const { container } = render(
+      <PanelList
+        initial={{
+          ...only,
+          columns: {
+            ...only.columns,
+            actions: [
+              {
+                type: "ActionGroup",
+                name: "Recovery",
+                label: "Recovery",
+                trigger: "group",
+                children: [
+                  {
+                    type: "RestoreAction",
+                    name: "RestoreAction",
+                    trigger: "run",
+                    actsOn: "marked",
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+        title="Posts"
+        runAction={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".perch-table__action-group")).toBeNull();
+  });
+});

@@ -302,6 +302,32 @@ function rowAction(
   onAction: ((action: ActionNode, row: Row) => void) | undefined,
   busy: boolean,
 ): ReactNode {
+  // A section inside the menu rather than a menu inside it. The row's actions
+  // are already behind one control, and a second dropdown opening out of the
+  // first is a shape a pointer loses and a keyboard cannot follow — so a group
+  // becomes a heading with its own items under it.
+  if (action.trigger === "group") {
+    const inside = (action.children ?? [])
+      .map((one) => rowAction(one, row, href, onAction, busy))
+      .filter((one) => one !== null);
+    if (inside.length === 0) return null;
+
+    return (
+      <div
+        key={action.name}
+        className="perch-table__action-group"
+        role="group"
+        aria-label={action.label ?? action.name}
+      >
+        <p className="perch-table__action-group-label" aria-hidden="true">
+          {action.icon === undefined ? null : <span>{action.icon}</span>}
+          {action.label ?? action.name}
+        </p>
+        {inside}
+      </div>
+    );
+  }
+
   if (action.trigger === "link") {
     const target = href?.(action, row);
     if (target === undefined) return null;

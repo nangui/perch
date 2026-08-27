@@ -3666,6 +3666,74 @@
   visibility: hidden;
 }
 
+/* A group inside the row menu: a heading, then its items, then a hairline
+   under it so the eye can see where one ends. Not a nested menu — a dropdown
+   opening out of a dropdown is a shape a pointer loses and a keyboard cannot
+   follow. */
+.perch-table__action-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--perch-space-1);
+  padding-bottom: var(--perch-space-2);
+  border-bottom: 1px solid var(--perch-border-subtle);
+}
+
+.perch-table__action-group:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.perch-table__action-group-label {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+  margin: 0;
+  padding: var(--perch-space-2) var(--perch-space-3) 0;
+  color: var(--perch-content-muted);
+  font-size: var(--perch-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+/* In the selection bar there is no menu to sit in, so a group becomes one. */
+.perch-list__bulk-group {
+  position: relative;
+}
+
+.perch-list__bulk-group > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+  cursor: pointer;
+  list-style: none;
+}
+
+.perch-list__bulk-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.perch-list__bulk-menu {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + var(--perch-space-2));
+  /* Anchored to its right edge, because the bar puts its buttons on the right
+     and a menu opening rightward from one of them runs off the window —
+     measured at 1280 wide, 25px past it. */
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 10rem;
+  padding: var(--perch-space-2);
+  gap: var(--perch-space-1);
+  background: var(--perch-surface);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-space-2);
+  box-shadow: var(--perch-shadow-popover);
+}
+
 .perch-row-actions__menu {
   position: fixed;
   z-index: 20;

@@ -74,6 +74,7 @@ export type {
   ActionState,
   Confirmation,
   RecordPage,
+  ActionGroupState,
   ActsOn,
   BeforeReplicaSaved,
   ModalWidth,
@@ -81,8 +82,10 @@ export type {
 } from "./action.js";
 export {
   Action,
+  ActionGroup,
   actsOn,
   CreateAction,
+  everyAction,
   DeleteAction,
   EditAction,
   ForceDeleteAction,

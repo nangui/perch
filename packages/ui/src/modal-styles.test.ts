@@ -115,3 +115,25 @@ describe("the way out of a dialog holding a form", () => {
     );
   });
 });
+
+describe("a menu that opens out of the selection bar", () => {
+  it("anchors to its right edge, the bar putting its buttons there", () => {
+    // Measured at 1280 wide before this: anchored left, the menu started at
+    // 1145 and ran 25px past the window. jsdom computes no layout, so the rule
+    // is what can be held — and the rule is the whole of the fix.
+    const rule = ruleFor(".perch-list__bulk-menu");
+
+    expect(rule).toContain("right: 0");
+    expect(rule).not.toContain("left: 0");
+  });
+
+  it("opens upward, there being a table under it", () => {
+    expect(ruleFor(".perch-list__bulk-menu")).toContain("bottom:");
+  });
+
+  it("sits above what it covers", () => {
+    // Without it the rows below paint over the menu, which reads as a menu
+    // that opened half way.
+    expect(ruleFor(".perch-list__bulk-menu")).toContain("z-index");
+  });
+});

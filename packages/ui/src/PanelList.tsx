@@ -567,19 +567,54 @@ export function PanelList({
           <p className="perch-list__bulk-count" role="status">
             {selected.length} selected
           </p>
-          {bulk.map((action) => (
-            <button
-              key={action.name}
-              type="button"
-              className={`perch-button${action.danger === true ? " perch-button--danger" : ""}`}
-              disabled={busy}
-              onClick={() => {
-                pressBulk(action);
-              }}
-            >
-              {action.label ?? defaultLabel(action)}
-            </button>
-          ))}
+          {bulk.map((action) =>
+            // A group here has no menu to sit in, so it becomes one. A row's
+            // actions are already behind a control and a group folds into a
+            // section there; these are laid out flat, and folding several of
+            // them under one button is the whole point of asking.
+            action.trigger === "group" ? (
+              <details key={action.name} className="perch-list__bulk-group">
+                <summary className="perch-button">
+                  {action.icon === undefined ? null : (
+                    <span aria-hidden="true">{action.icon}</span>
+                  )}
+                  {action.label ?? action.name}
+                </summary>
+                <div
+                  className="perch-list__bulk-menu"
+                  role="group"
+                  aria-label={action.label ?? action.name}
+                >
+                  {(action.children ?? []).map((one) => (
+                    <button
+                      key={one.name}
+                      type="button"
+                      className={`perch-table__action${one.danger === true ? " perch-table__action--danger" : ""}`}
+                      disabled={busy}
+                      onClick={(event) => {
+                        event.currentTarget.closest("details")?.removeAttribute("open");
+                        pressBulk(one);
+                      }}
+                    >
+                      {one.label ?? defaultLabel(one)}
+                    </button>
+                  ))}
+                </div>
+              </details>
+            ) : (
+              <button
+                key={action.name}
+                type="button"
+                className={`perch-button${action.danger === true ? " perch-button--danger" : ""}`}
+                disabled={busy}
+                onClick={() => {
+                  pressBulk(action);
+                }}
+              >
+                {action.label ?? defaultLabel(action)}
+              </button>
+            ),
+          )}
         </div>
       )}
       {said === undefined ? null : (
@@ -1205,10 +1240,22 @@ function offered(page: RecordsPage, row: Row): readonly ActionNode[] {
   // a list of two kept here, which is a list that goes wrong on the third
   // action to need it — and being wrong means drawing a button that the route
   // refuses when it is pressed.
-  return page.columns.actions.filter((action) => {
+  const suits = (action: ActionNode): boolean => {
     if (action.actsOn === "marked") return marked;
     if (action.actsOn === "live") return !marked;
     return true;
+  };
+
+  return page.columns.actions.flatMap((action) => {
+    // A group has no `actsOn` of its own — it is not the thing that acts. So
+    // the question goes to what it holds, or grouping an action would be a way
+    // of getting it drawn on a row the route refuses it for.
+    if (action.trigger !== "group") return suits(action) ? [action] : [];
+
+    // A group left holding nothing is dropped where it is drawn rather than
+    // here: the menu already turns away one whose items all render to nothing,
+    // and two guards for one rule is one that stops being read.
+    return [{ ...action, children: (action.children ?? []).filter(suits) }];
   });
 }
 

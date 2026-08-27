@@ -14,7 +14,7 @@
 import type { Component } from "./component.js";
 import { isResolver } from "./component.js";
 import { normaliseOptions } from "./option.js";
-import { MODAL_WIDTHS } from "./action.js";
+import { ActionGroup, CreateAction, everyAction, MODAL_WIDTHS } from "./action.js";
 import { Entry } from "./entry.js";
 import { TextEntry } from "./entries/text-entry.js";
 import { Field } from "./field.js";
@@ -723,11 +723,58 @@ export function auditTable(table: Table): readonly Complaint[] {
   // which is worse than no button: the reader has no way to tell it apart from
   // one that failed silently. The ready-made ones are exempt because the route
   // is what carries them out.
-  for (const action of [
+  // A group answers to its label, the way an action answers to its name, and
+  // both end up in one list on the wire. Two entries under one word is the
+  // ambiguity `declaredActions` refuses for actions — said here for groups,
+  // which it never sees, and for a group standing where an action already is.
+  for (const [where, list] of [
+    ["row", table.state.actions],
+    ["header", table.state.headerActions],
+    ["selection", table.state.bulkActions],
+  ] as const) {
+    const seen = new Map<string, number>();
+    for (const one of list) {
+      const name =
+        one instanceof ActionGroup ? one.state.label : (one.state.name ?? one.type);
+      seen.set(name, (seen.get(name) ?? 0) + 1);
+    }
+    for (const [name, count] of seen) {
+      if (count < 2) continue;
+      complaints.push({
+        field: name,
+        problem:
+          `is the name of ${String(count)} entries in this table's ${where} ` +
+          "actions, and a list cannot offer two things under one word",
+      });
+    }
+  }
+
+  // What a header offers is one thing today: a link to the create page. A run
+  // there would have no record to act on — the route loads a selection, and a
+  // header has none — and a link anywhere else is an address the client cannot
+  // build. Both were drawn by nobody and said nothing, which is the silence
+  // this file exists to break.
+  for (const one of table.state.headerActions) {
+    const named =
+      one instanceof ActionGroup ? one.state.label : (one.state.label ?? one.type);
+    const isCreate = !(one instanceof ActionGroup) && one instanceof CreateAction;
+    if (isCreate) continue;
+    complaints.push({
+      field: named,
+      problem:
+        "is a header action that is not a `CreateAction`, and a header draws " +
+        "nothing else — a run there has no record to act on, and any other " +
+        "link is an address the client cannot build",
+    });
+  }
+
+  // Groups opened out: what the boot asks is about the actions, and a group
+  // that hid one from these questions would be a place to put a broken one.
+  for (const action of everyAction([
     ...table.state.actions,
     ...table.state.headerActions,
     ...table.state.bulkActions,
-  ]) {
+  ])) {
     if (action.state.run === undefined && !action.isBuiltIn) {
       complaints.push({
         field: action.state.label ?? action.type,

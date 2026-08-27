@@ -7,7 +7,13 @@
  */
 import type { Ir, ModelMeta } from "@perchjs/core";
 import { describe, expect, it } from "vitest";
-import { CreateAction, EditAction, TextColumn, TextInput } from "@perchjs/core";
+import {
+  CreateAction,
+  EditAction,
+  everyAction,
+  TextColumn,
+  TextInput,
+} from "@perchjs/core";
 import { RelationManager } from "./relation-manager.js";
 import { relationScope, ScopeError } from "./relation-scope.js";
 import { key, model, scalar } from "./__fixtures__/ir.js";
@@ -194,9 +200,11 @@ describe("a manager on a resource", () => {
     expect(manager.state.table.state.columns.map((one) => one.state.path)).toEqual([
       "body",
     ]);
-    expect(manager.state.table.state.actions.map((one) => one.type)).toEqual([
-      "EditAction",
-    ]);
+    // Opened out, because a list may hold a group and this asks about the
+    // actions in it.
+    expect(
+      everyAction(manager.state.table.state.actions).map((one) => one.type),
+    ).toEqual(["EditAction"]);
     expect(manager.state.form?.children.length).toBe(1);
   });
 
