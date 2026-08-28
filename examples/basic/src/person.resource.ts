@@ -438,7 +438,14 @@ export class PersonResource {
             .required()
             .maxLength(255)
             .hint("Where sign-in links go")
-            .hintIcon("✉"),
+            .hintIcon("✉")
+            // The framework's wording is about a shape; this one is about what
+            // the address is for. Only the messages the framework wrote can be
+            // replaced — a rule a resource writes carries its own words.
+            .validationMessages({
+              email: "That will not reach anybody. Check the address.",
+              required: "Sign-in links need somewhere to go.",
+            }),
           // Never shown, never settable from the browser, and written all the
           // same: the value comes from the row or from this default.
           Hidden.make("tenantId").default(1),
