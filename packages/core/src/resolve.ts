@@ -1000,14 +1000,20 @@ async function validate(
     const current = state[path];
     const ctx = context(state, options, new Set());
 
+    // What the field said to say, where it said anything. Only the framework's
+    // own messages have a name to be replaced by: a rule an author wrote
+    // carries their words and there is nothing in it to override.
+    const said = field.state.validationMessages ?? {};
+
     if (node.required === true && !field.satisfiesRequired(current)) {
-      errors[path] = "This field is required.";
+      errors[path] = said.required ?? "This field is required.";
       continue;
     }
     for (const rule of [...field.declaredRules, ...field.state.rules]) {
       const outcome = await rule(current, ctx);
       if (outcome !== true) {
-        errors[path] = outcome;
+        errors[path] =
+          (rule.kind === undefined ? undefined : said[rule.kind]) ?? outcome;
         break;
       }
     }

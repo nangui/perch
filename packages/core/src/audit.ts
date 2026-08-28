@@ -17,6 +17,7 @@ import { normaliseOptions } from "./option.js";
 import { ActionGroup, CreateAction, everyAction, MODAL_WIDTHS } from "./action.js";
 import { Entry } from "./entry.js";
 import { TextEntry } from "./entries/text-entry.js";
+import type { RuleKind } from "./field.js";
 import { Field } from "./field.js";
 import { Layout, Tab, Tabs } from "./layout.js";
 import { Hidden } from "./fields/hidden.js";
@@ -415,6 +416,7 @@ function walk(component: Component, into: Complaint[]): void {
   if (component instanceof RichEditor) inspectToolbar(component, into);
   // The same reading for the other editor: a button nothing draws is a word.
   inspectAttributes(component, into);
+  if (component instanceof Field) inspectMessages(component, into);
   if (component instanceof MarkdownEditor) inspectMarkdownToolbar(component, into);
   // A column named with nothing is a heading that draws blank and a box whose
   // only name is the row it is on — declared, and naming nothing.
@@ -554,6 +556,37 @@ function unknownZone(name: string, zone: string): Complaint {
  * remembers.
  */
 const DESCRIBING = /^(?:data-[a-z][\w.:-]*|aria-[a-z-]+|title|role)$/;
+
+/**
+ * A message for a limit the field does not have.
+ *
+ * `.validationMessages({ maxLength: "…" })` on a field with no maximum is a
+ * sentence nobody will ever read, and it looks exactly like one that works —
+ * the field validates, the form saves, and the words sit in the declaration
+ * waiting for a limit that was never added.
+ *
+ * `required` is asked of the field rather than of its rules, because it is not
+ * one: it is checked before them and worded on its own.
+ */
+function inspectMessages(field: Field, into: Complaint[]): void {
+  const said = field.state.validationMessages;
+  if (said === undefined) return;
+
+  const kinds = new Set(
+    field.declaredRules.flatMap((rule) => (rule.kind === undefined ? [] : [rule.kind])),
+  );
+  if (field.state.required !== undefined) kinds.add("required");
+
+  for (const kind of Object.keys(said) as RuleKind[]) {
+    if (kinds.has(kind)) continue;
+    into.push({
+      field: named(field),
+      problem:
+        `says what to put instead of the \`${kind}\` message, and declares no ` +
+        `\`${kind}\` — nothing would ever say it`,
+    });
+  }
+}
 
 function inspectAttributes(component: Component, into: Complaint[]): void {
   const extra = component.state.extraAttributes;

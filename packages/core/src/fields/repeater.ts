@@ -20,7 +20,7 @@
 import { configured } from "../component.js";
 import type { Resolvable } from "../component.js";
 import type { FieldState, ValidationRule, ValueRefusal } from "../field.js";
-import { baseFieldState, Field, isUnset } from "../field.js";
+import { baseFieldState, Field, ruleFor, isUnset } from "../field.js";
 
 /**
  * How long a key may be.
@@ -176,17 +176,21 @@ export class Repeater extends Field {
     const rules: ValidationRule[] = [];
 
     if (minItems !== undefined) {
-      rules.push((value) =>
-        count(value) >= minItems
-          ? true
-          : `Add at least ${String(minItems)} ${plural(minItems, "row")}.`,
+      rules.push(
+        ruleFor("minItems", (value) =>
+          count(value) >= minItems
+            ? true
+            : `Add at least ${String(minItems)} ${plural(minItems, "row")}.`,
+        ),
       );
     }
     if (maxItems !== undefined) {
-      rules.push((value) =>
-        count(value) <= maxItems
-          ? true
-          : `Keep this to ${String(maxItems)} ${plural(maxItems, "row")}.`,
+      rules.push(
+        ruleFor("maxItems", (value) =>
+          count(value) <= maxItems
+            ? true
+            : `Keep this to ${String(maxItems)} ${plural(maxItems, "row")}.`,
+        ),
       );
     }
     return rules;

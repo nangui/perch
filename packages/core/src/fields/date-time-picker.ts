@@ -19,7 +19,7 @@
  */
 import { configured } from "../component.js";
 import type { FieldState, ValidationRule, ValueRefusal } from "../field.js";
-import { baseFieldState, Field, isUnset } from "../field.js";
+import { baseFieldState, Field, isUnset, ruleFor } from "../field.js";
 import { isWallClock, toInstant, toWallClock } from "../zoned.js";
 
 export interface DateTimePickerState extends FieldState {
@@ -89,17 +89,21 @@ export class DateTimePicker extends Field {
     // Compared as text, which is what ISO ordering is for: `2026-03-29` sorts
     // before `2026-10-25` as a string exactly as it does as a day.
     if (minDate !== undefined) {
-      rules.push((value) =>
-        typeof value !== "string" || value >= minDate
-          ? true
-          : `Must be on or after ${minDate}.`,
+      rules.push(
+        ruleFor("minDate", (value) =>
+          typeof value !== "string" || value >= minDate
+            ? true
+            : `Must be on or after ${minDate}.`,
+        ),
       );
     }
     if (maxDate !== undefined) {
-      rules.push((value) =>
-        typeof value !== "string" || value <= maxDate
-          ? true
-          : `Must be on or before ${maxDate}.`,
+      rules.push(
+        ruleFor("maxDate", (value) =>
+          typeof value !== "string" || value <= maxDate
+            ? true
+            : `Must be on or before ${maxDate}.`,
+        ),
       );
     }
     return rules;

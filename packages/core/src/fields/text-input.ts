@@ -4,7 +4,7 @@
  */
 import { configured } from "../component.js";
 import type { FieldState, ValidationRule } from "../field.js";
-import { baseFieldState, Field, lengthRules } from "../field.js";
+import { baseFieldState, Field, lengthRules, ruleFor } from "../field.js";
 import type { TextFlavour } from "../inference.js";
 
 export interface TextInputState extends FieldState {
@@ -147,19 +147,25 @@ export class TextInput extends Field {
 function flavourRules(flavour: TextFlavour): readonly ValidationRule[] {
   if (flavour === "email") {
     return [
-      (value) =>
+      ruleFor("email", (value) =>
         !isText(value) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
           ? true
           : "Must be an email address.",
+      ),
     ];
   }
   if (flavour === "url") {
-    return [(value) => (!isText(value) || isUrl(value) ? true : "Must be a link.")];
+    return [
+      ruleFor("url", (value) =>
+        !isText(value) || isUrl(value) ? true : "Must be a link.",
+      ),
+    ];
   }
   if (flavour === "numeric") {
     return [
-      (value) =>
+      ruleFor("numeric", (value) =>
         !isText(value) || numberOf(value) !== undefined ? true : "Must be a number.",
+      ),
     ];
   }
   return [];
@@ -183,11 +189,11 @@ function isUrl(value: string): boolean {
 function stepRules(step: number | undefined): readonly ValidationRule[] {
   if (step === undefined) return [];
   return [
-    (value) => {
+    ruleFor("step", (value) => {
       const amount = numberOf(value);
       if (amount === undefined) return true;
       return onTheStep(amount, step) ? true : `Must be a multiple of ${String(step)}.`;
-    },
+    }),
   ];
 }
 

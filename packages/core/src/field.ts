@@ -21,10 +21,58 @@ export interface StateHookContext extends ResolverContext {
 export type StateHook = (context: StateHookContext) => void | Promise<void>;
 
 /** `true` when valid, otherwise the message to show. */
-export type ValidationRule = (
-  value: unknown,
-  context: ResolverContext,
-) => string | true | Promise<string | true>;
+/**
+ * Which declared limit a rule checks.
+ *
+ * A closed set, and only what the framework itself writes. A rule an author
+ * passed to `.rule()` has no kind and cannot be renamed by one — they wrote the
+ * message, so there is nothing to override.
+ */
+export type RuleKind =
+  | "required"
+  | "minLength"
+  | "maxLength"
+  | "step"
+  | "email"
+  | "url"
+  | "numeric"
+  | "minDate"
+  | "maxDate"
+  | "minItems"
+  | "maxItems";
+
+/**
+ * A check, and what it is checking, where the framework wrote it.
+ *
+ * A callable with a property rather than an object with a `check`: every rule
+ * that exists is already a function, and the six fields that declare their own
+ * would all have had to be rewritten to say the same thing a different way.
+ */
+export interface ValidationRule {
+  (value: unknown, context: ResolverContext): string | true | Promise<string | true>;
+  readonly kind?: RuleKind;
+}
+
+/**
+ * A framework rule, tagged with the limit it is about.
+ *
+ * Wrapped rather than tagged in place: `Object.assign` would write the property
+ * onto the function it was handed, so a check held anywhere but the call would
+ * carry whichever kind tagged it last — and the type says `readonly`, which is
+ * a promise worth keeping rather than a comment.
+ */
+export function ruleFor(
+  kind: RuleKind,
+  check: (
+    value: unknown,
+    context: ResolverContext,
+  ) => string | true | Promise<string | true>,
+): ValidationRule {
+  return Object.assign(
+    (value: unknown, context: ResolverContext) => check(value, context),
+    { kind },
+  );
+}
 
 export type StateTransform = (value: unknown, context: ResolverContext) => unknown;
 
@@ -45,6 +93,15 @@ export interface FieldState extends ComponentState {
   readonly dehydrateStateUsing?: StateTransform;
   readonly formatStateUsing?: StateTransform;
   readonly rules: readonly ValidationRule[];
+  /**
+   * What to say instead, per limit.
+   *
+   * Only the framework's own messages can be replaced: a rule an author passed
+   * to `.rule()` carries the words they wrote, and there is nothing to override
+   * in it. A key naming a limit this field does not have stops the boot, the
+   * way every other declaration nothing acts on does.
+   */
+  readonly validationMessages?: Readonly<Partial<Record<RuleKind, string>>>;
   /**
    * The label beside the control rather than above it.
    *
@@ -84,17 +141,21 @@ export function lengthRules(
 ): readonly ValidationRule[] {
   const rules: ValidationRule[] = [];
   if (min !== undefined) {
-    rules.push((value) =>
-      typeof value !== "string" || count(value) >= min
-        ? true
-        : `Must be at least ${String(min)} characters.`,
+    rules.push(
+      ruleFor("minLength", (value) =>
+        typeof value !== "string" || count(value) >= min
+          ? true
+          : `Must be at least ${String(min)} characters.`,
+      ),
     );
   }
   if (max !== undefined) {
-    rules.push((value) =>
-      typeof value !== "string" || count(value) <= max
-        ? true
-        : `Must be at most ${String(max)} characters.`,
+    rules.push(
+      ruleFor("maxLength", (value) =>
+        typeof value !== "string" || count(value) <= max
+          ? true
+          : `Must be at most ${String(max)} characters.`,
+      ),
     );
   }
   return rules;
@@ -265,6 +326,11 @@ export abstract class Field extends Component {
 
   formatStateUsing(transform: StateTransform): this {
     return this.with({ formatStateUsing: transform });
+  }
+
+  /** What to say when a declared limit is not met, instead of the default. */
+  validationMessages(messages: Readonly<Partial<Record<RuleKind, string>>>): this {
+    return this.with({ validationMessages: { ...messages } });
   }
 
   rule(rule: ValidationRule): this {

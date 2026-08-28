@@ -198,6 +198,7 @@ export type {
   StateHook,
   StateHookContext,
   StateTransform,
+  RuleKind,
   ValidationRule,
 } from "./field.js";
 export { baseFieldState, Field, isDehydrated } from "./field.js";
