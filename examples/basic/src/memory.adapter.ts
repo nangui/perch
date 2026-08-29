@@ -126,6 +126,7 @@ const PERSON: ModelMeta = {
     scalar("story", "Json"),
     scalar("readme", "String"),
     scalar("homepage", "String"),
+    scalar("phone", "String"),
     scalar("teamId", "Int"),
     scalar("tenantId", "Int"),
     // The tombstone. Named by convention, which is what sets `hasSoftDelete`
@@ -196,6 +197,7 @@ export class MemoryAdapter implements DataAdapter {
       access: "admin",
       rating: 5,
       homepage: "example.com/ada",
+      phone: "5551234567",
       story: {
         type: "doc",
         content: [

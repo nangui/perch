@@ -32,7 +32,7 @@ import { RICH_EDITOR_TOOLS, RichEditor } from "./fields/rich-editor.js";
 import { ToggleButtons } from "./fields/toggle-buttons.js";
 import { Repeater } from "./fields/repeater.js";
 import { Select } from "./fields/select.js";
-import { TextInput } from "./fields/text-input.js";
+import { charactersIn, isPlaceholder, TextInput } from "./fields/text-input.js";
 import { Schema } from "./layout.js";
 import {
   DateRangeFilter,
@@ -417,6 +417,7 @@ function walk(component: Component, into: Complaint[]): void {
   // The same reading for the other editor: a button nothing draws is a word.
   inspectAttributes(component, into);
   if (component instanceof Field) inspectMessages(component, into);
+  if (component instanceof TextInput) inspectMask(component, into);
   if (component instanceof MarkdownEditor) inspectMarkdownToolbar(component, into);
   // A column named with nothing is a heading that draws blank and a box whose
   // only name is the row it is on — declared, and naming nothing.
@@ -584,6 +585,58 @@ function inspectMessages(field: Field, into: Complaint[]): void {
       problem:
         `says what to put instead of the \`${kind}\` message, and declares no ` +
         `\`${kind}\` — nothing would ever say it`,
+    });
+  }
+}
+
+/**
+ * A mask that cannot be read back out of a value.
+ *
+ * The rule strips the literals before comparing, so a value may arrive with the
+ * punctuation or without it. That only works while the literals are punctuation:
+ * a mask whose literal is a letter or a digit cannot be told from a position the
+ * reader filled, and both readings are wrong for some value.
+ *
+ * A mask with no placeholder at all is the other end of it — a shape that
+ * admits nothing but itself, drawn as a box the reader cannot type into.
+ */
+function inspectMask(field: TextInput, into: Complaint[]): void {
+  const mask = field.state.mask;
+  if (mask === undefined) return;
+
+  const literals = charactersIn(mask).filter((one) => !isPlaceholder(one));
+  const alphanumeric = literals.filter((one) => /[a-z0-9]/i.test(one));
+  if (alphanumeric.length > 0) {
+    into.push({
+      field: named(field),
+      problem:
+        `has \`${alphanumeric.join("`, `")}\` in its mask as something the reader ` +
+        "does not type, and a letter or a digit there cannot be told from one " +
+        "they do — `9` is a digit, `a` a letter, `*` either, and the rest is " +
+        "punctuation",
+    });
+  }
+  if (literals.length === mask.length) {
+    into.push({
+      field: named(field),
+      problem: "has a mask with nothing in it to fill — `9`, `a` or `*`",
+    });
+  }
+
+  // A mask fixes the length exactly, and the value carries the punctuation the
+  // box writes. `.mask("(999) 999-9999").maxLength(10)` reads as ten digits and
+  // is a box the reader cannot fill: the browser stops them at `(555) 123-` and
+  // the rule refuses a complete number. Nothing on screen would say why.
+  const limits = (["minLength", "maxLength"] as const).filter(
+    (one) => field.state[one] !== undefined,
+  );
+  if (limits.length > 0) {
+    into.push({
+      field: named(field),
+      problem:
+        `sets \`${limits.join("`, `")}\` beside a mask, which already fixes the ` +
+        "length — and counts the punctuation the mask writes, so a limit meant " +
+        "for what is typed makes a box that cannot be filled",
     });
   }
 }

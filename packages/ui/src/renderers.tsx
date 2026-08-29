@@ -387,6 +387,9 @@ function TextInputRenderer({
             : {})}
           {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
           {...affixesOf(node)}
+          {...(typeof node.props?.["mask"] === "string"
+            ? { mask: node.props["mask"] }
+            : {})}
         />
       )}
     </FieldShell>

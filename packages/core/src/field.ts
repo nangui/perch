@@ -36,6 +36,7 @@ export type RuleKind =
   | "email"
   | "url"
   | "numeric"
+  | "mask"
   | "minDate"
   | "maxDate"
   | "minItems"

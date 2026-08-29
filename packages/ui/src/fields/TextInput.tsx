@@ -10,9 +10,11 @@
  * costs no layout, so a patch never shifts the fields below.
  */
 import type { ChangeEvent, ReactNode } from "react";
+import { useLayoutEffect, useRef } from "react";
 import type { FieldStatus } from "../field-state.js";
 import { isLocked, statusAttributes } from "../field-state.js";
 import type { ControlBinding } from "../FieldShell.js";
+import { caretAfter, filledIn, masked, roomIn, shownAs } from "./mask.js";
 
 /** Matches `TextFlavour` in `@perchjs/core`, which inference produces. */
 export type TextFlavour = "text" | "email" | "password" | "url" | "numeric";
@@ -39,6 +41,15 @@ export interface TextInputProps {
   /** Glyphs beside them. Decoration, like the affixes themselves. */
   readonly prefixIcon?: string;
   readonly suffixIcon?: string;
+  /**
+   * The shape the box holds a value in as it is typed.
+   *
+   * Applied on the way in, so what leaves this control is what the box shows.
+   * What the column keeps is still the server's — `dehydrateStateUsing` takes
+   * the punctuation off where a resource wants bare digits, and the rule behind
+   * the mask accepts either.
+   */
+  readonly mask?: string;
   /** Marks the suffix as a confirmation rather than a unit. */
   readonly suffixOk?: boolean;
   /** Progress of the round trip, 0 to 1. Renders the hairline. */
@@ -68,6 +79,7 @@ export function TextInput({
   maxLength,
   prefix,
   prefixIcon,
+  mask,
   suffixIcon,
   suffix,
   suffixOk = false,
@@ -78,6 +90,18 @@ export function TextInput({
   const locked = isLocked(status);
   const mono = MONO_FLAVOURS.has(flavour);
   const showTrack = progress !== undefined;
+
+  const box = useRef<HTMLInputElement | null>(null);
+  const caret = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const at = caret.current;
+    caret.current = null;
+    // Only where a mask reshaped the value: React has just rewritten it, and the
+    // browser answered by putting the caret at the end. An `email` box has no
+    // selection to move — asking for one throws.
+    if (at === null || box.current === null || box.current.type === "email") return;
+    box.current.setSelectionRange(at, at);
+  });
 
   return (
     <div
@@ -104,11 +128,24 @@ export function TextInput({
         // the server's business anyway.
         {...(flavour === "numeric" ? { inputMode: "decimal" as const } : {})}
         {...(flavour === "password" ? { autoComplete: "new-password" } : {})}
-        value={value}
-        placeholder={placeholder}
-        maxLength={maxLength}
+        ref={box}
+        value={mask === undefined ? value : shownAs(value, mask)}
+        placeholder={placeholder ?? mask}
+        // A mask is its own ceiling, and the boot refuses a length limit beside
+        // one — the two count different things.
+        maxLength={mask === undefined ? maxLength : roomIn(mask)}
         onChange={(event: ChangeEvent<HTMLInputElement>) => {
-          onChange(event.target.value);
+          if (mask === undefined) {
+            onChange(event.target.value);
+            return;
+          }
+          // Shaped here rather than on the way out, so the box shows what was
+          // sent and a character the mask has no room for never appears at all.
+          const raw = event.target.value;
+          const shown = masked(raw, mask);
+          const before = raw.slice(0, event.target.selectionStart ?? raw.length);
+          caret.current = caretAfter(shown, filledIn(before).length);
+          onChange(shown);
         }}
       />
 

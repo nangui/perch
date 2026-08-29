@@ -15,6 +15,20 @@ export interface TextInputState extends FieldState {
   readonly unique?: { readonly ignoreRecord: boolean };
   readonly step?: number;
   /**
+   * The shape a value takes as it is typed.
+   *
+   * `9` is a digit, `a` a letter, `*` either. Everything else is a literal the
+   * reader does not type — the browser writes it for them, and the boot refuses
+   * a literal that is alphanumeric, because a mask whose punctuation could also
+   * be a placeholder cannot be read back out of a value.
+   *
+   * A shape, not a storage decision. What the column keeps is what
+   * `dehydrateStateUsing` says it keeps, as it always was, and the rule below
+   * accepts a value with the literals and one without: a row written before the
+   * mask existed is not a row that has suddenly become invalid.
+   */
+  readonly mask?: string;
+  /**
    * What sits inside the frame, on either side of what is typed.
    *
    * Part of the box rather than of the value: `https://` in front of a field
@@ -37,6 +51,10 @@ export class TextInput extends Field {
 
   override get type(): string {
     return "TextInput";
+  }
+
+  mask(pattern: string): this {
+    return this.with({ mask: pattern });
   }
 
   prefix(value: string): this {
@@ -64,6 +82,7 @@ export class TextInput extends Field {
       ...lengthRules(this.state.minLength, this.state.maxLength),
       ...stepRules(this.state.step),
       ...flavourRules(this.state.flavour),
+      ...maskRules(this.state.mask),
     ];
   }
 
@@ -184,6 +203,55 @@ function isUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** Which characters a mask position accepts, by the letter that stands for it. */
+const PLACEHOLDERS: Readonly<Record<string, RegExp>> = {
+  "9": /\d/,
+  a: /[a-z]/i,
+  "*": /[a-z0-9]/i,
+};
+
+/** Whether a character is one a reader fills rather than one the mask writes. */
+/**
+ * A mask, one character at a time.
+ *
+ * Code points rather than UTF-16 units: a mask is compared position by position
+ * against what was typed, and half a character is not a position.
+ */
+export function charactersIn(mask: string): readonly string[] {
+  // eslint-disable-next-line @typescript-eslint/no-misused-spread -- code points are the point
+  return [...mask];
+}
+
+export function isPlaceholder(character: string): boolean {
+  return character in PLACEHOLDERS;
+}
+
+/**
+ * A mask on the server, which is what makes it more than a formatting trick.
+ *
+ * The literals are stripped before comparing, so `(555) 123-4567` and
+ * `5551234567` both fit `(999) 999-9999`. A rule that demanded the punctuation
+ * would refuse every row written before the mask was added, and refuse one
+ * whose `dehydrateStateUsing` takes the punctuation off — which is the ordinary
+ * way to store a number.
+ */
+function maskRules(mask: string | undefined): readonly ValidationRule[] {
+  if (mask === undefined) return [];
+  const wanted = charactersIn(mask).filter(isPlaceholder);
+  if (wanted.length === 0) return [];
+
+  return [
+    ruleFor("mask", (value) => {
+      if (!isText(value)) return true;
+      const filled = value.match(/[a-z0-9]/gi) ?? [];
+      const fits =
+        filled.length === wanted.length &&
+        wanted.every((slot, at) => PLACEHOLDERS[slot]?.test(filled[at] ?? "") === true);
+      return fits ? true : `Must look like ${mask}.`;
+    }),
+  ];
 }
 
 function stepRules(step: number | undefined): readonly ValidationRule[] {

@@ -418,6 +418,17 @@ export class PersonResource {
           // Inside the frame, and not in the column: what is stored is what
           // was typed, so nobody has to remember whether the scheme is in
           // there twice.
+          // Shaped as it is typed, and kept bare. The mask is what a reader
+          // sees; `dehydrateStateUsing` is what the column gets, and the rule
+          // behind the mask accepts either — so a row stored before this line
+          // existed is not a row that has suddenly become invalid.
+          TextInput.make("phone")
+            .label("Telephone")
+            .mask("(999) 999-9999")
+            .dehydrateStateUsing((value) =>
+              typeof value === "string" ? value.replace(/\D/g, "") : value,
+            )
+            .hint("Digits only, in the end"),
           TextInput.make("homepage")
             .label("Homepage")
             .prefix("https://")

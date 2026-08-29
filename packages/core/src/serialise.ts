@@ -76,6 +76,7 @@ export interface SchemaPayload {
  */
 const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   TextInput: [
+    "mask",
     "flavour",
     "minLength",
     "maxLength",
