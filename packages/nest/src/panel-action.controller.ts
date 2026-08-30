@@ -203,6 +203,11 @@ export class PanelActionController {
     // No table and no policy: the manager's table is what declared the action
     // above, and the manager's own policy has already been asked about the
     // parent, so nothing further is asked per row here.
+    // An action on a joined manager's row would run against a row that belongs
+    // to nobody in particular — there is no column narrowing the selection it
+    // was given, so `loadSelection` could not tell this parent's rows from any
+    // others. The boot refuses such a manager's actions; this is the door.
+    if (scope.kind !== "owned") throw new NotFoundException();
     return {
       data,
       model: scope.model,

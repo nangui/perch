@@ -58,6 +58,41 @@ const TEAM: ModelMeta = {
   labelField: "name",
 };
 
+const PROJECT: ModelMeta = {
+  name: "Project",
+  dbName: "Project",
+  primaryKey: scalar("id", "Int"),
+  fields: [scalar("id", "Int"), scalar("name", "String"), scalar("code", "String")],
+  relations: [
+    {
+      name: "people",
+      type: "many",
+      targetModel: "Person",
+      relationName: "PersonToProject",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
+  ],
+  uniqueConstraints: [["id"]],
+  hasSoftDelete: false,
+  labelField: "name",
+};
+
+/** The join itself, which in a database is a table and here is a pair list. */
+const MEMBERSHIPS: { personId: number; projectId: number }[] = [
+  { personId: 1, projectId: 1 },
+  { personId: 1, projectId: 2 },
+  { personId: 2, projectId: 2 },
+];
+
+const PROJECTS: Row[] = [
+  { id: 1, name: "Analytical Engine", code: "AE" },
+  { id: 2, name: "Difference Engine", code: "DE" },
+  { id: 3, name: "Nobody's", code: "NO" },
+];
+
 const NOTE: ModelMeta = {
   name: "Note",
   dbName: "Note",
@@ -149,6 +184,18 @@ const PERSON: ModelMeta = {
       type: "many",
       targetModel: "Task",
       relationName: "PersonToTask",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
+    {
+      // A join table neither model owns: no foreign key on either side, which
+      // is the shape a manager attaches to rather than writes into.
+      name: "projects",
+      type: "many",
+      targetModel: "Project",
+      relationName: "PersonToProject",
       foreignKeyFields: [],
       referencedFields: [],
       isRequired: false,
@@ -278,12 +325,13 @@ export class MemoryAdapter implements DataAdapter {
   #nextTaskId = 4;
 
   ir(): Ir {
-    return { models: [PERSON, NOTE, TASK, TEAM] };
+    return { models: [PERSON, NOTE, TASK, TEAM, PROJECT] };
   }
 
   meta(model: string): ModelMeta {
     if (model === "Task") return TASK;
     if (model === "Team") return TEAM;
+    if (model === "Project") return PROJECT;
     return PERSON;
   }
 
@@ -291,6 +339,27 @@ export class MemoryAdapter implements DataAdapter {
     // Its own table since a select started offering to add rows to it: without
     // this the options came back labelled by their keys, because the rows
     // answering were people and a person has no `name`.
+    // Narrowed by a relation rather than by a column, which is what a join
+    // table looks like from a query. The pair list stands in for it.
+    if (query.model === "Project") {
+      const joined = query.joinedTo;
+      const rows =
+        joined === undefined
+          ? PROJECTS
+          : PROJECTS.filter((project) =>
+              MEMBERSHIPS.some(
+                (link) =>
+                  link.projectId === project["id"] &&
+                  link.personId === Number(joined.value),
+              ),
+            );
+      const found = rows.filter((row) => matches(row, query.clauses));
+      const from = query.skip ?? 0;
+      return Promise.resolve({
+        rows: found.slice(from, from + (query.take ?? 25)),
+        total: found.length,
+      });
+    }
     if (query.model === "Team") {
       const found = TEAMS.filter((row) => matches(row, query.clauses)).filter((row) => {
         const term = query.search?.term.toLowerCase();
@@ -365,6 +434,9 @@ export class MemoryAdapter implements DataAdapter {
   findOne(model: string, id: Id, options?: ReadOptions): Promise<Row | null> {
     if (model === "Team") {
       return Promise.resolve(TEAMS.find((row) => row["id"] === id) ?? null);
+    }
+    if (model === "Project") {
+      return Promise.resolve(PROJECTS.find((row) => row["id"] === id) ?? null);
     }
     if (model === "Task") {
       return Promise.resolve(this.#tasks.find((row) => row["id"] === id) ?? null);
@@ -461,6 +533,51 @@ export class MemoryAdapter implements DataAdapter {
 
   restore(_model: string, ids: readonly Id[]): Promise<number> {
     return Promise.resolve(this.#mark(ids, null));
+  }
+
+  /**
+   * Joining and unjoining, which here is a pair list and in a database a table.
+   *
+   * Idempotent both ways, which is what the interface asks for and what a
+   * reader pressing a button twice needs: attaching what is attached adds
+   * nothing, detaching what is not removes nothing, and neither is an error.
+   */
+  attach(
+    model: string,
+    id: Id,
+    relation: string,
+    targets: readonly Id[],
+  ): Promise<void> {
+    if (model !== "Person" || relation !== "projects") return Promise.resolve();
+    for (const target of targets) {
+      const link = { personId: Number(id), projectId: Number(target) };
+      const known = MEMBERSHIPS.some(
+        (one) => one.personId === link.personId && one.projectId === link.projectId,
+      );
+      if (!known) MEMBERSHIPS.push(link);
+    }
+    return Promise.resolve();
+  }
+
+  detach(
+    model: string,
+    id: Id,
+    relation: string,
+    targets: readonly Id[],
+  ): Promise<void> {
+    if (model !== "Person" || relation !== "projects") return Promise.resolve();
+    const dropped = new Set(targets.map(Number));
+    for (let at = MEMBERSHIPS.length - 1; at >= 0; at -= 1) {
+      const link = MEMBERSHIPS[at];
+      if (
+        link !== undefined &&
+        link.personId === Number(id) &&
+        dropped.has(link.projectId)
+      ) {
+        MEMBERSHIPS.splice(at, 1);
+      }
+    }
+    return Promise.resolve();
   }
 
   /** Rows that moved, not rows that were named: one already there did not. */

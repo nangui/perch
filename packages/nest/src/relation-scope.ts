@@ -13,7 +13,14 @@
 import type { Ir, ModelMeta, RelationMeta } from "@perchjs/core";
 import { findModel } from "@perchjs/core";
 
-export interface RelationScope {
+/**
+ * A child that carries its parent's key in a column of its own.
+ *
+ * The ordinary shape: a to-many one side, a to-one with a foreign key on the
+ * other. The column narrows every read and fills every create.
+ */
+export interface OwnedScope {
+  readonly kind: "owned";
   /** The model whose rows the manager lists. */
   readonly model: string;
   /** The column on that model holding the parent's key. */
@@ -21,6 +28,25 @@ export interface RelationScope {
   /** The parent column it points at — not always the primary key. */
   readonly parentKey: string;
 }
+
+/**
+ * A child joined to its parent through a table neither model owns.
+ *
+ * A many-to-many is a to-many on both sides with a foreign key on neither, so
+ * there is no column to narrow by and none to fill. The narrowing names the
+ * relation back to the parent instead — and because there is nothing to fill,
+ * such a manager attaches and detaches rather than creating and deleting.
+ */
+export interface JoinedScope {
+  readonly kind: "joined";
+  readonly model: string;
+  /** The to-many on the child pointing back at the parent. */
+  readonly back: string;
+  /** The parent column the join compares — not always the primary key. */
+  readonly parentKey: string;
+}
+
+export type RelationScope = OwnedScope | JoinedScope;
 
 export class ScopeError extends Error {}
 
@@ -59,10 +85,31 @@ export function relationScope(ir: Ir, parent: string, relation: string): Relatio
 
   const back = pointingBack(target, parent, declared);
   if (back.length === 0) {
+    // No column on either side is the shape of a join table, not a mistake.
+    // Narrowed by the relation instead, and managed with the verbs that shape
+    // allows: a row exists on its own and is joined, or it is not.
+    const joined = joinedBack(target, parent, declared);
+    if (joined.length === 1) {
+      const inverse = joined[0] as RelationMeta;
+      return {
+        kind: "joined",
+        model: declared.targetModel,
+        back: inverse.name,
+        parentKey: primaryKeyOf(owner),
+      };
+    }
+    if (joined.length > 1) {
+      const names = joined.map((one) => one.name).join("`, `");
+      throw new ScopeError(
+        `\`${declared.targetModel}\` is joined to \`${parent}\` more than once — ` +
+          `\`${names}\`. Which join narrows \`${relation}\` is not something to ` +
+          "guess at.",
+      );
+    }
+
     throw new ScopeError(
-      `\`${declared.targetModel}\` has no column holding a \`${parent}\`, so its rows ` +
-        "cannot be narrowed to one. A relation joined through a table rather than " +
-        "owned is attached and detached, not created and deleted.",
+      `\`${declared.targetModel}\` neither holds a \`${parent}\` nor is joined to ` +
+        "one, so its rows cannot be narrowed to a parent at all.",
     );
   }
   if (back.length > 1) {
@@ -85,7 +132,31 @@ export function relationScope(ir: Ir, parent: string, relation: string): Relatio
     );
   }
 
-  return { model: declared.targetModel, foreignKey, parentKey };
+  return { kind: "owned", model: declared.targetModel, foreignKey, parentKey };
+}
+
+/**
+ * The to-many on the child that is the other half of a join.
+ *
+ * Matched on the name both sides share, like its to-one counterpart: two joins
+ * between the same pair of models are told apart by nothing else.
+ */
+function joinedBack(
+  child: ModelMeta,
+  parent: string,
+  declared: RelationMeta,
+): readonly RelationMeta[] {
+  return child.relations.filter(
+    (one) =>
+      one.isList &&
+      one.targetModel === parent &&
+      one.relationName === declared.relationName,
+  );
+}
+
+/** What a join compares on the parent's side, there being no column to read. */
+function primaryKeyOf(owner: ModelMeta): string {
+  return owner.primaryKey.name;
 }
 
 /**

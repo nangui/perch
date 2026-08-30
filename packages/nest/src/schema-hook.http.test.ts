@@ -77,6 +77,13 @@ class MemoryAdapter implements DataAdapter {
   restore(): Promise<number> {
     throw new Error("not needed here");
   }
+
+  attach(): Promise<void> {
+    return Promise.resolve();
+  }
+  detach(): Promise<void> {
+    return Promise.resolve();
+  }
   transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     return fn(this);
   }

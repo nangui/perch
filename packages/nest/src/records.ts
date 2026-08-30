@@ -18,6 +18,7 @@ import type {
   Row,
   Sort,
   Table,
+  JoinNarrowing,
 } from "@perchjs/core";
 import {
   Field,
@@ -173,6 +174,12 @@ export async function listOf(options: {
    * filters rather than among them, so nothing a client sends can widen it.
    */
   readonly scope?: Clause;
+  /**
+   * The same narrowing where no column carries it — a many-to-many, whose join
+   * table belongs to neither model. Exactly one of these two is ever set, and
+   * which is decided from the derived scope rather than here.
+   */
+  readonly joinedTo?: JoinNarrowing;
   readonly resourcePath?: string;
   /**
    * Whether this reader may lift the read's own exclusion. Default `true`: a
@@ -202,10 +209,14 @@ export async function listOf(options: {
     ...withOptions(data, model),
   });
   const filters = read.filters;
-  const query: Query =
+  const narrowed: Query =
     scope === undefined
       ? read.query
       : { ...read.query, clauses: [...(read.query.clauses ?? []), scope] };
+  const query: Query =
+    options.joinedTo === undefined
+      ? narrowed
+      : { ...narrowed, joinedTo: options.joinedTo };
   const found = await data.findMany(query);
   const applied = query.sort?.[0];
   const perPage = query.take ?? DEFAULT_PER_PAGE;

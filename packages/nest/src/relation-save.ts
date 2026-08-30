@@ -128,6 +128,11 @@ export async function saveChild(request: ChildWrite): Promise<SaveResponse> {
  * not a step that rewrote the values on the way through.
  */
 function owned(write: WriteTree, scope: RelationScope, owner: unknown): WriteTree {
+  // A join has no such column, and nothing here could invent one. A manager
+  // over one neither creates nor edits its rows — they exist on their own and
+  // are attached — and the boot says so, which is why this is unreachable
+  // rather than a case with an answer.
+  if (scope.kind !== "owned") throw new NotFoundException();
   return {
     ...write,
     set: { ...write.set, [scope.foreignKey]: owner },

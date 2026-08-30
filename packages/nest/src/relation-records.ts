@@ -48,7 +48,16 @@ export async function listChildren(options: {
       "allowed",
     // Read off the parent rather than off the address: the column a relation
     // points at is not always the primary key, and the row is already in hand.
-    scope: { path: scope.foreignKey, operator: "equals", value: owner },
+    // A join has no such column, so it narrows by the relation back instead.
+    ...(scope.kind === "owned"
+      ? { scope: { path: scope.foreignKey, operator: "equals", value: owner } }
+      : {
+          joinedTo: {
+            relation: scope.back,
+            key: scope.parentKey,
+            value: owner as string | number,
+          },
+        }),
   });
 }
 

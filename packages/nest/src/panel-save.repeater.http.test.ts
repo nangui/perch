@@ -124,6 +124,13 @@ class MemoryAdapter implements DataAdapter {
     throw new Error("not needed here");
   }
 
+  attach(): Promise<void> {
+    return Promise.resolve();
+  }
+  detach(): Promise<void> {
+    return Promise.resolve();
+  }
+
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     const before = { posts: [...posts], sections: [...sections], next: nextSection };
     try {

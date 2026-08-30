@@ -27,6 +27,8 @@ import type { RecordsResponse } from "./records.js";
 import { listRecords } from "./records.js";
 import { listChildren } from "./relation-records.js";
 import type { SaveResponse } from "./panel-save.controller.js";
+import type { JoinResponse } from "./relation-join.js";
+import { attachChildren, detachChildren } from "./relation-join.js";
 import { childForm, saveChild } from "./relation-save.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
@@ -100,6 +102,51 @@ export class PanelRecordsController {
       body,
       user: this.#users.resolve(request),
       disks: this.#disks,
+    });
+  }
+
+  /**
+   * `POST {path}/api/:resource/:id/relations/:name/attach` and `…/detach`.
+   *
+   * The two verbs a many-to-many has. The parent is in the address, like every
+   * other manager route, because it is the one value a request must not choose;
+   * the rows being joined are in the body, because they are the choice.
+   */
+  @Post(":id/relations/:name/attach")
+  @HttpCode(200)
+  async attach(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("name") name: string,
+    @Body() body: unknown,
+    @Req() request: IncomingUrl,
+  ): Promise<JoinResponse> {
+    return await attachChildren({
+      data: this.#data,
+      resource: this.#registry.get(slug),
+      parentId: id,
+      relation: name,
+      body,
+      user: this.#users.resolve(request),
+    });
+  }
+
+  @Post(":id/relations/:name/detach")
+  @HttpCode(200)
+  async detach(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("name") name: string,
+    @Body() body: unknown,
+    @Req() request: IncomingUrl,
+  ): Promise<JoinResponse> {
+    return await detachChildren({
+      data: this.#data,
+      resource: this.#registry.get(slug),
+      parentId: id,
+      relation: name,
+      body,
+      user: this.#users.resolve(request),
     });
   }
 

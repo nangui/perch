@@ -28,6 +28,7 @@ export type {
   Id,
   IncludePlan,
   Page,
+  JoinNarrowing,
   Query,
   ReadOptions,
   RelationWrite,

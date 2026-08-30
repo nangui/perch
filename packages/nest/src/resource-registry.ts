@@ -238,6 +238,7 @@ export class ResourceRegistry implements OnModuleInit {
           : this.#unshowableModals(table, infolist, managers)),
         ...(table === undefined ? [] : this.#collidingCopies(metadata.model, table)),
         ...this.#unscopableRelations(metadata.model, managers),
+        ...this.#unmakeableChildren(metadata.model, managers),
         ...this.#reassigningFields(metadata.model, managers),
         ...this.#unwritableChildren(metadata.model, managers),
         ...this.#unfollowableActions(managers),
@@ -303,6 +304,59 @@ export class ResourceRegistry implements OnModuleInit {
    * quietly: a select that visibly offers to move a child to another parent,
    * and does not, is worse than no select.
    */
+  /**
+   * A manager over a join, asked to do what a join has no room for.
+   *
+   * A many-to-many has a foreign key on neither side, so there is no column to
+   * fill and nothing for a create to write: a row exists on its own and is
+   * joined to this parent, or it is not. A form there would collect values and
+   * have nowhere to put the one that matters, and an action given a selection
+   * could not tell this parent's rows from anybody else's.
+   *
+   * Attaching and detaching are the verbs that shape allows, and they are not
+   * built yet. Until they are, this says so where the line is written.
+   */
+  #unmakeableChildren(
+    model: string,
+    managers: readonly RelationManager[],
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const ir = this.#data.ir();
+
+    return managers.flatMap((manager) => {
+      let scope;
+      try {
+        scope = relationScope(ir, model, manager.state.relation);
+      } catch {
+        // Already complained about above, and once is enough.
+        return [];
+      }
+      if (scope.kind !== "joined") return [];
+
+      const said: { field: string; problem: string }[] = [];
+      const joined =
+        `is joined to \`${model}\` through a table neither owns, so its rows ` +
+        "are attached and detached rather than created and deleted";
+
+      if (manager.state.form !== undefined) {
+        said.push({
+          field: manager.state.relation,
+          problem: `${joined} — a form here has no column to write the join into`,
+        });
+      }
+      const actions = declaredActions(manager.state.table);
+      if (actions.size > 0) {
+        said.push({
+          field: manager.state.relation,
+          problem:
+            `${joined} — and an action given a selection could not tell this ` +
+            "row's parent from any other, there being no column to narrow by",
+        });
+      }
+      return said;
+    });
+  }
+
   #reassigningFields(
     model: string,
     managers: readonly RelationManager[],
@@ -322,6 +376,9 @@ export class ResourceRegistry implements OnModuleInit {
         return [];
       }
 
+      // Only an owned relation has a column a form could reassign. A join has
+      // none, and what a manager over one may declare at all is said below.
+      if (scope.kind !== "owned") return [];
       return ownFields(form.children)
         .filter((field) => field.name === scope.foreignKey)
         .map((field) => ({

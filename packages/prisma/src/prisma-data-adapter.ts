@@ -24,7 +24,7 @@ import type {
   Sort,
   WriteTree,
 } from "@perchjs/core";
-import { findModel, SOFT_DELETE_FIELD } from "@perchjs/core";
+import { findModel, findRelation, SOFT_DELETE_FIELD } from "@perchjs/core";
 
 export interface PrismaDelegate {
   findMany: (args: Record<string, unknown>) => Promise<unknown[]>;
@@ -112,6 +112,57 @@ export class PrismaDataAdapter implements DataAdapter {
       where: { [this.meta(model).primaryKey.name]: id },
       data: this.#dataOf(model, data),
     })) as Row;
+  }
+
+  /**
+   * Joining rows to one other row, and unjoining them.
+   *
+   * `connect` and `disconnect` rather than a write of any column: the join
+   * table is Prisma's, and neither model has one to set. Both are idempotent
+   * there — connecting what is connected and disconnecting what is not are
+   * no-ops — which is exactly what a reader pressing a button twice needs.
+   */
+  async attach(
+    model: string,
+    id: Id,
+    relation: string,
+    targets: readonly Id[],
+  ): Promise<void> {
+    await this.#join(model, id, relation, targets, "connect");
+  }
+
+  async detach(
+    model: string,
+    id: Id,
+    relation: string,
+    targets: readonly Id[],
+  ): Promise<void> {
+    await this.#join(model, id, relation, targets, "disconnect");
+  }
+
+  async #join(
+    model: string,
+    id: Id,
+    relation: string,
+    targets: readonly Id[],
+    how: "connect" | "disconnect",
+  ): Promise<void> {
+    // Nothing named is nothing to do, and an empty list would otherwise reach
+    // the database as an update with an empty operation in it.
+    if (targets.length === 0) return;
+
+    const owner = findModel(this.ir(), model);
+    if (owner === undefined) throw new Error(`Model \`${model}\` is not in the IR`);
+    const target = findRelation(owner, relation);
+    if (target === undefined) {
+      throw new Error(`\`${model}\` declares no relation \`${relation}\``);
+    }
+    const key = this.meta(target.targetModel).primaryKey.name;
+
+    await this.#delegate(model).update({
+      where: { [this.meta(model).primaryKey.name]: id },
+      data: { [relation]: { [how]: targets.map((one) => ({ [key]: one })) } },
+    });
   }
 
   async delete(model: string, ids: readonly Id[]): Promise<number> {
@@ -344,6 +395,14 @@ function whereOf(query: Query): Record<string, unknown> {
   const clauses = (query.clauses ?? []).map(clauseOf);
   const search = searchOf(query.search);
   if (search !== undefined) clauses.push(search);
+  // A narrowing that names a relation rather than a column, because a
+  // many-to-many has a foreign key on neither side. `some` rather than `every`:
+  // the question is whether this row is joined to that one, and `every` would
+  // also answer true for a row joined to nothing at all.
+  const joined = query.joinedTo;
+  if (joined !== undefined) {
+    clauses.push({ [joined.relation]: { some: { [joined.key]: joined.value } } });
+  }
 
   if (clauses.length === 0) return {};
   if (clauses.length === 1) return clauses[0] as Record<string, unknown>;

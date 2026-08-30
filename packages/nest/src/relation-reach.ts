@@ -110,6 +110,11 @@ export async function childOf(
 
   const row = await data.findOne(scope.model, key);
   if (row === null) throw new NotFoundException();
+  // Reaching one child is what an edit or a row action does, and the boot
+  // refuses both on a manager over a join — there is no column to narrow a
+  // selection by. So this is a door rather than a case with an answer, and it
+  // stays one until attaching and detaching give it something to guard.
+  if (scope.kind !== "owned") throw new NotFoundException();
   if (row[scope.foreignKey] !== owner) throw new NotFoundException();
   // The key travels with the row, so a write reaches for a value that has been
   // through `recordId` rather than casting whatever the column held.

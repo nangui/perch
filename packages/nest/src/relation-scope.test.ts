@@ -68,6 +68,7 @@ describe("the column that narrows a manager to one parent", () => {
     expect(POST.relations[0]?.foreignKeyFields).toEqual([]);
 
     expect(relationScope(ir([POST, COMMENT]), "Post", "comments")).toEqual({
+      kind: "owned",
       model: "Comment",
       foreignKey: "postId",
       parentKey: "id",
@@ -117,11 +118,11 @@ describe("a scope that cannot be worked out", () => {
     );
   });
 
-  it("refuses one with no way back, which is what a join looks like from here", () => {
+  it("refuses one with no way back of any kind", () => {
     const loose = model({ name: "Comment", dbName: "Comment", fields: [key()] });
 
     expect(() => relationScope(ir([POST, loose]), "Post", "comments")).toThrow(
-      /no column holding a/,
+      /neither holds a `Post` nor is joined/,
     );
   });
 
@@ -178,12 +179,14 @@ describe("two relations between the same pair of models", () => {
   });
 
   it("are told apart by the name both sides carry", () => {
-    expect(relationScope(ir([parent, child]), "Post", "comments").foreignKey).toBe(
-      "postId",
-    );
-    expect(
-      relationScope(ir([parent, child]), "Post", "editedComments").foreignKey,
-    ).toBe("editedPostId");
+    const owned = (relation: string): string => {
+      const scope = relationScope(ir([parent, child]), "Post", relation);
+      expect(scope.kind).toBe("owned");
+      return scope.kind === "owned" ? scope.foreignKey : "";
+    };
+
+    expect(owned("comments")).toBe("postId");
+    expect(owned("editedComments")).toBe("editedPostId");
   });
 });
 
@@ -219,5 +222,69 @@ describe("a manager on a resource", () => {
 
   it("does neither create nor edit without a form", () => {
     expect(RelationManager.make("comments").state.form).toBeUndefined();
+  });
+});
+
+describe("a relation joined through a table neither model owns", () => {
+  const post = model({
+    name: "Post",
+    dbName: "Post",
+    fields: [key()],
+    relations: [toMany("tags", "Tag", "PostToTag")],
+  });
+  const tag = model({
+    name: "Tag",
+    dbName: "Tag",
+    fields: [key()],
+    relations: [toMany("posts", "Post", "PostToTag")],
+  });
+
+  it("is scoped by the relation back, there being no column to compare", () => {
+    // A many-to-many is a to-many on both sides and a foreign key on neither.
+    // What narrows it is the join itself, which is why it is a different shape
+    // rather than an owned scope with an empty column.
+    expect(post.relations[0]?.foreignKeyFields).toEqual([]);
+    expect(tag.relations[0]?.foreignKeyFields).toEqual([]);
+
+    expect(relationScope(ir([post, tag]), "Post", "tags")).toEqual({
+      kind: "joined",
+      model: "Tag",
+      back: "posts",
+      parentKey: "id",
+    });
+  });
+
+  it("refuses one joined to the same model twice", () => {
+    // Which join narrows the manager decides which rows a reader sees, and the
+    // wrong one looks exactly like the right one.
+    const twice = model({
+      name: "Tag",
+      dbName: "Tag",
+      fields: [key()],
+      relations: [
+        toMany("posts", "Post", "PostToTag"),
+        toMany("draftPosts", "Post", "PostToTag"),
+      ],
+    });
+
+    expect(() => relationScope(ir([post, twice]), "Post", "tags")).toThrow(
+      /joined to `Post` more than once/,
+    );
+  });
+
+  it("prefers a column where there is one", () => {
+    // A model both owning a column and joined elsewhere is not ambiguous: the
+    // column is what the relation named, and it is what fills a create.
+    const owning = model({
+      name: "Comment",
+      dbName: "Comment",
+      fields: [key()],
+      relations: [
+        toOne("post", "Post", "postId", "CommentToPost"),
+        toMany("posts", "Post", "PostToComment"),
+      ],
+    });
+
+    expect(relationScope(ir([POST, owning]), "Post", "comments").kind).toBe("owned");
   });
 });

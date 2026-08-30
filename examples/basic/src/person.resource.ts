@@ -334,6 +334,21 @@ export class PersonResource {
         )
         .form((schema) => schema.schema([TextInput.make("title").required()]))
         .actions([DeleteAction.make().requiresConfirmation()]),
+      // Joined rather than owned: a project belongs to no one person, so there
+      // is no column here to narrow by and none to fill. It lists, and that is
+      // all it may do until attaching and detaching exist — the boot refuses a
+      // form or an action on one, rather than drawing a button with nothing
+      // behind it.
+      RelationManager.make("projects")
+        .label("Projects")
+        .table((table) =>
+          table
+            .columns([
+              TextColumn.make("name").label("Project").sortable().searchable(),
+              TextColumn.make("code").label("Code"),
+            ])
+            .defaultSort("name"),
+        ),
     ];
   }
 

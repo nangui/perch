@@ -130,6 +130,13 @@ class MemoryAdapter implements DataAdapter {
     restored = [...restored, [...ids]];
     return Promise.resolve(ids.length);
   }
+
+  attach(): Promise<void> {
+    return Promise.resolve();
+  }
+  detach(): Promise<void> {
+    return Promise.resolve();
+  }
   transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     transactions += 1;
     return fn(this);

@@ -82,6 +82,27 @@ export interface Query {
    * the declaration is read, not where the query is built.
    */
   readonly search?: Search;
+  /**
+   * Narrowed to the rows joined to one other row, where no column says which.
+   *
+   * A many-to-many is a to-many on both sides and a foreign key on neither —
+   * the join table is the database's, and there is nothing on either model to
+   * compare. So the narrowing names the relation instead of a column.
+   *
+   * Never built from a request. It is what scopes a relation manager to its
+   * parent, which makes it the one narrowing a client must not be able to
+   * write: a body naming another parent is a body reading somebody else's
+   * rows, and no validation of the child could tell.
+   */
+  readonly joinedTo?: JoinNarrowing;
+}
+
+export interface JoinNarrowing {
+  /** The relation on the model being read that points back at the other row. */
+  readonly relation: string;
+  /** The column on that other row being compared — not always its key. */
+  readonly key: string;
+  readonly value: string | number;
 }
 
 /**
@@ -167,6 +188,30 @@ export interface DataAdapter {
    * one to work around.
    */
   restore(model: string, ids: readonly Id[]): Promise<number>;
+
+  /**
+   * Joins rows to one other row, and unjoins them.
+   *
+   * For a relation whose join table belongs to neither model: there is no
+   * column to write, so this is not an update with a value in it. The row is
+   * untouched either way — what changes is whether it is joined.
+   *
+   * Both are asked to be idempotent. Attaching what is already attached and
+   * detaching what is not are the two things a reader does by pressing twice,
+   * and neither is an error.
+   */
+  attach(
+    model: string,
+    id: Id,
+    relation: string,
+    targets: readonly Id[],
+  ): Promise<void>;
+  detach(
+    model: string,
+    id: Id,
+    relation: string,
+    targets: readonly Id[],
+  ): Promise<void>;
   /** Must roll back entirely if any nested write fails (milestone A3). */
   transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T>;
 }

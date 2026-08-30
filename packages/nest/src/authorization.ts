@@ -37,6 +37,17 @@ export interface Authorization<TUser = unknown, TRecord = unknown> {
    * cancelled order, a closed account, a name somebody asked to have removed.
    */
   readonly viewDeleted?: (user: TUser) => boolean | Promise<boolean>;
+  /**
+   * Joining a row to this parent, and unjoining it.
+   *
+   * Their own verbs rather than `create` and `delete`, because the row is
+   * neither made nor destroyed: it exists on its own, and what changes is
+   * whether it is joined here. Being allowed to put somebody on a project is
+   * not being allowed to create a project, and taking them off it is a long way
+   * from deleting one.
+   */
+  readonly attach?: (user: TUser) => boolean | Promise<boolean>;
+  readonly detach?: (user: TUser) => boolean | Promise<boolean>;
 }
 
 /**
@@ -53,7 +64,13 @@ export type Verdict = "allowed" | "denied" | "needs-record";
  * a case into the resolution cycle that can never happen there.
  */
 export type Permission =
-  Operation | "delete" | "restore" | "forceDelete" | "viewDeleted";
+  | Operation
+  | "delete"
+  | "restore"
+  | "forceDelete"
+  | "viewDeleted"
+  | "attach"
+  | "detach";
 
 /**
  * Which policy an action is held to.
@@ -111,6 +128,15 @@ export async function authorize(
       // and that one is asked per record.
       if (can.delete === undefined) return "allowed";
       return (await can.delete(user)) ? "allowed" : "denied";
+    case "attach":
+      // Of the principal too, and of neither row. Whether somebody may join
+      // rows here is a fact about them and this relation, not about which row
+      // they picked — that is the manager's own scope, already settled.
+      if (can.attach === undefined) return "allowed";
+      return (await can.attach(user)) ? "allowed" : "denied";
+    case "detach":
+      if (can.detach === undefined) return "allowed";
+      return (await can.detach(user)) ? "allowed" : "denied";
   }
 }
 

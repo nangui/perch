@@ -87,6 +87,23 @@ const REPLY: ModelMeta = model({
   ],
 });
 
+const TAG: ModelMeta = model({
+  name: "Tag",
+  fields: [key(), scalar("name")],
+  relations: [
+    {
+      name: "posts",
+      type: "many",
+      targetModel: "Post",
+      relationName: "PostToTag",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
+    },
+  ],
+});
+
 const POST: ModelMeta = model({
   fields: [key(), scalar("title"), scalar("pinnedId", { type: "Int" })],
   relations: [
@@ -99,6 +116,16 @@ const POST: ModelMeta = model({
       referencedFields: ["id"],
       isRequired: false,
       isList: false,
+    },
+    {
+      name: "tags",
+      type: "many",
+      targetModel: "Tag",
+      relationName: "PostToTag",
+      foreignKeyFields: [],
+      referencedFields: [],
+      isRequired: false,
+      isList: true,
     },
     {
       name: "comments",
@@ -116,7 +143,7 @@ const POST: ModelMeta = model({
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [POST, COMMENT, REPLY] };
+    return { models: [POST, COMMENT, REPLY, TAG] };
   }
   meta(name: string): ModelMeta {
     return name === "Comment" ? COMMENT : POST;
@@ -141,6 +168,13 @@ class MemoryAdapter implements DataAdapter {
   }
   restore(): Promise<number> {
     throw new Error("not needed here");
+  }
+
+  attach(): Promise<void> {
+    return Promise.resolve();
+  }
+  detach(): Promise<void> {
+    return Promise.resolve();
   }
   transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     return fn(this);
@@ -284,5 +318,42 @@ describe("a manager form reaching for the parent column", () => {
     await expect(
       boot([comments().form((schema) => schema.schema([TextInput.make("postId")]))]),
     ).rejects.toThrow(/fills it from the address/);
+  });
+});
+
+/**
+ * A manager over a relation joined through a table neither model owns.
+ *
+ * A many-to-many has a foreign key on neither side, so there is no column to
+ * narrow a selection by and none for a create to fill. It lists, and until
+ * attaching and detaching exist that is all it may do — said at boot rather
+ * than drawn as a button with nothing behind it.
+ */
+describe("a manager over a join", () => {
+  const tags = (): RelationManager =>
+    RelationManager.make("tags").table((table) =>
+      table.columns([TextColumn.make("name")]),
+    );
+
+  it("starts, because listing is a thing a join can do", async () => {
+    await expect(boot([tags()])).resolves.toBeUndefined();
+  });
+
+  it("refuses a form, there being no column to write the join into", async () => {
+    await expect(
+      boot([tags().form((schema) => schema.schema([TextInput.make("name")]))]),
+    ).rejects.toThrow(/no column to write the join into/);
+  });
+
+  it("refuses an action, whose selection nothing could narrow to this parent", async () => {
+    await expect(
+      boot([
+        RelationManager.make("tags").table((table) =>
+          table
+            .columns([TextColumn.make("name")])
+            .actions([DeleteAction.make().requiresConfirmation()]),
+        ),
+      ]),
+    ).rejects.toThrow(/could not tell this row's parent from any other/);
   });
 });

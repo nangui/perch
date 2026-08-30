@@ -598,3 +598,43 @@ describe("the IR it was built from", () => {
     expect(() => adapter.meta("Nope")).toThrow(/no model named Nope/);
   });
 });
+
+/**
+ * A narrowing that names a relation rather than a column.
+ *
+ * A many-to-many has a foreign key on neither side — the join table is the
+ * database's — so what scopes a relation manager to its parent cannot be a
+ * clause. It is the one narrowing a request must never be able to write, which
+ * is why it is a field of its own rather than an operator a filter could reach.
+ */
+describe("narrowing by a join", () => {
+  it("asks whether the row is joined to that one, and not whether all are", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({
+      model: "User",
+      joinedTo: { relation: "posts", key: "id", value: 4 },
+    });
+
+    // `some`, not `every`: `every` is also true of a row joined to nothing.
+    expect(argsOf(calls.findMany)).toEqual({
+      where: { posts: { some: { id: 4 } } },
+      orderBy: [{ id: "asc" }],
+    });
+  });
+
+  it("stands beside the filters rather than instead of them", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({
+      model: "User",
+      clauses: [{ path: "name", operator: "contains", value: "ada" }],
+      joinedTo: { relation: "posts", key: "id", value: 4 },
+    });
+
+    expect(argsOf(calls.findMany)).toEqual({
+      where: {
+        AND: [{ name: { contains: "ada" } }, { posts: { some: { id: 4 } } }],
+      },
+      orderBy: [{ id: "asc" }],
+    });
+  });
+});
