@@ -181,7 +181,7 @@ class PostResource {
   }
 }
 
-/** The same offer, made from inside a repeater — whose rows are another model. */
+/** The same offer, made from inside a repeater. */
 @PanelResource({ model: "Post", slug: "nested" })
 class NestedResource {
   form(): Schema {
@@ -191,6 +191,19 @@ class NestedResource {
         Select.make("authorId")
           .relationship("author", "name")
           .createOptionForm(Schema.make([TextInput.make("name").required()])),
+      ]),
+    ]);
+  }
+}
+
+/** The other offer the same route serves, made from the same place. */
+@PanelResource({ model: "Post", slug: "nested-search" })
+class NestedSearchResource {
+  form(): Schema {
+    return Schema.make([
+      Repeater.make("notes").schema([
+        TextInput.make("body"),
+        Select.make("authorId").relationship("author", "name").searchable(),
       ]),
     ]);
   }
@@ -364,6 +377,30 @@ describe("creating the option", () => {
   });
 });
 
+/** Neither offer, so nothing a route has to reach. */
+@PanelResource({ model: "Post", slug: "plain-nested" })
+class PlainNestedResource {
+  form(): Schema {
+    return Schema.make([
+      Repeater.make("notes").schema([
+        TextInput.make("body"),
+        Select.make("authorId").relationship("author", "name"),
+      ]),
+    ]);
+  }
+}
+
+/** What the boot said, or that it did not speak. */
+const started = async (resources: readonly unknown[]): Promise<string> => {
+  try {
+    await boot(resources);
+    return "(it started)";
+  } catch (error) {
+    app = { close: () => Promise.resolve() } as unknown as INestApplication;
+    return error instanceof Error ? error.message : String(error);
+  }
+};
+
 describe("a select inside a repeater", () => {
   it("stops the boot, because nothing could ever serve its dialog", async () => {
     // A repeater's rows are resolved one at a time, under the repeater — its
@@ -371,15 +408,28 @@ describe("a select inside a repeater", () => {
     // declared, drawn and pressed, and the route that serves the dialog will
     // never find it. Said where the line is written rather than left to answer
     // nothing on a page.
-    let message = "(it started)";
-    try {
-      await boot([NestedResource, AuthorResource]);
-    } catch (error) {
-      message = error instanceof Error ? error.message : String(error);
-      app = { close: () => Promise.resolve() } as unknown as INestApplication;
-    }
+    const message = await started([NestedResource, AuthorResource]);
 
     expect(message).toContain("resolved one at a time");
+    expect(message).toContain("offers to create an option");
+  });
+
+  it("stops it for a search box, which would answer every term the same", () => {
+    // The same silence worn differently. Nothing serves the typing, so the box
+    // answers with the list it already had, for every term there is.
+    return started([NestedSearchResource, AuthorResource]).then((message) => {
+      expect(message).toContain("is searchable");
+      expect(message).toContain("resolved one at a time");
+    });
+  });
+
+  it("says nothing about a select in there that asks for neither", () => {
+    // A plain relationship select works in a repeater: its window is loaded
+    // when the row is resolved. Only the two things needing a route of their
+    // own are undeliverable.
+    return started([PlainNestedResource, AuthorResource]).then((message) => {
+      expect(message).toBe("(it started)");
+    });
   });
 });
 
@@ -401,15 +451,6 @@ describe("who may create one", () => {
 });
 
 describe("what the boot refuses", () => {
-  const started = async (resources: readonly unknown[]): Promise<string> => {
-    try {
-      await boot(resources);
-      return "(it started)";
-    } catch (error) {
-      return error instanceof Error ? error.message : String(error);
-    }
-  };
-
   afterEach(() => {
     // `boot` may never have assigned one, and closing twice throws.
     app = { close: () => Promise.resolve() } as unknown as INestApplication;

@@ -726,22 +726,31 @@ export class ResourceRegistry implements OnModuleInit {
       return this.#writesUnder(ir, relation.targetModel, form.children);
     });
 
-    // A repeater's children are not in the resolved tree the routes read —
-    // they are resolved a row at a time, under the repeater. So a select in
-    // there can be declared, drawn and pressed, and the route that serves the
-    // dialog will never find the field it names. Refused where it is written
-    // rather than left to answer nothing on a page.
+    // A repeater's children are not in the resolved tree the option routes
+    // read — they are resolved a row at a time, under the repeater. So a
+    // select in there can be declared, drawn and pressed, and the route it
+    // needs will never find the field it names. Both offers are undeliverable
+    // for one reason, and both are refused where the line is written rather
+    // than left to answer nothing on a page.
     const rows = ownRepeaters(nodes).flatMap((repeater) =>
-      ownSelects(repeater.children)
-        .filter((select) => select.state.createOptionForm !== undefined)
-        .map((select) => ({
-          field: select.name === "" ? select.type : select.name,
-          problem:
-            `offers to create an option from inside the \`${repeater.name}\` ` +
-            "repeater, whose rows are resolved one at a time — the route that " +
-            "serves the dialog reads the form's own tree, and never sees this " +
-            "field at all",
-        })),
+      ownSelects(repeater.children).flatMap((select) => {
+        const named = select.name === "" ? select.type : select.name;
+        const inside =
+          `from inside the \`${repeater.name}\` repeater, whose rows are ` +
+          "resolved one at a time — the route reads the form's own tree, and " +
+          "never sees this field at all";
+
+        return [
+          ...(select.state.createOptionForm === undefined
+            ? []
+            : [{ field: named, problem: `offers to create an option ${inside}` }]),
+          // The same silence, worn differently: a search box that answers every
+          // term with the list it already had.
+          ...(select.state.searchable
+            ? [{ field: named, problem: `is searchable ${inside}` }]
+            : []),
+        ];
+      }),
     );
 
     return [...here, ...rows];
