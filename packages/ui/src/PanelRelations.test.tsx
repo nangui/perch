@@ -668,6 +668,77 @@ describe("a tab over a join", () => {
     expect(screen.getByText("blue")).toBeDefined();
   });
 
+  it("offers what could be joined, and joins the one that was picked", async () => {
+    const attachChild = vi.fn().mockResolvedValue(undefined);
+    const candidates = vi.fn().mockResolvedValue({
+      ...joinedPage("free"),
+      rows: [{ id: 9, body: "free" }],
+      total: 1,
+    });
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({ ...joinedPage("green"), rows: [], total: 0 })
+      .mockResolvedValue({
+        ...joinedPage("free"),
+        rows: [{ id: 9, body: "free" }],
+        total: 1,
+      });
+
+    render(
+      <PanelRelations
+        relations={JOINED}
+        fetchPage={fetchPage}
+        candidates={candidates}
+        attachChild={attachChild}
+        {...nothing}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /attach to tags/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "free" }));
+
+    // Both halves again: the request, and the tab reading itself afterwards.
+    // A picker that closed without either looks exactly like one that worked.
+    await waitFor(() => {
+      expect(attachChild).toHaveBeenCalledWith("tags", [9]);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("free")).toBeDefined();
+    });
+  });
+
+  it("says so where there is nothing left to attach", async () => {
+    // Told apart from a list still loading: an empty dialog reads as one that
+    // failed to fill.
+    render(
+      <PanelRelations
+        relations={JOINED}
+        fetchPage={vi.fn().mockResolvedValue(joinedPage("green"))}
+        candidates={vi
+          .fn()
+          .mockResolvedValue({ ...joinedPage("x"), rows: [], total: 0 })}
+        attachChild={vi.fn()}
+        {...nothing}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /attach to tags/i }));
+    expect(await screen.findByText(/nothing left to attach/i)).toBeDefined();
+  });
+
+  it("offers no way to attach where the host cannot ask", async () => {
+    render(
+      <PanelRelations
+        relations={JOINED}
+        fetchPage={vi.fn().mockResolvedValue(joinedPage("green"))}
+        {...nothing}
+      />,
+    );
+
+    await screen.findByText("green");
+    expect(screen.queryByRole("button", { name: /attach/i })).toBeNull();
+  });
+
   it("draws nothing to detach with where the host cannot ask", async () => {
     // A button whose capability is absent is a button that fails when pressed.
     render(

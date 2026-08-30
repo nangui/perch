@@ -178,6 +178,8 @@ export function mount(element: HTMLElement): void {
               )
             }
             detachChild={(relation, ids) => detach(under(relation), ids)}
+            candidates={(relation) => records(under(relation), {}, "candidates")}
+            attachChild={(relation, ids) => attach(under(relation), ids)}
           />
         )}
       </>,
@@ -433,16 +435,25 @@ async function sendFile(
  * division every manager route makes: the record being edited is not the
  * request's to choose, and what is being taken off it is exactly the choice.
  */
+async function attach(base: string, ids: readonly (string | number)[]): Promise<void> {
+  await join(base + "/attach", ids);
+}
+
 async function detach(base: string, ids: readonly (string | number)[]): Promise<void> {
-  const response = await fetch(`${base}/detach`, {
+  await join(base + "/detach", ids);
+}
+
+/** Both verbs, which differ only in where they are sent. */
+async function join(at: string, ids: readonly (string | number)[]): Promise<void> {
+  const response = await fetch(at, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ ids }),
     credentials: "same-origin",
   });
-  // Raised rather than swallowed: a row still on screen after a detach that
+  // Raised rather than swallowed: a row still on screen after a join that
   // failed is a page telling the reader the opposite of what happened.
-  if (!response.ok) throw new Error(`/detach answered ${String(response.status)}`);
+  if (!response.ok) throw new Error(at + " answered " + String(response.status));
 }
 
 async function askOptionForm(
@@ -531,7 +542,13 @@ async function askOptions(
  * columns declared and against the paging depth, so a client that invents
  * either is refused rather than obeyed, and the answer says what it got.
  */
-async function records(api: string, request: PageRequest): Promise<RecordsPage> {
+async function records(
+  api: string,
+  request: PageRequest,
+  // Which list of that resource: the rows it holds, or — for a relation joined
+  // through a table neither model owns — the rows it could hold.
+  what: "records" | "candidates" = "records",
+): Promise<RecordsPage> {
   const query = new URLSearchParams();
   if (request.sort !== undefined) {
     query.set("sort", `${request.sort.path}:${request.sort.direction}`);
@@ -543,10 +560,12 @@ async function records(api: string, request: PageRequest): Promise<RecordsPage> 
     query.set(`filter.${name}`, value);
   }
 
-  const response = await fetch(`${api}/records?${query.toString()}`, {
+  const response = await fetch(`${api}/${what}?${query.toString()}`, {
     headers: { accept: "application/json" },
   });
-  if (!response.ok) throw new Error(`/records answered ${String(response.status)}`);
+  if (!response.ok) {
+    throw new Error(`/${what} answered ${String(response.status)}`);
+  }
 
   return (await response.json()) as RecordsPage;
 }

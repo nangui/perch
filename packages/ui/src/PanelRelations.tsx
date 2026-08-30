@@ -34,6 +34,27 @@ export interface ManagedRelation {
   readonly joined?: true;
 }
 
+/**
+ * What to call a row in the picker.
+ *
+ * The first column the table draws that has something in it. Not the first
+ * value in the row: a projected row carries a key and an image address as
+ * readily as a name, and a button announced as a file path is worse than one
+ * announced by its number.
+ */
+function nameOf(row: Row, page: RecordsPage): string {
+  for (const column of page.columns.columns) {
+    const held = row[column.path];
+    if (typeof held === "string" && held !== "") return held;
+    if (typeof held === "number") return String(held);
+  }
+  // The key, where no column held words. Named rather than stringified
+  // blindly: a row carries whatever the projection put in it, and `[object
+  // Object]` on a button is worse than a blank one.
+  const key = row[page.recordKey];
+  return typeof key === "string" || typeof key === "number" ? String(key) : "";
+}
+
 /** Which child a form is about: a new one, or the row a key names. */
 type Editing = { readonly relation: string; readonly childId?: string };
 
@@ -87,6 +108,17 @@ export interface PanelRelationsProps {
     relation: string,
     ids: readonly (string | number)[],
   ) => Promise<void>;
+  /**
+   * The rows this record could be joined to, and the joining itself.
+   *
+   * Two capabilities because they are two moments, and both absent on a tab
+   * whose rows this record owns: there, a row is put under it by writing one.
+   */
+  readonly candidates?: (relation: string) => Promise<RecordsPage>;
+  readonly attachChild?: (
+    relation: string,
+    ids: readonly (string | number)[],
+  ) => Promise<void>;
   readonly uploadChildFile?: (
     relation: string,
     childId: string | undefined,
@@ -133,11 +165,16 @@ export function PanelRelations({
   childState,
   saveChild,
   detachChild,
+  candidates,
+  attachChild,
   uploadChildFile,
 }: PanelRelationsProps): ReactNode {
   const [at, setAt] = useState(0);
   const [held, setHeld] = useState<Readonly<Record<string, Held>>>({});
   const [editing, setEditing] = useState<Editing | undefined>(undefined);
+  /** The tab whose picker is open, and what it has to offer. */
+  const [picking, setPicking] = useState<string | undefined>(undefined);
+  const [offer, setOffer] = useState<RecordsPage | undefined>(undefined);
   /** Bumped to remount a tab's list, which is how it is made to read again. */
   const [again, setAgain] = useState<Readonly<Record<string, number>>>({});
   const [asked, setAsked] = useState<Asked>(undefined);
@@ -170,6 +207,33 @@ export function PanelRelations({
     // Remounted, not merely re-rendered. A list reads the page it was given
     // once and keeps its own from then on — the same rule its form half
     // follows — so handing it a newer one changes nothing a reader can see.
+    setAgain((was) => ({ ...was, [relation]: (was[relation] ?? 0) + 1 }));
+  }
+
+  /** Opens the picker on what this record could be joined to. */
+  function pick(relation: string): void {
+    if (candidates === undefined) return;
+    setOffer(undefined);
+    setPicking(relation);
+    void candidates(relation).then(
+      (page) => {
+        setOffer(page);
+      },
+      () => {
+        // Left empty rather than left waiting: a dialog that never fills reads
+        // as a slow network, and this reader would wait for it.
+        setPicking(undefined);
+      },
+    );
+  }
+
+  /** Joins one, then reads the tab again — the row is now on the other side. */
+  async function take(relation: string, id: string | number): Promise<void> {
+    if (attachChild === undefined) return;
+    setPicking(undefined);
+    await attachChild(relation, [id]);
+    const page = await fetchPage(relation, {});
+    setHeld((was) => ({ ...was, [relation]: { page } }));
     setAgain((was) => ({ ...was, [relation]: (was[relation] ?? 0) + 1 }));
   }
 
@@ -263,6 +327,22 @@ export function PanelRelations({
             Add
           </button>
         ) : null}
+        {open.joined === true &&
+        candidates !== undefined &&
+        attachChild !== undefined ? (
+          <button
+            type="button"
+            className="perch-button perch-button--primary"
+            // Attach rather than add: nothing is made here. A row that already
+            // exists starts being one of this record's.
+            aria-label={`Attach to ${open.label}`}
+            onClick={() => {
+              pick(open.relation);
+            }}
+          >
+            Attach
+          </button>
+        ) : null}
       </div>
       {relations.map((one, index) => (
         <div
@@ -280,6 +360,45 @@ export function PanelRelations({
         </div>
       ))}
 
+      {picking === undefined ? null : (
+        <ConfirmDialog
+          open
+          confirmation={{ heading: "Attach" }}
+          onCancel={() => {
+            setPicking(undefined);
+          }}
+        >
+          {offer === undefined ? (
+            <p className="perch-modal__description" role="status">
+              Loading…
+            </p>
+          ) : offer.rows.length === 0 ? (
+            <p className="perch-modal__description" role="status">
+              There is nothing left to attach.
+            </p>
+          ) : (
+            <ul className="perch-attach">
+              {offer.rows.map((row) => {
+                const key = row[offer.recordKey];
+                if (typeof key !== "string" && typeof key !== "number") return null;
+                return (
+                  <li key={String(key)}>
+                    <button
+                      type="button"
+                      className="perch-attach__row"
+                      onClick={() => {
+                        void take(picking, key);
+                      }}
+                    >
+                      {nameOf(row, offer)}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </ConfirmDialog>
+      )}
       {/* Rendered only while something is being written, so the element is not
           in the page — nor in the accessibility tree — the rest of the time. */}
       {editing === undefined || saveChild === undefined ? null : (
