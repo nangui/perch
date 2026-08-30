@@ -3328,6 +3328,23 @@
   gap: var(--perch-space-7);
 }
 
+/* Below the width two fields need to be worth reading side by side, the
+   declaration stops being an instruction and becomes a wish. A `columns(3)`
+   honoured on a phone is three fields of eleven characters each, and a date
+   picker that cannot show a date — so the layout collapses and the declaration
+   goes back to meaning what it meant: these belong together.
+
+   The breakpoint is the width, not the device: a narrow window on a desktop
+   has the same problem, and a rule keyed to a touch screen would miss it. */
+@media (max-width: 40rem) {
+  .perch-layout__body {
+    grid-template-columns: minmax(0, 1fr);
+    /* Closer together once they are stacked: the gap that separated columns
+       reads as a gap between unrelated things when everything is one column. */
+    gap: var(--perch-space-5);
+  }
+}
+
 /* A section is a card: it is the unit a reader scans by, and on a flat page the
    fields ran together into one long list with headings floating in it. The gap
    between cards is a step coarser than the gap between fields inside one, so
