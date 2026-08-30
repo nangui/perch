@@ -28,7 +28,7 @@ import type {
   SchemaPayload,
   WriteTree,
 } from "@perchjs/core";
-import { Schema, Select, TextInput } from "@perchjs/core";
+import { Repeater, Schema, Select, TextInput } from "@perchjs/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
@@ -43,6 +43,35 @@ const IR = {
         { name: "title", type: "String" },
         { name: "authorId", type: "Int" },
         { name: "hiddenId", type: "Int" },
+      ],
+      relations: [
+        {
+          name: "author",
+          type: "many-to-one",
+          targetModel: "Author",
+          foreignKeyFields: ["authorId"],
+          referencedFields: ["id"],
+          isList: false,
+        },
+        {
+          name: "notes",
+          type: "one-to-many",
+          targetModel: "Note",
+          foreignKeyFields: ["postId"],
+          referencedFields: ["id"],
+          isList: true,
+        },
+      ],
+      primaryKey: "id",
+      hasSoftDelete: false,
+    },
+    {
+      name: "Note",
+      fields: [
+        { name: "id", type: "Int", isId: true },
+        { name: "body", type: "String" },
+        { name: "postId", type: "Int" },
+        { name: "authorId", type: "Int" },
       ],
       relations: [
         {
@@ -148,6 +177,21 @@ class PostResource {
         .relationship("author", "name")
         .createOptionForm(Schema.make([TextInput.make("name").required()]))
         .visible(() => false),
+    ]);
+  }
+}
+
+/** The same offer, made from inside a repeater — whose rows are another model. */
+@PanelResource({ model: "Post", slug: "nested" })
+class NestedResource {
+  form(): Schema {
+    return Schema.make([
+      Repeater.make("notes").schema([
+        TextInput.make("body"),
+        Select.make("authorId")
+          .relationship("author", "name")
+          .createOptionForm(Schema.make([TextInput.make("name").required()])),
+      ]),
     ]);
   }
 }
@@ -317,6 +361,25 @@ describe("creating the option", () => {
 
     expect(answer.status).toBe(404);
     expect(written).toEqual([]);
+  });
+});
+
+describe("a select inside a repeater", () => {
+  it("stops the boot, because nothing could ever serve its dialog", async () => {
+    // A repeater's rows are resolved one at a time, under the repeater — its
+    // children are not in the form tree the routes read. So the field can be
+    // declared, drawn and pressed, and the route that serves the dialog will
+    // never find it. Said where the line is written rather than left to answer
+    // nothing on a page.
+    let message = "(it started)";
+    try {
+      await boot([NestedResource, AuthorResource]);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+      app = { close: () => Promise.resolve() } as unknown as INestApplication;
+    }
+
+    expect(message).toContain("resolved one at a time");
   });
 });
 

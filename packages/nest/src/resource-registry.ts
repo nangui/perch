@@ -726,12 +726,23 @@ export class ResourceRegistry implements OnModuleInit {
       return this.#writesUnder(ir, relation.targetModel, form.children);
     });
 
-    const rows = ownRepeaters(nodes).flatMap((repeater) => {
-      const name = repeater.state.relationship ?? repeater.name;
-      const found = owner.relations.find((one) => one.name === name && one.isList);
-      if (found === undefined) return [];
-      return this.#uncreatableOptions(ir, found.targetModel, repeater.children);
-    });
+    // A repeater's children are not in the resolved tree the routes read —
+    // they are resolved a row at a time, under the repeater. So a select in
+    // there can be declared, drawn and pressed, and the route that serves the
+    // dialog will never find the field it names. Refused where it is written
+    // rather than left to answer nothing on a page.
+    const rows = ownRepeaters(nodes).flatMap((repeater) =>
+      ownSelects(repeater.children)
+        .filter((select) => select.state.createOptionForm !== undefined)
+        .map((select) => ({
+          field: select.name === "" ? select.type : select.name,
+          problem:
+            `offers to create an option from inside the \`${repeater.name}\` ` +
+            "repeater, whose rows are resolved one at a time — the route that " +
+            "serves the dialog reads the form's own tree, and never sees this " +
+            "field at all",
+        })),
+    );
 
     return [...here, ...rows];
   }
