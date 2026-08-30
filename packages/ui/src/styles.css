@@ -3956,6 +3956,34 @@ button.perch-table__action:disabled {
   border-right: 1px solid var(--perch-border);
 }
 
+/* After the rules above and not beside the grid's, which is where this started:
+   at equal specificity the last one wins, and a media query written earlier in
+   the file loses to the plain rule it was meant to undo. It measured as no
+   change at all.
+
+   The navigation holds a fixed fifteen rems, which on a phone is most of the
+   page — measured at 390px, the form was left 134 and a field 22. Stacked, the
+   content gets the width and the nav becomes a strip above it: it is a short
+   list of links, and a list reads across as readily as down. */
+@media (max-width: 40rem) {
+  .perch-shell {
+    display: block;
+  }
+
+  .perch-nav {
+    width: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--perch-border);
+    padding: var(--perch-space-5) var(--perch-space-6);
+  }
+
+  /* The page's own margins were sized for a desk. Kept, but a step in: a form
+     with eight pixels of air either side reads as one that overflowed. */
+  .perch-shell__main {
+    padding: var(--perch-space-6) var(--perch-space-5) var(--perch-space-8);
+  }
+}
+
 .perch-nav__group + .perch-nav__group {
   margin-top: var(--perch-space-6);
 }

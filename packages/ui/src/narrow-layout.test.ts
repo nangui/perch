@@ -16,9 +16,9 @@ import { describe, expect, it } from "vitest";
 
 const STYLES = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
 
-/** The body of the first at-rule opening with this condition. */
-function blockOf(condition: string): string {
-  const at = STYLES.indexOf(`@media ${condition}`);
+/** The body of the at-rule opening with this condition, counting from `from`. */
+function blockOf(condition: string, from = 0): string {
+  const at = STYLES.indexOf(`@media ${condition}`, from);
   expect(at, `no rule for ${condition}`).toBeGreaterThan(-1);
 
   let depth = 0;
@@ -51,5 +51,38 @@ describe("a form in a narrow window", () => {
     // touch screen would miss it.
     expect(narrow).not.toContain("pointer:");
     expect(narrow).not.toContain("hover:");
+  });
+});
+
+/**
+ * The navigation, which is what actually made the difference.
+ *
+ * It holds a fixed fifteen rems. Measured at 390px before this: the page had
+ * 374, the form's own area 134, and a field 22 — the grid above was collapsing
+ * into a space that was already too small.
+ */
+describe("the shell in a narrow window", () => {
+  // The second block, deliberately: written after the rules it undoes, because
+  // at equal specificity the last one wins. Placed beside the grid's rules it
+  // lost to `display: flex` and measured as no change at all.
+  const shell = blockOf("(max-width: 40rem)", STYLES.indexOf(".perch-shell {"));
+
+  it("stacks the navigation above the page rather than beside it", () => {
+    expect(shell).toContain(".perch-shell");
+    expect(shell).toContain("display: block");
+  });
+
+  it("lets the navigation take the width instead of a fixed column", () => {
+    expect(shell).toContain("width: auto");
+  });
+
+  it("comes after the rule it has to undo, or it does nothing at all", () => {
+    // The bug this file exists to keep out: the rule was right, unreachable,
+    // and silent about it.
+    const flex = STYLES.indexOf(".perch-shell {");
+    const block = STYLES.indexOf("@media (max-width: 40rem)", flex);
+
+    expect(flex).toBeGreaterThan(-1);
+    expect(block).toBeGreaterThan(flex);
   });
 });
