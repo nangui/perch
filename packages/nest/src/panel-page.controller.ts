@@ -183,7 +183,10 @@ export class PanelPageController {
       title: `Edit ${resource.metadata.label}`,
       // Only on an edit: a manager is scoped by the parent's key, and a record
       // that has not been written has none to scope by.
-      relations: managedRelations(resource.instance.relations?.() ?? []),
+      relations: managedRelations(resource.instance.relations?.() ?? [], {
+        ir: this.#data.ir(),
+        model: resource.metadata.model,
+      }),
       // The whole row. `serialise` keeps only the paths the tree makes visible,
       // so a column the form does not carry never reaches the browser.
       state: record,

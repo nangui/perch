@@ -23,6 +23,15 @@ export interface ManagedRelation {
   readonly label: string;
   /** Whether it declares a form. Without one the tab lists and acts only. */
   readonly writable?: true;
+  /**
+   * Whether its rows are joined to this record rather than owned by it.
+   *
+   * They are attached and detached, never created and deleted: the row exists
+   * on its own, and what changes is whether it is joined here. So the tab
+   * offers detaching and no edit at all — there is nothing on such a row that
+   * belongs to this parent to change.
+   */
+  readonly joined?: true;
 }
 
 /** Which child a form is about: a new one, or the row a key names. */
@@ -67,6 +76,17 @@ export interface PanelRelationsProps {
     state: FormState,
   ) => Promise<SaveResponse>;
   /** Stages a file for a field the manager's own form declares. */
+  /**
+   * Takes a row off this record, leaving it where it is.
+   *
+   * Absent where the host cannot ask, which is every tab whose rows this record
+   * owns — the tab then offers an edit instead, and neither is drawn without
+   * the capability behind it.
+   */
+  readonly detachChild?: (
+    relation: string,
+    ids: readonly (string | number)[],
+  ) => Promise<void>;
   readonly uploadChildFile?: (
     relation: string,
     childId: string | undefined,
@@ -83,6 +103,26 @@ const EDIT: ActionNode = {
   trigger: "run",
 };
 
+/**
+ * The other one, for a row this record does not own.
+ *
+ * Worded as taking off rather than deleting, because that is what it does: the
+ * row goes on existing, and stops being one of this record's. A button saying
+ * "Delete" over that would be asking somebody to agree to something else.
+ *
+ * It carries no confirmation, and not because none was wanted: an action the
+ * tab carries out itself never reaches the dialog the declared ones go through,
+ * so one written here would be a promise nothing keeps. What makes a single
+ * press tolerable meanwhile is that nothing is destroyed — the row is where it
+ * was, and attaching it again puts it back.
+ */
+const DETACH: ActionNode = {
+  type: "DetachAction",
+  name: "perch-detach-child",
+  label: "Detach",
+  trigger: "run",
+};
+
 export function PanelRelations({
   relations,
   fetchPage,
@@ -92,11 +132,14 @@ export function PanelRelations({
   childForm,
   childState,
   saveChild,
+  detachChild,
   uploadChildFile,
 }: PanelRelationsProps): ReactNode {
   const [at, setAt] = useState(0);
   const [held, setHeld] = useState<Readonly<Record<string, Held>>>({});
   const [editing, setEditing] = useState<Editing | undefined>(undefined);
+  /** Bumped to remount a tab's list, which is how it is made to read again. */
+  const [again, setAgain] = useState<Readonly<Record<string, number>>>({});
   const [asked, setAsked] = useState<Asked>(undefined);
   // Held while a write is in flight, so nothing dismisses the dialog out from
   // under a refusal that has not arrived yet.
@@ -111,6 +154,25 @@ export function PanelRelations({
   const open = relations[at];
 
   /** Opens the form over the tab, once the server has resolved it. */
+  /**
+   * Takes a row off this record, and reads the tab again.
+   *
+   * Again rather than removed from what is held: the page it was on may have
+   * had twenty-five rows and now has twenty-four, and the server is the one
+   * that knows what fills the gap. Guessing would show a page that is right
+   * until somebody turns it.
+   */
+  async function letGo(relation: string, id: string | number): Promise<void> {
+    if (detachChild === undefined) return;
+    await detachChild(relation, [id]);
+    const page = await fetchPage(relation, {});
+    setHeld((was) => ({ ...was, [relation]: { page } }));
+    // Remounted, not merely re-rendered. A list reads the page it was given
+    // once and keeps its own from then on — the same rule its form half
+    // follows — so handing it a newer one changes nothing a reader can see.
+    setAgain((was) => ({ ...was, [relation]: (was[relation] ?? 0) + 1 }));
+  }
+
   function edit(relation: string, childId?: string): void {
     if (childForm === undefined) return;
     setAsked(undefined);
@@ -304,23 +366,37 @@ export function PanelRelations({
       );
     }
     const writable = one.writable === true && childForm !== undefined;
+    // A joined tab offers detaching instead, and never an edit: the two are
+    // exclusive because a row is either this record's to change or somebody
+    // else's to let go of.
+    const detachable = one.joined === true && detachChild !== undefined;
 
     return (
       <PanelList
+        key={`${one.relation}:${String(again[one.relation] ?? 0)}`}
         within
         initial={what.page}
         title={one.label}
         {...(said === undefined ? {} : { flash: said })}
-        {...(writable
+        {...(detachable
           ? {
-              rowActions: [EDIT],
+              rowActions: [DETACH],
               onRowAction: (_name: string, row: Row) => {
                 const key = row[what.page.recordKey];
                 if (typeof key !== "string" && typeof key !== "number") return;
-                edit(one.relation, String(key));
+                void letGo(one.relation, key);
               },
             }
-          : {})}
+          : writable
+            ? {
+                rowActions: [EDIT],
+                onRowAction: (_name: string, row: Row) => {
+                  const key = row[what.page.recordKey];
+                  if (typeof key !== "string" && typeof key !== "number") return;
+                  edit(one.relation, String(key));
+                },
+              }
+            : {})}
         fetchPage={(request) => fetchPage(one.relation, request)}
         runAction={(name, ids, data, idempotencyKey) =>
           runAction(one.relation, name, ids, data, idempotencyKey)

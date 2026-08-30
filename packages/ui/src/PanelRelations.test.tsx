@@ -567,3 +567,118 @@ describe("editing a child", () => {
     expect(screen.queryByText("Edit")).toBeNull();
   });
 });
+
+/**
+ * A tab whose rows this record does not own.
+ *
+ * They are attached and detached, never created and deleted: the row exists on
+ * its own, and what changes is whether it is joined here. So the tab offers
+ * detaching and no edit at all — there is nothing on such a row that belongs to
+ * this record to change.
+ */
+describe("a tab over a join", () => {
+  const JOINED = [{ relation: "tags", label: "Tags", joined: true as const }];
+
+  /**
+   * A joined tab's page, which declares no actions at all — the boot refuses
+   * them there, because a selection nothing narrows could not be told from
+   * anybody else's rows. The fixture has to say so, or these tests pass on a
+   * column the server happened to have asked for.
+   */
+  const joinedPage = (title: string): RecordsPage => ({
+    ...page(title),
+    columns: { ...page(title).columns, actions: [] },
+  });
+
+  it("offers detaching on every row", async () => {
+    render(
+      <PanelRelations
+        relations={JOINED}
+        fetchPage={vi.fn().mockResolvedValue(joinedPage("green"))}
+        detachChild={vi.fn().mockResolvedValue(undefined)}
+        {...nothing}
+      />,
+    );
+
+    expect(await screen.findByRole("button", { name: /detach/i })).toBeDefined();
+  });
+
+  it("offers no edit, there being nothing of this record's on the row", async () => {
+    render(
+      <PanelRelations
+        relations={JOINED}
+        fetchPage={vi.fn().mockResolvedValue(joinedPage("green"))}
+        childForm={vi.fn()}
+        detachChild={vi.fn().mockResolvedValue(undefined)}
+        {...nothing}
+      />,
+    );
+
+    await screen.findByRole("button", { name: /detach/i });
+    expect(screen.queryByRole("button", { name: /^edit$/i })).toBeNull();
+  });
+
+  it("shows the row gone once it has been let go of", async () => {
+    // The server having done it is not enough. A list reads the page it was
+    // given once and keeps its own from then on, so a tab handed a newer page
+    // goes on showing the old one — and a row still on screen after a detach
+    // tells the reader the opposite of what happened.
+    const two = joinedPage("green");
+    const one = {
+      ...two,
+      rows: [{ id: 2, body: "blue" }],
+      total: 1,
+    };
+    const fetchPage = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ...two,
+        rows: [
+          { id: 1, body: "green" },
+          { id: 2, body: "blue" },
+        ],
+        total: 2,
+      })
+      .mockResolvedValue(one);
+
+    const detachChild = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PanelRelations
+        relations={JOINED}
+        fetchPage={fetchPage}
+        detachChild={detachChild}
+        {...nothing}
+      />,
+    );
+
+    await screen.findByText("green");
+    fireEvent.click(
+      (await screen.findAllByRole("button", { name: /detach/i }))[0] as HTMLElement,
+    );
+
+    // Both halves, because either alone passes on the other's work: a list
+    // that redraws without the request having gone is a row that comes back on
+    // the next reload, and a request with no redraw is a page that lies.
+    await waitFor(() => {
+      expect(detachChild).toHaveBeenCalledWith("tags", [1]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("green")).toBeNull();
+    });
+    expect(screen.getByText("blue")).toBeDefined();
+  });
+
+  it("draws nothing to detach with where the host cannot ask", async () => {
+    // A button whose capability is absent is a button that fails when pressed.
+    render(
+      <PanelRelations
+        relations={JOINED}
+        fetchPage={vi.fn().mockResolvedValue(joinedPage("green"))}
+        {...nothing}
+      />,
+    );
+
+    await screen.findByText("green");
+    expect(screen.queryByRole("button", { name: /detach/i })).toBeNull();
+  });
+});

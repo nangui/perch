@@ -5,10 +5,11 @@
  * would be a page of somebody else's rows, and nothing about the children
  * themselves would look wrong.
  */
-import type { DataAdapter } from "@perchjs/core";
+import type { DataAdapter, Ir } from "@perchjs/core";
 import { authorize } from "./authorization.js";
 import type { RawQuery } from "./records-query.js";
 import type { RelationManager } from "./relation-manager.js";
+import { relationScope } from "./relation-scope.js";
 import type { RecordsResponse } from "./records.js";
 import { listOf } from "./records.js";
 import { reachManager } from "./relation-reach.js";
@@ -69,6 +70,7 @@ export async function listChildren(options: {
  */
 export function managedRelations(
   managers: readonly RelationManager[],
+  shape?: { readonly ir: Ir; readonly model: string },
 ): readonly ManagedRelation[] {
   return managers.map((manager) => ({
     relation: manager.state.relation,
@@ -76,7 +78,26 @@ export function managedRelations(
     // A manager with no form neither creates nor edits, so the tab offers
     // neither. Said here rather than discovered by a route answering 404.
     ...(manager.state.form === undefined ? {} : { writable: true as const }),
+    // And one over a join has different verbs rather than fewer: its rows are
+    // attached and detached. The tab draws those instead of an edit, so it has
+    // to be told which kind of relation it is looking at.
+    ...(joins(shape, manager.state.relation) ? { joined: true as const } : {}),
   }));
+}
+
+/** Whether the relation is one no column narrows, or nothing that can be known. */
+function joins(
+  shape: { readonly ir: Ir; readonly model: string } | undefined,
+  relation: string,
+): boolean {
+  if (shape === undefined) return false;
+  try {
+    return relationScope(shape.ir, shape.model, relation).kind === "joined";
+  } catch {
+    // A scope that cannot be worked out stops the boot, so reaching this means
+    // there is no adapter to ask. A tab that lists is the safe answer.
+    return false;
+  }
 }
 
 export interface ManagedRelation {
@@ -84,4 +105,12 @@ export interface ManagedRelation {
   readonly label: string;
   /** Whether it declares a form. Absent means the tab only lists and acts. */
   readonly writable?: true;
+  /**
+   * Whether its rows are joined rather than owned.
+   *
+   * They are attached and detached, never created and deleted — so the tab
+   * offers those instead, and offers no edit at all: there is no column on such
+   * a row that belongs to this parent to change.
+   */
+  readonly joined?: true;
 }

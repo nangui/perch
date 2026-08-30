@@ -101,11 +101,22 @@ export function DataTable({
   cellPending,
   cellAsked,
 }: DataTableProps): ReactNode {
-  // A link needs an address; a run needs somebody to run it. An action whose
-  // kind the host cannot serve is left out rather than drawn dead.
-  const actions = columns.actions.filter((action) =>
-    action.trigger === "link" ? rowHref !== undefined : onAction !== undefined,
-  );
+  // A link needs an address; a run needs somebody to run it. Applied to what a
+  // host hands down as well as to what the server declared — the two end up in
+  // the same menu, and one of them being undrawable is the same problem twice.
+  const drawable = (list: readonly ActionNode[]): readonly ActionNode[] =>
+    list.filter((action) =>
+      action.trigger === "link" ? rowHref !== undefined : onAction !== undefined,
+    );
+  const actions = drawable(columns.actions);
+  // The column exists if anything will be in it, which is neither "the server
+  // declared something" nor "a host offered to fill it". The first drew a tab's
+  // own actions into a column that was never made — a join declares none and
+  // offers detaching. The second draws an empty column on every list there is,
+  // because the list page always hands down a function. So the rows are asked.
+  const anyActions =
+    actions.length > 0 ||
+    rows.some((row) => drawable(rowActions?.(row) ?? []).length > 0);
   /**
    * What a row is called, for whatever inside it needs a name of its own.
    *
@@ -212,11 +223,11 @@ export function DataTable({
               {header(column, sort, onSort)}
             </th>
           ))}
-          {actions.length === 0 ? null : (
+          {anyActions ? (
             <th scope="col" className="perch-table__head">
               <span className="perch-visually-hidden">Actions</span>
             </th>
-          )}
+          ) : null}
         </tr>
       </thead>
       <tbody>
@@ -264,7 +275,7 @@ export function DataTable({
                     })}
               </td>
             ))}
-            {actions.length === 0 ? null : (
+            {anyActions ? (
               <td className="perch-table__cell perch-table__actions">
                 <RowActions
                   actions={rowActions === undefined ? actions : rowActions(row)}
@@ -274,7 +285,7 @@ export function DataTable({
                   busy={actionsBusy}
                 />
               </td>
-            )}
+            ) : null}
           </tr>
         ))}
       </tbody>

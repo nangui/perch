@@ -177,6 +177,7 @@ export function mount(element: HTMLElement): void {
                 { state },
               )
             }
+            detachChild={(relation, ids) => detach(under(relation), ids)}
           />
         )}
       </>,
@@ -425,6 +426,25 @@ async function sendFile(
  * this reader may touch it, are decisions the server makes from that state
  * rather than trusts the client about.
  */
+/**
+ * Takes rows off a record, leaving them where they are.
+ *
+ * The parent is in the address and the rows are in the body, which is the
+ * division every manager route makes: the record being edited is not the
+ * request's to choose, and what is being taken off it is exactly the choice.
+ */
+async function detach(base: string, ids: readonly (string | number)[]): Promise<void> {
+  const response = await fetch(`${base}/detach`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ids }),
+    credentials: "same-origin",
+  });
+  // Raised rather than swallowed: a row still on screen after a detach that
+  // failed is a page telling the reader the opposite of what happened.
+  if (!response.ok) throw new Error(`/detach answered ${String(response.status)}`);
+}
+
 async function askOptionForm(
   api: string,
   operation: string,
