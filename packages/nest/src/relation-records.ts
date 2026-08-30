@@ -5,6 +5,7 @@
  * would be a page of somebody else's rows, and nothing about the children
  * themselves would look wrong.
  */
+import { NotFoundException } from "@nestjs/common";
 import type { DataAdapter, Ir } from "@perchjs/core";
 import { authorize } from "./authorization.js";
 import type { RawQuery } from "./records-query.js";
@@ -30,11 +31,31 @@ export async function listChildren(options: {
    * these tables would have said the disk was fine.
    */
   readonly disks?: PanelDisks;
+  /**
+   * Which side of a join to list: what this parent holds, or what it could.
+   *
+   * Only a joined relation has two sides to ask about. `apart` is what a picker
+   * offers, and it is asked of the database rather than worked out by reading
+   * everything and subtracting — a table of fifty thousand rows fetched to show
+   * twenty-five is the same mistake as filtering options in a browser.
+   *
+   * It is also a different permission. Seeing what is already joined comes with
+   * seeing the parent; seeing what could be joined is only any use to somebody
+   * who may join it, so it is `attach` that is asked.
+   */
+  readonly holding?: "joined" | "apart";
 }): Promise<RecordsResponse> {
+  const apart = options.holding === "apart";
   const { data, manager, parent, scope, owner } = await reachManager({
     ...options,
-    needs: "view",
+    needs: apart ? "attach" : "view",
   });
+
+  // A relation with a column of its own has one side: its rows are its
+  // parent's, and what is not there is every row in the table. Refused rather
+  // than answered, because the answer would be a list nothing could be done
+  // with — attaching is not a verb such a manager has.
+  if (apart && scope.kind !== "joined") throw new NotFoundException();
 
   return await listOf({
     data,
@@ -57,6 +78,7 @@ export async function listChildren(options: {
             relation: scope.back,
             key: scope.parentKey,
             value: owner as string | number,
+            holding: apart ? ("apart" as const) : ("joined" as const),
           },
         }),
   });

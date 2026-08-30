@@ -343,15 +343,18 @@ export class MemoryAdapter implements DataAdapter {
     // table looks like from a query. The pair list stands in for it.
     if (query.model === "Project") {
       const joined = query.joinedTo;
+      // Both sides of the join, since a picker asks for the other one: what
+      // this person is on, or what they are not on yet.
+      const linked = (project: Row): boolean =>
+        MEMBERSHIPS.some(
+          (link) =>
+            link.projectId === project["id"] && link.personId === Number(joined?.value),
+        );
       const rows =
         joined === undefined
           ? PROJECTS
           : PROJECTS.filter((project) =>
-              MEMBERSHIPS.some(
-                (link) =>
-                  link.projectId === project["id"] &&
-                  link.personId === Number(joined.value),
-              ),
+              joined.holding === "apart" ? !linked(project) : linked(project),
             );
       const found = rows.filter((row) => matches(row, query.clauses));
       const from = query.skip ?? 0;

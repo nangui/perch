@@ -638,3 +638,20 @@ describe("narrowing by a join", () => {
     });
   });
 });
+
+describe("narrowing to the other side of a join", () => {
+  it("asks for the rows joined to nothing of that one, not for all of them", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.findMany({
+      model: "User",
+      joinedTo: { relation: "posts", key: "id", value: 4, holding: "apart" },
+    });
+
+    // `none`, not a negated `some` and not `every`: `every` is true of a row
+    // joined to nothing at all, which would be every unrelated row on the page.
+    expect(argsOf(calls.findMany)).toEqual({
+      where: { posts: { none: { id: 4 } } },
+      orderBy: [{ id: "asc" }],
+    });
+  });
+});

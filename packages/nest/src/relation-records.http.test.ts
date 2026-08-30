@@ -149,13 +149,15 @@ class MemoryAdapter implements DataAdapter {
         return Promise.resolve({ rows: picked, total: picked.length });
       }
       const joined = query.joinedTo;
+      const linked = (tag: Row): boolean =>
+        TAGGED.some(
+          (link) => link.tag === tag["id"] && link.post === Number(joined?.value),
+        );
       const rows =
         joined === undefined
           ? TAGS
           : TAGS.filter((tag) =>
-              TAGGED.some(
-                (link) => link.tag === tag["id"] && link.post === Number(joined.value),
-              ),
+              joined.holding === "apart" ? !linked(tag) : linked(tag),
             );
       return Promise.resolve({ rows, total: rows.length });
     }
@@ -526,7 +528,12 @@ describe("reading through a join", () => {
     await tagsOf("1");
     const query = asked.find((one) => one.model === "Tag");
 
-    expect(query?.joinedTo).toEqual({ relation: "posts", key: "id", value: 1 });
+    expect(query?.joinedTo).toEqual({
+      relation: "posts",
+      key: "id",
+      value: 1,
+      holding: "joined",
+    });
     expect(query?.clauses ?? []).toEqual([]);
   });
 });
@@ -665,5 +672,72 @@ describe("attaching and detaching", () => {
       body: JSON.stringify({ ids: [1] }),
     });
     expect(response.status).toBe(404);
+  });
+});
+
+/**
+ * What could be joined, which is the manager's own question the other way up.
+ *
+ * Asked of the database rather than worked out by reading the table and
+ * subtracting what is already there: a relation of fifty thousand rows fetched
+ * to offer twenty-five is the same mistake as filtering options in a browser.
+ */
+describe("the rows a record could be joined to", () => {
+  const candidates = async (who: string): Promise<readonly string[]> => {
+    const { body } = await children(
+      `/admin/api/posts/${who}/relations/tags/candidates`,
+    );
+    const page = body as unknown as { rows: readonly Row[] };
+    return page.rows.map((row) => String(row["name"]));
+  };
+
+  const held = async (who: string): Promise<readonly string[]> => {
+    const { body } = await children(`/admin/api/posts/${who}/relations/tags/records`);
+    const page = body as unknown as { rows: readonly Row[] };
+    return page.rows.map((row) => String(row["name"]));
+  };
+
+  it("is everything the record does not already hold", async () => {
+    expect(await held("1")).toEqual(["green", "blue"]);
+    expect(await candidates("1")).toEqual(["nobody's"]);
+  });
+
+  it("is the whole table for a record holding none of it", async () => {
+    expect(await candidates("3")).toEqual(["green", "blue", "nobody's"]);
+  });
+
+  it("and the two never overlap", async () => {
+    const both = [...(await held("2")), ...(await candidates("2"))];
+    expect(new Set(both).size).toBe(both.length);
+  });
+
+  it("narrows the other way round rather than reading everything", async () => {
+    asked.length = 0;
+    await candidates("1");
+    const query = asked.find((one) => one.model === "Tag");
+
+    expect(query?.joinedTo).toEqual({
+      relation: "posts",
+      key: "id",
+      value: 1,
+      holding: "apart",
+    });
+  });
+
+  it("is refused where the relation has a column of its own", async () => {
+    // Such a manager has no attaching to do, so the list would be one nothing
+    // could act on.
+    const { status } = await children(
+      "/admin/api/posts/1/relations/comments/candidates",
+    );
+    expect(status).toBe(404);
+  });
+
+  it("is refused where the reader may not attach", async () => {
+    // Seeing what is already joined comes with seeing the parent. Seeing what
+    // could be joined is only any use to somebody who may join it.
+    tagsPolicy = { attach: () => false };
+    const { status } = await children("/admin/api/posts/1/relations/tags/candidates");
+    expect(status).toBe(404);
   });
 });

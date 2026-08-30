@@ -401,7 +401,11 @@ function whereOf(query: Query): Record<string, unknown> {
   // also answer true for a row joined to nothing at all.
   const joined = query.joinedTo;
   if (joined !== undefined) {
-    clauses.push({ [joined.relation]: { some: { [joined.key]: joined.value } } });
+    // `some` and `none` rather than `every`: `every` is also true of a row
+    // joined to nothing at all, which would put every unrelated row on the
+    // page and read as a relation that holds the whole table.
+    const how = joined.holding === "apart" ? "none" : "some";
+    clauses.push({ [joined.relation]: { [how]: { [joined.key]: joined.value } } });
   }
 
   if (clauses.length === 0) return {};

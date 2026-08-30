@@ -103,6 +103,15 @@ export interface JoinNarrowing {
   /** The column on that other row being compared — not always its key. */
   readonly key: string;
   readonly value: string | number;
+  /**
+   * Which side of the join to keep: the rows joined to it, or the rows not.
+   *
+   * `joined` lists what a manager holds. `apart` lists what could be added to
+   * it — the same question asked the other way round, and asked here rather
+   * than by reading everything and subtracting in memory, which is a page of
+   * rows fetched to throw most of them away.
+   */
+  readonly holding?: "joined" | "apart";
 }
 
 /**

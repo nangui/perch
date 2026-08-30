@@ -219,4 +219,35 @@ export class PanelRecordsController {
       disks: this.#disks,
     });
   }
+
+  /**
+   * `GET {path}/api/:resource/:id/relations/:name/candidates`.
+   *
+   * What could be joined to this record, which is the manager's own question
+   * asked the other way round: the same table, the same columns, the same
+   * search and pagination — narrowed to the rows that are not joined yet.
+   *
+   * Asked of the database rather than worked out by reading everything and
+   * subtracting, and gated by `attach` rather than by `view`: a list of rows
+   * somebody may not join is a list of rows they had no business seeing.
+   */
+  @Get(":id/relations/:name/candidates")
+  async candidates(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("name") name: string,
+    @Query() query: RawQuery,
+    @Req() request: IncomingUrl,
+  ): Promise<RecordsResponse> {
+    return await listChildren({
+      data: this.#data,
+      resource: this.#registry.get(slug),
+      parentId: id,
+      relation: name,
+      raw: query,
+      user: this.#users.resolve(request),
+      disks: this.#disks,
+      holding: "apart",
+    });
+  }
 }
