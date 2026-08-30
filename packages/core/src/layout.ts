@@ -15,6 +15,8 @@ interface LayoutState extends ComponentState {
   readonly collapsible?: boolean;
   readonly collapsed?: boolean;
   readonly icon?: string;
+  /** Whether a tab set puts the open panel in the address. */
+  readonly persistTab?: boolean;
 }
 
 /**
@@ -195,6 +197,22 @@ export class Tabs extends Layout {
   /** The panels, in the order they are read. */
   tabs(panels: readonly Tab[]): this {
     return this.with({ children: [...panels] });
+  }
+
+  /**
+   * Which panel is open goes in the address.
+   *
+   * So a reader who reloads, or comes back through their history, or sends
+   * somebody the page, lands where they were rather than on the first tab. A
+   * form with six panels is otherwise a form somebody re-navigates on every
+   * visit, and a link to it always points at the wrong one.
+   *
+   * The address rather than storage kept on the machine: what a link carries is
+   * the thing another person can be shown, and a tab remembered privately is
+   * one nobody else lands on.
+   */
+  persistTab(value = true): this {
+    return this.with({ persistTab: value });
   }
 }
 

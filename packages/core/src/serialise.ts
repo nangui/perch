@@ -75,6 +75,7 @@ export interface SchemaPayload {
  * extension points only work for the framework has none.
  */
 const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
+  Tabs: ["persistTab"],
   TextInput: [
     "mask",
     "flavour",

@@ -642,34 +642,38 @@ export class PersonResource {
       // Two panels, one at a time. A section for each would put both on the
       // page and make it longer; tabs say these are alternatives rather than
       // parts, and the one that is open is remembered in the address.
-      Tabs.make().tabs([
-        Tab.make("Photo").schema([
-          FileUpload.make("avatar")
-            .label("Avatar")
-            .image()
-            .maxSize(2 * 1024 * 1024)
-            .directory("avatars")
-            .helperText("Goes up when you choose it; kept when you save."),
-          // The page holds hex, because that is what a colour control speaks.
-          // The column holds `hsl()`, because this one was told to.
-          ColorPicker.make("tint")
-            .label("Tint")
-            .hsl()
-            .placeholder("#21594a")
-            .helperText("Picked as hex, kept as hsl()."),
-        ]),
-        Tab.make("Badge")
-          .icon("🐦")
-          .schema([
-            // Static content: neither a control nor a reading of the row.
-            Icon.make("🐦").tone("success"),
-            Text.make("What the panel puts beside this person's name."),
-            // The alternative first, because it is not optional: a picture
-            // with nothing said instead of it is one a reader who cannot see
-            // it is never told about.
-            Image.make("The house style", "/files/avatars/ada.png"),
+      // Which panel is open goes in the address, so a reload — or a link
+      // sent to somebody — lands on the one that was being looked at.
+      Tabs.make()
+        .persistTab()
+        .tabs([
+          Tab.make("Photo").schema([
+            FileUpload.make("avatar")
+              .label("Avatar")
+              .image()
+              .maxSize(2 * 1024 * 1024)
+              .directory("avatars")
+              .helperText("Goes up when you choose it; kept when you save."),
+            // The page holds hex, because that is what a colour control speaks.
+            // The column holds `hsl()`, because this one was told to.
+            ColorPicker.make("tint")
+              .label("Tint")
+              .hsl()
+              .placeholder("#21594a")
+              .helperText("Picked as hex, kept as hsl()."),
           ]),
-      ]),
+          Tab.make("Badge")
+            .icon("🐦")
+            .schema([
+              // Static content: neither a control nor a reading of the row.
+              Icon.make("🐦").tone("success"),
+              Text.make("What the panel puts beside this person's name."),
+              // The alternative first, because it is not optional: a picture
+              // with nothing said instead of it is one a reader who cannot see
+              // it is never told about.
+              Image.make("The house style", "/files/avatars/ada.png"),
+            ]),
+        ]),
     ]);
   }
 }

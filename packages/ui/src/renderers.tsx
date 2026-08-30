@@ -1151,15 +1151,54 @@ function RepeatableEntryRenderer({ node, renderChild }: NodeProps): ReactNode {
  * Hidden rather than unmounted, like a folded section: a field in a tab nobody
  * is looking at is still a field, still filled in and still saved.
  */
+/**
+ * Which panel an address names, for the tab set that asked to be remembered.
+ *
+ * Keyed by the set's own id, so a page holding two of them remembers both
+ * rather than one overwriting the other.
+ */
+function tabInAddress(id: string): string | undefined {
+  if (typeof globalThis.location === "undefined") return undefined;
+  const found = new URLSearchParams(globalThis.location.search).get(`tab.${id}`);
+  return found === null ? undefined : found;
+}
+
+/**
+ * Writes it there, without adding to the history.
+ *
+ * `replaceState`, because moving between tabs is not navigation: a reader who
+ * looked at four panels and then pressed Back expects the page they came from,
+ * not the third panel of the one they are on.
+ */
+function rememberTab(id: string, panel: string): void {
+  if (typeof globalThis.history === "undefined") return;
+  const url = new URL(globalThis.location.href);
+  url.searchParams.set(`tab.${id}`, panel);
+  globalThis.history.replaceState(globalThis.history.state, "", url);
+}
+
 function TabsRenderer({ node, renderChild }: NodeProps): ReactNode {
   const panels = node.children ?? [];
-  const [chosen, setChosen] = useState(0);
+  // Named by the panel rather than by its position: an index in an address
+  // points at whatever is third today, and a link sent last week opens the
+  // wrong panel the day somebody reorders them.
+  const remembers = node.props?.["persistTab"] === true;
+  const named = remembers ? tabInAddress(node.id) : undefined;
+  const opened = panels.findIndex((panel) => panel.id === named);
+  const [chosen, setChosen] = useState(opened === -1 ? 0 : opened);
   const at = Math.min(chosen, Math.max(panels.length - 1, 0));
   if (panels.length === 0) return null;
 
+  const choose = (index: number): void => {
+    setChosen(index);
+    if (!remembers) return;
+    const panel = panels[index];
+    if (panel !== undefined) rememberTab(node.id, panel.id);
+  };
+
   return (
     <div className={`perch-layout perch-layout--${node.type.toLowerCase()}`}>
-      <TabStrip tabs={panels.map(head)} at={at} choose={setChosen} />
+      <TabStrip tabs={panels.map(head)} at={at} choose={choose} />
       {panels.map((panel, index) => (
         <div
           key={panel.id}
