@@ -371,6 +371,22 @@ export class TransportClient {
     if (queued !== null) this.#flush(queued);
   }
 
+  /**
+   * A payload the server produced outside the patch cycle.
+   *
+   * One thing produces these: a dialog that created a row and had the form
+   * resolved again with it chosen. It is not a response to anything this sent,
+   * so there is no sequence to settle and nothing to mark seen — but it is the
+   * server's own word about the whole form, so it replaces what the server last
+   * said. Drafts stay on top of it, because they are still the reader's.
+   */
+  adopt(payload: SchemaPayload): void {
+    if (this.#disposed) return;
+    this.#failure = undefined;
+    this.#canonical = payload;
+    this.#emit();
+  }
+
   #reconcile(response: StateResponse, sent: ReadonlyMap<string, unknown>): void {
     this.#failure = undefined;
     this.#canonical = response.payload;

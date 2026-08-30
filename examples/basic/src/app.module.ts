@@ -5,6 +5,7 @@ import { MemoryDisk } from "./memory.disk.js";
 import { FilesController } from "./files.controller.js";
 import { PluginController } from "./plugin.controller.js";
 import { Cities, PersonResource } from "./person.resource.js";
+import { TeamResource } from "./team.resource.js";
 
 // One instance, two readers: the panel writes to it, the route serves from it.
 // Two would mean uploads landing in a `Map` nobody reads back.
@@ -21,7 +22,7 @@ export class AppServices {}
   imports: [
     PanelModule.forRoot({
       path: "/admin",
-      resources: [PersonResource],
+      resources: [PersonResource, TeamResource],
       // Where a create lands. "edit" is the default; "index" sends you back to
       // the table you came from.
       redirectAfterCreate: "index",

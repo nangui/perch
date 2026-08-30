@@ -429,6 +429,17 @@ export class PersonResource {
               typeof value === "string" ? value.replace(/\D/g, "") : value,
             )
             .hint("Digits only, in the end"),
+          // The row that is not in the list yet, made without leaving this one.
+          // What it writes is a `Team`, so it is `TeamResource.can()` that
+          // decides whether this reader may — and the boot would refuse this
+          // line if no resource stood for that model.
+          Select.make("teamId")
+            .label("Team")
+            .relationship("team", "name")
+            .placeholder("Pick a team")
+            .createOptionForm(
+              Schema.make([TextInput.make("name").label("Name").required()]),
+            ),
           TextInput.make("homepage")
             .label("Homepage")
             .prefix("https://")

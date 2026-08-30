@@ -5,7 +5,21 @@
  * or calls the transport. That is exactly what makes it replaceable by a plugin
  * — a component that knows the transport is not substitutable.
  */
-import type { SchemaNode } from "@perchjs/core";
+import type { SchemaNode, SchemaPayload } from "@perchjs/core";
+
+/** What the create-option route answers: the row, or why there is not one. */
+export type CreatedOption =
+  | {
+      readonly option: SearchedOption;
+      /** The host form, resolved by the server with the new option chosen. */
+      readonly payload: SchemaPayload;
+      readonly errors?: undefined;
+    }
+  | {
+      readonly errors: Readonly<Record<string, string>>;
+      readonly payload: SchemaPayload;
+      readonly option?: undefined;
+    };
 
 /** What the upload route answers with. The key is the field's value. */
 export interface UploadedFile {
@@ -54,6 +68,24 @@ export interface NodeProps {
    */
   readonly uploadFile?:
     ((path: string, file: File) => Promise<UploadedFile>) | undefined;
+  /**
+   * Asks for the dialog a select opens to make the option it is missing, and
+   * sends it back filled in.
+   *
+   * Two capabilities rather than one, because they are two moments: the schema
+   * is resolved when the dialog opens, against this reader and this form, and
+   * the write happens when they press the button. Absent where the host cannot
+   * ask — the select then draws no way to create, which is the truth.
+   *
+   * `createOption` answers either with the option that now exists or with the
+   * messages that stopped it, the same shape a form save answers with.
+   */
+  readonly optionForm?:
+    | ((path: string, data: Record<string, unknown>) => Promise<SchemaPayload>)
+    | undefined;
+  readonly createOption?:
+    | ((path: string, data: Record<string, unknown>) => Promise<CreatedOption>)
+    | undefined;
   /**
    * The value at any path, for the few nodes whose own value is not enough.
    *

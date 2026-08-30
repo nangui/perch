@@ -12,6 +12,9 @@ import { FieldShell } from "./FieldShell.js";
 import type { TabHead } from "./Tabs.js";
 import { TabStrip } from "./Tabs.js";
 import type { FieldStatus } from "./field-state.js";
+import { isLocked } from "./field-state.js";
+import type { StateRequest, StateResponse } from "./transport.js";
+import { CreateOption } from "./fields/CreateOption.js";
 import { Select } from "./fields/Select.js";
 import { Checkbox } from "./fields/Checkbox.js";
 import { CheckboxList } from "./fields/CheckboxList.js";
@@ -440,12 +443,48 @@ function SelectRenderer({
   inFlight,
   onChange,
   searchOptions,
+  optionForm,
+  createOption,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
   const options = choices(node.options);
 
   const label = node.label ?? node.path ?? "";
   const path = node.path;
+
+  const [creating, setCreating] = useState(false);
+  // Declared by the field and possible for this host. A button the host cannot
+  // answer is a button that opens on a failure.
+  const creatable =
+    node.props?.["createsOption"] === true &&
+    optionForm !== undefined &&
+    createOption !== undefined &&
+    path !== undefined &&
+    !isLocked(status);
+
+  const askForm = useCallback(async () => {
+    if (optionForm === undefined || path === undefined) throw new Error("no form");
+    return await optionForm(path, {});
+  }, [optionForm, path]);
+
+  // The dialog's own round trips, which are the same route asked again with
+  // what has been typed into it. A second channel would be a second resolution
+  // of the same schema, and the two would drift.
+  const resolveDialog = useCallback(
+    async (request: StateRequest): Promise<StateResponse> => {
+      if (optionForm === undefined || path === undefined) throw new Error("no form");
+      return { payload: await optionForm(path, request.state) };
+    },
+    [optionForm, path],
+  );
+
+  const submitOption = useCallback(
+    async (data: Record<string, unknown>) => {
+      if (createOption === undefined || path === undefined) throw new Error("no route");
+      return await createOption(path, data);
+    },
+    [createOption, path],
+  );
 
   // Stable, or the effect that runs it fires on every render of the form.
   const search = useCallback(
@@ -462,7 +501,20 @@ function SelectRenderer({
   const searchable = node.props?.["searchable"] === true && searchOptions !== undefined;
   const multiple = node.props?.["multiple"] === true;
 
-  return (
+  const dialog = creatable ? (
+    <CreateOption
+      label={label}
+      open={creating}
+      onClose={() => {
+        setCreating(false);
+      }}
+      askForm={askForm}
+      resolve={resolveDialog}
+      submit={submitOption}
+    />
+  ) : null;
+
+  const control = (
     <FieldShell
       label={label}
       status={status}
@@ -516,6 +568,29 @@ function SelectRenderer({
         )
       }
     </FieldShell>
+  );
+
+  return creatable ? (
+    // Beside the control rather than inside it, so all three flavours get it
+    // and none of them has to know it is there.
+    <div className="perch-select-with-create">
+      {control}
+      <button
+        type="button"
+        className="perch-select-create"
+        onClick={() => {
+          setCreating(true);
+        }}
+        // The field's label is the only thing that says which list this adds
+        // to, and a bare `+` on a form with four selects says nothing.
+        aria-label={`Create a new ${label.toLowerCase()}`}
+      >
+        +
+      </button>
+      {dialog}
+    </div>
+  ) : (
+    control
   );
 }
 

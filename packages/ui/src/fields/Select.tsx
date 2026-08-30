@@ -45,6 +45,19 @@ export interface SelectProps {
   readonly emptyLabel?: string;
 }
 
+/**
+ * Whether a value coming out of the control is a choice somebody made.
+ *
+ * The underlying control forbids an item whose value is the empty string, so an
+ * empty string is never one: it is the control clearing itself, which it does
+ * when the list changes underneath a value it has not drawn yet — precisely
+ * what happens when a row is created from the dialog beside it. Passing that on
+ * reports a choice nobody made, and undoes the one the server had just settled.
+ */
+export function reportable(value: string): boolean {
+  return value !== "";
+}
+
 export function Select({
   value,
   onValueChange,
@@ -98,7 +111,9 @@ export function Select({
       // `value?: string`, and under `exactOptionalPropertyTypes` an explicit
       // `undefined` is not the same as an absent prop.
       {...(value === null ? {} : { value })}
-      onValueChange={onValueChange}
+      onValueChange={(next) => {
+        if (reportable(next)) onValueChange(next);
+      }}
       disabled={locked}
     >
       <RadixSelect.Trigger

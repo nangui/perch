@@ -143,6 +143,8 @@ export interface ResolvedNode {
   readonly href?: string;
   /** Where a `FileUpload`'s stored file can be fetched, if it has one. */
   readonly previewUrl?: string;
+  /** Whether this select offers to make the row that is not in the list yet. */
+  readonly createsOption?: boolean;
   /** What each of a repeater's rows is called, by row key. */
   readonly itemLabels?: Readonly<Record<string, string>>;
   readonly options?: readonly Option[];
@@ -926,6 +928,14 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       ? ctx.options.fileUrl(component.state.disk, stored)
       : undefined;
 
+  // The fact, not the form. What the dialog draws is fetched when it opens, so
+  // a page that merely might open one carries a boolean rather than a schema
+  // resolved for a reader who never asked for it.
+  const createsOption =
+    component instanceof Select && component.state.createOptionForm !== undefined
+      ? true
+      : undefined;
+
   let options: readonly Option[] | undefined;
   const declared = component instanceof Field ? component.declaredOptions : undefined;
   if (declared !== undefined) {
@@ -974,6 +984,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     ...(tone === undefined ? {} : { tone }),
     ...(href === undefined ? {} : { href }),
     ...(previewUrl === undefined ? {} : { previewUrl }),
+    ...(createsOption === undefined ? {} : { createsOption }),
     ...(itemLabels === undefined ? {} : { itemLabels }),
     ...(placeholder === undefined ? {} : { placeholder }),
     ...(required ? { required: true } : {}),

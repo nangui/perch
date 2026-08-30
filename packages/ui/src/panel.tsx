@@ -14,7 +14,7 @@ import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 import type { FormState, SchemaPayload } from "@perchjs/core";
 import { Breadcrumb } from "./Breadcrumb.js";
-import type { SearchedOption, UploadedFile } from "./node-props.js";
+import type { CreatedOption, SearchedOption, UploadedFile } from "./node-props.js";
 import { PanelForm } from "./PanelForm.js";
 import { PanelView } from "./PanelView.js";
 import { keepFlash, takeFlash } from "./flash.js";
@@ -134,6 +134,12 @@ export function mount(element: HTMLElement): void {
             askOptions(api, operation, id, path, term, state)
           }
           uploadFile={(path, file, state) => sendFile(api, id, path, file, state)}
+          optionForm={(path, data, state) =>
+            askOptionForm(api, operation, id, path, data, state)
+          }
+          createOption={(path, data, state) =>
+            makeOption(api, operation, id, path, data, state)
+          }
         />
         {managed.length === 0 || id === undefined ? null : (
           <PanelRelations
@@ -407,6 +413,71 @@ async function sendFile(
  * answer — "nothing matched" — and returning one for a request that never
  * arrived would tell the reader their search worked.
  */
+/**
+ * Asks for the dialog a select opens to make an option, and sends it back.
+ *
+ * Two moments, one route. The schema is resolved against whatever the dialog
+ * holds, so asking with nothing in it opens the dialog and asking with its
+ * values in it is the round trip a dependent field inside it needs — the same
+ * resolution both times, which is the point of not having two.
+ *
+ * The host form's state travels too, because which field this is, and whether
+ * this reader may touch it, are decisions the server makes from that state
+ * rather than trusts the client about.
+ */
+async function askOptionForm(
+  api: string,
+  operation: string,
+  id: string | undefined,
+  path: string,
+  data: Record<string, unknown>,
+  state: FormState,
+): Promise<SchemaPayload> {
+  const response = await fetch(`${api}/options/form`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      state,
+      operation,
+      path,
+      data,
+      ...(id === undefined ? {} : { id }),
+    }),
+    credentials: "same-origin",
+  });
+  if (!response.ok) {
+    throw new Error(`/options/form answered ${String(response.status)}`);
+  }
+  return (await response.json()) as SchemaPayload;
+}
+
+/** The write, which answers with the option or with what stopped it. */
+async function makeOption(
+  api: string,
+  operation: string,
+  id: string | undefined,
+  path: string,
+  data: Record<string, unknown>,
+  state: FormState,
+): Promise<CreatedOption> {
+  const response = await fetch(`${api}/options/create`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      state,
+      operation,
+      path,
+      data,
+      ...(id === undefined ? {} : { id }),
+    }),
+    credentials: "same-origin",
+  });
+  if (!response.ok) {
+    throw new Error(`/options/create answered ${String(response.status)}`);
+  }
+  return (await response.json()) as CreatedOption;
+}
+
 async function askOptions(
   api: string,
   operation: string,

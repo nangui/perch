@@ -706,6 +706,30 @@ function inspectSelect(select: Select, into: Complaint[]): void {
       problem: "has neither options nor a relationship, so it can hold nothing at all",
     });
   }
+
+  const creates = select.state.createOptionForm;
+  if (creates === undefined) return;
+
+  // A declared list is a list this code wrote. There is no table behind it to
+  // write a row into, and the option would live until the page was reloaded.
+  if (relationship === undefined) {
+    into.push({
+      field: name,
+      problem:
+        "offers to create an option and names no relationship — a declared " +
+        "list has no table behind it, so the new option would last until the " +
+        "page was reloaded",
+    });
+  }
+
+  // A dialog that opens on nothing, with a button underneath it that would
+  // write a row with no values in it.
+  if (creates.state.children.length === 0) {
+    into.push({
+      field: name,
+      problem: "carries a form with no fields to create an option with",
+    });
+  }
 }
 
 /**

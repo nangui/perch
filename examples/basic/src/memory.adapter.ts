@@ -170,6 +170,11 @@ const PERSON: ModelMeta = {
   labelField: "firstName",
 };
 
+/** One past the highest there is, so a seeded id is never handed out twice. */
+function nextTeamId(): number {
+  return TEAMS.reduce((top, team) => Math.max(top, team["id"] as number), 0) + 1;
+}
+
 const TEAMS: Row[] = [
   { id: 1, name: "Engineering" },
   { id: 2, name: "Design" },
@@ -277,10 +282,41 @@ export class MemoryAdapter implements DataAdapter {
   }
 
   meta(model: string): ModelMeta {
-    return model === "Task" ? TASK : PERSON;
+    if (model === "Task") return TASK;
+    if (model === "Team") return TEAM;
+    return PERSON;
   }
 
   findMany(query: Query): Promise<Page> {
+    // Its own table since a select started offering to add rows to it: without
+    // this the options came back labelled by their keys, because the rows
+    // answering were people and a person has no `name`.
+    if (query.model === "Team") {
+      const found = TEAMS.filter((row) => matches(row, query.clauses)).filter((row) => {
+        const term = query.search?.term.toLowerCase();
+        if (term === undefined || term === "") return true;
+        return (query.search?.paths ?? []).some((path) =>
+          text(row[path]).toLowerCase().includes(term),
+        );
+      });
+      const sorted =
+        query.sort?.[0] === undefined
+          ? found
+          : [...found].sort((a, b) => {
+              const order = query.sort?.[0];
+              if (order === undefined) return 0;
+              const left = text(a[order.path]);
+              const right = text(b[order.path]);
+              return order.direction === "asc"
+                ? left.localeCompare(right)
+                : right.localeCompare(left);
+            });
+      const from = query.skip ?? 0;
+      return Promise.resolve({
+        rows: sorted.slice(from, from + (query.take ?? 25)),
+        total: sorted.length,
+      });
+    }
     if (query.model === "Task") {
       const found = this.#tasks.filter((row) => matches(row, query.clauses));
       return Promise.resolve({
@@ -327,6 +363,9 @@ export class MemoryAdapter implements DataAdapter {
 
   /** The children come with the row: they are the only ones an update reaches. */
   findOne(model: string, id: Id, options?: ReadOptions): Promise<Row | null> {
+    if (model === "Team") {
+      return Promise.resolve(TEAMS.find((row) => row["id"] === id) ?? null);
+    }
     if (model === "Task") {
       return Promise.resolve(this.#tasks.find((row) => row["id"] === id) ?? null);
     }
@@ -340,6 +379,12 @@ export class MemoryAdapter implements DataAdapter {
   }
 
   create(model: string, data: WriteTree): Promise<Row> {
+    // The other table a form can write into, from the dialog a select opens.
+    if (model === "Team") {
+      const team: Row = { id: nextTeamId(), ...data.set };
+      TEAMS.push(team);
+      return Promise.resolve(team);
+    }
     if (model === "Task") {
       const task: Row = { id: this.#nextTaskId++, done: false, ...data.set };
       this.#tasks.push(task);

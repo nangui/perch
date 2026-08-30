@@ -293,3 +293,50 @@ describe("a field that is not live sends nothing", () => {
     expect(client.snapshot().pending.has("a")).toBe(true);
   });
 });
+
+/**
+ * A payload that answers nothing.
+ *
+ * One thing produces these: a dialog that created a row in another table and
+ * had the whole form resolved again with it chosen. There is no sequence to
+ * settle and nothing to mark as seen — but it is the server's own word about
+ * the form, so it replaces what the server last said, and what the reader has
+ * typed since stays on top of it.
+ */
+describe("a payload from outside the patch cycle", () => {
+  it("replaces what the server last said", () => {
+    const { client } = harness(() => Promise.reject(new Error("not asked")));
+
+    client.adopt(payload({ a: "chosen" }));
+
+    expect(client.snapshot().payload.state["a"]).toBe("chosen");
+  });
+
+  it("does not throw away what the reader has typed since", () => {
+    // The dialog was open while they were typing in the form behind it. A
+    // create that wiped that would cost them more than it saved.
+    const { client } = harness(() => Promise.reject(new Error("not asked")));
+    client.change("b", "half a sentence");
+
+    client.adopt(payload({ a: "chosen", b: "" }));
+
+    expect(client.snapshot().payload.state["b"]).toBe("half a sentence");
+    expect(client.snapshot().payload.state["a"]).toBe("chosen");
+  });
+
+  it("clears a failure, because the server has just answered", () => {
+    const { client } = harness(() => Promise.reject(new Error("not asked")));
+    client.adopt(payload({ a: "chosen" }));
+
+    expect(client.snapshot().failure).toBeUndefined();
+  });
+
+  it("is ignored once the form is gone", () => {
+    const { client } = harness(() => Promise.reject(new Error("not asked")));
+    client.dispose();
+
+    client.adopt(payload({ a: "chosen" }));
+
+    expect(client.snapshot().payload.state["a"]).toBe("");
+  });
+});

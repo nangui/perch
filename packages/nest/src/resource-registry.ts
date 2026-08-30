@@ -37,6 +37,7 @@ import {
   FileUpload,
   Repeater,
   resolvePath,
+  Select,
   WritableColumn,
 } from "@perchjs/core";
 import type { PanelResource, ResourceMetadata } from "./resource.js";
@@ -221,6 +222,14 @@ export class ResourceRegistry implements OnModuleInit {
         ...managers.flatMap((manager) => this.#uneditableManager(manager)),
         ...managers.flatMap((manager) => this.#unknownColumnDisks(manager.state.table)),
         ...this.#unwritableFields(metadata.model, form),
+        ...(this.#data === null
+          ? []
+          : this.#uncreatableOptions(this.#data.ir(), metadata.model, form.children)),
+        // Read as its own root rather than walked into: the dialog writes
+        // another table, so a name meaning one column here means a different
+        // one in there, and judging the two path spaces as one would refuse a
+        // pair of forms that are both right.
+        ...createOptionForms(form).flatMap((one) => auditSchema(one)),
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
         ...(table === undefined ? [] : this.#unaskableFilters(metadata.model, table)),
@@ -648,6 +657,85 @@ export class ResourceRegistry implements OnModuleInit {
     return this.#writesUnder(this.#data.ir(), model, form.children);
   }
 
+  /**
+   * A select offering to create the option it is missing.
+   *
+   * Three things have to hold, and none of them is visible from the field's own
+   * declaration. The relation has to exist, because the row goes into the model
+   * it points at. That model has to have a resource, because a resource is
+   * where the permission to create one lives — and a form that writes a row
+   * with no policy behind it is not a shortcut past a slow page, it is the way
+   * in. And the fields have to be columns of that model rather than of this
+   * one, which is the mistake anybody would make: the form is written next to
+   * the field it belongs to, and the field belongs to the other table.
+   */
+  #uncreatableOptions(
+    ir: Ir,
+    model: string,
+    nodes: readonly Component[],
+  ): readonly { field: string; problem: string }[] {
+    const owner = findModel(ir, model);
+    if (owner === undefined) return [];
+
+    const here = ownSelects(nodes).flatMap((select) => {
+      const form = select.state.createOptionForm;
+      const declared = select.state.relationship;
+      // Both already said by `auditSchema`, which runs on the same form. Saying
+      // it twice would report one mistake as two.
+      if (form === undefined || declared === undefined) return [];
+
+      const name = select.name === "" ? select.type : select.name;
+      const relation = owner.relations.find((one) => one.name === declared.name);
+      if (relation === undefined) {
+        return [
+          {
+            field: name,
+            problem:
+              `offers to create an option on the relation \`${declared.name}\`, ` +
+              `which \`${model}\` does not have — there is no table to write to`,
+          },
+        ];
+      }
+
+      const resources = this.forModel(relation.targetModel);
+      if (resources.length === 0) {
+        return [
+          {
+            field: name,
+            problem:
+              `offers to create a \`${relation.targetModel}\`, and no resource ` +
+              "stands for that model — so there is no `can()` to ask whether " +
+              "this reader may, and the dialog would write one anyway",
+          },
+        ];
+      }
+      if (resources.length > 1) {
+        return [
+          {
+            field: name,
+            problem:
+              `offers to create a \`${relation.targetModel}\`, and ` +
+              `${String(resources.length)} resources stand for that model — ` +
+              "which of their `can()` decides is a coin flip",
+          },
+        ];
+      }
+
+      // Judged against the model being written, not the one the form is
+      // written in. Its own schema audit is run beside this, from `onModuleInit`.
+      return this.#writesUnder(ir, relation.targetModel, form.children);
+    });
+
+    const rows = ownRepeaters(nodes).flatMap((repeater) => {
+      const name = repeater.state.relationship ?? repeater.name;
+      const found = owner.relations.find((one) => one.name === name && one.isList);
+      if (found === undefined) return [];
+      return this.#uncreatableOptions(ir, found.targetModel, repeater.children);
+    });
+
+    return [...here, ...rows];
+  }
+
   /** One level of columns, then whatever a repeater's rows write. */
   #writesUnder(
     ir: Ir,
@@ -855,6 +943,17 @@ export class ResourceRegistry implements OnModuleInit {
     return [...this.#bySlug.values()].map((registered) => this.#resolve(registered));
   }
 
+  /**
+   * The resource standing for a model, which is where its permissions live.
+   *
+   * Several claiming one model is not resolved here: the boot refuses that
+   * arrangement where it matters, rather than picking one of two policies by
+   * registration order — which is a coin flip nobody would see land.
+   */
+  forModel(model: string): readonly RegisteredResource[] {
+    return this.all().filter((one) => one.metadata.model === model);
+  }
+
   #resolve(registered: {
     metadata: ResourceMetadata;
     type: ResourceClass;
@@ -878,6 +977,24 @@ function ownFields(nodes: readonly Component[]): readonly Field[] {
     if (node instanceof Repeater) return [];
     if (node instanceof Field) return [node];
     return ownFields(node.children);
+  });
+}
+
+/** Every dialog form a form carries, at any depth, repeaters included. */
+function createOptionForms(form: Schema): readonly Schema[] {
+  return flatten(form).flatMap((node) =>
+    node instanceof Select && node.state.createOptionForm !== undefined
+      ? [node.state.createOptionForm]
+      : [],
+  );
+}
+
+/** The selects writing this model's relations, stopping where the model does. */
+function ownSelects(nodes: readonly Component[]): readonly Select[] {
+  return nodes.flatMap((node) => {
+    if (node instanceof Repeater) return [];
+    if (node instanceof Select) return [node];
+    return ownSelects(node.children);
   });
 }
 

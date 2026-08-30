@@ -12,7 +12,7 @@
 import type { ReactNode, SyntheticEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { FormState, SchemaNode, SchemaPayload } from "@perchjs/core";
-import type { SearchedOption, UploadedFile } from "./node-props.js";
+import type { CreatedOption, SearchedOption, UploadedFile } from "./node-props.js";
 import { SchemaRenderer } from "./SchemaRenderer.js";
 import type {
   SaveRequest,
@@ -43,6 +43,21 @@ export interface PanelFormProps {
     term: string,
     state: FormState,
   ) => Promise<readonly SearchedOption[]>;
+  /**
+   * Asks for the dialog a select opens to make an option, and sends it back
+   * filled in. The host's state travels with both, for the same reason it
+   * travels with a search: the server decides which field this is from it.
+   */
+  readonly optionForm?: (
+    path: string,
+    data: Record<string, unknown>,
+    state: FormState,
+  ) => Promise<SchemaPayload>;
+  readonly createOption?: (
+    path: string,
+    data: Record<string, unknown>,
+    state: FormState,
+  ) => Promise<CreatedOption>;
   /** Sends a file the reader chose. Absent means the form cannot. */
   readonly uploadFile?: (
     path: string,
@@ -60,6 +75,8 @@ export function PanelForm({
   submitLabel = "Save",
   renderFailure,
   searchOptions,
+  optionForm,
+  createOption,
   uploadFile,
   timeout,
 }: PanelFormProps): ReactNode {
@@ -129,6 +146,28 @@ export function PanelForm({
     [searchOptions],
   );
 
+  const askOptionForm = useCallback(
+    async (path: string, data: Record<string, unknown>) => {
+      if (optionForm === undefined) throw new Error("Creating is not available here.");
+      return await optionForm(path, data, state.current);
+    },
+    [optionForm],
+  );
+
+  const makeOption = useCallback(
+    async (path: string, data: Record<string, unknown>) => {
+      if (createOption === undefined)
+        throw new Error("Creating is not available here.");
+      const answer = await createOption(path, data, state.current);
+      // Applied here rather than in the control. A component is handed
+      // capabilities and never touches the transport, and this is the transport
+      // — the form the server sent back, with the new row already chosen in it.
+      if (answer.option !== undefined) store.current?.client.adopt(answer.payload);
+      return answer;
+    },
+    [createOption],
+  );
+
   const pending = useMemo(() => new Set(snapshot.pending), [snapshot.pending]);
   const inFlight = useMemo(() => new Set(snapshot.inFlight), [snapshot.inFlight]);
 
@@ -142,6 +181,8 @@ export function PanelForm({
         inFlight={inFlight}
         {...(searchOptions === undefined ? {} : { searchOptions: search })}
         {...(uploadFile === undefined ? {} : { uploadFile: sendFile })}
+        {...(optionForm === undefined ? {} : { optionForm: askOptionForm })}
+        {...(createOption === undefined ? {} : { createOption: makeOption })}
       />
       {save === undefined ? null : (
         <div className="perch-form-actions">

@@ -5,6 +5,7 @@
 import type { Resolvable } from "../component.js";
 import { configured } from "../component.js";
 import type { FieldState, ValueRefusal } from "../field.js";
+import type { Schema } from "../layout.js";
 import type { Option, OptionsInput } from "../option.js";
 import { choosableValues } from "../option.js";
 import { baseFieldState, Field, isScalarValue, isUnset } from "../field.js";
@@ -16,6 +17,7 @@ export interface SelectState extends FieldState {
   readonly multiple: boolean;
   readonly preload: boolean;
   readonly optionsLimit: number;
+  readonly createOptionForm?: Schema;
 }
 
 const DEFAULT_OPTIONS_LIMIT = 50;
@@ -116,6 +118,32 @@ export class Select extends Field {
 
   optionsLimit(value: number): this {
     return this.with({ optionsLimit: value });
+  }
+
+  /**
+   * The row that is not in the list yet, made without leaving the form.
+   *
+   * A reader filling in a person and finding their team missing has two bad
+   * options otherwise: abandon what they have typed to go and create it, or
+   * pick the wrong one. This is the third.
+   *
+   * The schema does not travel in the node. It is fetched when the dialog
+   * opens, resolved against the reader and the moment, the same way an action's
+   * form is — a form serialised into every page that might open it is a form
+   * resolved for a reader who never asked.
+   *
+   * What it writes is a row in another table, which makes it a create on that
+   * table and not on this one. The boot refuses this on a relation whose model
+   * has no resource of its own, because a resource is where the permission to
+   * create one lives, and a door with no policy behind it is not a shortcut —
+   * it is the way in.
+   */
+  createOptionForm(schema: Schema): this {
+    // Live, and not as a convenience. The row lands in a table the browser has
+    // only a window onto, so what the field may now hold and what its list may
+    // now show are both the server's to say. A client that added the option to
+    // its own copy of the list would be deciding, badly, what the options are.
+    return this.with({ createOptionForm: schema });
   }
 }
 

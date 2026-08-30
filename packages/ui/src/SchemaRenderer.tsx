@@ -21,6 +21,8 @@ export interface SchemaRendererProps {
   readonly inFlight?: ReadonlySet<string>;
   /** Threaded down to whichever field declares itself searchable. */
   readonly searchOptions?: NodeProps["searchOptions"];
+  readonly optionForm?: NodeProps["optionForm"];
+  readonly createOption?: NodeProps["createOption"];
   readonly uploadFile?: NodeProps["uploadFile"];
 }
 
@@ -30,6 +32,8 @@ export function SchemaRenderer({
   pending,
   inFlight,
   searchOptions,
+  optionForm,
+  createOption,
   uploadFile,
 }: SchemaRendererProps): ReactNode {
   /**
@@ -58,6 +62,8 @@ export function SchemaRenderer({
           inFlight={node.path !== undefined && inFlight?.has(node.path) === true}
           onChange={onChange}
           searchOptions={searchOptions}
+          optionForm={optionForm}
+          createOption={createOption}
           uploadFile={uploadFile}
           valueAt={valueAt}
           errorAt={errorAt}
@@ -65,7 +71,18 @@ export function SchemaRenderer({
         />
       );
     },
-    [payload, onChange, pending, inFlight, searchOptions, uploadFile, valueAt, errorAt],
+    [
+      payload,
+      onChange,
+      pending,
+      inFlight,
+      searchOptions,
+      optionForm,
+      createOption,
+      uploadFile,
+      valueAt,
+      errorAt,
+    ],
   );
 
   return render(payload.schema);
@@ -84,6 +101,8 @@ const RenderedNode = memo(function RenderedNode({
   inFlight,
   onChange,
   searchOptions,
+  optionForm,
+  createOption,
   uploadFile,
   valueAt,
   errorAt,
@@ -96,6 +115,8 @@ const RenderedNode = memo(function RenderedNode({
   readonly inFlight?: boolean | undefined;
   readonly onChange: (path: string, value: unknown) => void;
   readonly searchOptions?: NodeProps["searchOptions"];
+  readonly optionForm?: NodeProps["optionForm"];
+  readonly createOption?: NodeProps["createOption"];
   readonly uploadFile?: NodeProps["uploadFile"];
   readonly valueAt: NodeProps["valueAt"];
   readonly errorAt: NodeProps["errorAt"];
@@ -112,6 +133,8 @@ const RenderedNode = memo(function RenderedNode({
       inFlight={inFlight}
       onChange={onChange}
       searchOptions={searchOptions}
+      optionForm={optionForm}
+      createOption={createOption}
       uploadFile={uploadFile}
       valueAt={valueAt}
       errorAt={errorAt}

@@ -185,6 +185,31 @@ export function optionLoader(
 }
 
 /**
+ * Where a relation's rows live, and which of their columns a select carries.
+ *
+ * The same two facts `optionLoader` resolves before every query, needed by the
+ * route that writes one of those rows. Read from the IR both times rather than
+ * assumed to be the primary key: a relation may point at any unique column, and
+ * a route guessing wrong would answer with an option whose value selects
+ * nothing.
+ */
+export function optionTarget(
+  data: DataAdapter,
+  model: string,
+  relation: string,
+): { readonly model: string; readonly valueField: string } {
+  const owner = expect(
+    findModel(data.ir(), model),
+    `Model \`${model}\` is not in the IR`,
+  );
+  const found = expect(
+    findRelation(owner, relation),
+    `\`${model}\` declares no relation \`${relation}\``,
+  );
+  return { model: found.targetModel, valueField: single(found, model) };
+}
+
+/**
  * Back to what the column holds.
  *
  * A form returns `"2"` for a key the database stores as `2`, and an Int column
