@@ -740,6 +740,30 @@ function inspectSelect(select: Select, into: Complaint[]): void {
  * nothing to choose from, so without this the only sign is a filter that never
  * appears.
  */
+/**
+ * A table where every column starts off.
+ *
+ * A reader who opens it finds a heading row and nothing under it, and the only
+ * way back is a menu they have to know is there. One column that stays is what
+ * makes the rest optional rather than the table.
+ */
+function inspectHidden(table: Table, into: Complaint[]): void {
+  const columns = table.state.columns;
+  if (columns.length === 0) return;
+
+  const showing = columns.filter(
+    (column) => column.state.toggleable?.hiddenByDefault !== true,
+  );
+  if (showing.length > 0) return;
+
+  into.push({
+    field: table.state.columns[0]?.state.path ?? "the table",
+    problem:
+      "is in a table whose every column is hidden by default, so it opens on " +
+      "a heading row with nothing under it — one column has to stay",
+  });
+}
+
 export function auditTable(table: Table): readonly Complaint[] {
   // Two under one name is already refused — but on the first request that names
   // one, under a reader. Asking here brings it forward to the boot.
@@ -748,6 +772,7 @@ export function auditTable(table: Table): readonly Complaint[] {
 
   const complaints: Complaint[] = [];
   inspectEmpty(table, complaints);
+  inspectHidden(table, complaints);
 
   // Two of them under two names, which the name check above cannot see. They
   // decide one thing between them, so a reader can set them against each other

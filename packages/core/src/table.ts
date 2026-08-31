@@ -46,6 +46,16 @@ export interface ColumnNode {
   readonly path: string;
   readonly label?: string;
   readonly sortable?: true;
+  /**
+   * The reader may take this column off, and whether it starts off.
+   *
+   * Sent because the client draws the control from it. What is on and what is
+   * off after that is the browser's — the server has no opinion about which
+   * columns one reader keeps, and a column left out of a page is still a column
+   * whose values were read.
+   */
+  readonly toggleable?: true;
+  readonly hiddenByDefault?: true;
   readonly boolean?: true;
   readonly circular?: true;
   readonly stacked?: true;
@@ -305,6 +315,14 @@ export function serialiseTable(table: Table): ColumnTree {
       path: column.state.path,
       ...(column.state.label === undefined ? {} : { label: column.state.label }),
       ...(column.state.sortable ? { sortable: true as const } : {}),
+      ...(column.state.toggleable === undefined
+        ? {}
+        : {
+            toggleable: true as const,
+            ...(column.state.toggleable.hiddenByDefault
+              ? { hiddenByDefault: true as const }
+              : {}),
+          }),
       ...(column.state.boolean === undefined ? {} : { boolean: true as const }),
       ...(column.state.circular === undefined ? {} : { circular: true as const }),
       ...(column.state.stacked === undefined ? {} : { stacked: true as const }),

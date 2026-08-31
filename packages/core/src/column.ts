@@ -25,6 +25,16 @@ export interface ColumnState {
   readonly label?: string;
   readonly sortable: boolean;
   readonly searchable: boolean;
+  /**
+   * Whether the reader may take this column off the table, and whether it
+   * starts off.
+   *
+   * A wide table is a table somebody narrows: eight columns are useful to the
+   * person auditing and in the way of the person looking up a name. Absent, the
+   * column is always there — which is the right default, because a column
+   * nobody declared as optional is one the author meant.
+   */
+  readonly toggleable?: { readonly hiddenByDefault: boolean };
   /** Renders a check or a cross rather than the value. */
   readonly boolean?: true;
   /** An image drawn as a circle, which is what a table of faces wants. */
@@ -92,6 +102,17 @@ export abstract class Column {
    */
   searchable(on = true): this {
     return this.with({ ...this.state, searchable: on });
+  }
+
+  /**
+   * Lets the reader take this column off, and says whether it starts off.
+   *
+   * `hiddenByDefault` is for the column that is worth having and not worth the
+   * width: a created-at beside six others. It starts off and the reader turns
+   * it on, rather than starting on and being turned off by everyone.
+   */
+  toggleable(hiddenByDefault = false): this {
+    return this.with({ ...this.state, toggleable: { hiddenByDefault } });
   }
 
   /**
