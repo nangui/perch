@@ -297,6 +297,87 @@
   outline-offset: 2px;
 }
 
+/* Which columns a reader keeps. A `details`, so it opens and closes and is
+   announced without a line of JavaScript. */
+.perch-columns {
+  position: relative;
+}
+
+.perch-columns__button {
+  display: inline-flex;
+  align-items: center;
+  height: var(--perch-control-height);
+  padding: 0 var(--perch-space-4);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+  color: var(--perch-content);
+  font-size: var(--perch-text-sm);
+  cursor: pointer;
+  list-style: none;
+}
+
+.perch-columns__button::-webkit-details-marker {
+  display: none;
+}
+
+.perch-columns__button:hover {
+  border-color: var(--perch-accent-border);
+}
+
+/* Over the table rather than pushing it down: a menu that moved the rows would
+   move the one the reader was reading. */
+.perch-columns__panel {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  margin-top: var(--perch-space-2);
+  min-width: 12rem;
+  padding: var(--perch-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--perch-space-2);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+  box-shadow: var(--perch-shadow-2, 0 8px 24px rgb(0 0 0 / 12%));
+}
+
+.perch-columns__row {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+  font-size: var(--perch-text-sm);
+  cursor: pointer;
+}
+
+/* The menu sits beside whatever the header already offered. */
+.perch-list__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-3);
+  margin-left: auto;
+}
+
+/* The pager and the page size on one line: they are the same question asked
+   two ways, and a reader looking for one finds the other. */
+.perch-list__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--perch-space-4);
+  flex-wrap: wrap;
+}
+
+.perch-list__size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+  margin-left: auto;
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-muted);
+}
+
 /* Status marks: Unsaved, Saving…, and the error badge. */
 .perch-control__mark {
   flex: none;

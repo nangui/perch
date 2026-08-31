@@ -9,6 +9,7 @@
  */
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
+import { ColumnMenu, hiddenAtFirst } from "./ColumnMenu.js";
 import type {
   ActionNode,
   ModalWidth,
@@ -184,6 +185,12 @@ export function PanelList({
   actionState,
 }: PanelListProps): ReactNode {
   const [page, setPage] = useState(initial);
+  // Which columns the reader has taken off. Seeded from what the table
+  // declared and its own from then on: a page turning is not a reason to put
+  // back a column somebody removed.
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(() =>
+    hiddenAtFirst(initial.columns.columns),
+  );
   const [failed, setFailed] = useState(false);
 
   /**
@@ -549,7 +556,21 @@ export function PanelList({
     <Frame className="perch-list">
       <div className="perch-list__header">
         {within === true ? null : <h1 className="perch-list__title">{title}</h1>}
-        {headerActions(page)}
+        <div className="perch-list__tools">
+          <ColumnMenu
+            columns={page.columns.columns}
+            hidden={hidden}
+            onToggle={(path) => {
+              setHidden((was) => {
+                const next = new Set(was);
+                if (next.has(path)) next.delete(path);
+                else next.add(path);
+                return next;
+              });
+            }}
+          />
+          {headerActions(page)}
+        </div>
       </div>
       {narrowing(page, find, { typed, setTyped, entered, setEntered })}
       {failed ? (
@@ -628,7 +649,13 @@ export function PanelList({
       )}
       <div className="perch-list__table">
         <DataTable
-          columns={page.columns}
+          // What the reader kept. A column taken off is not fetched any
+          // differently — the server sent it and its values were read — it is
+          // simply not drawn.
+          columns={{
+            ...page.columns,
+            columns: page.columns.columns.filter((one) => !hidden.has(one.path)),
+          }}
           rows={page.rows}
           caption={title}
           {...(page.columns.empty === undefined
@@ -758,7 +785,34 @@ export function PanelList({
           )}
         </ConfirmDialog>
       )}
-      {pagination(page, turn)}
+      <div className="perch-list__foot">
+        {pagination(page, turn)}
+        {ask === undefined ? null : (
+          <label className="perch-list__size">
+            Rows per page
+            <select
+              value={String(page.perPage)}
+              onChange={(event) => {
+                // Back to the first page. Page 5 of twenty-five rows is not
+                // page 5 of a hundred, and keeping the number would land the
+                // reader somewhere they did not choose — the same rule sorting
+                // and searching already follow.
+                ask({
+                  ...(sort === undefined ? {} : { sort }),
+                  page: 1,
+                  perPage: Number(event.target.value),
+                });
+              }}
+            >
+              {PAGE_SIZES.map((size) => (
+                <option key={size} value={String(size)}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
       {/*
         The one live region on this page: it is what changes when a page is
         turned, and a second would make the two talk over each other.
@@ -1138,6 +1192,15 @@ function pageCount(page: RecordsPage): number {
  * region — the rows change under a screen reader without announcing themselves,
  * so this is what says a turn happened.
  */
+/**
+ * What a reader may set the page size to.
+ *
+ * A short list rather than a number they type: the point is to see more or less
+ * at once, and a box accepting 7 or 4000 offers a choice nobody wants and a
+ * query somebody's database does not.
+ */
+const PAGE_SIZES = [10, 25, 50, 100] as const;
+
 function status(page: RecordsPage): string {
   const records = page.total === 1 ? "1 record" : `${String(page.total)} records`;
   const pages = pageCount(page);

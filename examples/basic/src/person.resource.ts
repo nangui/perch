@@ -17,6 +17,7 @@ import {
   DateRangeFilter,
   DateTimePicker,
   DeleteAction,
+  DetachAction,
   EditAction,
   Fieldset,
   FileUpload,
@@ -202,6 +203,9 @@ export class PersonResource {
           // A line of text, edited where it is read — and still written through
           // the form, so `required` on the field holds here too.
           TextInputColumn.make("lastName").label("Last name").searchable(),
+          // Worth having and not worth the width: it starts off, and whoever
+          // wants it turns it on.
+          TextColumn.make("homepage").label("Homepage").toggleable(true),
           TextColumn.make("city").label("City"),
           // Reads through the relation. One `include` for the page, never one
           // query per row.
@@ -346,6 +350,16 @@ export class PersonResource {
             .columns([
               TextColumn.make("name").label("Project").sortable().searchable(),
               TextColumn.make("code").label("Code"),
+            ])
+            // Declared rather than left to the tab's own: a declared one asks
+            // before it acts, which a row leaving a list ought to do. Nothing
+            // is destroyed — the project stays, and stops being this person's.
+            .actions([
+              DetachAction.make().requiresConfirmation({
+                heading: "Take this person off the project?",
+                description: "The project stays. Only their place on it goes.",
+                confirmLabel: "Detach",
+              }),
             ])
             .defaultSort("name"),
         ),
