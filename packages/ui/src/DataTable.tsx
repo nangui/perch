@@ -255,7 +255,17 @@ export function DataTable({
               </td>
             )}
             {rendered.map(({ column, render }) => (
-              <td key={column.path} className="perch-table__cell">
+              <td
+                key={column.path}
+                className="perch-table__cell"
+                // Carried on every cell, read by the stylesheet only where the
+                // window is too narrow for a row to be a row. A heading above
+                // eight columns is no use when they are stacked, so each cell
+                // says what it is — and it says it in the markup rather than in
+                // a second render pass, because a cell is drawn by one
+                // memoised function per column type and that stays true.
+                data-label={column.label ?? column.path}
+              >
                 {render === undefined
                   ? unknownColumn(column)
                   : render(readPath(row, column.path), row, column, {

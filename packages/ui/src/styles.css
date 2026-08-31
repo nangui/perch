@@ -3551,6 +3551,78 @@
   vertical-align: top;
 }
 
+/* A row that is wider than the window.
+
+   Eight columns on a phone is a table somebody scrolls sideways through,
+   reading one column at a time and losing which row they were on. Stacked, a
+   row becomes a block and each cell carries the heading the header row can no
+   longer give it — the same cells, drawn by the same functions, laid out down
+   instead of across.
+
+   Written after the table's own rules, because at equal specificity the last
+   declaration wins and a media query placed earlier loses to the rule it was
+   meant to undo. */
+@media (max-width: 40rem) {
+  .perch-table,
+  .perch-table tbody,
+  .perch-table tr,
+  .perch-table__cell {
+    display: block;
+  }
+
+  /* Off the page rather than `display: none`: the headings are what a screen
+     reader announces each cell by, and removing them would take that away from
+     the readers who depend on it most. */
+  .perch-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .perch-table tr {
+    margin-bottom: var(--perch-space-5);
+    border: 1px solid var(--perch-border);
+    border-radius: var(--perch-radius);
+    background: var(--perch-surface);
+  }
+
+  .perch-table__cell {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--perch-space-4);
+    padding: var(--perch-space-3) var(--perch-space-4);
+    border-bottom: 1px solid var(--perch-border-subtle);
+    text-align: right;
+  }
+
+  .perch-table__cell:last-child {
+    border-bottom: none;
+  }
+
+  /* The heading the header row can no longer give it. */
+  .perch-table__cell::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    margin-right: auto;
+    text-align: left;
+    font-size: var(--perch-text-sm);
+    font-weight: 600;
+    color: var(--perch-content-muted);
+  }
+
+  /* Except the two that are not a value: a tick and a row's own controls read
+     as themselves, and a label beside them would name a column nobody asked
+     about. */
+  .perch-table__actions::before,
+  .perch-table__pick::before {
+    content: none;
+  }
+}
+
 /* A button rather than a click handler on the header, so the keyboard reaches
    it. It carries no chrome of its own. */
 .perch-table__sort {
