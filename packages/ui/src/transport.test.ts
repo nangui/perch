@@ -340,3 +340,63 @@ describe("a payload from outside the patch cycle", () => {
     expect(client.snapshot().payload.state["a"]).toBe("");
   });
 });
+
+/**
+ * A payload adopted while a patch is still in flight.
+ *
+ * `adopt` is outside the sequence machinery: it answers nothing, so there is no
+ * number to settle and no request to mark seen. The question that leaves open
+ * is what happens when the answer to a patch sent *before* it arrives *after*
+ * it — resolved against a database that did not yet hold the row the dialog
+ * created. If that answer replaced what was adopted, the create would undo
+ * itself for no reason a reader could see, and only sometimes.
+ */
+describe("adopt against an answer still on its way", () => {
+  it("is not undone by a patch resolved before it happened", async () => {
+    let answer: ((r: StateResponse) => void) | undefined;
+    const { client } = harness(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+
+    // A live field goes out and does not come back yet. No timers are run:
+    // at a debounce of zero the request has already left, and firing them
+    // would trip the timeout instead — which abandons the sequence and drops
+    // the answer, so the test would pass without the answer ever arriving.
+    client.change("a", "typed", { debounce: 0 });
+
+    // Meanwhile a dialog creates a row and hands back the whole form.
+    client.adopt(payload({ a: "typed", total: 4 }));
+    expect(client.snapshot().payload.state["total"]).toBe(4);
+
+    // The late answer, resolved before that row existed.
+    answer?.({ payload: payload({ a: "typed", total: 0 }) });
+
+    // A real turn of the loop, not one microtask: the transport settles a
+    // response through a chain of them, and asserting too early reads the
+    // state from before it arrived — which passes, and means nothing.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(client.snapshot().payload.state["total"]).toBe(4);
+  });
+
+  it("still lets a later patch through, which is not the same thing", async () => {
+    // The guard must not freeze the form: what came after the adoption is
+    // newer than it, and refusing that would be the opposite mistake.
+    let answer: ((r: StateResponse) => void) | undefined;
+    const { client } = harness(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+
+    client.adopt(payload({ total: 4 }));
+    client.change("a", "typed", { debounce: 0 });
+    answer?.({ payload: payload({ a: "typed", total: 9 }) });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(client.snapshot().payload.state["total"]).toBe(9);
+  });
+});

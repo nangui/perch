@@ -382,6 +382,20 @@ export class TransportClient {
    */
   adopt(payload: SchemaPayload): void {
     if (this.#disposed) return;
+
+    // An answer already on its way was resolved against a world without the
+    // row this payload carries — the dialog created it after that request
+    // left. Applying it when it lands would undo the create, silently, and
+    // only when the network was slow enough. Abandoned rather than raced.
+    // What it was carrying stays in the draft zone, unconfirmed, which is what
+    // it was before it was sent.
+    if (this.#inFlight !== null) {
+      this.#abandoned.add(this.#inFlight.sequence);
+      this.#inFlight = null;
+      this.#cancelTimeout?.();
+      this.#cancelTimeout = null;
+    }
+
     this.#failure = undefined;
     this.#canonical = payload;
     this.#emit();
