@@ -488,7 +488,16 @@ export function PanelRelations({
     // A joined tab offers detaching instead, and never an edit: the two are
     // exclusive because a row is either this record's to change or somebody
     // else's to let go of.
-    const detachable = one.joined === true && detachChild !== undefined;
+    // Only where the manager declared no detach of its own. A declared one is
+    // drawn by the table like any other action, goes through the confirmation
+    // dialog, and is carried out by the route — all things this synthetic one
+    // cannot do. It stays for a tab that declared nothing, so a join is never
+    // left with no way to let a row go.
+    const declaresDetach = what.page.columns.actions.some(
+      (action) => action.type === "DetachAction",
+    );
+    const detachable =
+      one.joined === true && detachChild !== undefined && !declaresDetach;
 
     return (
       <PanelList

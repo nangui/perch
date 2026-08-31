@@ -10,6 +10,7 @@ import type { Action, Operation, Row } from "@perchjs/core";
 import {
   DeleteAction,
   ForceDeleteAction,
+  DetachAction,
   ReplicateAction,
   RestoreAction,
 } from "@perchjs/core";
@@ -86,6 +87,10 @@ export function permissionFor(action: Action): Permission {
   // It makes a row. A reader allowed to change what is already there is not
   // thereby allowed to add to it, so a copy asks the policy that adds.
   if (action instanceof ReplicateAction) return "create";
+  // Neither makes nor destroys a row: it joins one here, or stops. Asking
+  // `delete` for a detach would refuse a reader who may take somebody off a
+  // project but not delete the project, which is nearly everybody.
+  if (action instanceof DetachAction) return "detach";
   return "edit";
 }
 

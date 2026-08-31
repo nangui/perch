@@ -91,6 +91,7 @@ export {
   EditAction,
   ForceDeleteAction,
   MODAL_WIDTHS,
+  DetachAction,
   ReplicateAction,
   RestoreAction,
   ViewAction,

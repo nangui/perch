@@ -35,6 +35,7 @@ import {
   Field,
   findModel,
   FileUpload,
+  DetachAction,
   Repeater,
   resolvePath,
   Select,
@@ -331,7 +332,21 @@ export class ResourceRegistry implements OnModuleInit {
         // Already complained about above, and once is enough.
         return [];
       }
-      if (scope.kind !== "joined") return [];
+      if (scope.kind !== "joined") {
+        // The other way round: detaching means unjoining, and a relation with a
+        // column of its own has no join to undo — a row is this parent's
+        // because that column says so. Declared here it would boot, draw a
+        // button, and answer 404 when somebody pressed it.
+        return [...declaredActions(manager.state.table)]
+          .filter(([, action]) => action instanceof DetachAction)
+          .map(([name]) => ({
+            field: name,
+            problem:
+              `detaches from \`${model}.${manager.state.relation}\`, which holds ` +
+              "its rows by a column rather than a join — there is nothing to " +
+              "detach, and taking a row off means writing that column",
+          }));
+      }
 
       const said: { field: string; problem: string }[] = [];
       const joined =
@@ -344,13 +359,17 @@ export class ResourceRegistry implements OnModuleInit {
           problem: `${joined} — a form here has no column to write the join into`,
         });
       }
-      const actions = declaredActions(manager.state.table);
-      if (actions.size > 0) {
+      // Attaching and detaching are the verbs this shape has, so they are the
+      // ones it may declare. Anything else acts on the row itself — deleting
+      // it, editing it, copying it — which is a thing about the row and not
+      // about the join, and belongs on the resource that owns it.
+      for (const [name, action] of declaredActions(manager.state.table)) {
+        if (action instanceof DetachAction) continue;
         said.push({
-          field: manager.state.relation,
+          field: name,
           problem:
-            `${joined} — and an action given a selection could not tell this ` +
-            "row's parent from any other, there being no column to narrow by",
+            `${joined} — so the action it may declare is detaching, and this ` +
+            "acts on the row itself, which is the owning resource's to offer",
         });
       }
       return said;

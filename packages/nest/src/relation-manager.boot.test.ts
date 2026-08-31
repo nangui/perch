@@ -19,6 +19,7 @@ import type { DataAdapter, Ir, ModelMeta, Row } from "@perchjs/core";
 import {
   CreateAction,
   DeleteAction,
+  DetachAction,
   EditAction,
   FileUpload,
   Repeater,
@@ -345,7 +346,10 @@ describe("a manager over a join", () => {
     ).rejects.toThrow(/no column to write the join into/);
   });
 
-  it("refuses an action, whose selection nothing could narrow to this parent", async () => {
+  it("refuses an action that acts on the row itself", async () => {
+    // Deleting a tag is a thing about the tag, not about the join, and it
+    // belongs on the resource that owns it. What this manager may offer is the
+    // verb its shape has.
     await expect(
       boot([
         RelationManager.make("tags").table((table) =>
@@ -354,6 +358,27 @@ describe("a manager over a join", () => {
             .actions([DeleteAction.make().requiresConfirmation()]),
         ),
       ]),
-    ).rejects.toThrow(/could not tell this row's parent from any other/);
+    ).rejects.toThrow(/the action it may declare is detaching/);
+  });
+
+  it("takes a detach, which is the verb this shape has", async () => {
+    await expect(
+      boot([
+        RelationManager.make("tags").table((table) =>
+          table.columns([TextColumn.make("name")]).actions([DetachAction.make()]),
+        ),
+      ]),
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe("a detach declared where there is nothing to detach", () => {
+  it("stops the boot on a relation with a column of its own", async () => {
+    // Its rows are this parent's because a column says so; taking one off means
+    // writing that column, not unjoining anything. Declared here it would boot,
+    // draw a button, and answer 404 when pressed.
+    await expect(boot([comments().actions([DetachAction.make()])])).rejects.toThrow(
+      /nothing to detach/,
+    );
   });
 });

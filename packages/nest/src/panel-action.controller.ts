@@ -33,6 +33,7 @@ import { reachManager } from "./relation-reach.js";
 import { withOptions } from "./relationship-options.js";
 import { permissionFor } from "./authorization.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
+import { recordId } from "./record-id.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
 import { PANEL_USER_RESOLVER } from "./user-resolver.js";
@@ -146,6 +147,7 @@ export class PanelActionController {
       user,
       refusedAlready: refused,
       collected: collected.accepted,
+      ...(target.scope === undefined ? {} : { scope: target.scope }),
     });
     if (scoped !== undefined) this.#replays.remember(scoped, answer, now);
     return answer;
@@ -186,9 +188,12 @@ export class PanelActionController {
     // Resolved on the way past, so the allowlist is read once: the permission
     // to ask and the action to run are the same lookup.
     let declared: Action | undefined;
+    // The parent's own model and key: a join is written from the side that
+    // names the relation, and that side is this one.
+    const resource = this.#registry.get(slug);
     const { data, scope, owner } = await reachManager({
       data: this.#data,
-      resource: this.#registry.get(slug),
+      resource,
       parentId: id,
       relation,
       user,
@@ -200,19 +205,34 @@ export class PanelActionController {
     });
     if (declared === undefined) throw new NotFoundException();
 
+    const hostModel = resource?.metadata.model;
+    const hostKey = hostModel === undefined ? null : recordId(data, hostModel, id);
+    if (hostModel === undefined || hostKey === null) throw new NotFoundException();
+    const host = { model: hostModel, key: hostKey };
+
     // No table and no policy: the manager's table is what declared the action
     // above, and the manager's own policy has already been asked about the
     // parent, so nothing further is asked per row here.
-    // An action on a joined manager's row would run against a row that belongs
-    // to nobody in particular — there is no column narrowing the selection it
-    // was given, so `loadSelection` could not tell this parent's rows from any
-    // others. The boot refuses such a manager's actions; this is the door.
-    if (scope.kind !== "owned") throw new NotFoundException();
     return {
       data,
       model: scope.model,
       action: declared,
-      scope: { column: scope.foreignKey, value: owner },
+      // Both shapes a relation has. A join carries no column, so what narrows
+      // the selection is the join itself — asked of the database rather than
+      // compared against rows in hand, because nothing on such a row says whose
+      // it is.
+      scope:
+        scope.kind === "owned"
+          ? { kind: "column" as const, column: scope.foreignKey, value: owner }
+          : {
+              kind: "join" as const,
+              joinedTo: {
+                relation: scope.back,
+                key: scope.parentKey,
+                value: owner as string | number,
+              },
+              parent: { model: host.model, id: host.key, relation },
+            },
     };
   }
 

@@ -436,6 +436,37 @@ export interface ReplicateActionState extends ActionState {
  * It asks the `create` policy and not the `edit` one. It makes a row, and a
  * reader who may change what is there is not thereby allowed to add to it.
  */
+/**
+ * Taking a row off this record, and putting one on it.
+ *
+ * The two verbs a relation joined through a table neither model owns has, and
+ * the only two: there is no column for a create to fill and nothing for a
+ * delete to remove. The row exists on its own, and what changes is whether it
+ * is joined here.
+ *
+ * Their own permissions rather than `create` and `delete`, because they are
+ * their own question: being allowed to put somebody on a project is not being
+ * allowed to make a project, and taking them off it is a long way from
+ * destroying one.
+ */
+export class DetachAction extends Action {
+  static make(): DetachAction {
+    return new DetachAction({});
+  }
+
+  override get type(): string {
+    return "DetachAction";
+  }
+
+  override get isBuiltIn(): boolean {
+    return true;
+  }
+
+  protected override with(state: ActionState): this {
+    return new DetachAction({ ...this.state, ...state }) as this;
+  }
+}
+
 export class ReplicateAction extends Action {
   declare readonly state: ReplicateActionState;
 

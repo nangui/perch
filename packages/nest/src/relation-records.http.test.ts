@@ -22,7 +22,13 @@ import type {
   Row,
   Schema as SchemaTree,
 } from "@perchjs/core";
-import { ImageColumn, Schema, TextColumn, TextInput } from "@perchjs/core";
+import {
+  DetachAction,
+  ImageColumn,
+  Schema,
+  TextColumn,
+  TextInput,
+} from "@perchjs/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
@@ -142,13 +148,29 @@ class MemoryAdapter implements DataAdapter {
     // Honours the join, or a double would answer every parent with every row —
     // which is the shape of the bug this narrowing exists to prevent.
     if (query.model === "Tag") {
+      // Both narrowings, and both together. A double that answered the keys it
+      // was given and forgot the join would say every selection is this
+      // parent's — which is the bug the narrowing exists to prevent, written
+      // into the thing meant to catch it.
       const wanted = query.clauses?.find((one) => one.operator === "in");
-      if (wanted !== undefined) {
-        const keys = new Set((wanted.value as readonly unknown[]).map(String));
-        const picked = TAGS.filter((tag) => keys.has(String(tag["id"])));
+      const keys =
+        wanted === undefined
+          ? undefined
+          : new Set((wanted.value as readonly unknown[]).map(String));
+      const joined = query.joinedTo;
+      if (keys !== undefined) {
+        const picked = TAGS.filter(
+          (tag) =>
+            keys.has(String(tag["id"])) &&
+            (joined === undefined ||
+              (joined.holding === "apart") !==
+                TAGGED.some(
+                  (link) =>
+                    link.tag === tag["id"] && link.post === Number(joined.value),
+                )),
+        );
         return Promise.resolve({ rows: picked, total: picked.length });
       }
-      const joined = query.joinedTo;
       const linked = (tag: Row): boolean =>
         TAGGED.some(
           (link) => link.tag === tag["id"] && link.post === Number(joined?.value),
@@ -260,7 +282,9 @@ class PostResource {
     // nothing else — which is why it declares neither a form nor an action.
     const joined = RelationManager.make("tags")
       .label("Tags")
-      .table((table) => table.columns([TextColumn.make("name")]));
+      .table((table) =>
+        table.columns([TextColumn.make("name")]).actions([DetachAction.make()]),
+      );
     const tags = tagsPolicy === undefined ? joined : joined.authorize(tagsPolicy);
     return [
       managerPolicy === undefined ? comments : comments.authorize(managerPolicy),
@@ -739,5 +763,72 @@ describe("the rows a record could be joined to", () => {
     tagsPolicy = { attach: () => false };
     const { status } = await children("/admin/api/posts/1/relations/tags/candidates");
     expect(status).toBe(404);
+  });
+});
+
+/**
+ * Detaching as a declared action, and the selection it is given.
+ *
+ * This is the one worth being careful about. An action is handed a list of keys
+ * by the client, and on a join nothing on those rows says which parent they
+ * belong to — so a request that names another record's rows has to be turned
+ * away by the narrowing and by nothing else. Getting it wrong is not a page
+ * that looks broken; it is an action carried out on somebody else's rows.
+ */
+describe("a detach run from the tab", () => {
+  const run = async (
+    who: string,
+    ids: readonly unknown[],
+  ): Promise<{ status: number; body: Record<string, unknown> }> => {
+    const response = await fetch(
+      `${url}/admin/api/posts/${who}/relations/tags/actions/DetachAction`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ids }),
+      },
+    );
+    const text = await response.text();
+    return {
+      status: response.status,
+      body: text === "" ? {} : (JSON.parse(text) as Record<string, unknown>),
+    };
+  };
+
+  const tagsOf = async (who: string): Promise<readonly string[]> => {
+    const { body } = await children(`/admin/api/posts/${who}/relations/tags/records`);
+    const page = body as unknown as { rows: readonly Row[] };
+    return page.rows.map((row) => String(row["name"]));
+  };
+
+  it("takes the rows off this record", async () => {
+    expect((await run("1", [10])).body["processed"]).toBe(1);
+    expect(await tagsOf("1")).toEqual(["blue"]);
+  });
+
+  it("refuses a selection naming another record's rows", async () => {
+    // Post 1 holds 10 and 11; post 2 holds 11. Asking post 2 to detach 10 is a
+    // request about a row it was never shown, and no column on that row would
+    // have said so.
+    const answer = await run("2", [10]);
+
+    expect(answer.status).toBe(404);
+    expect(await tagsOf("1")).toEqual(["green", "blue"]);
+  });
+
+  it("keeps only the rows that are this record's, from a mixed selection", async () => {
+    // The dangerous shape: one key it may touch and one it may not. Counting
+    // the second as refused would say it exists, so it is dropped in silence.
+    const answer = await run("2", [10, 11]);
+
+    expect(answer.body["processed"]).toBe(1);
+    expect(await tagsOf("2")).toEqual([]);
+    expect(await tagsOf("1")).toEqual(["green", "blue"]);
+  });
+
+  it("asks the policy that says detaching, not the one that says deleting", async () => {
+    tagsPolicy = { detach: () => false, delete: () => true };
+    expect((await run("1", [10])).status).toBe(404);
+    expect(await tagsOf("1")).toEqual(["green", "blue"]);
   });
 });

@@ -14,6 +14,7 @@ import type {
   DeletedRows,
   FormState,
   Id,
+  JoinNarrowing,
   NotificationState,
   Row,
   SchemaPayload,
@@ -21,6 +22,7 @@ import type {
 } from "@perchjs/core";
 import {
   DeleteAction,
+  DetachAction,
   actsOn,
   ForceDeleteAction,
   ReplicateAction,
@@ -52,6 +54,45 @@ export interface ActionAnswer {
   readonly payload?: SchemaPayload;
 }
 
+/**
+ * The rows of a selection that are this parent's, and no others.
+ *
+ * A column is compared against what is already in hand. A join is asked of the
+ * database — one query for the whole selection, never one per row — because no
+ * column on such a row says whose it is. What comes back is the intersection,
+ * and what does not come back is dropped in silence: a row belonging to another
+ * parent is not a row this caller was told about.
+ */
+async function narrowed(
+  data: DataAdapter,
+  model: string,
+  loaded: readonly Row[],
+  scope: ActionTarget["scope"],
+): Promise<readonly Row[]> {
+  if (scope === undefined) return loaded;
+  if (scope.kind === "column") {
+    return loaded.filter((row) => row[scope.column] === scope.value);
+  }
+
+  const key = data.meta(model).primaryKey.name;
+  const keys = loaded
+    .map((row) => row[key])
+    .filter(
+      (one): one is string | number =>
+        typeof one === "string" || typeof one === "number",
+    );
+  if (keys.length === 0) return [];
+
+  const page = await data.findMany({
+    model,
+    clauses: [{ path: key, operator: "in", value: keys }],
+    joinedTo: scope.joinedTo,
+    take: keys.length,
+  });
+  const joined = new Set(page.rows.map((row) => String(row[key])));
+  return loaded.filter((row) => joined.has(String(row[key])));
+}
+
 export interface ActionTarget {
   readonly data: DataAdapter;
   /** Where the allowlist is read. No table declares no actions. */
@@ -72,7 +113,33 @@ export interface ActionTarget {
    * somebody else's children is a selection of perfectly valid rows, and
    * nothing about the rows themselves would look wrong.
    */
-  readonly scope?: { readonly column: string; readonly value: unknown };
+  /**
+   * What narrows the selection to one parent, when there is one.
+   *
+   * Two shapes because a relation has two. A column can be compared against
+   * rows already in hand; a join cannot — nothing on the row says which parent
+   * it belongs to, so the database is asked which of these keys are joined to
+   * that one. Getting this wrong is not a page that looks broken: it is an
+   * action carried out on somebody else's rows.
+   */
+  readonly scope?:
+    | { readonly kind: "column"; readonly column: string; readonly value: unknown }
+    | {
+        readonly kind: "join";
+        readonly joinedTo: JoinNarrowing;
+        /**
+         * The other end, which only the parent's side names.
+         *
+         * A join is written from the model that declares the relation, and
+         * the child's side has a different name for it — so detaching needs
+         * the parent, not the row it is narrowing by.
+         */
+        readonly parent: {
+          readonly model: string;
+          readonly id: Id;
+          readonly relation: string;
+        };
+      };
 }
 
 export interface Reached {
@@ -117,10 +184,7 @@ export async function reachAction(
   const loaded = await loadSelection(data, model, keys, reads(action));
   // Dropped rather than counted as refusals: a row belonging to another parent
   // is not a row this caller was told about, and a count would say it exists.
-  const rows =
-    scope === undefined
-      ? loaded
-      : loaded.filter((row) => row[scope.column] === scope.value);
+  const rows = await narrowed(data, model, loaded, scope);
   // A key naming nothing is a row somebody deleted between the tick and the
   // press. Naming none at all is a request about nothing.
   if (rows.length === 0) throw new NotFoundException();
@@ -165,8 +229,14 @@ export async function carryAction(options: {
   readonly user: unknown;
   readonly refusedAlready: number;
   readonly collected: FormState;
+  /**
+   * What narrowed the rows to one parent, for the verb that needs the parent
+   * itself. Detaching is written from the other end of the join, and only that
+   * end names the relation.
+   */
+  readonly scope?: ActionTarget["scope"];
 }): Promise<ActionAnswer> {
-  const { data, model, action, rows, user, refusedAlready, collected } = options;
+  const { data, model, action, rows, user, refusedAlready, collected, scope } = options;
   // Read once, not once per row. `meta` is documented as resolved at bootstrap
   // and never called on a hot path, and five hundred rows is one.
   const primaryKey = data.meta(model).primaryKey.name;
@@ -184,6 +254,23 @@ export async function carryAction(options: {
 
       const processed = await tx[port](model, admitted.map(key));
       return { processed, refused };
+    }
+
+    // One statement for the whole selection, like the three above. Nothing is
+    // destroyed: the rows stay where they are and stop being this one's.
+    if (action instanceof DetachAction) {
+      if (scope === undefined || scope.kind !== "join") throw new NotFoundException();
+      const admitted = await admittedRecords(action, rows, user);
+      const refused = refusedAlready + (rows.length - admitted.length);
+      if (admitted.length === 0) return { processed: 0, refused };
+
+      await tx.detach(
+        scope.parent.model,
+        scope.parent.id,
+        scope.parent.relation,
+        admitted.map(key),
+      );
+      return { processed: admitted.length, refused };
     }
 
     // Written one at a time, and inside the same transaction: fifty copies
