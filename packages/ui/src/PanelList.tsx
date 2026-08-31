@@ -8,8 +8,9 @@
  * page it holds.
  */
 import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ColumnMenu, hiddenAtFirst } from "./ColumnMenu.js";
+import { remember, remembered } from "./remembered.js";
 import type {
   ActionNode,
   ModalWidth,
@@ -188,10 +189,18 @@ export function PanelList({
   // Which columns the reader has taken off. Seeded from what the table
   // declared and its own from then on: a page turning is not a reason to put
   // back a column somebody removed.
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(() =>
-    hiddenAtFirst(initial.columns.columns),
-  );
+  // What this reader arranged last time wins over what the table declared —
+  // `hiddenByDefault` is where a column starts for somebody who has never said
+  // otherwise, not a thing to reapply over their choice.
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => {
+    const kept = remembered(initial.resourcePath).hidden;
+    return kept === undefined ? hiddenAtFirst(initial.columns.columns) : new Set(kept);
+  });
   const [failed, setFailed] = useState(false);
+  // Asked for once, on arrival. The server sent the page it defaults to, and a
+  // reader who chose another size last time should not have to choose it again
+  // — but only where they did choose, and only where this list can ask.
+  const asked = useRef(false);
 
   /**
    * What is in the search box, and which answer it was last reconciled with.
@@ -274,6 +283,16 @@ export function PanelList({
             },
           );
         };
+
+  useEffect(() => {
+    if (asked.current || ask === undefined) return;
+    asked.current = true;
+    const size = remembered(initial.resourcePath).perPage;
+    if (size === undefined || size === initial.perPage) return;
+    ask({ ...(sort === undefined ? {} : { sort }), page: 1, perPage: size });
+    // Arrival only. Naming the transport here would ask again every time the
+    // list redrew, which is a request per keystroke in the search box.
+  }, []);
 
   // Reordering starts over. Page 5 of one order is not page 5 of another, and
   // keeping the number would land the reader somewhere they did not choose.
@@ -565,6 +584,7 @@ export function PanelList({
                 const next = new Set(was);
                 if (next.has(path)) next.delete(path);
                 else next.add(path);
+                remember(page.resourcePath, { hidden: [...next] });
                 return next;
               });
             }}
@@ -797,10 +817,12 @@ export function PanelList({
                 // page 5 of a hundred, and keeping the number would land the
                 // reader somewhere they did not choose — the same rule sorting
                 // and searching already follow.
+                const size = Number(event.target.value);
+                remember(page.resourcePath, { perPage: size });
                 ask({
                   ...(sort === undefined ? {} : { sort }),
                   page: 1,
-                  perPage: Number(event.target.value),
+                  perPage: size,
                 });
               }}
             >

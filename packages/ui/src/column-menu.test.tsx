@@ -15,6 +15,7 @@ import { describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
+import { remember } from "./remembered.js";
 
 const page = (): RecordsPage => ({
   rows: [{ id: 1, title: "First", note: "kept", extra: "wide" }],
@@ -40,6 +41,8 @@ const page = (): RecordsPage => ({
   },
   recordKey: "id",
 });
+
+const at = "/admin/things";
 
 const heads = (): readonly string[] =>
   screen.getAllByRole("columnheader").map((one) => one.textContent);
@@ -135,5 +138,41 @@ describe("a page that turns underneath it", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(heads()).not.toContain("Note");
+  });
+});
+
+describe("what the reader arranged last time", () => {
+  it("wins over what the table declared", () => {
+    // `hiddenByDefault` says where a column starts for somebody who has never
+    // said otherwise. Reapplying it over their choice would take the column
+    // away again on every visit.
+    cleanup();
+    globalThis.localStorage.clear();
+    remember(at, { hidden: ["note"] });
+
+    render(<PanelList initial={{ ...page(), resourcePath: at }} title="Things" />);
+
+    expect(heads()).not.toContain("Note");
+    expect(heads()).toContain("Extra");
+  });
+
+  it("is written down as it is changed", () => {
+    cleanup();
+    globalThis.localStorage.clear();
+    render(<PanelList initial={{ ...page(), resourcePath: at }} title="Things" />);
+
+    fireEvent.click(screen.getByText("Columns"));
+    fireEvent.click(screen.getAllByRole("checkbox")[0] as HTMLElement);
+
+    expect(globalThis.localStorage.getItem(`perch.table.${at}`)).toContain("note");
+  });
+
+  it("is the table's own doing where nothing was arranged", () => {
+    cleanup();
+    globalThis.localStorage.clear();
+    render(<PanelList initial={{ ...page(), resourcePath: at }} title="Things" />);
+
+    expect(heads()).toContain("Note");
+    expect(heads()).not.toContain("Extra");
   });
 });
