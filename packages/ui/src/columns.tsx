@@ -6,7 +6,7 @@
  * enforced by the signature rather than by a review.
  */
 import type { ReactNode } from "react";
-import type { ColumnNode, Row } from "@perchjs/core";
+import type { BadgedValue, ColumnNode, Row } from "@perchjs/core";
 import type { CellHandle } from "./column-registry.js";
 import { registerColumn } from "./column-registry.js";
 
@@ -388,7 +388,49 @@ function nameOf(column: ColumnNode, cell: CellHandle): string {
 }
 
 export function registerBuiltInColumns(): void {
+/**
+ * A value drawn as a state.
+ *
+ * What arrives is what `BadgeColumn.present` settled on the server: the value
+ * and the tone it was judged to carry, because the map from one to the other is
+ * a rule somebody wrote in a resource and no browser can reconstruct it.
+ *
+ * A value the server never passed through that judgement is drawn neutral
+ * rather than refused — a column may name a path a row has nothing at, and
+ * `presentRows` leaves such a value where it found it.
+ *
+ * Empty stays the dash every other column shows. A badge around nothing is a
+ * coloured box saying a field is blank, which is louder than the fact.
+ */
+function badge(held: unknown): ReactNode {
+  const badged = isBadged(held);
+  const value = badged ? held.value : held;
+  // Read from the value rather than from what `text` drew, which is a fresh
+  // element every call and equal to nothing, itself included.
+  if (value === null || value === undefined || value === "") return nothing();
+
+  return (
+    <span className={`perch-badge perch-badge--${badged ? held.tone : "neutral"}`}>
+      {text(value)}
+    </span>
+  );
+}
+
+/**
+ * Whether this value carries its own tone.
+ *
+ * Written here rather than imported: this package takes types from the core and
+ * no code, so a guard the core could have exported is one line repeated instead
+ * of an arrow pointing the wrong way.
+ */
+function isBadged(value: unknown): value is BadgedValue {
+  return (
+    typeof value === "object" && value !== null && "tone" in value && "value" in value
+  );
+}
+
   registerColumn("TextColumn", (value) => text(value));
+  registerColumn("BadgeColumn", (value) => badge(value));
   registerColumn("IconColumn", (value, _row: Row, column: ColumnNode) =>
     column.boolean === true ? icon(value) : text(value),
   );

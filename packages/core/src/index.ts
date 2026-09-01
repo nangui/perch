@@ -102,8 +102,9 @@ export { admittedRecords, runAction } from "./run-action.js";
 export { Notification } from "./notification.js";
 
 // Tables, and the column layer.
-export type { ColumnState, PresentContext } from "./column.js";
+export type { BadgedValue, ColumnState, PresentContext } from "./column.js";
 export {
+  BadgeColumn,
   CheckboxColumn,
   Column,
   ColorColumn,

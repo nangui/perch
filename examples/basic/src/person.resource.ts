@@ -41,6 +41,7 @@ import {
   Schema,
   SchemaFilter,
   Section,
+  BadgeColumn,
   SelectColumn,
   Select,
   SelectFilter,
@@ -215,6 +216,20 @@ export class PersonResource {
           // The choices are the form field's own, over the wire: one list, in
           // one place, and the boundary matches against it.
           SelectColumn.make("role").label("Role"),
+          // A value read as a colour rather than as a word. The map from one to
+          // the other is a rule written here and settled per row on the server,
+          // which is why the client never receives it.
+          BadgeColumn.make("status")
+            .label("Status")
+            .color((value) =>
+              value === "active"
+                ? "success"
+                : value === "suspended"
+                  ? "danger"
+                  : value === "invited"
+                    ? "warning"
+                    : "neutral",
+            ),
           // Written from the table, through the form that owns the field: the
           // same policy, the same boundary, the same rules.
           ToggleColumn.make("active").label("Active"),

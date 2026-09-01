@@ -12,6 +12,7 @@
  */
 import { isResolver } from "./component.js";
 import { safeHref } from "./entries/text-entry.js";
+import type { EntryTone, ToneChoice } from "./entries/text-entry.js";
 import type { Field } from "./field.js";
 import { normaliseOptions } from "./option.js";
 
@@ -55,6 +56,27 @@ export interface ColumnState {
    * says which disk, and the host answers.
    */
   readonly disk?: string;
+  /**
+   * Which tone a value in this column carries.
+   *
+   * `ToneChoice`, so a fixed one or one read from the value — and read on the
+   * server, because the map from a value to a meaning is a rule somebody wrote
+   * and the browser has no way to know it. Never on the wire: a function does
+   * not cross it, and `serialiseTable` copies no key it was not asked for.
+   */
+  readonly color?: ToneChoice;
+}
+
+/**
+ * What a badge column hands a cell: the value, and what it was judged to mean.
+ *
+ * A shape rather than a bare value, because the tone is per row and the column
+ * tree is per table — there is nowhere else for it to travel. Always carries a
+ * tone, so a cell has one thing to draw rather than two cases.
+ */
+export interface BadgedValue {
+  readonly value: unknown;
+  readonly tone: EntryTone;
 }
 
 /**
@@ -442,6 +464,59 @@ export class SelectColumn extends WritableColumn {
 
   protected override with(state: ColumnState): this {
     return new SelectColumn(state) as this;
+  }
+}
+
+/**
+ * `BadgeColumn` — a value drawn as a state rather than read as a word.
+ *
+ * The column a status belongs in. Left as text, "active" and "suspended" are
+ * two words a reader has to read; as badges they are two colours they can count
+ * down a column without reading at all, which is what a table of two hundred
+ * rows is for.
+ *
+ * A tone, not a colour: which green the panel uses is the theme's business, and
+ * a column naming a hex would be the one thing on the page a theme could not
+ * change. The same four names an entry uses, so a status has one meaning either
+ * side of the panel.
+ */
+export class BadgeColumn extends Column {
+  static make(path: string): BadgeColumn {
+    return new BadgeColumn({ path, sortable: false, searchable: false });
+  }
+
+  override get type(): string {
+    return "BadgeColumn";
+  }
+
+  /**
+   * What this value means, as a name.
+   *
+   * Given the value rather than a context: the thing a status depends on is the
+   * status, and asking for `({ record }) => record?.status` would be asking an
+   * author to write the path they already declared. Synchronous, because this
+   * is a lookup table — a colour worth a query on is a column the record should
+   * be carrying.
+   */
+  color(tone: ToneChoice): this {
+    return this.with({ ...this.state, color: tone });
+  }
+
+  /**
+   * The tone settled for this row, on the server.
+   *
+   * `neutral` where nothing was declared or the choice returned nothing, so a
+   * cell always has a badge to draw rather than a badge and an exception.
+   */
+  override present(value: unknown, context: PresentContext): BadgedValue {
+    void context;
+    const declared = this.state.color;
+    const tone = typeof declared === "function" ? declared(value) : declared;
+    return { value, tone: tone ?? "neutral" };
+  }
+
+  protected override with(state: ColumnState): this {
+    return new BadgeColumn(state) as this;
   }
 }
 
