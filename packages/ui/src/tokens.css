@@ -19,7 +19,11 @@
   /* Surfaces, from the page ground upward. */
   --perch-surface-page: #e9ebec;
   --perch-surface: #ffffff;
-  --perch-surface-raised: #fbfbfc;
+  /* A card here is already white, so a lifted surface has nowhere lighter to
+     go and the shadow scale carries the elevation instead. It was #fbfbfc,
+     which is a shade *below* the surface it lifts off — receding where it
+     meant to rise. */
+  --perch-surface-raised: #ffffff;
   --perch-surface-muted: #f6f7f8;
   --perch-surface-sunken: #eef0f1;
   --perch-surface-skeleton: #e2e6e8;
@@ -85,16 +89,30 @@
 }
 
 :where([data-perch-theme="dark"]) {
-  --perch-surface-page: #0d1012;
-  --perch-surface: #14181a;
-  --perch-surface-raised: #191e21;
-  --perch-surface-muted: #1d2326;
+  /* Measured rather than derived. A card sat 1.07:1 from the page, which is the
+     same colour to an eye — so nothing separated anything, and the shadows
+     added for depth had no ground to fall on.
+     
+     Contrast ratios compress at these luminances: darkening the page alone tops
+     out at 1.15:1 even at pure black, so the step has to come from both sides.
+     The page goes down and the surfaces come up, which is also the right
+     direction — in a dark interface height reads as light. */
+  --perch-surface-page: #0b0e0f;
+  --perch-surface: #181d20;
+  --perch-surface-raised: #22282b;
+  --perch-surface-muted: #23292c;
   --perch-surface-sunken: #232a2e;
   --perch-surface-skeleton: #283034;
   --perch-surface-skeleton-strong: #222a2d;
 
-  --perch-border-subtle: #232a2e;
-  --perch-border: #2c353a;
+  /* Weighted against the light ramp rather than against a threshold. `border`
+     is a divider and `border-subtle` a fainter one; the outline a control owes
+     a reader is `border-strong`, which clears 3:1 in both ramps. Pushing these
+     two to that figure made a separator twice as heavy here as it is in the
+     light — the same ramp behaving differently, which is what a derived ramp
+     does and what this one is meant to stop doing. */
+  --perch-border-subtle: #262d31;
+  --perch-border: #333c41;
   /* On a dark ground stronger means lighter: 3.79:1 and 5.98:1 on the surface. */
   --perch-border-strong: #6b757b;
   --perch-border-hover: #8c979d;
