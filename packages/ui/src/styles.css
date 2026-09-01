@@ -102,7 +102,7 @@
   padding: 0 var(--perch-space-5);
   border: 1px solid var(--perch-border-strong);
   border-radius: var(--perch-radius);
-  background: var(--perch-surface);
+  background-color: var(--perch-surface);
   color: var(--perch-content);
   font-family: var(--perch-font-sans);
   font-size: var(--perch-text-control);
@@ -113,7 +113,7 @@
 
 .perch-control:hover:not([data-disabled="true"]):not([data-readonly="true"]) {
   border-color: var(--perch-border-hover);
-  background: var(--perch-surface-raised);
+  background-color: var(--perch-surface-raised);
 }
 
 /* :focus-within rather than :focus so the wrapper lights up for the inner
@@ -126,7 +126,7 @@
 
 .perch-control[data-state="draft"] {
   border-color: var(--perch-accent);
-  background: var(--perch-accent-surface);
+  background-color: var(--perch-accent-surface);
 }
 
 .perch-control[data-invalid="true"] {
@@ -136,13 +136,13 @@
 .perch-control[data-disabled="true"],
 .perch-control[data-readonly="true"] {
   border-color: var(--perch-border);
-  background: var(--perch-surface-muted);
+  background-color: var(--perch-surface-muted);
   color: var(--perch-content-muted);
 }
 
 .perch-control[data-empty="true"] {
   border-style: dashed;
-  background: var(--perch-surface-muted);
+  background-color: var(--perch-surface-muted);
   color: var(--perch-content-subtle);
 }
 
@@ -403,7 +403,7 @@
   padding: 0 var(--perch-space-5);
   border: 1px solid var(--perch-border-strong);
   border-radius: var(--perch-radius);
-  background: var(--perch-surface);
+  background-color: var(--perch-surface);
   color: var(--perch-content);
   font-family: var(--perch-font-sans);
   font-size: var(--perch-text-control);
@@ -1341,6 +1341,81 @@
 
 .perch-cell__choice[data-pending="true"] {
   opacity: 0.6;
+}
+
+/* A cell at rest is the value it holds.
+
+   An editable column drew a framed box on every row, so a table of three people
+   read as nine controls and two of the columns beside them read as text. The
+   boxes are the loudest thing on the page and they say the same thing on every
+   row, which is the definition of something that should be quiet.
+
+   The control is still there — same element, same focus, same keyboard, same
+   label — it just stops drawing itself until somebody reaches for it. The
+   border stays at 1px and only loses its colour, and the frame is pulled out
+   over the cell's own padding, so nothing moves when it appears.
+
+   Only the resting state is written here. `.perch-control:hover` carries two
+   `:not()` clauses and outranks anything a cell could say, so the frame under a
+   pointer is the one every other control in the panel gets — a rule repeating
+   it here would look like it was doing the work and never be reached.
+
+   Written after the rules it undoes: `.perch-control:focus-within` carries the
+   same specificity, so the later declaration is the one that wins, and the
+   focus state has to be restated here rather than inherited. */
+.perch-table__cell .perch-cell__line,
+.perch-table__cell .perch-cell__choice {
+  height: auto;
+  padding-block: 0;
+  border-color: transparent;
+  /* `background-color`, never the shorthand: the shorthand also resets
+     `background-image`, and that is where the select keeps its chevron. */
+  background-color: transparent;
+  line-height: inherit;
+  /* Pulled left by its own padding so the value lines up with the plain text in
+     the cells beside it, and widened by as much so the frame reaches back out
+     over the space when it appears. */
+  margin-inline: calc(-1 * (var(--perch-space-4) + 1px));
+  padding-inline: var(--perch-space-4);
+  width: calc(100% + 2 * (var(--perch-space-4) + 1px));
+}
+
+
+/* Focus is not a hint that something can be reached, it is the mark of where
+   the reader already is, so it keeps the full frame the rest of the panel uses.
+   Restated because the quieting rule above outranks the shared one by order. */
+.perch-table__cell .perch-cell__line:focus-within,
+.perch-table__cell .perch-cell__choice:focus-within {
+  border-color: var(--perch-accent);
+  background-color: var(--perch-surface);
+  box-shadow: var(--perch-focus-ring);
+  outline: none;
+}
+
+/* A pending write still has to be visible as one, and opacity alone on an
+   unframed value is easy to miss. */
+.perch-table__cell .perch-cell__line[data-pending="true"],
+.perch-table__cell .perch-cell__choice[data-pending="true"] {
+  border-color: var(--perch-border);
+}
+
+/* The browser's own select, given the same quiet — it took the panel's frame
+   from the rule that gave every native control one look, and that frame is the
+   one being taken back here. The chevron stays: a column of choices should say
+   that it is one, and without it a select at rest is indistinguishable from the
+   text in the cell beside it. `background-color` rather than `background`, so
+   that chevron survives. */
+.perch-table__cell select {
+  height: auto;
+  padding-block: 0;
+  border-color: transparent;
+  background-color: transparent;
+  line-height: inherit;
+}
+
+
+.perch-table__cell select:focus-visible {
+  background-color: var(--perch-surface);
 }
 
 .perch-cell__colour {
