@@ -1380,6 +1380,16 @@
   width: calc(100% + 2 * (var(--perch-space-4) + 1px));
 }
 
+/* The chevron's room, given back.
+
+   `padding-inline` above is one value for both sides, and on a select the right
+   side is where the arrow sits — so quieting the frame also took away the space
+   the arrow was standing in and let the value run underneath it. */
+.perch-table__cell .perch-cell__choice,
+.perch-table__cell select {
+  padding-right: var(--perch-space-8);
+}
+
 
 /* Focus is not a hint that something can be reached, it is the mark of where
    the reader already is, so it keeps the full frame the rest of the panel uses.

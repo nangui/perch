@@ -130,6 +130,20 @@ describe("a control that has gone quiet in a cell", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("leaves the chevron room to stand in", () => {
+    // Quieting a cell sets one padding for both sides, and on a select the
+    // right side is where the arrow is drawn — set to the same value, the text
+    // runs underneath it. Held as a comparison rather than a figure: what
+    // matters is that the arrow's side asks for more.
+    for (const selector of [".perch-table__cell .perch-cell__choice", ".perch-table__cell select"]) {
+      const right = settled(selector, "padding-right");
+      const both = settled(selector, "padding-inline");
+
+      expect(right, `${selector} reserves nothing for its chevron`).toBeDefined();
+      expect(right).not.toBe(both);
+    }
+  });
+
   it("leaves a choice in a cell still saying that it is one", () => {
     // The outcome the ban above protects, checked from the other side: with the
     // frame gone, the chevron is all that separates a select at rest from the
