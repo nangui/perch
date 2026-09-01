@@ -32,8 +32,7 @@ const page = (over: Partial<RecordsPage> = {}): RecordsPage => ({
   ...over,
 });
 
-const size = (): HTMLSelectElement =>
-  screen.getByLabelText(/rows per page/i);
+const size = (): HTMLSelectElement => screen.getByLabelText(/rows per page/i);
 
 describe("the page size control", () => {
   it("offers a short list and shows what the page holds", () => {

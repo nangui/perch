@@ -378,6 +378,69 @@
   color: var(--perch-content-muted);
 }
 
+/* Every native control the panel draws, given the one look the rest already
+   has.
+
+   Five field components are built on a headless library and styled here; seven
+   places draw a browser control straight — the filters, the page size, a cell's
+   select, a date, a file. On one screen that is two families of control with
+   two chevrons, two heights and two rings, and the eye reads the difference
+   before it can name it.
+
+   Styled rather than replaced. A native select keeps the keyboard behaviour and
+   the platform's own picker on a phone, which is worth more than matching a
+   chevron exactly — so it is given the same frame, and the chevron is redrawn
+   to match. */
+.perch-list__search select,
+  /* A control that already carries its own frame is left alone — a filter
+     holding a whole schema draws real fields, and framing them twice put a box
+     inside a box. */
+  .perch-list__search
+  input:not([type="checkbox"]):not([type="radio"]):not(.perch-control):not(.perch-control__input),
+.perch-list__size select,
+.perch-table__cell select {
+  height: var(--perch-control-height);
+  padding: 0 var(--perch-space-5);
+  border: 1px solid var(--perch-border-strong);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+  color: var(--perch-content);
+  font-family: var(--perch-font-sans);
+  font-size: var(--perch-text-control);
+}
+
+.perch-list__search select:hover,
+.perch-list__size select:hover,
+.perch-table__cell select:hover {
+  border-color: var(--perch-border-hover);
+}
+
+/* The same ring every other control answers focus with. A browser's own outline
+   is a different shape on every platform, which is the inconsistency this rule
+   exists to remove. */
+.perch-list__search select:focus-visible,
+.perch-list__search input:not(.perch-control):not(.perch-control__input):focus-visible,
+.perch-list__size select:focus-visible,
+.perch-table__cell select:focus-visible {
+  outline: none;
+  border-color: var(--perch-accent);
+  box-shadow: var(--perch-focus-ring);
+}
+
+/* The chevron, redrawn. The platform's own is a different glyph at a different
+   weight from the one the styled selects show, and two chevrons on a screen is
+   what makes one control look like it belongs to another product. */
+.perch-list__search select,
+.perch-list__size select,
+.perch-table__cell select {
+  appearance: none;
+  padding-right: var(--perch-space-8);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--perch-space-4) center;
+  background-size: 10px 6px;
+}
+
 /* Status marks: Unsaved, Saving…, and the error badge. */
 .perch-control__mark {
   flex: none;
@@ -693,7 +756,11 @@
 .perch-select__chevron {
   flex: none;
   margin-left: auto;
-  font-size: var(--perch-text-xs);
+  /* Sized to the one the native selects are given rather than to the smallest
+     step in the scale. Two chevrons of two weights on a screen is what makes a
+     styled control and a browser control look like two products. */
+  font-size: var(--perch-text-base);
+  line-height: 1;
   color: var(--perch-content-muted);
 }
 
@@ -1423,6 +1490,10 @@
 
 .perch-markdown__box {
   min-height: 120px;
+  /* The same ceiling its rich counterpart has, for the same reason: a surface
+     that grows without one takes the toolbar off the screen. `resize` below
+     stays, so a reader who wants more can still have it. */
+  max-height: 60vh;
   padding: var(--perch-space-5);
   border: 0;
   background: none;
@@ -1631,6 +1702,13 @@
 /* The editor's own element. Its ring is the frame's, drawn above. */
 .perch-rich__page {
   min-height: 120px;
+  /* And a ceiling of its own, with its own scrollbar. Without one the surface
+     grows with whatever is typed and the page grows under it: the toolbar
+     leaves the screen, and a long note is written with its buttons somewhere
+     above. The frame around this clips rather than scrolls, so anything past
+     the fold could not be reached at all. */
+  max-height: 60vh;
+  overflow-y: auto;
   padding: var(--perch-space-5);
   color: var(--perch-content);
   font-size: var(--perch-text-control);
@@ -2477,7 +2555,9 @@
   border-radius: var(--perch-radius-lg);
   background: var(--perch-surface);
   color: var(--perch-content);
-  box-shadow: var(--perch-shadow-popover);
+  /* It came from somewhere and it will go away, which is what the deepest
+     step in the scale is for. */
+  box-shadow: var(--perch-shadow-overlay);
 }
 
 /* A question fits in a sentence; a form does not.
@@ -3433,8 +3513,10 @@
 .perch-layout--section {
   padding: var(--perch-space-8);
   background: var(--perch-surface);
-  border: 1px solid var(--perch-border);
   border-radius: var(--perch-radius-lg);
+  /* Lifted rather than outlined: a border was the only thing separating this
+     from the page, and every other rectangle had the same one. */
+  box-shadow: var(--perch-shadow-raised);
 }
 
 .perch-layout--schema > .perch-layout__body {
@@ -3532,6 +3614,8 @@
   border-collapse: collapse;
   font-size: var(--perch-text-base);
   color: var(--perch-content);
+  /* The other panel on the page, and the one a reader spends time in. */
+  box-shadow: var(--perch-shadow-panel);
 }
 
 .perch-table__head {
@@ -3712,18 +3796,64 @@
 /* The search sits above the table, not in its header: it acts on the whole
    result set rather than on a column. */
 .perch-list__search {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--perch-space-4);
-  /* The names sit above the controls, so the row lines up on their bottoms
-     rather than on their middles — an Apply button beside a labelled box would
-     otherwise float half a line high. */
-  align-items: flex-end;
+  /* A grid rather than a wrapping row, and this is not a matter of taste. In a
+     wrapping row every item on a line takes that line's height, so one tall
+     filter — a schema filter is a whole fieldset — pushed every short one
+     beside it to the bottom of a 250px line. The bar took a third of the page
+     to hold eight boxes, with the short ones adrift in it.
+
+     Each filter now gets a cell of its own and sits at the top of it, so a tall
+     one grows downward without moving anything else. */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  align-items: start;
+  gap: var(--perch-space-5);
   padding: var(--perch-space-6);
   margin-bottom: var(--perch-space-6);
   background: var(--perch-surface);
-  border: 1px solid var(--perch-border);
   border-radius: var(--perch-radius-lg);
+  /* A panel, not a card — it holds the controls for everything below it. */
+  box-shadow: var(--perch-shadow-panel);
+}
+
+/* Apply belongs to the whole bar, not to the filter it happens to sit beside.
+   Its own row at the end, pushed to the right, where a form's confirm button
+   is looked for. */
+.perch-list__search > button[type="submit"] {
+  grid-column: 1 / -1;
+  justify-self: end;
+}
+
+/* A filter carrying a schema is several controls, so it is given the room of
+   two — and the whole width where there is only room for one. */
+.perch-list__form {
+  grid-column: span 2;
+  /* A fieldset's own padding is a browser default meant for a page-sized form,
+     and inside a filter bar it left a hand's width of nothing under the
+     controls — which made the whole row of the grid as tall as the gap. */
+  margin: 0;
+  padding: 0 var(--perch-space-4) var(--perch-space-4);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius);
+}
+
+/* Its controls side by side rather than stacked. A schema renders in one
+   column by default, which is right in a form and wrong in a filter bar: two
+   boxes one above the other made the fieldset 250px tall, and every row of the
+   bar as tall as it. Guarded by a width, so the rule that stacks everything in
+   a narrow window still wins there — it is written later in this file and
+   would otherwise be overruled by this. */
+@media (min-width: 40.0625rem) {
+  .perch-list__form .perch-layout__body {
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: var(--perch-space-4);
+  }
+}
+
+@media (max-width: 40rem) {
+  .perch-list__form {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Between the filters and the rows, where the reader's eye already is after

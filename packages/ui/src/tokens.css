@@ -70,6 +70,16 @@
   --perch-pending-border: #c9c3a8;
   --perch-pending-surface: #fbfaf5;
 
+  /* Elevation, as a scale rather than two one-off values.
+     
+     Before this the only tools a surface had to separate itself from another
+     were a 1px border and a background a shade apart — so a card, a table, a
+     field and a button were all rectangles with the same edge, and nothing
+     advanced or receded. `raised` is a resting surface, `overlay` is something
+     that came from somewhere else and will go away. */
+  --perch-shadow-raised: 0 1px 2px rgb(20 24 26 / 0.06);
+  --perch-shadow-panel: 0 2px 6px rgb(20 24 26 / 0.08);
+  --perch-shadow-overlay: 0 12px 32px rgb(20 24 26 / 0.14);
   --perch-shadow-popover: 0 6px 16px rgb(20 24 26 / 0.1);
   --perch-shadow-dragging: 0 8px 18px rgb(20 24 26 / 0.14);
 }
@@ -117,6 +127,11 @@
   --perch-pending-border: #4a4635;
   --perch-pending-surface: #1f1d16;
 
+  /* Deeper on a dark ground, where a shadow has less contrast to work with and
+     a light one would read as fog rather than as height. */
+  --perch-shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4);
+  --perch-shadow-panel: 0 2px 8px rgb(0 0 0 / 0.45);
+  --perch-shadow-overlay: 0 14px 36px rgb(0 0 0 / 0.6);
   --perch-shadow-popover: 0 6px 16px rgb(0 0 0 / 0.5);
   --perch-shadow-dragging: 0 8px 18px rgb(0 0 0 / 0.6);
 }
