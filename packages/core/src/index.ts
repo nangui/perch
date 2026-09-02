@@ -109,6 +109,7 @@ export {
   CheckboxColumn,
   Column,
   ColorColumn,
+  GaugeColumn,
   IconColumn,
   ImageColumn,
   SelectColumn,

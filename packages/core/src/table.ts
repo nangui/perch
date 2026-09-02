@@ -72,6 +72,14 @@ export interface ColumnNode {
   readonly image?: string;
   readonly description?: string;
   /**
+   * The ends of the scale a gauge draws against.
+   *
+   * Sent because the length is worked out where the bar is drawn: that is not a
+   * rule and not state, it is arithmetic on a value the server already settled.
+   */
+  readonly min?: number;
+  readonly max?: number;
+  /**
    * This reader may write this cell.
    *
    * Not part of what a table declares — a column is writable or it is not, and
@@ -348,6 +356,8 @@ export function serialiseTable(table: Table): ColumnTree {
       ...(column.state.description === undefined
         ? {}
         : { description: column.state.description }),
+      ...(column.state.min === undefined ? {} : { min: column.state.min }),
+      ...(column.state.max === undefined ? {} : { max: column.state.max }),
     })),
     ...(searchablePaths(table).size === 0 ? {} : { searchable: true as const }),
     filters: table.state.filters.map((filter) => ({

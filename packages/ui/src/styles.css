@@ -1258,6 +1258,43 @@
   font-size: var(--perch-text-sm);
 }
 
+/* A number drawn as a length, with the number kept beside it.
+
+   The bar answers "which of these is short" without being read; the digits
+   answer "how short" for the reader who came for one row. */
+.perch-cell__gauge {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  min-width: 0;
+}
+
+.perch-cell__gauge-track {
+  flex: 1 1 auto;
+  min-width: 3rem;
+  max-width: 8rem;
+  block-size: 6px;
+  border-radius: 999px;
+  background-color: var(--perch-surface-sunken);
+  overflow: hidden;
+}
+
+.perch-cell__gauge-fill {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background-color: var(--perch-accent);
+}
+
+/* Lined up on the digit rather than on the glyph, so a column of numbers reads
+   down as a column rather than as a ragged edge. */
+.perch-cell__gauge-value {
+  flex: none;
+  color: var(--perch-content-secondary);
+  font-size: var(--perch-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
 /* The ones there was no room for, counted. A stack keeps its own edge visible
    against the image it overlaps. */
 .perch-cell__more {

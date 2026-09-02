@@ -500,7 +500,59 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
+/**
+ * A number drawn as a length, with the number kept beside it.
+ *
+ * Both, because a bar answers "which of these is short" at a glance and answers
+ * "how short" not at all. The digits stay for the reader who came for one row.
+ *
+ * The proportion is worked out here. That is not business logic and not state:
+ * it is where a value the server settled falls between two ends the server
+ * declared, and sending a percentage would mean sending the same fact twice.
+ *
+ * `role="meter"` rather than a bare box, so what a sighted reader gets from the
+ * length somebody using a screen reader gets from the value — a div of a given
+ * width says nothing at all.
+ */
+function gauge(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode {
+  const held = typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  if (held === undefined) {
+    // A number that is not one — `NaN`, an infinity — has no length and no
+    // digits worth showing, so it takes the dash. Anything else is shown as it
+    // is: a column that cannot draw a bar can still say what it holds.
+    return typeof value === "number" ? nothing() : text(value);
+  }
+
+  const low = column.min ?? 0;
+  const high = column.max ?? 100;
+  // Clamped, because a stored value outside the scale is a bar past the end of
+  // its track — and a scale declared backwards is somebody's typo rather than a
+  // reason to draw nothing.
+  const span = Math.abs(high - low);
+  const filled =
+    span === 0 ? 0 : Math.min(100, Math.max(0, ((held - low) / (high - low)) * 100));
+
+  return (
+    <span className="perch-cell__gauge">
+      <span
+        className="perch-cell__gauge-track"
+        role="meter"
+        aria-valuenow={held}
+        aria-valuemin={low}
+        aria-valuemax={high}
+        aria-label={nameOf(column, cell)}
+      >
+        <span className="perch-cell__gauge-fill" style={{ inlineSize: `${filled}%` }} />
+      </span>
+      <span className="perch-cell__gauge-value">{held}</span>
+    </span>
+  );
+}
+
   registerColumn("TextColumn", (value) => text(value));
+  registerColumn("GaugeColumn", (value, _row: Row, column, cell) =>
+    gauge(value, column, cell),
+  );
   registerColumn("AvatarColumn", (value, row: Row, column: ColumnNode) =>
     identity(value, row, column),
   );

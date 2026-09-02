@@ -12,6 +12,7 @@ import {
   CheckboxColumn,
   CheckboxList,
   ColorColumn,
+  GaugeColumn,
   ColorPicker,
   CreateAction,
   DateRangeFilter,
@@ -221,6 +222,10 @@ export class PersonResource {
           TextColumn.make("team.name").label("Team"),
           // Whatever notation the column keeps — this one keeps `hsl()`.
           ColorColumn.make("tint").label("Tint").copyable(),
+          // A number read as a length. Down a page, bars say which is short
+          // without being read; the digits stay for the one row somebody came
+          // for. The ends are declared, not read from the page's largest value.
+          GaugeColumn.make("rating").label("Rating").range(0, 5).sortable(),
           // The choices are the form field's own, over the wire: one list, in
           // one place, and the boundary matches against it.
           SelectColumn.make("role").label("Role"),

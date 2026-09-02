@@ -69,6 +69,16 @@ export interface ColumnState {
   readonly image?: string;
   /** The quieter second line under it: an address, a handle, a team. */
   readonly description?: string;
+  /**
+   * The ends of the scale a value is drawn against.
+   *
+   * Both, because a proportion needs them: 4 means nothing until something says
+   * out of what, and a gauge with only one end is a bar whose length is a
+   * guess. Declared rather than read from the data — a scale that moved with
+   * the page's largest value would redraw every row when one changed.
+   */
+  readonly min?: number;
+  readonly max?: number;
 }
 
 /**
@@ -624,6 +634,42 @@ export class AvatarColumn extends Column {
 
   protected override with(state: ColumnState): this {
     return new AvatarColumn(state) as this;
+  }
+}
+
+/**
+ * `GaugeColumn` — a number read as a length rather than as digits.
+ *
+ * The column for a proportion: a score, a quota, a completion. Down a page of
+ * rows, digits have to be compared one against another and bars do not — a
+ * reader sees which is short without reading any of them.
+ *
+ * The proportion is worked out in the browser, which is not a rule and not
+ * state: it is where the value falls between two ends the server declared. What
+ * the server keeps is the number.
+ */
+export class GaugeColumn extends Column {
+  static make(path: string): GaugeColumn {
+    return new GaugeColumn({ path, sortable: false, searchable: false });
+  }
+
+  override get type(): string {
+    return "GaugeColumn";
+  }
+
+  /**
+   * The ends of the scale, low first.
+   *
+   * Both at once rather than two methods, because a gauge with one end is a bar
+   * whose length nobody can defend, and taking them together is what stops one
+   * being declared without the other.
+   */
+  range(low: number, high: number): this {
+    return this.with({ ...this.state, min: low, max: high });
+  }
+
+  protected override with(state: ColumnState): this {
+    return new GaugeColumn(state) as this;
   }
 }
 
