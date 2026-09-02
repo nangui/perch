@@ -65,6 +65,10 @@ export interface ColumnState {
    * not cross it, and `serialiseTable` copies no key it was not asked for.
    */
   readonly color?: ToneChoice;
+  /** Where the face beside a name lives, for a column that draws both. */
+  readonly image?: string;
+  /** The quieter second line under it: an address, a handle, a team. */
+  readonly description?: string;
 }
 
 /**
@@ -145,9 +149,23 @@ export abstract class Column {
    * than something to read — an address that will end up in an attribute is
    * judged on the server, where the rule about addresses already lives.
    */
-  present(value: unknown, context: PresentContext): unknown {
+  present(value: unknown, context: PresentContext, path: string): unknown {
     void context;
+    void path;
     return value;
+  }
+
+  /**
+   * Every path this column reads.
+   *
+   * One for almost all of them, and `state.path` is the one it is sorted,
+   * searched and written by. A column drawing a face beside a name reads three,
+   * and they have to be here rather than only in the renderer: this list is
+   * what the loading plan is built from and what the row projection keeps, so a
+   * path missing from it is a value that never reaches the browser.
+   */
+  get paths(): readonly string[] {
+    return [this.state.path];
   }
 }
 
@@ -220,21 +238,15 @@ export class ImageColumn extends Column {
    * the client never receives cannot be put in an attribute by mistake, which
    * is the rule the row projection is built on.
    */
-  override present(value: unknown, context: PresentContext): unknown {
-    const disk = this.state.disk;
-    const address = (one: unknown): string | undefined => {
-      if (disk === undefined) return safeHref(one);
-      if (typeof one !== "string" || one === "") return undefined;
-      // Through the host and then through the same reading: what a disk hands
-      // back is an address like any other, and a signed URL from a bucket is
-      // exactly the kind of value nobody should put in an attribute unread.
-      return safeHref(context.fileUrl?.(disk, one));
-    };
+  override present(value: unknown, context: PresentContext, path: string): unknown {
+    void path;
+    const one = (held: unknown): string | undefined =>
+      address(held, this.state.disk, context);
 
     if (Array.isArray(value)) {
-      return value.map(address).filter((one) => one !== undefined);
+      return value.map(one).filter((held) => held !== undefined);
     }
-    return address(value);
+    return one(value);
   }
 
   protected override with(state: ColumnState): this {
@@ -508,8 +520,9 @@ export class BadgeColumn extends Column {
    * `neutral` where nothing was declared or the choice returned nothing, so a
    * cell always has a badge to draw rather than a badge and an exception.
    */
-  override present(value: unknown, context: PresentContext): BadgedValue {
+  override present(value: unknown, context: PresentContext, path: string): BadgedValue {
     void context;
+    void path;
     const declared = this.state.color;
     const tone = typeof declared === "function" ? declared(value) : declared;
     return { value, tone: tone ?? "neutral" };
@@ -517,6 +530,100 @@ export class BadgeColumn extends Column {
 
   protected override with(state: ColumnState): this {
     return new BadgeColumn(state) as this;
+  }
+}
+
+/**
+ * One stored value read as an address a browser may fetch, or nothing.
+ *
+ * Shared by the two columns that draw a picture, because the reading is the
+ * same and a second copy of it is a second place to forget the disk.
+ */
+function address(
+  value: unknown,
+  disk: string | undefined,
+  context: PresentContext,
+): string | undefined {
+  if (disk === undefined) return safeHref(value);
+  if (typeof value !== "string" || value === "") return undefined;
+  // Through the host and then through the same reading: what a disk hands back
+  // is an address like any other, and a signed URL from a bucket is exactly the
+  // kind of value nobody should put in an attribute unread.
+  return safeHref(context.fileUrl?.(disk, value));
+}
+
+/**
+ * `AvatarColumn` — a face, a name, and the line under it, in one column.
+ *
+ * Three columns is what a table of people looks like when nobody decided: a
+ * narrow one holding a picture, one holding a first name, one holding an
+ * address, each with its own heading and its own width. They are one thing — a
+ * person — and a reader scans them as one, so they are drawn as one.
+ *
+ * Sorted and searched by the name, because that is the value the column is
+ * about; the face and the second line come along. The face is judged the way
+ * `ImageColumn` judges one, at its own path, since an address bound for an
+ * attribute is the server's business wherever it was declared.
+ */
+export class AvatarColumn extends Column {
+  static make(path: string): AvatarColumn {
+    // Round by default, because the picture beside a name is a face and a face
+    // in a square is a passport photograph.
+    return new AvatarColumn({ path, sortable: false, searchable: false, circular: true });
+  }
+
+  override get type(): string {
+    return "AvatarColumn";
+  }
+
+  /** Where the face is. Without one the column is a name and a second line. */
+  image(path: string): this {
+    return this.with({ ...this.state, image: path });
+  }
+
+  /** The quieter line under the name: an address, a handle, a team. */
+  description(path: string): this {
+    return this.with({ ...this.state, description: path });
+  }
+
+  /** The disk the keys in the image path were written to. */
+  disk(name: string): this {
+    return this.with({ ...this.state, disk: name });
+  }
+
+  /** A square rather than a circle, for a logo rather than a face. */
+  square(): this {
+    // The key removed rather than set to nothing: the state says a column is
+    // round or says nothing, and `undefined` is not one of the two.
+    const { circular: _round, ...rest } = this.state;
+    return this.with(rest);
+  }
+
+  size(pixels: number): this {
+    return this.with({ ...this.state, size: pixels });
+  }
+
+  override get paths(): readonly string[] {
+    return [this.state.path, this.state.image, this.state.description].filter(
+      (path): path is string => path !== undefined,
+    );
+  }
+
+  /**
+   * The face judged as an address, the rest left alone.
+   *
+   * By path, because this column reads three and only one of them is going into
+   * an attribute. The same reading `ImageColumn` gives, for the same reason: the
+   * rule about addresses lives here, not in a package that may not import this
+   * one.
+   */
+  override present(value: unknown, context: PresentContext, path: string): unknown {
+    if (path !== this.state.image) return value;
+    return address(value, this.state.disk, context);
+  }
+
+  protected override with(state: ColumnState): this {
+    return new AvatarColumn(state) as this;
   }
 }
 

@@ -27,7 +27,6 @@ import {
   Icon,
   IconColumn,
   Image,
-  ImageColumn,
   KeyValue,
   MarkdownEditor,
   NumberRangeFilter,
@@ -41,6 +40,7 @@ import {
   Schema,
   SchemaFilter,
   Section,
+  AvatarColumn,
   BadgeColumn,
   SelectColumn,
   Select,
@@ -199,8 +199,16 @@ export class PersonResource {
           // The address is judged on the server: what a browser may fetch is
           // sent and what it may not is dropped, so nothing reaches an `src`
           // unread.
-          ImageColumn.make("avatar").label("").disk("default").circular().size(28),
-          TextColumn.make("firstName").label("First name").sortable().searchable(),
+          // One column rather than three: the face, the name and the address
+          // are a person, and a reader scans them as one. Sorted and searched
+          // by the name, which is the path it is named by.
+          AvatarColumn.make("firstName")
+            .label("Person")
+            .image("avatar")
+            .description("email")
+            .disk("default")
+            .sortable()
+            .searchable(),
           // A line of text, edited where it is read — and still written through
           // the form, so `required` on the field holds here too.
           TextInputColumn.make("lastName").label("Last name").searchable(),

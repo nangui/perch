@@ -15,23 +15,23 @@ const table = (...columns: readonly Column[]) => Table.make().columns(columns);
 
 describe("an image column", () => {
   it("hands on an address a browser may fetch", () => {
-    expect(ImageColumn.make("avatar").present("https://example.com/a.png", {})).toBe(
+    expect(ImageColumn.make("avatar").present("https://example.com/a.png", {}, "avatar")).toBe(
       "https://example.com/a.png",
     );
-    expect(ImageColumn.make("avatar").present("/files/a.png", {})).toBe("/files/a.png");
+    expect(ImageColumn.make("avatar").present("/files/a.png", {}, "avatar")).toBe("/files/a.png");
   });
 
   it("drops one it may not, rather than sending it to be hidden", () => {
     // What the client never receives cannot be put in an attribute by mistake,
     // which is the rule the row projection is built on.
     expect(
-      ImageColumn.make("avatar").present("javascript:alert(1)", {}),
+      ImageColumn.make("avatar").present("javascript:alert(1)", {}, "avatar"),
     ).toBeUndefined();
     expect(
-      ImageColumn.make("avatar").present("data:text/html,<script>", {}),
+      ImageColumn.make("avatar").present("data:text/html,<script>", {}, "avatar"),
     ).toBeUndefined();
     expect(
-      ImageColumn.make("avatar").present("//example.com/a.png", {}),
+      ImageColumn.make("avatar").present("//example.com/a.png", {}, "avatar"),
     ).toBeUndefined();
   });
 
@@ -40,13 +40,14 @@ describe("an image column", () => {
       ImageColumn.make("faces").present(
         ["https://example.com/a.png", "javascript:alert(1)", "/files/b.png"],
         {},
+        "faces",
       ),
     ).toEqual(["https://example.com/a.png", "/files/b.png"]);
   });
 
   it("has nothing to hand on for something that is not an address", () => {
-    expect(ImageColumn.make("avatar").present(null, {})).toBeUndefined();
-    expect(ImageColumn.make("avatar").present(12, {})).toBeUndefined();
+    expect(ImageColumn.make("avatar").present(null, {}, "avatar")).toBeUndefined();
+    expect(ImageColumn.make("avatar").present(12, {}, "avatar")).toBeUndefined();
   });
 });
 
@@ -60,7 +61,7 @@ describe("an image column over a disk", () => {
   it("asks the host what a stored key resolves to", () => {
     // A key is not an address, and where it resolves is the disk's business.
     expect(
-      ImageColumn.make("avatar").disk("public").present("avatars/ada.png", context),
+      ImageColumn.make("avatar").disk("public").present("avatars/ada.png", context, "avatar"),
     ).toBe("/files/avatars/ada.png");
   });
 
@@ -70,21 +71,21 @@ describe("an image column over a disk", () => {
     const dubious = { fileUrl: () => "javascript:alert(1)" };
 
     expect(
-      ImageColumn.make("avatar").disk("public").present("avatars/ada.png", dubious),
+      ImageColumn.make("avatar").disk("public").present("avatars/ada.png", dubious, "avatar"),
     ).toBeUndefined();
   });
 
   it("has nothing to draw where the host answers nothing", () => {
     expect(
-      ImageColumn.make("avatar").disk("private").present("avatars/ada.png", context),
+      ImageColumn.make("avatar").disk("private").present("avatars/ada.png", context, "avatar"),
     ).toBeUndefined();
     expect(
-      ImageColumn.make("avatar").disk("public").present("", context),
+      ImageColumn.make("avatar").disk("public").present("", context, "avatar"),
     ).toBeUndefined();
   });
 
   it("leaves a column of addresses alone, which names no disk", () => {
-    expect(ImageColumn.make("avatar").present("/files/a.png", context)).toBe(
+    expect(ImageColumn.make("avatar").present("/files/a.png", context, "avatar")).toBe(
       "/files/a.png",
     );
   });

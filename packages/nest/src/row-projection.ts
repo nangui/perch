@@ -37,7 +37,7 @@ export function visibleKeys(
   if (table === undefined) {
     return new Set([key, meta?.labelField].filter((n): n is string => n !== undefined));
   }
-  const declared = table.state.columns.map((c) => head(c.state.path));
+  const declared = table.state.columns.flatMap((c) => c.paths.map(head));
   return new Set([...declared, key].filter((n): n is string => n !== undefined));
 }
 

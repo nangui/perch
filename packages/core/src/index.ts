@@ -104,6 +104,7 @@ export { Notification } from "./notification.js";
 // Tables, and the column layer.
 export type { BadgedValue, ColumnState, PresentContext } from "./column.js";
 export {
+  AvatarColumn,
   BadgeColumn,
   CheckboxColumn,
   Column,

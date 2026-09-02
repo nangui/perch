@@ -18,6 +18,7 @@ import type {
   Row,
   SortDirection,
 } from "@perchjs/core";
+import { readPath } from "./read-path.js";
 import { lookupColumn } from "./column-registry.js";
 
 export interface DataTableSort {
@@ -529,24 +530,6 @@ function unknownColumn(column: ColumnNode): ReactNode {
   );
 }
 
-/**
- * Reads `author.name` out of a row.
- *
- * Core has this function and `@perchjs/ui` may not call it: the renderer gets
- * *types* from the domain and no values, because core is not a runtime
- * dependency of this package and an import that compiles here would fail for
- * whoever installs it. Eight lines is what that boundary costs, and
- * `boundaries.test.ts` is what noticed.
- */
-function readPath(row: Row, path: string): unknown {
-  let cursor: unknown = row;
-  for (const segment of path.split(".")) {
-    if (cursor === null || cursor === undefined) return undefined;
-    if (typeof cursor !== "object") return undefined;
-    cursor = (cursor as Record<string, unknown>)[segment];
-  }
-  return cursor;
-}
 
 /**
  * A React key, and only that.

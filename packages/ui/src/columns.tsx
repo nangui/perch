@@ -8,6 +8,7 @@
 import type { ReactNode } from "react";
 import type { BadgedValue, ColumnNode, Row } from "@perchjs/core";
 import type { CellHandle } from "./column-registry.js";
+import { readPath } from "./read-path.js";
 import { registerColumn } from "./column-registry.js";
 
 /**
@@ -429,7 +430,80 @@ function isBadged(value: unknown): value is BadgedValue {
   );
 }
 
+/**
+ * A face, a name, and the line under it, drawn as one thing.
+ *
+ * The value handed in is the name, because that is the path the column is named
+ * by and the one it sorts on. The other two are read out of the row, from the
+ * paths the column carries — the row is the projected one, so what is not
+ * declared is not there and this reads nothing the server did not send.
+ *
+ * The face is optional twice over: a column may declare no image path, and a
+ * row may hold nothing at it. Either way the initials stand in, which keeps the
+ * column one width down its whole length rather than ragged where a picture is
+ * missing.
+ */
+function identity(value: unknown, row: Row, column: ColumnNode): ReactNode {
+  const name = typeof value === "string" ? value : "";
+  const face = column.image === undefined ? undefined : readPath(row, column.image);
+  const under =
+    column.description === undefined ? undefined : readPath(row, column.description);
+  const side = column.size ?? 32;
+
+  return (
+    <span className="perch-cell__identity">
+      {typeof face === "string" && face !== "" ? (
+        <img
+          className="perch-cell__face"
+          data-circular={column.circular ? "true" : undefined}
+          src={face}
+          alt=""
+          width={side}
+          height={side}
+        />
+      ) : (
+        // `aria-hidden`, because the name is right beside it: read out, the
+        // initials are the same name a second time and a stutter.
+        <span
+          aria-hidden
+          className="perch-cell__face perch-cell__face--empty"
+          data-circular={column.circular ? "true" : undefined}
+          style={{ width: side, height: side }}
+        >
+          {initials(name)}
+        </span>
+      )}
+      <span className="perch-cell__named">
+        <span className="perch-cell__name">{text(value)}</span>
+        {under === null || under === undefined || under === "" ? null : (
+          <span className="perch-cell__under">{text(under)}</span>
+        )}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * At most two letters, from the first two words.
+ *
+ * By code point rather than by code unit: `name[0]` on a name starting outside
+ * the basic plane is half a character, which renders as a replacement box. The
+ * same reason `graphemes.ts` exists, at the size this needs.
+ */
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter((word) => word !== "")
+    .slice(0, 2)
+    .map((word) => [...word][0] ?? "")
+    .join("")
+    .toUpperCase();
+}
+
   registerColumn("TextColumn", (value) => text(value));
+  registerColumn("AvatarColumn", (value, row: Row, column: ColumnNode) =>
+    identity(value, row, column),
+  );
   registerColumn("BadgeColumn", (value) => badge(value));
   registerColumn("IconColumn", (value, _row: Row, column: ColumnNode) =>
     column.boolean === true ? icon(value) : text(value),

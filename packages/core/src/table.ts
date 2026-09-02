@@ -63,6 +63,15 @@ export interface ColumnNode {
   readonly limit?: number;
   readonly copyable?: true;
   /**
+   * The other two paths a column that draws a face beside a name reads.
+   *
+   * Sent so a cell can find them in the row it was handed: a renderer is given
+   * the whole projected row, and these say which of its values are the face and
+   * the line under the name.
+   */
+  readonly image?: string;
+  readonly description?: string;
+  /**
    * This reader may write this cell.
    *
    * Not part of what a table declares — a column is writable or it is not, and
@@ -271,9 +280,13 @@ export function presentRows(
   return rows.map((row) => {
     let out: Row = row;
     for (const column of shown) {
-      out = presentAt(out, column.state.path.split("."), (value) =>
-        column.present(value, context),
-      ) as Row;
+      // Each path the column reads, not only the one it is named by: a column
+      // drawing a face beside a name judges the face at the face's own path.
+      for (const path of column.paths) {
+        out = presentAt(out, path.split("."), (value) =>
+          column.present(value, context, path),
+        ) as Row;
+      }
     }
     return out;
   });
@@ -329,6 +342,12 @@ export function serialiseTable(table: Table): ColumnTree {
       ...(column.state.size === undefined ? {} : { size: column.state.size }),
       ...(column.state.limit === undefined ? {} : { limit: column.state.limit }),
       ...(column.state.copyable === undefined ? {} : { copyable: true as const }),
+      // Where the other two values are, so a cell can reach them in the row it
+      // was handed. The paths, not the values — the row already carries those.
+      ...(column.state.image === undefined ? {} : { image: column.state.image }),
+      ...(column.state.description === undefined
+        ? {}
+        : { description: column.state.description }),
     })),
     ...(searchablePaths(table).size === 0 ? {} : { searchable: true as const }),
     filters: table.state.filters.map((filter) => ({
@@ -421,7 +440,7 @@ function node(action: Action): ActionNode {
  * query rather than one per row.
  */
 export function columnPaths(table: Table): readonly string[] {
-  return table.state.columns.map((column) => column.state.path);
+  return table.state.columns.flatMap((column) => column.paths);
 }
 
 export function sortablePaths(table: Table): ReadonlySet<string> {
