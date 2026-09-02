@@ -115,6 +115,29 @@ describe.each(RAMPS)("the %s ramp", (which) => {
     }
   });
 
+  it("carries its state colours where a reader has to read them", () => {
+    // The colours that mean something — a warning, a failure, a success — and
+    // that are read as words on their own tinted background as well as on a
+    // plain surface. Left out when this file was written, and named as the gap
+    // then: a status is exactly the thing somebody must be able to read.
+    for (const state of ["warning", "success", "danger"]) {
+      expect(against(`${state}-content`, `${state}-surface`)).toBeGreaterThanOrEqual(4.5);
+      // On the page too, because a state colour is not only used inside its own
+      // badge — a plugin drawing a star takes the colour and not the tint.
+      expect(against(`${state}-content`, "surface")).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(["accent", "pending"])("carries the body text on its %s tint", (tint) => {
+    // These two offer a tinted background and no colour of their own, so what
+    // lands on them is the body text — which was chosen against a plain
+    // surface, not against a tint. Held for what is actually drawn rather than
+    // for a token that would have to exist: a missing pair is only a fault if
+    // something becomes hard to read.
+    expect(against("content", `${tint}-surface`)).toBeGreaterThanOrEqual(4.5);
+    expect(against("content-secondary", `${tint}-surface`)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it("keeps its accent legible on a surface", () => {
     expect(against("accent", "surface")).toBeGreaterThanOrEqual(4.5);
     expect(against("danger", "surface")).toBeGreaterThanOrEqual(4.5);
