@@ -182,7 +182,11 @@ export function Repeater<T extends RepeaterItem>({
     }
   }
 
-  if (items.length === 0 && emptyTitle !== undefined) {
+  // Whether or not a resource wrote one. Without this a repeater with nothing
+  // in it drew a heading, a count and a blank strip, and the reader was left to
+  // guess whether something had failed to load — an empty screen is an
+  // invitation to act, and the declared words only make it a better one.
+  if (items.length === 0) {
     return (
       <div className="perch-repeater">
         <div className="perch-repeater__head">
@@ -193,7 +197,9 @@ export function Repeater<T extends RepeaterItem>({
             className="perch-empty__glyph perch-empty__glyph--wide"
             aria-hidden="true"
           />
-          <div className="perch-empty__title">{emptyTitle}</div>
+          <div className="perch-empty__title">
+            {emptyTitle ?? `No ${title.toLowerCase()} yet`}
+          </div>
           {emptyBody === undefined ? null : (
             <div className="perch-empty__body">{emptyBody}</div>
           )}

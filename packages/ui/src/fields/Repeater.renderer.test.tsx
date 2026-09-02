@@ -12,6 +12,7 @@ import type { SchemaPayload } from "@perchjs/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerBuiltInComponents } from "../renderers.js";
 import { resetRegistry } from "../registry.js";
+import { Repeater } from "./Repeater.js";
 import { SchemaRenderer } from "../SchemaRenderer.js";
 
 afterEach(cleanup);
@@ -317,5 +318,53 @@ describe("a row the server refused", () => {
         row.getAttribute("data-invalid"),
       ),
     ).toEqual(["false", "false"]);
+  });
+});
+
+describe("a repeater with nothing in it", () => {
+  it("says so, whether or not the resource wrote the words", () => {
+    // Without this it drew a heading, a count and a blank strip, and a reader
+    // was left to guess whether something had failed to load. The declared
+    // words make it a better invitation; their absence must not remove it.
+    const { container } = render(
+      <Repeater
+        title="Notes"
+        items={[]}
+        onReorder={() => {}}
+        onAdd={() => {}}
+        onRemove={() => {}}
+      >
+        {() => null}
+      </Repeater>,
+    );
+
+    expect(container.querySelector(".perch-empty__title")?.textContent).toBe(
+      "No notes yet",
+    );
+    // And the way out is in the same place a reader is already looking.
+    expect(container.querySelector(".perch-empty button")?.textContent).toBe("Add item");
+  });
+
+  it("prefers the words the resource wrote", () => {
+    const { container } = render(
+      <Repeater
+        title="Notes"
+        items={[]}
+        onReorder={() => {}}
+        onAdd={() => {}}
+        onRemove={() => {}}
+        emptyTitle="Nothing noted"
+        emptyBody="Anything worth remembering about this person."
+      >
+        {() => null}
+      </Repeater>,
+    );
+
+    expect(container.querySelector(".perch-empty__title")?.textContent).toBe(
+      "Nothing noted",
+    );
+    expect(container.querySelector(".perch-empty__body")?.textContent).toBe(
+      "Anything worth remembering about this person.",
+    );
   });
 });
