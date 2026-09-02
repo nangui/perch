@@ -546,6 +546,10 @@
 }
 
 .perch-textarea__input {
+  /* Stated rather than inherited from a flex parent that happens to stretch it:
+     a textarea's own width is 20 columns, and that should not depend on the box
+     it was put in. */
+  width: 100%;
   min-height: 96px;
   padding: var(--perch-space-4) var(--perch-space-5);
   border: none;
@@ -1198,6 +1202,62 @@
   border-radius: 50%;
 }
 
+/* A face, a name and the line under it, drawn as one column.
+
+   Three columns is what a table of people looks like when nobody decided: a
+   narrow one for a picture, one for a name, one for an address, each with its
+   own heading and its own width. They are one thing a reader scans as one. */
+.perch-cell__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  min-width: 0;
+}
+
+.perch-cell__face {
+  flex: none;
+  border: 1px solid var(--perch-border);
+  background: var(--perch-surface-muted);
+  border-radius: var(--perch-radius-sm);
+  object-fit: cover;
+}
+
+.perch-cell__face[data-circular="true"] {
+  border-radius: 50%;
+}
+
+/* Initials where there is no picture, so the column keeps one width down its
+   whole length rather than going ragged wherever a face is missing. */
+.perch-cell__face--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--perch-content-muted);
+  font-size: var(--perch-text-sm);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.perch-cell__named {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Both lines cut rather than wrap: a row that grows a line because one address
+   is long is a row that moves everything under it. */
+.perch-cell__name,
+.perch-cell__under {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.perch-cell__under {
+  color: var(--perch-content-muted);
+  font-size: var(--perch-text-sm);
+}
+
 /* The ones there was no room for, counted. A stack keeps its own edge visible
    against the image it overlaps. */
 .perch-cell__more {
@@ -1574,6 +1634,12 @@
 }
 
 .perch-markdown__box {
+  /* A textarea is 20 columns wide until somebody says otherwise, and this one
+     sits in a block parent that will not stretch it — so the frame was the
+     field's and the writing surface was 196px in its corner. Block, too: an
+     inline-block textarea sits on a baseline and leaves a gap under itself. */
+  display: block;
+  width: 100%;
   min-height: 120px;
   /* The same ceiling its rich counterpart has, for the same reason: a surface
      that grows without one takes the toolbar off the screen. `resize` below
@@ -3176,6 +3242,8 @@
 }
 
 .perch-code__text {
+  /* The same reason the other two say it. */
+  width: 100%;
   padding-left: var(--perch-space-5);
   color: var(--perch-content);
   font-family: var(--perch-font-mono);
