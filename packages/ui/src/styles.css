@@ -93,6 +93,22 @@
 
 /* ------------------------------------------------------------------- control */
 
+/* The ring every focusable thing in the panel gets, unless it says otherwise.
+
+   Twenty-six of them had none and fell back to the browser's own outline: a
+   blue ring in the middle of a panel that has a green one, on a tab, on a
+   calendar's arrow, on the button that adds an option. Written as a list, this
+   is a list somebody forgets — so it is a floor instead.
+
+   Matched on the prefix rather than under `.perch-shell`, because a dialog and
+   a popover are drawn against the body and are outside it. Wrapped in `:where`
+   so it carries no specificity at all: every rule that wants a border colour
+   with its ring still wins, and this only reaches what nothing else claimed. */
+:where([class^="perch-"], [class*=" perch-"]):focus-visible {
+  outline: none;
+  box-shadow: var(--perch-focus-ring);
+}
+
 .perch-control {
   display: flex;
   align-items: center;
