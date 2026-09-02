@@ -249,7 +249,17 @@ describe("what the field holds afterwards", () => {
       />,
     );
 
-    fireEvent.click(container.querySelector(".perch-select-create") as HTMLElement);
+    const adder = container.querySelector(".perch-select-create") as HTMLElement;
+
+    // On the control's own line, not around the whole field. Structure rather
+    // than a measurement, because jsdom computes no layout — but it is the
+    // structure the alignment depends on: placed around the field, the only
+    // thing this button can line up with is the bottom of the reserved error
+    // line, which put it 22px below the control it belongs to.
+    expect(adder.parentElement?.className).toBe("perch-field__row");
+    expect(adder.previousElementSibling?.className).toContain("perch-control");
+
+    fireEvent.click(adder);
     const form = await waitFor(() => {
       const found = document.querySelector("dialog form");
       expect(found).not.toBeNull();

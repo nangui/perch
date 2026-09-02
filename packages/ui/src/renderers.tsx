@@ -514,6 +514,24 @@ function SelectRenderer({
     />
   ) : null;
 
+  // On the control's own line rather than around the whole field: a field is a
+  // label row, a control and a reserved line for the error, and a button placed
+  // around all three can only align to the bottom of the last one.
+  const adder = (
+    <button
+      type="button"
+      className="perch-select-create"
+      onClick={() => {
+        setCreating(true);
+      }}
+      // The field's label is the only thing that says which list this adds to,
+      // and a bare `+` on a form with four selects says nothing.
+      aria-label={`Create a new ${label.toLowerCase()}`}
+    >
+      +
+    </button>
+  );
+
   const control = (
     <FieldShell
       label={label}
@@ -521,6 +539,7 @@ function SelectRenderer({
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
       {...hintOf(node)}
+      {...(creatable ? { beside: adder } : {})}
     >
       {(binding) =>
         multiple ? (
@@ -571,24 +590,10 @@ function SelectRenderer({
   );
 
   return creatable ? (
-    // Beside the control rather than inside it, so all three flavours get it
-    // and none of them has to know it is there.
-    <div className="perch-select-with-create">
+    <>
       {control}
-      <button
-        type="button"
-        className="perch-select-create"
-        onClick={() => {
-          setCreating(true);
-        }}
-        // The field's label is the only thing that says which list this adds
-        // to, and a bare `+` on a form with four selects says nothing.
-        aria-label={`Create a new ${label.toLowerCase()}`}
-      >
-        +
-      </button>
       {dialog}
-    </div>
+    </>
   ) : (
     control
   );

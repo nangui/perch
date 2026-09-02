@@ -57,6 +57,16 @@ export interface FieldShellProps {
    * Receives the ids to bind. The control must spread `controlProps` onto its
    * focusable element, or the label and the error are announced to nobody.
    */
+  /**
+   * Something on the control's own line, to its right.
+   *
+   * Beside the *control*, not beside the field: a field is a label row, a
+   * control and a reserved line for the error, and anything placed around all
+   * three lines up with none of them. A button put outside sat 22px below the
+   * control it belonged to, because the only thing it could align to was the
+   * bottom of the whole field.
+   */
+  readonly beside?: ReactNode;
   readonly children: (controlProps: ControlBinding) => ReactNode;
 }
 
@@ -89,11 +99,28 @@ export function FieldShell({
   status,
   required = false,
   inline = false,
+  beside,
   children,
 }: FieldShellProps): ReactNode {
   const controlId = useId();
   const helpId = `${controlId}-help`;
   const invalid = status.error !== undefined;
+
+  const control = children({
+    // The declaration's own first, so nothing below can be overwritten by
+    // it: an `id` or an `aria-describedby` out of a resource would break
+    // the label and the help line that point at this control.
+    ...extraAttributes,
+    ...(autofocus === true ? { autoFocus: true } : {}),
+    id: controlId,
+    // Always pointed at, even when empty: an id that appears only on error
+    // is an id assistive tech has to re-read.
+    "aria-describedby": helpId,
+    "aria-invalid": invalid,
+    "aria-required": required,
+    disabled: status.disabled === true,
+    readOnly: status.readOnly === true,
+  });
 
   return (
     <div className="perch-field" {...(inline ? { "data-inline": "true" } : {})}>
@@ -125,21 +152,14 @@ export function FieldShell({
         )}
       </div>
 
-      {children({
-        // The declaration's own first, so nothing below can be overwritten by
-        // it: an `id` or an `aria-describedby` out of a resource would break
-        // the label and the help line that point at this control.
-        ...extraAttributes,
-        ...(autofocus === true ? { autoFocus: true } : {}),
-        id: controlId,
-        // Always pointed at, even when empty: an id that appears only on error
-        // is an id assistive tech has to re-read.
-        "aria-describedby": helpId,
-        "aria-invalid": invalid,
-        "aria-required": required,
-        disabled: status.disabled === true,
-        readOnly: status.readOnly === true,
-      })}
+      {beside === undefined ? (
+        control
+      ) : (
+        <div className="perch-field__row">
+          {control}
+          {beside}
+        </div>
+      )}
 
       {/*
         The reserved line. `role="status"` with a polite live region so an error

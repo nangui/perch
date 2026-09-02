@@ -226,21 +226,27 @@
 /* A select that can make the row it is missing, and the button that does it.
    Beside the control rather than inside it, so all three flavours of select get
    it without any of them knowing it is there. */
-.perch-select-with-create {
+/* The control's own line, where something may stand beside it.
+
+   Not around the whole field: a field is a label row, a control and a reserved
+   line for the error, so a button placed around all three could only align to
+   the bottom of the last one — which put it 22px under the control it belongs
+   to. Tops, because both start where the control starts. */
+.perch-field__row {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: var(--perch-space-2);
 }
 
-.perch-select-with-create > :first-child {
+.perch-field__row > :first-child {
   flex: 1 1 auto;
   min-width: 0;
 }
 
 .perch-select-create {
   flex: none;
-  /* The control's own height, so the two sit on one line rather than the button
-     riding above a field whose label pushed it down. */
+  /* The control's own height, so the two are the same object seen twice rather
+     than a button that happens to be nearby. */
   height: var(--perch-control-height);
   width: var(--perch-control-height);
   border: 1px solid var(--perch-border);
