@@ -15,6 +15,7 @@
  */
 import type { ReactNode } from "react";
 import * as RadixSelect from "@radix-ui/react-select";
+import { ChevronDown } from "./marks.js";
 import type { FieldStatus } from "../field-state.js";
 import { isLocked, statusAttributes } from "../field-state.js";
 import type { ControlBinding } from "../FieldShell.js";
@@ -129,7 +130,9 @@ export function Select({
           {selected?.label ?? value ?? placeholder}
         </RadixSelect.Value>
         <StatusMark status={status} />
-        <RadixSelect.Icon className="perch-select__chevron">▾</RadixSelect.Icon>
+        <RadixSelect.Icon className="perch-select__chevron">
+          <ChevronDown />
+        </RadixSelect.Icon>
       </RadixSelect.Trigger>
 
       <RadixSelect.Portal>
@@ -210,7 +213,7 @@ function StaticControl({
       </span>
       {empty ? null : (
         <span className="perch-select__chevron" aria-hidden="true">
-          ▾
+          <ChevronDown />
         </span>
       )}
     </button>

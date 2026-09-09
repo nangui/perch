@@ -16,6 +16,7 @@
 import type { ReactNode } from "react";
 import { useId, useRef, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
+import { ChevronDown } from "./marks.js";
 import type { FieldStatus } from "../field-state.js";
 import { isLocked, statusAttributes } from "../field-state.js";
 import type { ControlBinding } from "../FieldShell.js";
@@ -107,7 +108,7 @@ export function MultiSelect({
           </span>
           <StatusMark status={status} />
           <span className="perch-select__chevron" aria-hidden="true">
-            ▾
+            <ChevronDown />
           </span>
         </button>
       </Popover.Trigger>
