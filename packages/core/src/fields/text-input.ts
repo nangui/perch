@@ -41,7 +41,7 @@ export interface TextInputState extends FieldState {
    */
   readonly prefix?: string;
   readonly suffix?: string;
-  /** Glyphs beside them. Decoration: the words carry the meaning. */
+  /** The marks beside them, by name. Decoration: the words carry the meaning. */
   readonly prefixIcon?: string;
   readonly suffixIcon?: string;
 }
@@ -65,12 +65,12 @@ export class TextInput extends Field {
     return this.with({ suffix: value });
   }
 
-  prefixIcon(glyph: string): this {
-    return this.with({ prefixIcon: glyph });
+  prefixIcon(name: string): this {
+    return this.with({ prefixIcon: name });
   }
 
-  suffixIcon(glyph: string): this {
-    return this.with({ suffixIcon: glyph });
+  suffixIcon(name: string): this {
+    return this.with({ suffixIcon: name });
   }
 
   protected override with(patch: Partial<TextInputState>): this {

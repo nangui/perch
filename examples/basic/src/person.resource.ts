@@ -500,7 +500,7 @@ export class PersonResource {
           TextInput.make("homepage")
             .label("Homepage")
             .prefix("https://")
-            .prefixIcon("🌐")
+            .prefixIcon("link")
             .placeholder("example.com/ada")
             .hint("Optional"),
           TextInput.make("lastName")

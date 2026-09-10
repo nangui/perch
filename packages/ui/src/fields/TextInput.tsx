@@ -14,6 +14,7 @@ import { useLayoutEffect, useRef } from "react";
 import type { FieldStatus } from "../field-state.js";
 import { isLocked, statusAttributes } from "../field-state.js";
 import type { ControlBinding } from "../FieldShell.js";
+import { hasDrawing, IconMark } from "../icons.js";
 import { caretAfter, filledIn, masked, roomIn, shownAs } from "./mask.js";
 
 /** Matches `TextFlavour` in `@perchjs/core`, which inference produces. */
@@ -108,12 +109,12 @@ export function TextInput({
       className={`perch-control${showTrack ? " perch-control--tracked" : ""}`}
       {...statusAttributes(status)}
     >
-      {prefixIcon === undefined && prefix === undefined ? null : (
+      {prefix === undefined && !hasDrawing(prefixIcon) ? null : (
         <span
           className="perch-control__affix perch-control__affix--prefix"
           aria-hidden="true"
         >
-          {prefixIcon}
+          <IconMark name={prefixIcon} className="perch-control__affix-icon" />
           {prefix}
         </span>
       )}
@@ -163,7 +164,7 @@ export function TextInput({
         </button>
       )}
 
-      {suffix === undefined && suffixIcon === undefined ? null : (
+      {suffix === undefined && !hasDrawing(suffixIcon) ? null : (
         <span
           className={`perch-control__affix perch-control__affix--suffix${
             suffixOk ? " perch-control__affix--ok" : ""
@@ -171,7 +172,7 @@ export function TextInput({
           aria-hidden="true"
         >
           {suffix}
-          {suffixIcon}
+          <IconMark name={suffixIcon} className="perch-control__affix-icon" />
         </span>
       )}
 

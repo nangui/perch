@@ -362,18 +362,29 @@ export function refuseIcon(named: unknown, field: string): readonly Complaint[] 
 }
 
 function inspectIcon(component: Component, into: Complaint[]): void {
+  // Every mark a component can declare, read through one cast rather than
+  // through four `instanceof`s. Only a text input has affixes and only a layout
+  // has a title mark — but they are one set of names refused one way, and one
+  // place that knows all of them is what a fifth of them will need to find.
   const state = component.state as {
     readonly icon?: unknown;
     readonly hintIcon?: unknown;
+    readonly prefixIcon?: unknown;
+    readonly suffixIcon?: unknown;
   };
   // The label may itself be a resolver, and a complaint needs a word now: the
   // type is what a reader can always be pointed at.
   const label = component.state.label;
   const field = typeof label === "string" ? label : component.type;
-  // Two marks, one rule. A hint's mark is beside a different word and drawn at
-  // a different size, but it is the same set and the same refusal — and it sits
-  // on `Component`, so every node the walk reaches can carry one.
-  into.push(...refuseIcon(state.icon, field), ...refuseIcon(state.hintIcon, field));
+  // One rule for all of them. Each sits beside a different word and is drawn at
+  // a different size — a title, a hint, the inside of a control's frame — and
+  // each is the same set of names and the same refusal.
+  into.push(
+    ...refuseIcon(state.icon, field),
+    ...refuseIcon(state.hintIcon, field),
+    ...refuseIcon(state.prefixIcon, field),
+    ...refuseIcon(state.suffixIcon, field),
+  );
 }
 
 /**

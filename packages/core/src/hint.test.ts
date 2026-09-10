@@ -123,13 +123,13 @@ describe("autofocus", () => {
 describe("an affix", () => {
   it("crosses as what sits inside the frame", async () => {
     const node = await drawn(
-      TextInput.make("site").prefix("https://").suffix(".com").prefixIcon("🌐"),
+      TextInput.make("site").prefix("https://").suffix(".com").prefixIcon("link"),
     );
 
     expect(node?.props).toMatchObject({
       prefix: "https://",
       suffix: ".com",
-      prefixIcon: "🌐",
+      prefixIcon: "link",
     });
   });
 

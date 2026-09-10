@@ -217,6 +217,9 @@
 .perch-control__affix {
   display: flex;
   align-items: center;
+  /* Only ever between the two, so an affix that is words alone — which is most
+     of them — is spaced exactly as it was. */
+  gap: var(--perch-space-2);
   align-self: stretch;
   flex: none;
   padding: 0 var(--perch-space-4);

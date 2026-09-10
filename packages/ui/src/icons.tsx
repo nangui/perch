@@ -176,6 +176,26 @@ const DRAWINGS: Readonly<Record<IconName, ReactNode>> = {
   ),
 };
 
+/** What a name draws, if anything. */
+function drawingFor(name: string | undefined): ReactNode | undefined {
+  if (name === undefined) return undefined;
+  return (DRAWINGS as Readonly<Record<string, ReactNode | undefined>>)[name];
+}
+
+/**
+ * Whether a name resolves to anything at all.
+ *
+ * For the one place a mark shares a box with words: a control's affix draws a
+ * single bordered span holding `https://` and the mark beside it, and a span
+ * left open for a mark that turns out to draw nothing is an empty box with a
+ * border and a background — a piece of a control a reader cannot account for.
+ * Everywhere else the mark is the whole element, and drawing nothing leaves
+ * nothing behind.
+ */
+export function hasDrawing(name: string | undefined): boolean {
+  return drawingFor(name) !== undefined;
+}
+
 /**
  * The mark for a name, or nothing.
  *
@@ -205,8 +225,7 @@ export function IconMark({
    */
   readonly tone?: string | undefined;
 }): ReactNode {
-  if (name === undefined) return null;
-  const drawing = (DRAWINGS as Readonly<Record<string, ReactNode | undefined>>)[name];
+  const drawing = drawingFor(name);
   if (drawing === undefined) return null;
 
   return (

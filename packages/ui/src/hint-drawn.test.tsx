@@ -153,14 +153,32 @@ describe("an affix", () => {
     );
   });
 
-  it("takes a glyph beside the words, or instead of them", () => {
-    const container = draw({ props: { prefixIcon: "🌐", suffixIcon: "✓" } });
+  it("takes a mark beside the words, or instead of them", () => {
+    const container = draw({ props: { prefixIcon: "link", suffixIcon: "check" } });
+
+    for (const side of ["prefix", "suffix"]) {
+      const affix = container.querySelector(`.perch-control__affix--${side}`);
+      expect(affix?.querySelector(".perch-control__affix-icon")?.tagName.toLowerCase()).toBe(
+        "svg",
+      );
+      // Instead of them, here: no words were declared on either side.
+      expect(affix?.textContent).toBe("");
+    }
+  });
+
+  it("draws no frame at all for a mark the panel cannot draw", () => {
+    // The span carries a border and a background of its own, so one kept open
+    // around nothing is a piece of the control a reader cannot account for.
+    const container = draw({ props: { prefixIcon: "aubergine" } });
+
+    expect(container.querySelector(".perch-control__affix--prefix")).toBeNull();
+  });
+
+  it("keeps the frame when the words are there and the mark is not", () => {
+    const container = draw({ props: { prefix: "https://", prefixIcon: "aubergine" } });
 
     expect(container.querySelector(".perch-control__affix--prefix")?.textContent).toBe(
-      "🌐",
-    );
-    expect(container.querySelector(".perch-control__affix--suffix")?.textContent).toBe(
-      "✓",
+      "https://",
     );
   });
 

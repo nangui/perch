@@ -77,6 +77,28 @@ describe("a mark a resource asks for", () => {
     expect(said.some((one) => one.includes("icon"))).toBe(false);
   });
 
+  it("is refused on either side of a control's frame", () => {
+    // A text input carries two more, inside the frame rather than beside a
+    // word. Same set, same refusal, and both sides asked separately: one right
+    // and one wrong is a control with half a mark.
+    const bad = (field: TextInput): readonly string[] =>
+      complain(Section.make("People").schema([field]));
+
+    expect(
+      bad(TextInput.make("site").prefixIcon("\u{1F310}")).some((one) =>
+        one.includes("has no drawing for"),
+      ),
+    ).toBe(true);
+    expect(
+      bad(TextInput.make("site").suffixIcon("\u{1F310}")).some((one) =>
+        one.includes("has no drawing for"),
+      ),
+    ).toBe(true);
+    expect(bad(TextInput.make("site").prefixIcon("link").suffixIcon("check"))).toEqual(
+      [],
+    );
+  });
+
   it("knows its own names", () => {
     expect(ICON_NAMES.length).toBeGreaterThan(10);
     expect(isIconName("trash")).toBe(true);
