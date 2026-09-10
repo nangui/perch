@@ -110,7 +110,11 @@ export type ModalWidth =
  */
 export interface ActionGroupState {
   readonly label: string;
-  /** A glyph beside the label. Decoration: the label carries the meaning. */
+  /**
+   * The mark beside the label, by name. Decoration: the label carries the
+   * meaning, and a group with a mark and no label would be a button nobody can
+   * name out loud.
+   */
   readonly icon?: string;
   readonly actions: readonly Action[];
 }
@@ -130,8 +134,8 @@ export class ActionGroup {
     return new ActionGroup({ ...this.state, label: text });
   }
 
-  icon(glyph: string): ActionGroup {
-    return new ActionGroup({ ...this.state, icon: glyph });
+  icon(name: string): ActionGroup {
+    return new ActionGroup({ ...this.state, icon: name });
   }
 }
 

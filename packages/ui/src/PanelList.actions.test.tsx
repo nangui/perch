@@ -1190,6 +1190,7 @@ describe("a group of actions over a selection", () => {
           type: "ActionGroup",
           name: "Recovery",
           label: "Recovery",
+          icon: "restore",
           trigger: "group",
           children: [
             { type: "RestoreAction", name: "RestoreAction", trigger: "run" },
@@ -1223,6 +1224,18 @@ describe("a group of actions over a selection", () => {
 
     expect(container.querySelector(".perch-list__bulk-group")).not.toBeNull();
     expect(await screen.findByText("Recovery")).toBeTruthy();
+  });
+
+  it("draws the shape its mark names, on the button that opens it", async () => {
+    // The same drawing a row's group gets, in a bar where the group is the
+    // control rather than a heading inside one.
+    const { container } = await withSelection();
+    const summary = container.querySelector(".perch-list__bulk-group summary");
+
+    expect(summary?.querySelector(".perch-list__bulk-icon")?.tagName.toLowerCase()).toBe(
+      "svg",
+    );
+    expect(summary?.textContent).toBe("Recovery");
   });
 
   it("leaves the ones outside it where they were", async () => {

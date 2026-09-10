@@ -10,6 +10,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "./fields/marks.js";
+import { IconMark } from "./icons.js";
 import { ColumnMenu, hiddenAtFirst } from "./ColumnMenu.js";
 import { remember, remembered } from "./remembered.js";
 import type {
@@ -617,9 +618,7 @@ export function PanelList({
             action.trigger === "group" ? (
               <details key={action.name} className="perch-list__bulk-group">
                 <summary className="perch-button">
-                  {action.icon === undefined ? null : (
-                    <span aria-hidden="true">{action.icon}</span>
-                  )}
+                  <IconMark name={action.icon} className="perch-list__bulk-icon" />
                   {action.label ?? action.name}
                 </summary>
                 <div

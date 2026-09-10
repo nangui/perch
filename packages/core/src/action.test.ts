@@ -269,6 +269,49 @@ describe("which rows an action means anything on", () => {
   });
 });
 
+/** What the boot says about a mark, and nothing it says about anything else. */
+const markComplaints = (group: ActionGroup): readonly string[] =>
+  auditTable(Table.make().actions([group])).map((one) => one.problem).filter((problem) =>
+    problem.includes("drawing"),
+  );
+
+describe("the mark beside a group's label", () => {
+  const recovery = (): ActionGroup =>
+    ActionGroup.make([RestoreAction.make()]).label("Recovery");
+
+  it("is refused when the panel has no drawing for it", () => {
+    // Asked of the group rather than of what it holds. `everyAction` opens
+    // groups out so the boot's other questions reach whatever actually runs —
+    // right for those, and the reason this one went unasked for so long: an
+    // `Action` has no mark at all, so the only thing that could answer was the
+    // one thing being thrown away.
+    expect(markComplaints(recovery().icon("\u21A9"))).toHaveLength(1);
+  });
+
+  it("is refused on a bulk group too, and on a header one", () => {
+    const bad = (): ActionGroup => recovery().icon("\u21A9");
+
+    expect(
+      auditTable(Table.make().bulkActions([bad()])).filter((one) =>
+        one.problem.includes("drawing"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      auditTable(Table.make().headerActions([bad()])).filter((one) =>
+        one.problem.includes("drawing"),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("passes a name the panel draws", () => {
+    expect(markComplaints(recovery().icon("restore"))).toEqual([]);
+  });
+
+  it("says nothing about a group that asked for no mark", () => {
+    expect(markComplaints(recovery())).toEqual([]);
+  });
+});
+
 /** What the boot says about a width, and nothing it says about anything else. */
 const widthComplaints = (action: Action): readonly string[] =>
   auditTable(Table.make().actions([action]))
@@ -387,7 +430,7 @@ describe("several actions under one name", () => {
   const grouped = () =>
     ActionGroup.make([RestoreAction.make(), ForceDeleteAction.make()])
       .label("Recovery")
-      .icon("↩");
+      .icon("restore");
 
   it("is presentation, so the allowlist still names what it holds", () => {
     // A group that hid an action from the allowlist would be a place to put
@@ -423,7 +466,7 @@ describe("several actions under one name", () => {
     expect(node?.type).toBe("ActionGroup");
     expect(node?.trigger).toBe("group");
     expect(node?.label).toBe("Recovery");
-    expect(node?.icon).toBe("↩");
+    expect(node?.icon).toBe("restore");
     expect(node?.children?.map((one) => one.type)).toEqual([
       "RestoreAction",
       "ForceDeleteAction",

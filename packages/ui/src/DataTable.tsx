@@ -19,6 +19,7 @@ import type {
   SortDirection,
 } from "@perchjs/core";
 import { EllipsisMark } from "./fields/marks.js";
+import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
 import { lookupColumn } from "./column-registry.js";
 
@@ -343,7 +344,7 @@ function rowAction(
         aria-label={action.label ?? action.name}
       >
         <p className="perch-table__action-group-label" aria-hidden="true">
-          {action.icon === undefined ? null : <span>{action.icon}</span>}
+          <IconMark name={action.icon} className="perch-table__action-group-icon" />
           {action.label ?? action.name}
         </p>
         {inside}

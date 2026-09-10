@@ -987,6 +987,22 @@ export function auditTable(table: Table): readonly Complaint[] {
       });
     }
   }
+
+  // The groups themselves, which the flattening above throws away.
+  //
+  // A group is the only action carrying a mark — an `Action` has no `icon` at
+  // all — and `everyAction` exists to open groups out so the questions above
+  // are asked of what actually runs. That is right for those questions and it
+  // is why this one was never asked of anything: the only thing that could
+  // answer it was the one thing being discarded.
+  for (const group of [
+    ...table.state.actions,
+    ...table.state.headerActions,
+    ...table.state.bulkActions,
+  ].filter((one): one is ActionGroup => one instanceof ActionGroup)) {
+    complaints.push(...refuseIcon(group.state.icon, group.state.label));
+  }
+
   return complaints;
 }
 

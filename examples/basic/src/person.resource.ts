@@ -318,7 +318,7 @@ export class PersonResource {
             }),
           archive,
           remove,
-          ActionGroup.make([restore, destroy]).label("Recovery").icon("↩"),
+          ActionGroup.make([restore, destroy]).label("Recovery").icon("restore"),
         ])
         // The two that undo and the one that cannot be undone, folded under one
         // word. A selection bar with six buttons is six things to read before
@@ -327,7 +327,7 @@ export class PersonResource {
         .bulkActions([
           archive,
           remove,
-          ActionGroup.make([restore, destroy]).label("Recovery").icon("↩"),
+          ActionGroup.make([restore, destroy]).label("Recovery").icon("restore"),
         ])
         // What the page says with nothing on it. Without one it says "Nothing
         // to show", which is true and tells a reader nothing they can act on.

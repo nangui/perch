@@ -291,7 +291,7 @@ describe("a group of actions in a row's menu", () => {
         type: "ActionGroup",
         name: "Recovery",
         label: "Recovery",
-        icon: "↩",
+        icon: "restore",
         trigger: "group" as const,
         children: [
           { type: "RestoreAction", name: "RestoreAction", trigger: "run" as const },
@@ -324,6 +324,27 @@ describe("a group of actions in a row's menu", () => {
     expect(section?.getAttribute("aria-label")).toBe("Recovery");
     // One `<details>` on the row, which is the menu itself.
     expect(container.querySelectorAll("tbody details")).toHaveLength(ROWS.length);
+  });
+
+  it("draws the shape its mark names, beside the group's own label", () => {
+    // A name and not a character: the arrow that used to sit here was whatever
+    // the reader's font had for `↩`, in a menu where every other mark is drawn.
+    const { container } = render(
+      <DataTable
+        columns={grouped}
+        rows={ROWS}
+        caption="Posts"
+        onAction={vi.fn()}
+        rowHref={(_action, row) => `/admin/posts/${String(row["id"])}/edit`}
+      />,
+    );
+
+    const heading = container.querySelector(".perch-table__action-group-label");
+    const mark = heading?.querySelector(".perch-table__action-group-icon");
+
+    expect(mark?.tagName.toLowerCase()).toBe("svg");
+    // The label still carries the meaning; the heading reads as its words.
+    expect(heading?.textContent).toBe("Recovery");
   });
 
   it("puts what it holds inside it, and the rest outside", () => {
