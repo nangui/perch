@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import type { BadgedValue, ColumnNode, Row } from "@perchjs/core";
 import type { CellHandle } from "./column-registry.js";
 import { ChevronDown } from "./fields/marks.js";
+import { graphemesOf } from "./graphemes.js";
 import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
 import { registerColumn } from "./column-registry.js";
@@ -491,16 +492,17 @@ export function registerBuiltInColumns(): void {
   /**
    * At most two letters, from the first two words.
    *
-   * By code point rather than by code unit: `name[0]` on a name starting outside
-   * the basic plane is half a character, which renders as a replacement box. The
-   * same reason `graphemes.ts` exists, at the size this needs.
+   * By grapheme rather than by code unit: `name[0]` on a name starting outside
+   * the basic plane is half a character, which renders as a replacement box —
+   * and by grapheme rather than by code point, so a letter carrying a combining
+   * accent keeps it instead of arriving bare.
    */
   function initials(name: string): string {
     return name
       .split(/\s+/)
       .filter((word) => word !== "")
       .slice(0, 2)
-      .map((word) => [...word][0] ?? "")
+      .map((word) => graphemesOf(word)[0] ?? "")
       .join("")
       .toUpperCase();
   }
@@ -550,7 +552,7 @@ export function registerBuiltInColumns(): void {
         >
           <span
             className="perch-cell__gauge-fill"
-            style={{ inlineSize: `${filled}%` }}
+            style={{ inlineSize: `${String(filled)}%` }}
           />
         </span>
         <span className="perch-cell__gauge-value">{held}</span>

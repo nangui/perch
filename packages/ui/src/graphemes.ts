@@ -11,6 +11,18 @@
  */
 const GRAPHEMES = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
+/**
+ * The pieces themselves, for the two places that want one of them.
+ *
+ * Spreading a string gives code points and `.split("")` gives code units, and
+ * both cut a family emoji or a letter with a combining accent in half. The
+ * first letter of a name and the characters of a matched glyph are exactly the
+ * places that shows.
+ */
+export function graphemesOf(text: string): readonly string[] {
+  return [...GRAPHEMES.segment(text)].map((piece) => piece.segment);
+}
+
 export function countGraphemes(text: string): number {
   let seen = 0;
   const walk = GRAPHEMES.segment(text)[Symbol.iterator]();

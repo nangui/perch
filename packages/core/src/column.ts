@@ -605,7 +605,8 @@ export class AvatarColumn extends Column {
   square(): this {
     // The key removed rather than set to nothing: the state says a column is
     // round or says nothing, and `undefined` is not one of the two.
-    const { circular: _round, ...rest } = this.state;
+    const rest = { ...this.state };
+    delete rest.circular;
     return this.with(rest);
   }
 
