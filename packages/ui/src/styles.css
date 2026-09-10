@@ -109,6 +109,26 @@
   box-shadow: var(--perch-focus-ring);
 }
 
+/* ---------------------------------------------------------------------- icon */
+
+/* Every mark the named set draws, wherever a surface puts one.
+
+   Sized in `em` rather than given a size of its own: the surface has already
+   decided how big its words are, and a mark beside a word is the size of the
+   word. The stroke is in the mark's own box, so its weight stays the same
+   fraction of it whatever that size turns out to be.
+
+   `block` because an inline SVG sits on a text baseline, which leaves a gap
+   under it and, in a line box of its own, drew a mark three pixels high. Every
+   surface that carries one lays its children out with flex, so a block child
+   is centred by the row rather than starting one. */
+.perch-icon {
+  display: block;
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
+
 .perch-control {
   display: flex;
   align-items: center;
@@ -3784,10 +3804,9 @@
   box-shadow: var(--perch-focus-ring);
 }
 
+/* A row of a mark and some words is what a title already is; what the button
+   adds is filling its line and looking like nothing. */
 .perch-layout__title--folds {
-  display: flex;
-  align-items: center;
-  gap: var(--perch-space-4);
   width: 100%;
   padding: 0;
   border: 0;
@@ -3799,17 +3818,14 @@
 }
 
 /* Beside the words, never in their place: it is hidden from a screen reader. */
-.perch-layout__icon {
-  flex: none;
-  font-size: var(--perch-text-lg);
-  line-height: 1;
-}
-
 .perch-layout__caret {
   color: var(--perch-content-subtle);
 }
 
 .perch-layout__title {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
   margin-bottom: var(--perch-space-5);
   font-size: var(--perch-text-control);
   font-weight: 500;

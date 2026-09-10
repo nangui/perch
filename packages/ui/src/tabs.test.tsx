@@ -344,7 +344,7 @@ describe("a group of fields on a page", () => {
   });
 
   it("hides the mark beside its name from a reader who has the name", () => {
-    const container = drawn(group({ props: { icon: "*" } }));
+    const container = drawn(group({ props: { icon: "star" } }));
 
     expect(
       container.querySelector(".perch-layout__icon")?.getAttribute("aria-hidden"),

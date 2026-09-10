@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import type { Option, SchemaNode } from "@perchjs/core";
 import { FieldShell } from "./FieldShell.js";
+import { IconMark } from "./icons.js";
 import type { TabHead } from "./Tabs.js";
 import { TabStrip } from "./Tabs.js";
 import type { FieldStatus } from "./field-state.js";
@@ -147,12 +148,7 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
   // reader, which already has the words.
   const icon =
     typeof node.props?.["icon"] === "string" ? node.props["icon"] : undefined;
-  const mark =
-    icon === undefined ? null : (
-      <span className="perch-layout__icon" aria-hidden="true">
-        {icon}
-      </span>
-    );
+  const mark = <IconMark name={icon} className="perch-layout__icon" />;
 
   // Unknown names fall back rather than becoming a class the stylesheet has not
   // got: a box with no background reads as a rendering fault.
@@ -232,11 +228,7 @@ function FieldsetRenderer({ node, renderChild }: NodeProps): ReactNode {
       {empty(node.label) ? null : (
         <legend className="perch-layout__legend">
           {/* Decoration beside the name, never instead of it. */}
-          {icon === undefined ? null : (
-            <span className="perch-layout__icon" aria-hidden="true">
-              {icon}
-            </span>
-          )}
+          <IconMark name={icon} className="perch-layout__icon" />
           {node.label}
         </legend>
       )}

@@ -8,6 +8,7 @@
  * protection.
  */
 import type { ReactNode } from "react";
+import { IconMark } from "./icons.js";
 
 export interface NavigationItem {
   readonly label: string;
@@ -47,11 +48,7 @@ export function PanelNav({ groups }: PanelNavProps): ReactNode {
                     ? { "aria-current": "page" as const }
                     : {})}
                 >
-                  {item.icon === undefined ? null : (
-                    <span aria-hidden className="perch-nav__icon">
-                      {item.icon}
-                    </span>
-                  )}
+                  <IconMark name={item.icon} className="perch-nav__icon" />
                   {item.label}
                 </a>
               </li>

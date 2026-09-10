@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { NavigationGroup } from "./PanelNav.js";
 import { PanelNav } from "./PanelNav.js";
@@ -45,11 +45,15 @@ describe("the panel menu", () => {
   });
 
   it("hides the icon from the accessible name", () => {
-    // "tag Tags" is not what the link is called.
+    // "tag Tags" is not what the link is called — and now that the name
+    // resolves to a drawing, the word is not in the link at all.
     render(<PanelNav groups={GROUPS} />);
     const link = screen.getByRole("link", { name: "Tags" });
 
-    expect(within(link).getByText("tag").getAttribute("aria-hidden")).toBe("true");
+    expect(link.textContent).toBe("Tags");
+    expect(
+      link.querySelector(".perch-nav__icon")?.getAttribute("aria-hidden"),
+    ).toBe("true");
   });
 
   it("renders nothing at all when there is nothing to reach", () => {

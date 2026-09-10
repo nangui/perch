@@ -118,18 +118,18 @@ describe("a section that starts folded", () => {
 });
 
 describe("a section that was given an icon", () => {
-  it("draws it beside the title", () => {
-    // Sent since layouts existed, read by nothing until the props guard was
-    // asked where a prop is read rather than whether the word appears.
-    draw({ icon: "\u{1F5C2}" });
+  it("draws the shape the name stands for, beside the title", () => {
+    // A name and not a character, so what lands in the heading is the panel's
+    // own drawing rather than whatever the reader's font had for an emoji.
+    draw({ icon: "tag" });
+    const mark = document.querySelector(".perch-layout__icon");
 
-    expect(document.querySelector(".perch-layout__icon")?.textContent).toBe(
-      "\u{1F5C2}",
-    );
+    expect(mark?.tagName.toLowerCase()).toBe("svg");
+    expect(mark?.textContent).toBe("");
   });
 
   it("draws it on one that folds too, where the heading is a button", () => {
-    draw({ icon: "\u{1F5C2}", collapsible: true });
+    draw({ icon: "tag", collapsible: true });
 
     const button = screen.getByRole("button", { name: /About/ });
     expect(button.querySelector(".perch-layout__icon")).not.toBeNull();
@@ -137,7 +137,7 @@ describe("a section that was given an icon", () => {
 
   it("keeps it out of the name a screen reader reads", () => {
     // Decoration beside the words, never instead of them.
-    draw({ icon: "\u{1F5C2}", collapsible: true });
+    draw({ icon: "tag", collapsible: true });
 
     expect(screen.getByRole("button", { name: "About" })).toBeDefined();
   });

@@ -7,6 +7,7 @@
  * answer to what an arrow key does.
  */
 import type { KeyboardEvent, ReactNode } from "react";
+import { IconMark } from "./icons.js";
 
 export interface TabHead {
   /** Ties the button to its panel. The panel carries `id` and this `${id}-tab`. */
@@ -54,11 +55,7 @@ export function TabStrip({
             choose(index);
           }}
         >
-          {tab.icon === undefined ? null : (
-            <span className="perch-tabs__icon" aria-hidden="true">
-              {tab.icon}
-            </span>
-          )}
+          <IconMark name={tab.icon} className="perch-tabs__icon" />
           {tab.label}
         </button>
       ))}
