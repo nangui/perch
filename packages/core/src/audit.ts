@@ -15,6 +15,7 @@ import type { Component } from "./component.js";
 import { isResolver } from "./component.js";
 import { normaliseOptions } from "./option.js";
 import { ActionGroup, CreateAction, everyAction, MODAL_WIDTHS } from "./action.js";
+import { ICON_NAMES, isIconName } from "./icon.js";
 import { Entry } from "./entry.js";
 import { TextEntry } from "./entries/text-entry.js";
 import type { RuleKind } from "./field.js";
@@ -335,6 +336,34 @@ function inspectSends(component: Component, into: Complaint[]): void {
  * The same shape as a limit of zero: a value that reads as "configure this" and
  * un-configures it.
  */
+/**
+ * A mark the panel has no drawing for.
+ *
+ * A closed set is only closed where something closes it. The union holds while
+ * the resource is written in TypeScript; a plugin written in JavaScript, or one
+ * cast, puts any string on the wire — and the renderer finds no drawing, so the
+ * mark is simply absent from a screen with nothing to say a declaration was
+ * ignored. That is the same silence a modal width had before it was refused.
+ */
+function refuseIcon(named: unknown, field: string, into: Complaint[]): void {
+  if (typeof named !== "string" || isIconName(named)) return;
+
+  into.push({
+    field,
+    problem:
+      `asks for the \`${named}\` icon, which the panel has no drawing for — ` +
+      `one of: ${ICON_NAMES.join(", ")}`,
+  });
+}
+
+function inspectIcon(component: Component, into: Complaint[]): void {
+  const named = (component.state as { readonly icon?: unknown }).icon;
+  // The label may itself be a resolver, and a complaint needs a word now: the
+  // type is what a reader can always be pointed at.
+  const label = component.state.label;
+  refuseIcon(named, typeof label === "string" ? label : component.type, into);
+}
+
 function inspectEmpty(table: Table, into: Complaint[]): void {
   const empty = table.state.empty;
   if (empty === undefined) return;
@@ -403,6 +432,7 @@ function hiddenFields(component: Component): readonly Hidden[] {
 }
 
 function walk(component: Component, into: Complaint[]): void {
+  inspectIcon(component, into);
   inspectSends(component, into);
   inspectColumns(component, into);
   if (component instanceof Select) inspectSelect(component, into);

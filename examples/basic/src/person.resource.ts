@@ -705,7 +705,7 @@ export class PersonResource {
               .helperText("Picked as hex, kept as hsl()."),
           ]),
           Tab.make("Badge")
-            .icon("🐦")
+            .icon("tag")
             .schema([
               // Static content: neither a control nor a reading of the row.
               Icon.make("🐦").tone("success"),
