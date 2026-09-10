@@ -47,7 +47,10 @@
 .perch-field__hint {
   margin-left: auto;
   display: flex;
-  align-items: baseline;
+  /* Centred, not on the baseline: a drawn mark has no baseline worth aligning
+     to, and a flex item without one is laid out by its bottom edge — which put
+     the mark low against words it is supposed to sit beside. */
+  align-items: center;
   gap: var(--perch-space-1);
   font-size: var(--perch-text-sm);
   color: var(--perch-content-muted);
@@ -56,7 +59,6 @@
 
 .perch-field__hint-icon {
   font-size: var(--perch-text-base);
-  line-height: 1;
 }
 
 .perch-field__label-text {
@@ -4005,9 +4007,12 @@
   margin: 0;
 }
 
+/* Over the words rather than beside them, and centred by its own margins: the
+   box above centres what it holds with `text-align`, which places inline
+   content and does nothing at all to a block. The character it used to hold was
+   inline; the drawing is not. */
 .perch-table__empty-icon {
-  display: block;
-  margin-bottom: var(--perch-space-3);
+  margin: 0 auto var(--perch-space-3);
   font-size: var(--perch-text-2xl);
 }
 

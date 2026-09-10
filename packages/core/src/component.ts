@@ -47,7 +47,7 @@ export interface ComponentState {
    * row, where both can be true at once.
    */
   readonly hint?: Resolvable<string>;
-  /** A glyph before the hint. Decoration: the hint carries the meaning. */
+  /** The mark before the hint, by name. Decoration: the hint carries the meaning. */
   readonly hintIcon?: string;
   /**
    * Attributes the declaration puts on the control.
@@ -161,8 +161,8 @@ export abstract class Component {
     return this.with({ hint: value });
   }
 
-  hintIcon(glyph: string): this {
-    return this.with({ hintIcon: glyph });
+  hintIcon(name: string): this {
+    return this.with({ hintIcon: name });
   }
 
   extraAttributes(attributes: Readonly<Record<string, string>>): this {

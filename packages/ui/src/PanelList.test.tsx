@@ -1165,16 +1165,19 @@ describe("a table with nothing to show", () => {
     const container = listed({
       heading: "No people yet",
       description: "Add the first one to get started.",
-      icon: "👥",
+      icon: "users",
     });
 
     expect(screen.getByText("No people yet")).toBeTruthy();
     expect(screen.getByText("Add the first one to get started.")).toBeTruthy();
-    expect(container.querySelector(".perch-table__empty-icon")?.textContent).toBe("👥");
+    // The shape its name stands for, not the name and not a character.
+    const mark = container.querySelector(".perch-table__empty-icon");
+    expect(mark?.tagName.toLowerCase()).toBe("svg");
+    expect(mark?.textContent).toBe("");
   });
 
   it("hides the mark beside the words from a reader who has the words", () => {
-    const container = listed({ heading: "No people yet", icon: "👥" });
+    const container = listed({ heading: "No people yet", icon: "users" });
 
     expect(
       container.querySelector(".perch-table__empty-icon")?.getAttribute("aria-hidden"),

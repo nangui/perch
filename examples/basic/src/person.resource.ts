@@ -334,7 +334,7 @@ export class PersonResource {
         .emptyState({
           heading: "Nobody here",
           description: "Create the first person, or widen the filters above.",
-          icon: "\u2691",
+          icon: "users",
         })
         .headerActions([CreateAction.make()])
         .defaultSort("firstName")
@@ -517,7 +517,7 @@ export class PersonResource {
             .required()
             .maxLength(255)
             .hint("Where sign-in links go")
-            .hintIcon("✉")
+            .hintIcon("link")
             // The framework's wording is about a shape; this one is about what
             // the address is for. Only the messages the framework wrote can be
             // replaced — a rule a resource writes carries its own words.

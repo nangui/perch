@@ -81,12 +81,23 @@ describe("a hint", () => {
     );
   });
 
-  it("carries its glyph without saying it out loud", () => {
-    const container = draw({ hint: "kept secret", hintIcon: "🔒" });
+  it("draws the shape its mark names, without saying it out loud", () => {
+    const container = draw({ hint: "kept secret", hintIcon: "warning" });
     const icon = container.querySelector(".perch-field__hint-icon");
 
-    expect(icon?.textContent).toBe("🔒");
+    expect(icon?.tagName.toLowerCase()).toBe("svg");
     expect(icon?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("draws no mark for a name the panel cannot draw", () => {
+    // The boot refuses one from a resource, so this is what is left: a plugin
+    // written in JavaScript, and a hint that keeps its words either way.
+    const container = draw({ hint: "kept secret", hintIcon: "aubergine" });
+
+    expect(container.querySelector(".perch-field__hint-icon")).toBeNull();
+    expect(container.querySelector(".perch-field__hint")?.textContent).toBe(
+      "kept secret",
+    );
   });
 
   it("is nothing at all where a field declared none", () => {

@@ -18,6 +18,7 @@
  */
 import type { ReactNode } from "react";
 import { useId } from "react";
+import { IconMark } from "./icons.js";
 import type { FieldStatus } from "./field-state.js";
 
 export interface FieldShellProps {
@@ -33,7 +34,7 @@ export interface FieldShellProps {
    * they have got something wrong.
    */
   readonly hint?: string;
-  /** A glyph before it. Decoration: the hint carries the meaning. */
+  /** The mark before it, by name. Decoration: the hint carries the meaning. */
   readonly hintIcon?: string;
   /**
    * Attributes the declaration asked for, already narrowed to ones that
@@ -142,11 +143,7 @@ export function FieldShell({
             exactly when the reader needs both. */}
         {hint === undefined ? null : (
           <span className="perch-field__hint">
-            {hintIcon === undefined ? null : (
-              <span className="perch-field__hint-icon" aria-hidden="true">
-                {hintIcon}
-              </span>
-            )}
+            <IconMark name={hintIcon} className="perch-field__hint-icon" />
             {hint}
           </span>
         )}

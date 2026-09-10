@@ -169,10 +169,18 @@ describe("an empty state that says nothing", () => {
   it("leaves one that says something alone, whichever of the three it is", () => {
     expect(table({ heading: "No posts yet" })).toEqual([]);
     expect(table({ description: "Write the first one." })).toEqual([]);
-    expect(table({ icon: "\u270E" })).toEqual([]);
+    expect(table({ icon: "pencil" })).toEqual([]);
   });
 
   it("has nothing to say about a table that declared none", () => {
     expect(table()).toEqual([]);
+  });
+
+  it("refuses a mark the panel has no drawing for", () => {
+    // Not a component, so no walk reaches it — and it is drawn on the one page
+    // a reader is most likely to read as broken already.
+    expect(table({ heading: "No posts yet", icon: "\u270E" })[0]?.problem).toMatch(
+      /has no drawing for/,
+    );
   });
 });

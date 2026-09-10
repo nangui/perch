@@ -1173,11 +1173,7 @@ function EmptyState({
     <>
       {/* Decoration beside the words, never instead of them: hidden from a
           screen reader, which already has the sentence. */}
-      {icon === undefined ? null : (
-        <span className="perch-table__empty-icon" aria-hidden="true">
-          {icon}
-        </span>
-      )}
+      <IconMark name={icon} className="perch-table__empty-icon" />
       {heading === undefined ? null : (
         <p className="perch-table__empty-heading">{heading}</p>
       )}

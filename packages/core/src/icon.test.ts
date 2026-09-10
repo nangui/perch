@@ -54,6 +54,29 @@ describe("a mark a resource asks for", () => {
     expect(said.some((one) => one.includes("has no drawing for"))).toBe(true);
   });
 
+  it("is refused on a hint's mark too, which is a second mark on one field", () => {
+    // `hintIcon` sits on `Component`, so every node the walk reaches can carry
+    // one — beside a different word and at a different size, but out of the
+    // same set and refused the same way.
+    const said = complain(
+      Section.make("People").schema([
+        TextInput.make("email").hint("Where links go").hintIcon("\u2709"),
+      ]),
+    );
+
+    expect(said.some((one) => one.includes("has no drawing for"))).toBe(true);
+  });
+
+  it("passes a hint's mark the panel draws", () => {
+    const said = complain(
+      Section.make("People").schema([
+        TextInput.make("email").hint("Where links go").hintIcon("link"),
+      ]),
+    );
+
+    expect(said.some((one) => one.includes("icon"))).toBe(false);
+  });
+
   it("knows its own names", () => {
     expect(ICON_NAMES.length).toBeGreaterThan(10);
     expect(isIconName("trash")).toBe(true);

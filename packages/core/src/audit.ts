@@ -362,11 +362,18 @@ export function refuseIcon(named: unknown, field: string): readonly Complaint[] 
 }
 
 function inspectIcon(component: Component, into: Complaint[]): void {
-  const named = (component.state as { readonly icon?: unknown }).icon;
+  const state = component.state as {
+    readonly icon?: unknown;
+    readonly hintIcon?: unknown;
+  };
   // The label may itself be a resolver, and a complaint needs a word now: the
   // type is what a reader can always be pointed at.
   const label = component.state.label;
-  into.push(...refuseIcon(named, typeof label === "string" ? label : component.type));
+  const field = typeof label === "string" ? label : component.type;
+  // Two marks, one rule. A hint's mark is beside a different word and drawn at
+  // a different size, but it is the same set and the same refusal — and it sits
+  // on `Component`, so every node the walk reaches can carry one.
+  into.push(...refuseIcon(state.icon, field), ...refuseIcon(state.hintIcon, field));
 }
 
 /**
@@ -380,6 +387,10 @@ function inspectIcon(component: Component, into: Complaint[]): void {
 function inspectEmpty(table: Table, into: Complaint[]): void {
   const empty = table.state.empty;
   if (empty === undefined) return;
+  // Not a component, so no walk reaches it: the empty state is three static
+  // strings hanging off the table, and its mark is drawn on the one page a
+  // reader is most likely to think is broken.
+  into.push(...refuseIcon(empty.icon, "the empty state"));
   if (
     empty.heading !== undefined ||
     empty.description !== undefined ||
