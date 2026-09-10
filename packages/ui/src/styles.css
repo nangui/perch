@@ -475,6 +475,13 @@
   /* The control underneath takes the click: the mark is decoration, and a
      reader aiming at it means to open the list. */
   pointer-events: none;
+  /* The same token the styled selects give their own chevron. Inheriting looked
+     like the cleaner answer and was not: a mark inherits from its wrapper, not
+     from the control beside it, so it came out the colour of the text here and
+     the colour of a label there — three weights of one shape on one screen,
+     which is the fault this was all for. Decoration is quieter than the value
+     it sits next to, and that is a decision, not something to inherit. */
+  color: var(--perch-content-muted);
 }
 
 /* Status marks: Unsaved, Saving…, and the error badge. */

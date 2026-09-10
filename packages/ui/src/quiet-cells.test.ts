@@ -174,13 +174,18 @@ describe("the mark on a browser's own select", () => {
     ).toBeUndefined();
   });
 
-  it("takes the colour of the control it sits in", () => {
-    // Naming a colour here is how one drawing ends up with two behaviours: the
-    // styled selects inherit and follow a hover, a disabled state and the dark
-    // ramp, and a mark with a colour of its own does none of that.
-    expect(
-      settled(".perch-picker > svg", "color"),
-      "the mark carries a colour instead of inheriting one",
-    ).toBeUndefined();
+  it("is the same colour as the one a styled select draws", () => {
+    // One shape at one weight in one colour, whether the browser drew the
+    // control or the panel did — which is the whole reason for drawing it here
+    // rather than twice.
+    //
+    // Letting it inherit was tried and measured wrong: a mark inherits from its
+    // wrapper rather than from the control beside it, so it came out the colour
+    // of the value in a filter and the colour of a label under the table. The
+    // token is named on both, and this holds them together.
+    const styled = settled(".perch-select__chevron", "color");
+
+    expect(styled, "the styled chevron has no colour to match").toBeDefined();
+    expect(settled(".perch-picker > svg", "color")).toBe(styled);
   });
 });
