@@ -1599,6 +1599,12 @@
 }
 
 .perch-cell__copy {
+  /* Centred the way the other two marks are, rather than left in flow: an
+     inline SVG sits on a baseline, which put the mark 3px high in a 24px
+     button — measured, not guessed. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   /* WCAG's pointer target, the floor every other control here keeps. */
   min-width: 24px;
   min-height: 24px;
