@@ -18,7 +18,7 @@ import type {
   Row,
   SortDirection,
 } from "@perchjs/core";
-import { EllipsisMark } from "./fields/marks.js";
+import { EllipsisMark } from "./marks.js";
 import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
 import { lookupColumn } from "./column-registry.js";

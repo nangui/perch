@@ -13,7 +13,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { IconMark } from "../icons.js";
-import { MonthArrow } from "./marks.js";
+import { MonthArrow } from "../marks.js";
 import type { FieldStatus } from "../field-state.js";
 import { isLocked, statusAttributes } from "../field-state.js";
 import type { ControlBinding } from "../FieldShell.js";

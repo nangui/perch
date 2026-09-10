@@ -30,7 +30,7 @@ import type {
   ReactNode,
 } from "react";
 import { useRef, useState } from "react";
-import { CaretMark, GripMark } from "./marks.js";
+import { CaretMark, GripMark } from "../marks.js";
 
 export interface RepeaterItem {
   readonly id: string;

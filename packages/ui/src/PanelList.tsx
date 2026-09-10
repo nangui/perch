@@ -9,7 +9,7 @@
  */
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "./fields/marks.js";
+import { ChevronDown } from "./marks.js";
 import { IconMark } from "./icons.js";
 import { ColumnMenu, hiddenAtFirst } from "./ColumnMenu.js";
 import { remember, remembered } from "./remembered.js";

@@ -12,7 +12,7 @@
  *
  * None of these is a name. A resource cannot ask for one, nothing refuses one
  * at boot, and none of them crosses the wire — this is the panel drawing for
- * itself. What a resource asks for by name lives in `../icons.tsx`, and where a
+ * itself. What a resource asks for by name lives in `./icons.tsx`, and where a
  * mark here turned out to be one of those at another size it is gone from this
  * file: the same path data is never written twice.
  *

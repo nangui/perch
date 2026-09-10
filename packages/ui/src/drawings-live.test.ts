@@ -4,7 +4,7 @@
  * A **named** mark is one a resource asked for by name: uniform, one box and
  * one stroke, and it lives in `icons.tsx`. A **fitted** mark is one the
  * panel draws for its own slot, sized in pixels against that slot, and it lives
- * in `fields/marks.tsx`. Which file a drawing belongs in follows from which
+ * in `marks.tsx`. Which file a drawing belongs in follows from which
  * kind it is, so neither question needs remembering.
  *
  * What does need holding is the rule that keeps the two from breeding copies.
@@ -25,7 +25,7 @@ import { describe, expect, it } from "vitest";
 const HERE = new URL("./", import.meta.url).pathname;
 
 /** The two files a drawing may live in. */
-const HOMES = ["icons.tsx", "fields/marks.tsx"] as const;
+const HOMES = ["icons.tsx", "marks.tsx"] as const;
 
 function sources(): readonly { readonly name: string; readonly text: string }[] {
   const found: { name: string; text: string }[] = [];
@@ -74,7 +74,7 @@ describe("a drawing", () => {
     // A component drawing its own is how the calendar and the two month arrows
     // came to sit inside `DateTimePicker`, where nothing compared them to the
     // set. If this fails: a named mark goes to `icons.tsx`, a fitted one to
-    // `fields/marks.tsx`, and the component imports it.
+    // `marks.tsx`, and the component imports it.
     expect(stray).toEqual([]);
   });
 

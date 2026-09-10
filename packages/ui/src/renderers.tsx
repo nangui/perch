@@ -10,7 +10,7 @@ import { useCallback, useState } from "react";
 import type { Option, SchemaNode } from "@perchjs/core";
 import { FieldShell } from "./FieldShell.js";
 import { IconMark } from "./icons.js";
-import { CaretMark } from "./fields/marks.js";
+import { CaretMark } from "./marks.js";
 import type { TabHead } from "./Tabs.js";
 import { TabStrip } from "./Tabs.js";
 import type { FieldStatus } from "./field-state.js";

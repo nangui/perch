@@ -13,7 +13,7 @@
  * on a section heading are the same shape at the same weight whoever declared
  * them, which is the whole reason a name was asked for instead of a character.
  *
- * Not the marks in `fields/marks.tsx`. Those are fitted to the slot of one
+ * Not the marks in `marks.tsx`. Those are fitted to the slot of one
  * control — a select's chevron is wide and short because that is the space it
  * has — and the panel draws them for itself rather than being asked. Four
  * shapes appear in both places for that reason, and the calendar and the two

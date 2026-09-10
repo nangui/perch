@@ -15,7 +15,7 @@
  */
 import type { ReactNode } from "react";
 import * as RadixSelect from "@radix-ui/react-select";
-import { ChevronDown } from "./marks.js";
+import { ChevronDown } from "../marks.js";
 import type { FieldStatus } from "../field-state.js";
 import { isLocked, statusAttributes } from "../field-state.js";
 import type { ControlBinding } from "../FieldShell.js";

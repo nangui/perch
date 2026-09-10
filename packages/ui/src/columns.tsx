@@ -8,7 +8,7 @@
 import type { ReactNode } from "react";
 import type { BadgedValue, ColumnNode, Row } from "@perchjs/core";
 import type { CellHandle } from "./column-registry.js";
-import { ChevronDown } from "./fields/marks.js";
+import { ChevronDown } from "./marks.js";
 import { graphemesOf } from "./graphemes.js";
 import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
