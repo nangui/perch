@@ -38,14 +38,14 @@ describe("what a switch may hold", () => {
 describe("on the wire", () => {
   it("carries what it was told to draw and to colour", async () => {
     const result = await resolveSchema(
-      Schema.make([Toggle.make("live").onIcon("✓").offIcon("✕").onColor("success")]),
+      Schema.make([Toggle.make("live").onIcon("check").offIcon("close").onColor("success")]),
       {},
       { operation: "create" },
     );
 
     expect(serialise(result).schema.children?.[0]?.props).toEqual({
-      onIcon: "✓",
-      offIcon: "✕",
+      onIcon: "check",
+      offIcon: "close",
       onColor: "success",
     });
   });

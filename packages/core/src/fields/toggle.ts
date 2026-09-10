@@ -42,12 +42,12 @@ export class Toggle extends Field {
     return configured(new Toggle(baseFieldState(name)));
   }
 
-  onIcon(icon: string): this {
-    return this.with({ onIcon: icon });
+  onIcon(name: string): this {
+    return this.with({ onIcon: name });
   }
 
-  offIcon(icon: string): this {
-    return this.with({ offIcon: icon });
+  offIcon(name: string): this {
+    return this.with({ offIcon: name });
   }
 
   onColor(colour: "accent" | "success" | "danger"): this {

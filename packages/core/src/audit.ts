@@ -361,30 +361,41 @@ export function refuseIcon(named: unknown, field: string): readonly Complaint[] 
   ];
 }
 
+/**
+ * Every option on a component that names a mark.
+ *
+ * A list, and read off any component through one cast, rather than six
+ * `instanceof`s: only a text input has affixes, only a toggle has the two in
+ * its knob, only a layout has one beside a title. Each sits beside a different
+ * word and is drawn at a different size, and each is the same set of names
+ * refused the same way.
+ *
+ * The list is the point. Four of these went unread for a while, each somewhere
+ * nobody thought to look, and every one of them was a mark that simply vanished
+ * from a screen with nothing said. A seventh gets added here, and
+ * `icon-options.test.ts` is what will not let it be added anywhere else.
+ */
+export const MARK_OPTIONS = [
+  "icon",
+  "hintIcon",
+  "prefixIcon",
+  "suffixIcon",
+  "onIcon",
+  "offIcon",
+] as const;
+
 function inspectIcon(component: Component, into: Complaint[]): void {
-  // Every mark a component can declare, read through one cast rather than
-  // through four `instanceof`s. Only a text input has affixes and only a layout
-  // has a title mark — but they are one set of names refused one way, and one
-  // place that knows all of them is what a fifth of them will need to find.
-  const state = component.state as {
-    readonly icon?: unknown;
-    readonly hintIcon?: unknown;
-    readonly prefixIcon?: unknown;
-    readonly suffixIcon?: unknown;
-  };
+  // Through `unknown`, the way the wire format reads a state by key: the two
+  // types do not overlap enough for TypeScript to take the claim on its own,
+  // and every value read here is checked before it is used anyway.
+  const state = component.state as unknown as Readonly<Record<string, unknown>>;
   // The label may itself be a resolver, and a complaint needs a word now: the
   // type is what a reader can always be pointed at.
   const label = component.state.label;
   const field = typeof label === "string" ? label : component.type;
-  // One rule for all of them. Each sits beside a different word and is drawn at
-  // a different size — a title, a hint, the inside of a control's frame — and
-  // each is the same set of names and the same refusal.
-  into.push(
-    ...refuseIcon(state.icon, field),
-    ...refuseIcon(state.hintIcon, field),
-    ...refuseIcon(state.prefixIcon, field),
-    ...refuseIcon(state.suffixIcon, field),
-  );
+  for (const option of MARK_OPTIONS) {
+    into.push(...refuseIcon(state[option], field));
+  }
 }
 
 /**

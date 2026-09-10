@@ -106,25 +106,39 @@ describe("flipping it", () => {
 });
 
 describe("what the declaration draws", () => {
-  it("puts the on icon in the knob when on", () => {
-    draw(true, { onIcon: "✓", offIcon: "✕" });
+  /** The one mark in the knob, whichever of the two it is drawing. */
+  const knobMark = (): SVGSVGElement | null =>
+    document.querySelector(".perch-toggle__icon");
 
-    expect(screen.getByText("✓")).toBeTruthy();
-    expect(screen.queryByText("✕")).toBeNull();
+  it("puts the on mark in the knob when on, and only that one", () => {
+    draw(true, { onIcon: "check", offIcon: "close" });
+
+    expect(knobMark()?.tagName.toLowerCase()).toBe("svg");
+    // One knob, one mark: the other state's is not drawn and hidden, it is not
+    // drawn at all.
+    expect(document.querySelectorAll(".perch-toggle__icon")).toHaveLength(1);
   });
 
   it("puts the off one there when off", () => {
-    draw(false, { onIcon: "✓", offIcon: "✕" });
+    draw(false, { onIcon: "check", offIcon: "close" });
 
-    expect(screen.getByText("✕")).toBeTruthy();
+    expect(knobMark()?.tagName.toLowerCase()).toBe("svg");
   });
 
-  it("hides the icon from the accessible name, being decoration", () => {
-    // The role and the state already say it; an icon read aloud says it twice
-    // and in a language nobody chose.
-    draw(true, { onIcon: "✓" });
+  it("draws nothing where the state it is in named no mark", () => {
+    // On with only an off mark declared: the knob is empty rather than
+    // borrowing the other state's.
+    draw(true, { offIcon: "close" });
 
-    expect(screen.getByText("✓").getAttribute("aria-hidden")).toBe("true");
+    expect(knobMark()).toBeNull();
+  });
+
+  it("hides the mark from the accessible name, being decoration", () => {
+    // The role and the state already say it; a mark read aloud says it twice
+    // and in a language nobody chose.
+    draw(true, { onIcon: "check" });
+
+    expect(knobMark()?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("marks the track with the colour it was told", () => {

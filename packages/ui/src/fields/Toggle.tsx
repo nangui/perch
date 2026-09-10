@@ -18,6 +18,7 @@
 import type { ReactNode } from "react";
 import { useId } from "react";
 import * as Switch from "@radix-ui/react-switch";
+import { IconMark } from "../icons.js";
 import type { FieldStatus } from "../field-state.js";
 import { isLocked } from "../field-state.js";
 
@@ -33,9 +34,9 @@ export interface ToggleProps {
   readonly tag?: string;
   readonly id?: string;
   /**
-   * Drawn in the knob. Decoration, and never the only sign of state: the role
-   * says it, the position shows it, and someone who sees neither still hears
-   * "on".
+   * Drawn in the knob, by name. Decoration, and never the only sign of state:
+   * the role says it, the position shows it, and someone who sees neither still
+   * hears "on".
    */
   readonly onIcon?: string;
   readonly offIcon?: string;
@@ -81,11 +82,10 @@ export function Toggle({
         {...(onColor === undefined ? {} : { "data-on-color": onColor })}
       >
         <Switch.Thumb className="perch-toggle__knob">
-          {(checked ? onIcon : offIcon) === undefined ? null : (
-            <span className="perch-toggle__icon" aria-hidden="true">
-              {checked ? onIcon : offIcon}
-            </span>
-          )}
+          <IconMark
+            name={checked ? onIcon : offIcon}
+            className="perch-toggle__icon"
+          />
         </Switch.Thumb>
       </Switch.Root>
 

@@ -754,7 +754,9 @@
 }
 
 .perch-toggle__knob {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -783,13 +785,11 @@
   background: var(--perch-danger);
 }
 
+/* The smallest mark the panel draws: ten pixels inside a sixteen-pixel knob.
+   Nothing here places it — the knob is a centring box now, and a drawing that
+   brought its own would be a box inside a box the same size. */
 .perch-toggle__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
   font-size: var(--perch-text-xs);
-  line-height: 1;
   color: var(--perch-content-secondary);
 }
 
