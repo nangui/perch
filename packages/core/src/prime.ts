@@ -26,6 +26,7 @@
 import type { ComponentState, Resolvable } from "./component.js";
 import { Component, configured } from "./component.js";
 import type { EntryTone } from "./entries/text-entry.js";
+import type { IconName } from "./icon.js";
 
 export interface PrimeState extends ComponentState {
   /** What it says, or what it points at. Resolved every pass. */
@@ -110,7 +111,7 @@ export class Image extends Prime {
 
 export interface IconState extends PrimeState {
   /** Which mark, by name. One of the set the panel has drawings for. */
-  readonly icon?: string;
+  readonly icon?: IconName;
 }
 
 /**
@@ -139,7 +140,7 @@ export class Icon extends Prime {
     return super.with(patch);
   }
 
-  static make(name: string): Icon {
+  static make(name: IconName): Icon {
     return configured(new Icon({ children: [] })).with({ icon: name });
   }
 

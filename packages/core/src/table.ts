@@ -15,6 +15,7 @@ import type { Filter } from "./filter.js";
 import { SelectFilter, TernaryFilter, TrashedFilter } from "./filter.js";
 import type { Row, SortDirection } from "./data-adapter.js";
 import type { SchemaNode } from "./serialise.js";
+import type { IconName } from "./icon.js";
 
 export interface TableState {
   readonly columns: readonly Column[];
@@ -36,7 +37,7 @@ export interface TableState {
 export interface EmptyState {
   readonly heading?: string;
   readonly description?: string;
-  readonly icon?: string;
+  readonly icon?: IconName;
 }
 
 /** What crosses the wire, as a `ColumnTree`. */

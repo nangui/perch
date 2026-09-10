@@ -106,8 +106,8 @@ describe("configureUsing — extension point E1", () => {
 describe("extend", () => {
   it("returns a derived component and leaves the receiver alone", () => {
     const base = Section.make("s");
-    const extended = base.extend((s) => s.icon("cog"));
-    expect(extended.state.icon).toBe("cog");
+    const extended = base.extend((s) => s.icon("star"));
+    expect(extended.state.icon).toBe("star");
     expect(base.state.icon).toBeUndefined();
   });
 });

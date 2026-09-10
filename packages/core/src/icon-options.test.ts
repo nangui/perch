@@ -41,13 +41,34 @@ function sources(): readonly { readonly name: string; readonly text: string }[] 
   return found;
 }
 
-/** Every declared option whose name says it holds a mark, and where it is. */
-function declared(): readonly { readonly option: string; readonly where: string }[] {
+/**
+ * Where a mark may still be typed as a plain string.
+ *
+ * The wire, and only the wire. A declaration names the set, so a misspelling is
+ * a compile error before it is ever a boot failure; what arrives over the wire
+ * is whatever a client or a plugin put there, and typing that as a name would
+ * be a claim nothing checked. The refusal at boot is what covers it instead.
+ */
+const WIRE: Readonly<Record<string, string>> = {
+  "serialise.ts": "the node a schema is sent as",
+  "resolve.ts": "the node the cycle resolved",
+  "table.ts": "the action node a table is sent as",
+};
+
+/** Every declared option whose name says it holds a mark, and how it is typed. */
+function declared(): readonly {
+  readonly option: string;
+  readonly where: string;
+  readonly named: boolean;
+}[] {
   return sources().flatMap(({ name, text }) =>
-    [...text.matchAll(/readonly\s+([A-Za-z]*[Ii]con)\??:\s*string/g)].map((found) => ({
-      option: found[1] ?? "",
-      where: name,
-    })),
+    [...text.matchAll(/readonly\s+([A-Za-z]*[Ii]con)\??:\s*(string|IconName)/g)].map(
+      (found) => ({
+        option: found[1] ?? "",
+        where: name,
+        named: found[2] === "IconName",
+      }),
+    ),
   );
 }
 
@@ -66,6 +87,18 @@ describe("an option that names a mark", () => {
     // to `MARK_OPTIONS` when a component carries it; refuse it where it is read
     // when it is not a component — an action group's and an empty state's are
     // both asked for in `auditTable`, because no walk reaches either.
+    expect(loose).toEqual([]);
+  });
+
+  it("is typed as a name wherever a resource declares one", () => {
+    // What makes a misspelling a compile error rather than only a start-up
+    // failure. `string` is left where the wire is written, and nowhere else —
+    // a fifth place typing a mark loosely is a place the type stops covering.
+    const loose = declared()
+      .filter((one) => !one.named)
+      .filter((one) => WIRE[one.where] === undefined)
+      .map((one) => `${one.where}: ${one.option}`);
+
     expect(loose).toEqual([]);
   });
 

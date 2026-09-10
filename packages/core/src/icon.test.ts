@@ -13,14 +13,25 @@ import { ICON_NAMES, isIconName } from "./icon.js";
 import { Schema, Section } from "./layout.js";
 import { TextInput } from "./fields/text-input.js";
 import { TextEntry } from "./entries/text-entry.js";
+import type { IconName } from "./icon.js";
 
 const complain = (section: Section): readonly string[] =>
   auditSchema(Schema.make([section])).map((one) => one.problem);
 
+/**
+ * A mark the panel has no drawing for.
+ *
+ * Through a cast, because a cast is the only way one can be made now that the
+ * builders name the set. Which is what the refusal is for: the type stops the
+ * honest mistake, and the boot stops a plugin written in JavaScript and a
+ * resource cast the way this one is.
+ */
+const UNDRAWABLE = "\u{1F426}" as IconName;
+
 describe("a mark a resource asks for", () => {
   it("is refused when the panel has no drawing for it", () => {
     const said = complain(
-      Section.make("Badge").icon("\u{1F426}").schema([TextInput.make("name")]),
+      Section.make("Badge").icon(UNDRAWABLE).schema([TextInput.make("name")]),
     );
 
     expect(said.some((one) => one.includes("has no drawing for"))).toBe(true);
@@ -47,7 +58,7 @@ describe("a mark a resource asks for", () => {
     // is a closed set with a door in it — which is what this was.
     const said = auditInfolist(
       Schema.make([
-        Section.make("Badge").icon("\u{1F426}").schema([TextEntry.make("name")]),
+        Section.make("Badge").icon(UNDRAWABLE).schema([TextEntry.make("name")]),
       ]),
     ).map((one) => one.problem);
 
@@ -60,7 +71,7 @@ describe("a mark a resource asks for", () => {
     // same set and refused the same way.
     const said = complain(
       Section.make("People").schema([
-        TextInput.make("email").hint("Where links go").hintIcon("\u2709"),
+        TextInput.make("email").hint("Where links go").hintIcon(UNDRAWABLE),
       ]),
     );
 
@@ -85,12 +96,12 @@ describe("a mark a resource asks for", () => {
       complain(Section.make("People").schema([field]));
 
     expect(
-      bad(TextInput.make("site").prefixIcon("\u{1F310}")).some((one) =>
+      bad(TextInput.make("site").prefixIcon(UNDRAWABLE)).some((one) =>
         one.includes("has no drawing for"),
       ),
     ).toBe(true);
     expect(
-      bad(TextInput.make("site").suffixIcon("\u{1F310}")).some((one) =>
+      bad(TextInput.make("site").suffixIcon(UNDRAWABLE)).some((one) =>
         one.includes("has no drawing for"),
       ),
     ).toBe(true);

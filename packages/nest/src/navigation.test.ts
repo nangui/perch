@@ -3,6 +3,7 @@
  * the entry *and* protects the routes. This file is the first half.
  */
 import { describe, expect, it } from "vitest";
+import type { IconName } from "@perchjs/core";
 import { Schema, TextInput } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import { buildNavigation } from "./navigation.js";
@@ -14,7 +15,7 @@ function resource(
     pluralLabel?: string;
     navigationGroup?: string;
     navigationSort?: number;
-    icon?: string;
+    icon?: IconName;
     can?: Authorization;
   } = {},
 ): RegisteredResource {
@@ -54,9 +55,9 @@ describe("what the menu shows", () => {
   });
 
   it("carries the icon when one was declared, and nothing when not", async () => {
-    const nav = await build([resource("posts", { icon: "file" }), resource("tags")]);
+    const nav = await build([resource("posts", { icon: "tag" }), resource("tags")]);
 
-    expect(nav[0]?.items[0]).toMatchObject({ icon: "file" });
+    expect(nav[0]?.items[0]).toMatchObject({ icon: "tag" });
     expect(nav[0]?.items[1]).not.toHaveProperty("icon");
   });
 

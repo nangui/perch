@@ -60,19 +60,19 @@ describe("the mark beside a title", () => {
   it("can be declared on a callout, which serialised one it could not set", async () => {
     // Written twice — once on a section, once on a tab — and on the base
     // neither time, so the wire promised a prop the type system forbade.
-    const payload = await drawn(Schema.make([Callout.make("Careful").icon("!")]));
+    const payload = await drawn(Schema.make([Callout.make("Careful").icon("warning")]));
 
-    expect(payload.schema.children?.[0]?.props?.["icon"]).toBe("!");
+    expect(payload.schema.children?.[0]?.props?.["icon"]).toBe("warning");
   });
 
   it("is still there on the two that always had it", async () => {
-    const section = await drawn(Schema.make([Section.make("Identity").icon("*")]));
+    const section = await drawn(Schema.make([Section.make("Identity").icon("user")]));
     const tabs = await drawn(
-      Schema.make([Tabs.make().tabs([Tab.make("About").icon("+")])]),
+      Schema.make([Tabs.make().tabs([Tab.make("About").icon("info")])]),
     );
 
-    expect(section.schema.children?.[0]?.props?.["icon"]).toBe("*");
-    expect(tabs.schema.children?.[0]?.children?.[0]?.props?.["icon"]).toBe("+");
+    expect(section.schema.children?.[0]?.props?.["icon"]).toBe("user");
+    expect(tabs.schema.children?.[0]?.children?.[0]?.props?.["icon"]).toBe("info");
   });
 });
 
@@ -116,11 +116,11 @@ describe("a group of fields that belong together", () => {
 
   it("takes a line of prose and a mark like any other layout", async () => {
     const payload = await drawn(
-      Schema.make([Fieldset.make("Dates").description("Both inclusive.").icon("*")]),
+      Schema.make([Fieldset.make("Dates").description("Both inclusive.").icon("calendar")]),
     );
 
     expect(payload.schema.children?.[0]?.description).toBe("Both inclusive.");
-    expect(payload.schema.children?.[0]?.props?.["icon"]).toBe("*");
+    expect(payload.schema.children?.[0]?.props?.["icon"]).toBe("calendar");
   });
 
   it("does not fold, which is what separates it from a section", async () => {

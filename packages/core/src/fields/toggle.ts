@@ -13,11 +13,12 @@
 import { configured } from "../component.js";
 import type { FieldState, ValueRefusal } from "../field.js";
 import { baseFieldState, Field, isUnset } from "../field.js";
+import type { IconName } from "../icon.js";
 
 export interface ToggleState extends FieldState {
   /** Drawn in the knob when on, and when off. Decoration, never the only sign. */
-  readonly onIcon?: string;
-  readonly offIcon?: string;
+  readonly onIcon?: IconName;
+  readonly offIcon?: IconName;
   /** Which of the panel's colours the track takes when on. */
   readonly onColor?: "accent" | "success" | "danger";
 }
@@ -42,11 +43,11 @@ export class Toggle extends Field {
     return configured(new Toggle(baseFieldState(name)));
   }
 
-  onIcon(name: string): this {
+  onIcon(name: IconName): this {
     return this.with({ onIcon: name });
   }
 
-  offIcon(name: string): this {
+  offIcon(name: IconName): this {
     return this.with({ offIcon: name });
   }
 

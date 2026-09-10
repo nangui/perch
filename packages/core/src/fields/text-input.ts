@@ -6,6 +6,7 @@ import { configured } from "../component.js";
 import type { FieldState, ValidationRule } from "../field.js";
 import { baseFieldState, Field, lengthRules, ruleFor } from "../field.js";
 import type { TextFlavour } from "../inference.js";
+import type { IconName } from "../icon.js";
 
 export interface TextInputState extends FieldState {
   readonly flavour: TextFlavour;
@@ -42,8 +43,8 @@ export interface TextInputState extends FieldState {
   readonly prefix?: string;
   readonly suffix?: string;
   /** The marks beside them, by name. Decoration: the words carry the meaning. */
-  readonly prefixIcon?: string;
-  readonly suffixIcon?: string;
+  readonly prefixIcon?: IconName;
+  readonly suffixIcon?: IconName;
 }
 
 export class TextInput extends Field {
@@ -65,11 +66,11 @@ export class TextInput extends Field {
     return this.with({ suffix: value });
   }
 
-  prefixIcon(name: string): this {
+  prefixIcon(name: IconName): this {
     return this.with({ prefixIcon: name });
   }
 
-  suffixIcon(name: string): this {
+  suffixIcon(name: IconName): this {
     return this.with({ suffixIcon: name });
   }
 

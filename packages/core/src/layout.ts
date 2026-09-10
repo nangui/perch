@@ -5,6 +5,7 @@
 import type { ComponentState, Resolvable } from "./component.js";
 import { Component, configured } from "./component.js";
 import type { EntryTone } from "./entries/text-entry.js";
+import type { IconName } from "./icon.js";
 
 export type Columns = number | { readonly default: number; readonly md?: number };
 
@@ -14,7 +15,7 @@ interface LayoutState extends ComponentState {
   readonly description?: Resolvable<string>;
   readonly collapsible?: boolean;
   readonly collapsed?: boolean;
-  readonly icon?: string;
+  readonly icon?: IconName;
   /** Whether a tab set puts the open panel in the address. */
   readonly persistTab?: boolean;
 }
@@ -53,7 +54,7 @@ export abstract class Layout extends Component {
    * written twice: once on a section and once on a tab, so a callout that
    * serialised one had no way to declare it.
    */
-  icon(value: string): this {
+  icon(value: IconName): this {
     return this.with({ icon: value });
   }
 }

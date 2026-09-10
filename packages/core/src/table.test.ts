@@ -222,13 +222,13 @@ describe("what a table says when it has nothing to show", () => {
       .emptyState({
         heading: "No posts yet",
         description: "Write the first one.",
-        icon: "\u270E",
+        icon: "pencil",
       });
 
     expect(serialiseTable(table).empty).toEqual({
       heading: "No posts yet",
       description: "Write the first one.",
-      icon: "\u270E",
+      icon: "pencil",
     });
   });
 

@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Injectable, Module } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import type { Table } from "@perchjs/core";
+import type { IconName, Table } from "@perchjs/core";
 import {
   Repeater,
   resolveSchema,
@@ -180,7 +180,9 @@ describe("refusing to boot", () => {
 });
 
 describe("a mark the menu cannot draw", () => {
-  @PanelResource({ model: "Post", slug: "unmarked", icon: "\u{1F426}" })
+  // Through a cast: the decorator names the set now, so this is the shape a
+  // plugin written in JavaScript has — which is what the boot is left to catch.
+  @PanelResource({ model: "Post", slug: "unmarked", icon: "\u{1F426}" as IconName })
   class UnmarkedResource {
     form(): Schema {
       return Schema.make([TextInput.make("title")]);

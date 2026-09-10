@@ -15,6 +15,7 @@ import { TextInput } from "./fields/text-input.js";
 import { dehydrate, resolveSchema } from "./resolve.js";
 import { sanitize } from "./sanitize.js";
 import { serialise } from "./serialise.js";
+import type { IconName } from "./icon.js";
 
 const drawn = async (
   schema: Schema,
@@ -103,6 +104,16 @@ describe("an address a picture will not be pointed at", () => {
   });
 });
 
+/**
+ * A mark the panel has no drawing for.
+ *
+ * Through a cast, because a cast is the only way one can be made now that the
+ * builders name the set. Which is what the refusal is for: the type stops the
+ * honest mistake, and the boot stops a plugin written in JavaScript and a
+ * resource cast the way this one is.
+ */
+const UNDRAWABLE = "\u{1F426}" as IconName;
+
 describe("a mark", () => {
   it("is the name it was given, where the boot reads one", async () => {
     const payload = await drawn(Schema.make([Icon.make("star").tone("danger")]));
@@ -118,7 +129,7 @@ describe("a mark", () => {
     // The whole reason the name moved: `icon` is what the walk reads, on every
     // component there is, and a mark kept out of it was the one mark nothing
     // could refuse.
-    const said = auditSchema(Schema.make([Icon.make("\u{1F426}")])).map(
+    const said = auditSchema(Schema.make([Icon.make(UNDRAWABLE)])).map(
       (one) => one.problem,
     );
 

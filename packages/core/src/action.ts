@@ -20,6 +20,7 @@
 import type { Notification } from "./notification.js";
 import type { Row } from "./data-adapter.js";
 import type { Schema } from "./layout.js";
+import type { IconName } from "./icon.js";
 
 /**
  * What an author's callback is handed, and what it may answer.
@@ -115,7 +116,7 @@ export interface ActionGroupState {
    * meaning, and a group with a mark and no label would be a button nobody can
    * name out loud.
    */
-  readonly icon?: string;
+  readonly icon?: IconName;
   readonly actions: readonly Action[];
 }
 
@@ -134,7 +135,7 @@ export class ActionGroup {
     return new ActionGroup({ ...this.state, label: text });
   }
 
-  icon(name: string): ActionGroup {
+  icon(name: IconName): ActionGroup {
     return new ActionGroup({ ...this.state, icon: name });
   }
 }

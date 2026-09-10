@@ -6,6 +6,8 @@
  * browser is never the place a rule is decided.
  */
 
+import type { IconName } from "./icon.js";
+
 export type Operation = "create" | "edit" | "view";
 
 export interface ResolverContext {
@@ -48,7 +50,7 @@ export interface ComponentState {
    */
   readonly hint?: Resolvable<string>;
   /** The mark before the hint, by name. Decoration: the hint carries the meaning. */
-  readonly hintIcon?: string;
+  readonly hintIcon?: IconName;
   /**
    * Attributes the declaration puts on the control.
    *
@@ -161,7 +163,7 @@ export abstract class Component {
     return this.with({ hint: value });
   }
 
-  hintIcon(name: string): this {
+  hintIcon(name: IconName): this {
     return this.with({ hintIcon: name });
   }
 

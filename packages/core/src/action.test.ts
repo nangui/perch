@@ -16,6 +16,7 @@ import { Schema } from "./layout.js";
 import { auditTable } from "./audit.js";
 import { Notification } from "./notification.js";
 import { declaredActions, Table, serialiseTable } from "./table.js";
+import type { IconName } from "./icon.js";
 
 /** An action a host writes, which is the only kind that carries a callback. */
 class ArchiveAction extends Action {
@@ -275,6 +276,16 @@ const markComplaints = (group: ActionGroup): readonly string[] =>
     problem.includes("drawing"),
   );
 
+/**
+ * A mark the panel has no drawing for.
+ *
+ * Through a cast, because a cast is the only way one can be made now that the
+ * builders name the set. Which is what the refusal is for: the type stops the
+ * honest mistake, and the boot stops a plugin written in JavaScript and a
+ * resource cast the way this one is.
+ */
+const UNDRAWABLE = "\u{1F426}" as IconName;
+
 describe("the mark beside a group's label", () => {
   const recovery = (): ActionGroup =>
     ActionGroup.make([RestoreAction.make()]).label("Recovery");
@@ -285,11 +296,11 @@ describe("the mark beside a group's label", () => {
     // right for those, and the reason this one went unasked for so long: an
     // `Action` has no mark at all, so the only thing that could answer was the
     // one thing being thrown away.
-    expect(markComplaints(recovery().icon("\u21A9"))).toHaveLength(1);
+    expect(markComplaints(recovery().icon(UNDRAWABLE))).toHaveLength(1);
   });
 
   it("is refused on a bulk group too, and on a header one", () => {
-    const bad = (): ActionGroup => recovery().icon("\u21A9");
+    const bad = (): ActionGroup => recovery().icon(UNDRAWABLE);
 
     expect(
       auditTable(Table.make().bulkActions([bad()])).filter((one) =>

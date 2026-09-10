@@ -7,6 +7,7 @@ import { Select } from "./fields/select.js";
 import { TextInput } from "./fields/text-input.js";
 import { Schema, Section } from "./layout.js";
 import { TextEntry } from "./entries/text-entry.js";
+import type { IconName } from "./icon.js";
 
 describe("a form that can work", () => {
   it("draws no complaint", () => {
@@ -154,6 +155,16 @@ describe("a length nothing can be shortened to", () => {
   });
 });
 
+/**
+ * A mark the panel has no drawing for.
+ *
+ * Through a cast, because a cast is the only way one can be made now that the
+ * builders name the set. Which is what the refusal is for: the type stops the
+ * honest mistake, and the boot stops a plugin written in JavaScript and a
+ * resource cast the way this one is.
+ */
+const UNDRAWABLE = "\u{1F426}" as IconName;
+
 describe("an empty state that says nothing", () => {
   const table = (empty?: Parameters<Table["emptyState"]>[0]) => {
     const made = Table.make().columns([TextColumn.make("title")]);
@@ -179,7 +190,7 @@ describe("an empty state that says nothing", () => {
   it("refuses a mark the panel has no drawing for", () => {
     // Not a component, so no walk reaches it — and it is drawn on the one page
     // a reader is most likely to read as broken already.
-    expect(table({ heading: "No posts yet", icon: "\u270E" })[0]?.problem).toMatch(
+    expect(table({ heading: "No posts yet", icon: UNDRAWABLE })[0]?.problem).toMatch(
       /has no drawing for/,
     );
   });

@@ -3,7 +3,7 @@
  * `@Injectable`: instantiating through the container is what lets a resolver
  * inject a business service and call `this.cities.byCountry(…)`.
  */
-import type { Schema, Table } from "@perchjs/core";
+import type { IconName, Schema, Table } from "@perchjs/core";
 import { defaultSlug, plural } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import type { RelationManager } from "./relation-manager.js";
@@ -21,7 +21,7 @@ export interface PanelResourceOptions {
   readonly pluralLabel?: string;
   readonly navigationGroup?: string;
   readonly navigationSort?: number;
-  readonly icon?: string;
+  readonly icon?: IconName;
 }
 
 /** What the registry holds once the defaults are filled in. */
@@ -32,7 +32,7 @@ export interface ResourceMetadata {
   readonly pluralLabel: string;
   readonly navigationGroup?: string;
   readonly navigationSort?: number;
-  readonly icon?: string;
+  readonly icon?: IconName;
 }
 
 /** One `form()` serves Create and Edit, told apart by `operation`. */
