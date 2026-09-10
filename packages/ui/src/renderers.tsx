@@ -10,6 +10,7 @@ import { useCallback, useState } from "react";
 import type { Option, SchemaNode } from "@perchjs/core";
 import { FieldShell } from "./FieldShell.js";
 import { IconMark } from "./icons.js";
+import { CaretMark } from "./fields/marks.js";
 import type { TabHead } from "./Tabs.js";
 import { TabStrip } from "./Tabs.js";
 import type { FieldStatus } from "./field-state.js";
@@ -171,9 +172,7 @@ function LayoutRenderer({ node, renderChild }: NodeProps): ReactNode {
             setFolded((was) => !was);
           }}
         >
-          <span className="perch-layout__caret" aria-hidden="true">
-            {folded ? "\u25B8" : "\u25BE"}
-          </span>
+          <CaretMark folded={folded} />
           {mark}
           {title}
         </button>

@@ -12,6 +12,8 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
+import { IconMark } from "../icons.js";
+import { MonthArrow } from "./marks.js";
 import type { FieldStatus } from "../field-state.js";
 import { isLocked, statusAttributes } from "../field-state.js";
 import type { ControlBinding } from "../FieldShell.js";
@@ -52,42 +54,6 @@ const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"] as const;
  * `currentColor`, so they follow the button they sit in — through a hover, a
  * disabled state and both ramps — rather than carrying a grey of their own.
  */
-function CalendarMark(): ReactNode {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 16 16"
-      width="14"
-      height="14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-    >
-      <rect x="2" y="3.5" width="12" height="10.5" rx="1.5" />
-      <path d="M2 7h12M5.5 2v3M10.5 2v3" />
-    </svg>
-  );
-}
-
-function ChevronMark({ back }: { readonly back: boolean }): ReactNode {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 8 12"
-      width="8"
-      height="12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d={back ? "M6 1L2 6l4 5" : "M2 1l4 5-4 5"} />
-    </svg>
-  );
-}
-
 export function DateTimePicker({
   value,
   onChange,
@@ -146,7 +112,7 @@ export function DateTimePicker({
               aria-label="Open calendar"
               disabled={locked}
             >
-              <CalendarMark />
+              <IconMark name="calendar" className="perch-date__calendar" />
             </button>
           </Popover.Trigger>
 
@@ -279,7 +245,7 @@ export function Calendar({
               setView(shiftMonth(view, -1));
             }}
           >
-            <ChevronMark back />
+            <MonthArrow back />
           </button>
           <button
             type="button"
@@ -289,7 +255,7 @@ export function Calendar({
               setView(shiftMonth(view, 1));
             }}
           >
-            <ChevronMark back={false} />
+            <MonthArrow back={false} />
           </button>
         </div>
       </div>

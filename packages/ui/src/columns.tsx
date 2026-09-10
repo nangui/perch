@@ -7,9 +7,9 @@
  */
 import type { ReactNode } from "react";
 import type { BadgedValue, ColumnNode, Row } from "@perchjs/core";
-import { CopyMark } from "./fields/marks.js";
 import type { CellHandle } from "./column-registry.js";
 import { ChevronDown } from "./fields/marks.js";
+import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
 import { registerColumn } from "./column-registry.js";
 
@@ -187,7 +187,7 @@ function copy(value: string): ReactNode {
         );
       }}
     >
-      <CopyMark />
+      <IconMark name="copy" className="perch-cell__copy-mark" />
     </button>
   );
 }

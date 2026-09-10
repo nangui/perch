@@ -30,7 +30,7 @@ import type {
   ReactNode,
 } from "react";
 import { useRef, useState } from "react";
-import { GripMark } from "./marks.js";
+import { CaretMark, GripMark } from "./marks.js";
 
 export interface RepeaterItem {
   readonly id: string;
@@ -290,7 +290,7 @@ export function Repeater<T extends RepeaterItem>({
                     toggleFold(item.id);
                   }}
                 >
-                  <span aria-hidden="true">{folded.has(item.id) ? "▸" : "▾"}</span>
+                  <CaretMark folded={folded.has(item.id)} />
                 </button>
               )}
 

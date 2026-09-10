@@ -123,8 +123,15 @@
    `block` because an inline SVG sits on a text baseline, which leaves a gap
    under it and, in a line box of its own, drew a mark three pixels high. Every
    surface that carries one lays its children out with flex, so a block child
-   is centred by the row rather than starting one. */
-.perch-icon {
+   is centred by the row rather than starting one.
+
+   In `:where`, so it carries no specificity and every one of these is a floor
+   rather than a ceiling. A component that asks the named set for a drawing and
+   wants it at a size of its own — a calendar at 14px in a control's affix, a
+   copy at 13px in a cell — sets that size on its own class and wins, whichever
+   order the two rules happen to be written in. The focus ring below is a floor
+   for the same reason. */
+:where(.perch-icon) {
   display: block;
   flex: none;
   width: 1em;
@@ -3501,6 +3508,9 @@
    button with a word in it, because a row's own controls should not outweigh
    what is in the row. */
 .perch-repeater__fold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 24px;
   min-height: 24px;
   align-self: start;
@@ -3508,7 +3518,6 @@
   background: none;
   color: var(--perch-content-subtle);
   cursor: pointer;
-  font-size: var(--perch-text-base);
 }
 
 .perch-repeater__fold:hover {
@@ -3825,6 +3834,19 @@
 /* Beside the words, never in their place: it is hidden from a screen reader. */
 .perch-layout__caret {
   color: var(--perch-content-subtle);
+}
+
+/* Sizes for the two drawings a component takes from the named set. Both are
+   what those components already drew — 14 and 13 — and they say it here because
+   `.perch-icon` sizes in `em` and these two want a fixed mark in a fixed box. */
+.perch-date__calendar {
+  width: 14px;
+  height: 14px;
+}
+
+.perch-cell__copy-mark {
+  width: 13px;
+  height: 13px;
 }
 
 .perch-layout__title {
