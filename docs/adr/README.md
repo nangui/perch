@@ -38,8 +38,8 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0024](0024-what-a-base-class-may-grow.md) | `Component` may grow, and each new method on it is a breaking change for plugins | accepted |
 | [0025](0025-what-a-header-may-offer.md) | A header action must be a `CreateAction`; anything else stops the boot until recordless actions exist | accepted |
 | [0026](0026-how-a-filter-is-named.md) | A filter is made from the class it is, and named at construction; PRD 07 is corrected to match | accepted |
-| [0027](0027-what-an-icon-is.md) | An icon is a name the panel draws, refused at boot if unknown; a plugin's own mark is not one | proposed |
-| [0028](0028-where-a-drawing-lives.md) | A named mark is uniform and a fitted one is drawn to its slot; the same path data is never written twice | proposed |
+| [0027](0027-what-an-icon-is.md) | An icon is a name the panel draws, refused at boot if unknown; a plugin's own mark is not one | accepted |
+| [0028](0028-where-a-drawing-lives.md) | A named mark is uniform and a fitted one is drawn to its slot; the same path data is never written twice | accepted |
 
 ## Format
 

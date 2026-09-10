@@ -1,6 +1,6 @@
 # ADR 0027 — What an icon is
 
-**Status:** proposed · **Scope:** Perch (`@perchjs/core`, `@perchjs/ui`, `@perchjs/nest`)
+**Status:** accepted · **Scope:** Perch (`@perchjs/core`, `@perchjs/ui`, `@perchjs/nest`)
 
 ## Context
 

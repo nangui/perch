@@ -1,6 +1,6 @@
 # ADR 0028 — Where a drawing lives
 
-**Status:** proposed · **Scope:** `@perchjs/ui` · **Supersedes decision 4 of [ADR 0027](0027-what-an-icon-is.md)**
+**Status:** accepted · **Scope:** `@perchjs/ui` · **Supersedes decision 4 of [ADR 0027](0027-what-an-icon-is.md)**
 
 *Everything else in ADR 0027 stands: an icon is a name, an unknown one is refused at boot, the set is small and shipped, a plugin's mark is not one, a named mark is `aria-hidden`, and no icon library is added.*
 
