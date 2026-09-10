@@ -41,6 +41,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0027](0027-what-an-icon-is.md) | An icon is a name the panel draws, refused at boot if unknown; a plugin's own mark is not one | accepted |
 | [0028](0028-where-a-drawing-lives.md) | A named mark is uniform and a fitted one is drawn to its slot; the same path data is never written twice | accepted |
 | [0029](0029-what-a-decision-may-name.md) | A decision names what a file holds; the guard names where it is — correcting ADR 0028's address | accepted |
+| [0030](0030-how-a-closed-vocabulary-arrives.md) | A word leaving a closed vocabulary is refused at once, with no deprecation window | accepted |
 
 ## Format
 
