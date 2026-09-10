@@ -195,7 +195,7 @@ export {
   Tab,
   Tabs,
 } from "./layout.js";
-export type { PrimeState } from "./prime.js";
+export type { IconState, PrimeState } from "./prime.js";
 export { Icon, Image, Prime, Text } from "./prime.js";
 
 // Fields: components that hold state and are validated.
@@ -283,7 +283,13 @@ export {
 
 // What a form promises and cannot keep. Read once, at boot.
 export type { Complaint } from "./audit.js";
-export { auditInfolist, auditSchema, auditTable, describeComplaints } from "./audit.js";
+export {
+  auditInfolist,
+  auditSchema,
+  auditTable,
+  describeComplaints,
+  refuseIcon,
+} from "./audit.js";
 
 // Stage 5, the trust boundary.
 export type { RejectedPath, RejectionReason, SanitizeResult } from "./sanitize.js";

@@ -37,6 +37,7 @@ import {
   FileUpload,
   DetachAction,
   Repeater,
+  refuseIcon,
   resolvePath,
   Select,
   WritableColumn,
@@ -216,6 +217,7 @@ export class ResourceRegistry implements OnModuleInit {
       const complaints = [
         ...auditSchema(form),
         ...(infolist === undefined ? [] : auditInfolist(infolist)),
+        ...this.#undrawableIcon(metadata),
         ...(table === undefined ? [] : auditTable(table)),
         ...this.#unknownDisks(form),
         ...this.#unknownColumnDisks(table),
@@ -1001,6 +1003,24 @@ export class ResourceRegistry implements OnModuleInit {
    * with no disk to resolve them draws an empty cell in every row and says
    * nothing about why.
    */
+  /**
+   * The mark the menu draws beside a resource's name.
+   *
+   * Asked here rather than by the walk, because this one is not a component.
+   * The walk reads `icon` off every node of a tree; a resource names its own in
+   * the decorator, which is part of no tree, so the only mark on a panel that
+   * nothing would ever read is the one on the door to every page of it.
+   *
+   * Unread, it is absent from the menu and nothing says a declaration was
+   * ignored — and a menu is the last place to leave that, since an entry with
+   * no mark beside the others reads as an entry that is somehow lesser.
+   */
+  #undrawableIcon(
+    metadata: ResourceMetadata,
+  ): readonly { field: string; problem: string }[] {
+    return refuseIcon(metadata.icon, "its entry in the menu");
+  }
+
   #unknownColumnDisks(
     table: Table | undefined,
   ): readonly { field: string; problem: string }[] {

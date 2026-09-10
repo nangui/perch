@@ -108,21 +108,39 @@ export class Image extends Prime {
   }
 }
 
+export interface IconState extends PrimeState {
+  /** Which mark, by name. One of the set the panel has drawings for. */
+  readonly icon?: string;
+}
+
 /**
  * A mark, and nothing a screen reader will read.
  *
- * The panel draws an icon as text — a glyph, an emoji — the way a section's own
- * icon is drawn, so there is nothing here to register or to resolve beyond the
- * character itself. Decoration by definition: an icon carrying meaning of its
- * own would need words beside it, and those words are a `Text`.
+ * By name, the way every other mark in the panel is asked for: the name is
+ * resolved to a drawing the renderer ships, so a mark standing on its own is
+ * the same shape at the same weight as the one beside a section's title.
+ *
+ * Under `icon` and not under `content`, which is where the character used to
+ * ride. `content` is a `Prime`'s own word — resolvable, and never read against
+ * anything — while the boot reads `icon` on every component there is. A mark
+ * kept apart from that walk was the one mark nothing could refuse.
+ *
+ * Decoration by definition: a mark carrying meaning of its own would need words
+ * beside it, and those words are a `Text`.
  */
 export class Icon extends Prime {
+  declare readonly state: IconState;
+
   override get type(): string {
     return "Icon";
   }
 
-  static make(glyph: string): Icon {
-    return configured(new Icon({ children: [] })).content(glyph);
+  protected override with(patch: Partial<IconState>): this {
+    return super.with(patch);
+  }
+
+  static make(name: string): Icon {
+    return configured(new Icon({ children: [] })).with({ icon: name });
   }
 
   tone(value: EntryTone): this {

@@ -191,9 +191,19 @@ const DRAWINGS: Readonly<Record<IconName, ReactNode>> = {
 export function IconMark({
   name,
   className,
+  tone,
 }: {
   readonly name: string | undefined;
   readonly className: string;
+  /**
+   * Which of the panel's four, for the one mark that stands on its own.
+   *
+   * A mark beside a title takes the colour of the words it sits with, and the
+   * layout around it already carries the tone. An `Icon` in a schema has no
+   * words beside it, so the tone lands here — on the drawing itself, which
+   * strokes in `currentColor` and follows it.
+   */
+  readonly tone?: string | undefined;
 }): ReactNode {
   if (name === undefined) return null;
   const drawing = (DRAWINGS as Readonly<Record<string, ReactNode | undefined>>)[name];
@@ -214,6 +224,7 @@ export function IconMark({
       strokeWidth="1.4"
       strokeLinecap="round"
       strokeLinejoin="round"
+      {...(tone === undefined ? {} : { "data-tone": tone })}
     >
       {drawing}
     </svg>

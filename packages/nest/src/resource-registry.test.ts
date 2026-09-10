@@ -179,6 +179,58 @@ describe("refusing to boot", () => {
   });
 });
 
+describe("a mark the menu cannot draw", () => {
+  @PanelResource({ model: "Post", slug: "unmarked", icon: "\u{1F426}" })
+  class UnmarkedResource {
+    form(): Schema {
+      return Schema.make([TextInput.make("title")]);
+    }
+  }
+
+  @PanelResource({ model: "Post", slug: "marked", icon: "users" })
+  class MarkedResource {
+    form(): Schema {
+      return Schema.make([TextInput.make("title")]);
+    }
+  }
+
+  it("stops the boot, the way every other mark in the panel does", async () => {
+    // The one mark no walk reaches: named in the decorator rather than in a
+    // tree, and sitting on the door to every page of the resource. Left unread
+    // it is simply absent from the menu, and an entry with no mark beside
+    // others that have one reads as an entry that is somehow lesser.
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [UnmarkedResource],
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (moduleRef) => await moduleRef.init()),
+    ).rejects.toThrow(/has no drawing for/);
+  });
+
+  it("lets through a name the panel draws", async () => {
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [MarkedResource],
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (moduleRef) => await moduleRef.init()),
+    ).resolves.toBeDefined();
+  });
+});
+
 describe("a form that cannot work", () => {
   @PanelResource({ model: "Post", slug: "broken" })
   class BrokenResource {

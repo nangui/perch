@@ -8,10 +8,11 @@
  * boot began refusing one.
  */
 import { describe, expect, it } from "vitest";
-import { auditSchema } from "./audit.js";
+import { auditInfolist, auditSchema } from "./audit.js";
 import { ICON_NAMES, isIconName } from "./icon.js";
 import { Schema, Section } from "./layout.js";
 import { TextInput } from "./fields/text-input.js";
+import { TextEntry } from "./entries/text-entry.js";
 
 const complain = (section: Section): readonly string[] =>
   auditSchema(Schema.make([section])).map((one) => one.problem);
@@ -38,6 +39,19 @@ describe("a mark a resource asks for", () => {
     const said = complain(Section.make("People").schema([TextInput.make("name")]));
 
     expect(said.some((one) => one.includes("icon"))).toBe(false);
+  });
+
+  it("is refused on an infolist too, which walks its own tree", () => {
+    // Two walks, not one. A section, a tab and an `Icon` are declared on both
+    // sides, and a mark refused on a form while it went through on an infolist
+    // is a closed set with a door in it — which is what this was.
+    const said = auditInfolist(
+      Schema.make([
+        Section.make("Badge").icon("\u{1F426}").schema([TextEntry.make("name")]),
+      ]),
+    ).map((one) => one.problem);
+
+    expect(said.some((one) => one.includes("has no drawing for"))).toBe(true);
   });
 
   it("knows its own names", () => {

@@ -114,7 +114,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   Fieldset: ["columns", "icon"],
   Text: ["tone"],
   Image: ["alt"],
-  Icon: ["tone"],
+  Icon: ["icon", "tone"],
   Tab: ["columns", "icon"],
   Grid: ["columns"],
   Schema: ["columns"],

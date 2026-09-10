@@ -708,7 +708,7 @@ export class PersonResource {
             .icon("tag")
             .schema([
               // Static content: neither a control nor a reading of the row.
-              Icon.make("🐦").tone("success"),
+              Icon.make("star").tone("success"),
               Text.make("What the panel puts beside this person's name."),
               // The alternative first, because it is not optional: a picture
               // with nothing said instead of it is one a reader who cannot see

@@ -104,11 +104,25 @@ describe("an address a picture will not be pointed at", () => {
 });
 
 describe("a mark", () => {
-  it("is the character it was given", async () => {
-    const payload = await drawn(Schema.make([Icon.make("⚑").tone("danger")]));
+  it("is the name it was given, where the boot reads one", async () => {
+    const payload = await drawn(Schema.make([Icon.make("star").tone("danger")]));
 
-    expect(payload.schema.children?.[0]?.content).toBe("⚑");
+    expect(payload.schema.children?.[0]?.props?.["icon"]).toBe("star");
     expect(payload.schema.children?.[0]?.props?.["tone"]).toBe("danger");
+    // Not under `content`, which is where the character used to ride and where
+    // nothing ever read it.
+    expect(payload.schema.children?.[0]?.content).toBeUndefined();
+  });
+
+  it("is refused before a panel starts when the panel cannot draw it", () => {
+    // The whole reason the name moved: `icon` is what the walk reads, on every
+    // component there is, and a mark kept out of it was the one mark nothing
+    // could refuse.
+    const said = auditSchema(Schema.make([Icon.make("\u{1F426}")])).map(
+      (one) => one.problem,
+    );
+
+    expect(said.some((one) => one.includes("has no drawing for"))).toBe(true);
   });
 });
 
@@ -117,7 +131,7 @@ describe("what a prime is not", () => {
     Schema.make([
       Text.make("A line."),
       Image.make("A chart", "/c.png"),
-      Icon.make("*"),
+      Icon.make("star"),
     ]);
 
   it("is not a field, so nothing admits it and nothing writes it", async () => {

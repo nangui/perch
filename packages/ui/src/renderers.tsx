@@ -318,19 +318,18 @@ function ImageRenderer({ node }: NodeProps): ReactNode {
 }
 
 function IconRenderer({ node }: NodeProps): ReactNode {
-  if (empty(node.content)) return null;
-  const tone = toneOf(node);
+  // Under `icon`, where the boot reads it. What rode under `content` was a
+  // character nothing could refuse, and a name nothing can draw draws nothing —
+  // the mark is decoration, and there is no sentence it takes the place of.
+  const name =
+    typeof node.props?.["icon"] === "string" ? node.props["icon"] : undefined;
 
-  // Hidden from a screen reader, always. A mark carrying meaning of its own
-  // would need words beside it, and those words are a `Text`.
   return (
-    <span
+    <IconMark
+      name={name}
       className="perch-prime perch-prime--icon"
-      aria-hidden="true"
-      {...(tone === undefined ? {} : { "data-tone": tone })}
-    >
-      {node.content}
-    </span>
+      tone={toneOf(node)}
+    />
   );
 }
 

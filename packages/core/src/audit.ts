@@ -97,6 +97,11 @@ export function auditInfolist(root: Component): readonly Complaint[] {
       return;
     }
     if (component instanceof TextEntry) inspectLimit(component, complaints);
+    // Asked here as well as in the schema's walk, because these are two walks
+    // and not one: a section, a tab and an `Icon` are declared on both sides,
+    // and a mark refused on a form while it went through on an infolist is a
+    // closed set with a door in it.
+    inspectIcon(component, complaints);
     inspectSends(component, complaints);
     inspectColumns(component, complaints);
     for (const child of component.children) walk(child);
@@ -329,31 +334,31 @@ function inspectSends(component: Component, into: Complaint[]): void {
 }
 
 /**
- * An empty state that says nothing.
- *
- * Declaring one takes the plain fallback away — "Nothing to show" is short and
- * true — so one with none of the three leaves a blank box where a table was.
- * The same shape as a limit of zero: a value that reads as "configure this" and
- * un-configures it.
- */
-/**
- * A mark the panel has no drawing for.
+ * A mark the panel has no drawing for, as the complaint about it — or nothing.
  *
  * A closed set is only closed where something closes it. The union holds while
  * the resource is written in TypeScript; a plugin written in JavaScript, or one
  * cast, puts any string on the wire — and the renderer finds no drawing, so the
  * mark is simply absent from a screen with nothing to say a declaration was
  * ignored. That is the same silence a modal width had before it was refused.
+ *
+ * Exported, and returning the complaint rather than pushing it, because not
+ * every mark is asked for by a component. A resource names one for the menu in
+ * its decorator, which is part of no tree and cannot reach the walk below — and
+ * two wordings for one refusal are two things a reader has to work out are the
+ * same refusal.
  */
-function refuseIcon(named: unknown, field: string, into: Complaint[]): void {
-  if (typeof named !== "string" || isIconName(named)) return;
+export function refuseIcon(named: unknown, field: string): readonly Complaint[] {
+  if (typeof named !== "string" || isIconName(named)) return [];
 
-  into.push({
-    field,
-    problem:
-      `asks for the \`${named}\` icon, which the panel has no drawing for — ` +
-      `one of: ${ICON_NAMES.join(", ")}`,
-  });
+  return [
+    {
+      field,
+      problem:
+        `asks for the \`${named}\` icon, which the panel has no drawing for — ` +
+        `one of: ${ICON_NAMES.join(", ")}`,
+    },
+  ];
 }
 
 function inspectIcon(component: Component, into: Complaint[]): void {
@@ -361,9 +366,17 @@ function inspectIcon(component: Component, into: Complaint[]): void {
   // The label may itself be a resolver, and a complaint needs a word now: the
   // type is what a reader can always be pointed at.
   const label = component.state.label;
-  refuseIcon(named, typeof label === "string" ? label : component.type, into);
+  into.push(...refuseIcon(named, typeof label === "string" ? label : component.type));
 }
 
+/**
+ * An empty state that says nothing.
+ *
+ * Declaring one takes the plain fallback away — "Nothing to show" is short and
+ * true — so one with none of the three leaves a blank box where a table was.
+ * The same shape as a limit of zero: a value that reads as "configure this" and
+ * un-configures it.
+ */
 function inspectEmpty(table: Table, into: Complaint[]): void {
   const empty = table.state.empty;
   if (empty === undefined) return;

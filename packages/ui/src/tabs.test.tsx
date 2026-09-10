@@ -272,12 +272,25 @@ describe("static content on a page", () => {
     expect(container.querySelector("img")?.getAttribute("alt")).toBe("");
   });
 
-  it("hides a mark from a reader who would only hear the character", () => {
-    const container = drawn({ id: "flag", type: "Icon", content: "\u2691" });
+  it("draws the shape its name stands for, and hides it from a reader", () => {
+    const container = drawn({ id: "flag", type: "Icon", props: { icon: "star" } });
+    const mark = container.querySelector(".perch-prime--icon");
+
+    expect(mark?.tagName.toLowerCase()).toBe("svg");
+    expect(mark?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("carries the tone on the drawing, which strokes in the colour it finds", () => {
+    // A mark standing on its own has no words beside it to take a colour from.
+    const container = drawn({
+      id: "flag",
+      type: "Icon",
+      props: { icon: "star", tone: "danger" },
+    });
 
     expect(
-      container.querySelector(".perch-prime--icon")?.getAttribute("aria-hidden"),
-    ).toBe("true");
+      container.querySelector(".perch-prime--icon")?.getAttribute("data-tone"),
+    ).toBe("danger");
   });
 
   it("draws nothing at all where there is nothing to draw", () => {
@@ -297,7 +310,17 @@ describe("static content on a page", () => {
       drawn({ id: "note", type: "Text", content: "" }).querySelector(".perch-prime"),
     ).toBeNull();
     expect(
-      drawn({ id: "flag", type: "Icon", content: "" }).querySelector(".perch-prime"),
+      drawn({ id: "flag", type: "Icon", props: { icon: "" } }).querySelector(
+        ".perch-prime",
+      ),
+    ).toBeNull();
+    // And a name nothing can draw. The boot refuses one from a resource, so
+    // this is what a plugin written in JavaScript gets: no mark, rather than
+    // the word `aubergine` sitting between two sections.
+    expect(
+      drawn({ id: "flag", type: "Icon", props: { icon: "aubergine" } }).querySelector(
+        ".perch-prime",
+      ),
     ).toBeNull();
   });
 });
