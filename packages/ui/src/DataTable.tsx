@@ -18,6 +18,7 @@ import type {
   Row,
   SortDirection,
 } from "@perchjs/core";
+import { EllipsisMark } from "./fields/marks.js";
 import { readPath } from "./read-path.js";
 import { lookupColumn } from "./column-registry.js";
 
@@ -450,7 +451,7 @@ function RowActions({
       }}
     >
       <summary className="perch-row-actions__open" aria-label="Actions" ref={open}>
-        <span aria-hidden="true">⋯</span>
+        <EllipsisMark />
       </summary>
       {/* Held back until it has somewhere to be: a fixed box painted before it
           is placed lands wherever the flow left it. Kept in the tree all the
@@ -529,7 +530,6 @@ function unknownColumn(column: ColumnNode): ReactNode {
     </span>
   );
 }
-
 
 /**
  * A React key, and only that.

@@ -30,6 +30,7 @@ import type {
   ReactNode,
 } from "react";
 import { useRef, useState } from "react";
+import { GripMark } from "./marks.js";
 
 export interface RepeaterItem {
   readonly id: string;
@@ -274,7 +275,7 @@ export function Repeater<T extends RepeaterItem>({
                 onPointerUp={endDrag}
                 onPointerCancel={cancelDrag}
               >
-                <span aria-hidden="true">⠿</span>
+                <GripMark />
                 <span className="perch-repeater__index">{index + 1}</span>
               </button>
 
