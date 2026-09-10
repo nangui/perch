@@ -449,18 +449,32 @@
   box-shadow: var(--perch-focus-ring);
 }
 
-/* The chevron, redrawn. The platform's own is a different glyph at a different
-   weight from the one the styled selects show, and two chevrons on a screen is
-   what makes one control look like it belongs to another product. */
-.perch-list__search select,
-.perch-list__size select,
-.perch-table__cell select {
+/* The mark that says a control opens a list, drawn once.
+
+   It used to be a data URI here as well as a shape in `marks.tsx` — two
+   drawings of one chevron, and the copy in the stylesheet could not reach
+   `currentColor`, so it named a grey and stayed that grey in the dark ramp
+   while the drawn one lightened. A select may hold nothing but options, so the
+   mark sits over a wrapper rather than inside the control. */
+.perch-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.perch-picker > select {
   appearance: none;
+  width: 100%;
   padding-right: var(--perch-space-8);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right var(--perch-space-4) center;
-  background-size: 10px 6px;
+}
+
+.perch-picker > svg {
+  position: absolute;
+  right: var(--perch-space-4);
+  /* The control underneath takes the click: the mark is decoration, and a
+     reader aiming at it means to open the list. */
+  pointer-events: none;
 }
 
 /* Status marks: Unsaved, Saving…, and the error badge. */
@@ -1487,15 +1501,26 @@
   height: auto;
   padding-block: 0;
   border-color: transparent;
-  /* `background-color`, never the shorthand: the shorthand also resets
-     `background-image`, and that is where the select keeps its chevron. */
+  /* `background-color`, never the shorthand. The chevron is a drawn shape now
+     rather than an image on this element, so the shorthand no longer erases it
+     — but a control quieting its ground has no business clearing every layer
+     under it, and the rule that once did erased the mark for a whole release. */
   background-color: transparent;
   line-height: inherit;
-  /* Pulled left by its own padding so the value lines up with the plain text in
-     the cells beside it, and widened by as much so the frame reaches back out
-     over the space when it appears. */
-  margin-inline: calc(-1 * (var(--perch-space-4) + 1px));
   padding-inline: var(--perch-space-4);
+}
+
+/* Pulled left by its own padding so the value lines up with the plain text in
+   the cells beside it, and widened by as much so the frame reaches back out
+   over the space when it appears.
+
+   On the wrapper for a choice rather than on the control, because the mark is
+   positioned against the wrapper: pulling the select alone left the chevron
+   sitting a padding inside the edge it is supposed to sit against. Geometry
+   belongs to whatever the mark is measured from. */
+.perch-table__cell .perch-cell__line,
+.perch-table__cell .perch-picker {
+  margin-inline: calc(-1 * (var(--perch-space-4) + 1px));
   width: calc(100% + 2 * (var(--perch-space-4) + 1px));
 }
 

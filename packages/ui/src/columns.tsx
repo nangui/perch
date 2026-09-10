@@ -8,6 +8,7 @@
 import type { ReactNode } from "react";
 import type { BadgedValue, ColumnNode, Row } from "@perchjs/core";
 import type { CellHandle } from "./column-registry.js";
+import { ChevronDown } from "./fields/marks.js";
 import { readPath } from "./read-path.js";
 import { registerColumn } from "./column-registry.js";
 
@@ -335,43 +336,46 @@ function choose(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode
   if (cell.write === undefined || options.length === 0) return text(value);
 
   return (
-    <select
-      ref={(element) => {
-        // Unconditionally, unlike a line of text: there is nothing half-typed
-        // in a list to protect, and choosing leaves the focus on the control —
-        // so skipping a focused one left a refused choice on screen, over a row
-        // that says otherwise.
-        if (element === null) return;
-        const now = held ?? "";
-        if (element.value !== now) element.value = now;
-      }}
-      className="perch-control perch-cell__choice"
-      aria-label={nameOf(column, cell)}
-      defaultValue={held ?? ""}
-      disabled={cell.pending}
-      data-pending={cell.pending ? "true" : undefined}
-      onChange={(event) => {
-        // Nothing is `null` rather than the empty string: a column that may hold
-        // nothing should come back to nothing, not to a blank.
-        cell.write?.(event.target.value === "" ? null : event.target.value);
-      }}
-    >
-      {/* Always offered, whatever the cell holds: a control that can take a
-          value and never give it back is a one-way door. Whether the field
-          allows nothing is the field's answer, and it gives it by refusing. */}
-      <option value="">—</option>
-      {options.map((option) => (
-        <option
-          key={String(option.value)}
-          value={String(option.value)}
-          // The server said this one may not be chosen. Offered anyway, it is
-          // picked, refused at the boundary, and nothing happens.
-          disabled={option.disabled === true}
-        >
-          {option.label}
-        </option>
-      ))}
-    </select>
+    <span className="perch-picker">
+      <select
+        ref={(element) => {
+          // Unconditionally, unlike a line of text: there is nothing half-typed
+          // in a list to protect, and choosing leaves the focus on the control —
+          // so skipping a focused one left a refused choice on screen, over a row
+          // that says otherwise.
+          if (element === null) return;
+          const now = held ?? "";
+          if (element.value !== now) element.value = now;
+        }}
+        className="perch-control perch-cell__choice"
+        aria-label={nameOf(column, cell)}
+        defaultValue={held ?? ""}
+        disabled={cell.pending}
+        data-pending={cell.pending ? "true" : undefined}
+        onChange={(event) => {
+          // Nothing is `null` rather than the empty string: a column that may hold
+          // nothing should come back to nothing, not to a blank.
+          cell.write?.(event.target.value === "" ? null : event.target.value);
+        }}
+      >
+        {/* Always offered, whatever the cell holds: a control that can take a
+            value and never give it back is a one-way door. Whether the field
+            allows nothing is the field's answer, and it gives it by refusing. */}
+        <option value="">—</option>
+        {options.map((option) => (
+          <option
+            key={String(option.value)}
+            value={String(option.value)}
+            // The server said this one may not be chosen. Offered anyway, it is
+            // picked, refused at the boundary, and nothing happens.
+            disabled={option.disabled === true}
+          >
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown />
+    </span>
   );
 }
 
@@ -389,165 +393,169 @@ function nameOf(column: ColumnNode, cell: CellHandle): string {
 }
 
 export function registerBuiltInColumns(): void {
-/**
- * A value drawn as a state.
- *
- * What arrives is what `BadgeColumn.present` settled on the server: the value
- * and the tone it was judged to carry, because the map from one to the other is
- * a rule somebody wrote in a resource and no browser can reconstruct it.
- *
- * A value the server never passed through that judgement is drawn neutral
- * rather than refused — a column may name a path a row has nothing at, and
- * `presentRows` leaves such a value where it found it.
- *
- * Empty stays the dash every other column shows. A badge around nothing is a
- * coloured box saying a field is blank, which is louder than the fact.
- */
-function badge(held: unknown): ReactNode {
-  const badged = isBadged(held);
-  const value = badged ? held.value : held;
-  // Read from the value rather than from what `text` drew, which is a fresh
-  // element every call and equal to nothing, itself included.
-  if (value === null || value === undefined || value === "") return nothing();
+  /**
+   * A value drawn as a state.
+   *
+   * What arrives is what `BadgeColumn.present` settled on the server: the value
+   * and the tone it was judged to carry, because the map from one to the other is
+   * a rule somebody wrote in a resource and no browser can reconstruct it.
+   *
+   * A value the server never passed through that judgement is drawn neutral
+   * rather than refused — a column may name a path a row has nothing at, and
+   * `presentRows` leaves such a value where it found it.
+   *
+   * Empty stays the dash every other column shows. A badge around nothing is a
+   * coloured box saying a field is blank, which is louder than the fact.
+   */
+  function badge(held: unknown): ReactNode {
+    const badged = isBadged(held);
+    const value = badged ? held.value : held;
+    // Read from the value rather than from what `text` drew, which is a fresh
+    // element every call and equal to nothing, itself included.
+    if (value === null || value === undefined || value === "") return nothing();
 
-  return (
-    <span className={`perch-badge perch-badge--${badged ? held.tone : "neutral"}`}>
-      {text(value)}
-    </span>
-  );
-}
-
-/**
- * Whether this value carries its own tone.
- *
- * Written here rather than imported: this package takes types from the core and
- * no code, so a guard the core could have exported is one line repeated instead
- * of an arrow pointing the wrong way.
- */
-function isBadged(value: unknown): value is BadgedValue {
-  return (
-    typeof value === "object" && value !== null && "tone" in value && "value" in value
-  );
-}
-
-/**
- * A face, a name, and the line under it, drawn as one thing.
- *
- * The value handed in is the name, because that is the path the column is named
- * by and the one it sorts on. The other two are read out of the row, from the
- * paths the column carries — the row is the projected one, so what is not
- * declared is not there and this reads nothing the server did not send.
- *
- * The face is optional twice over: a column may declare no image path, and a
- * row may hold nothing at it. Either way the initials stand in, which keeps the
- * column one width down its whole length rather than ragged where a picture is
- * missing.
- */
-function identity(value: unknown, row: Row, column: ColumnNode): ReactNode {
-  const name = typeof value === "string" ? value : "";
-  const face = column.image === undefined ? undefined : readPath(row, column.image);
-  const under =
-    column.description === undefined ? undefined : readPath(row, column.description);
-  const side = column.size ?? 32;
-
-  return (
-    <span className="perch-cell__identity">
-      {typeof face === "string" && face !== "" ? (
-        <img
-          className="perch-cell__face"
-          data-circular={column.circular ? "true" : undefined}
-          src={face}
-          alt=""
-          width={side}
-          height={side}
-        />
-      ) : (
-        // `aria-hidden`, because the name is right beside it: read out, the
-        // initials are the same name a second time and a stutter.
-        <span
-          aria-hidden
-          className="perch-cell__face perch-cell__face--empty"
-          data-circular={column.circular ? "true" : undefined}
-          style={{ width: side, height: side }}
-        >
-          {initials(name)}
-        </span>
-      )}
-      <span className="perch-cell__named">
-        <span className="perch-cell__name">{text(value)}</span>
-        {under === null || under === undefined || under === "" ? null : (
-          <span className="perch-cell__under">{text(under)}</span>
-        )}
+    return (
+      <span className={`perch-badge perch-badge--${badged ? held.tone : "neutral"}`}>
+        {text(value)}
       </span>
-    </span>
-  );
-}
-
-/**
- * At most two letters, from the first two words.
- *
- * By code point rather than by code unit: `name[0]` on a name starting outside
- * the basic plane is half a character, which renders as a replacement box. The
- * same reason `graphemes.ts` exists, at the size this needs.
- */
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter((word) => word !== "")
-    .slice(0, 2)
-    .map((word) => [...word][0] ?? "")
-    .join("")
-    .toUpperCase();
-}
-
-/**
- * A number drawn as a length, with the number kept beside it.
- *
- * Both, because a bar answers "which of these is short" at a glance and answers
- * "how short" not at all. The digits stay for the reader who came for one row.
- *
- * The proportion is worked out here. That is not business logic and not state:
- * it is where a value the server settled falls between two ends the server
- * declared, and sending a percentage would mean sending the same fact twice.
- *
- * `role="meter"` rather than a bare box, so what a sighted reader gets from the
- * length somebody using a screen reader gets from the value — a div of a given
- * width says nothing at all.
- */
-function gauge(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode {
-  const held = typeof value === "number" && Number.isFinite(value) ? value : undefined;
-  if (held === undefined) {
-    // A number that is not one — `NaN`, an infinity — has no length and no
-    // digits worth showing, so it takes the dash. Anything else is shown as it
-    // is: a column that cannot draw a bar can still say what it holds.
-    return typeof value === "number" ? nothing() : text(value);
+    );
   }
 
-  const low = column.min ?? 0;
-  const high = column.max ?? 100;
-  // Clamped, because a stored value outside the scale is a bar past the end of
-  // its track — and a scale declared backwards is somebody's typo rather than a
-  // reason to draw nothing.
-  const span = Math.abs(high - low);
-  const filled =
-    span === 0 ? 0 : Math.min(100, Math.max(0, ((held - low) / (high - low)) * 100));
+  /**
+   * Whether this value carries its own tone.
+   *
+   * Written here rather than imported: this package takes types from the core and
+   * no code, so a guard the core could have exported is one line repeated instead
+   * of an arrow pointing the wrong way.
+   */
+  function isBadged(value: unknown): value is BadgedValue {
+    return (
+      typeof value === "object" && value !== null && "tone" in value && "value" in value
+    );
+  }
 
-  return (
-    <span className="perch-cell__gauge">
-      <span
-        className="perch-cell__gauge-track"
-        role="meter"
-        aria-valuenow={held}
-        aria-valuemin={low}
-        aria-valuemax={high}
-        aria-label={nameOf(column, cell)}
-      >
-        <span className="perch-cell__gauge-fill" style={{ inlineSize: `${filled}%` }} />
+  /**
+   * A face, a name, and the line under it, drawn as one thing.
+   *
+   * The value handed in is the name, because that is the path the column is named
+   * by and the one it sorts on. The other two are read out of the row, from the
+   * paths the column carries — the row is the projected one, so what is not
+   * declared is not there and this reads nothing the server did not send.
+   *
+   * The face is optional twice over: a column may declare no image path, and a
+   * row may hold nothing at it. Either way the initials stand in, which keeps the
+   * column one width down its whole length rather than ragged where a picture is
+   * missing.
+   */
+  function identity(value: unknown, row: Row, column: ColumnNode): ReactNode {
+    const name = typeof value === "string" ? value : "";
+    const face = column.image === undefined ? undefined : readPath(row, column.image);
+    const under =
+      column.description === undefined ? undefined : readPath(row, column.description);
+    const side = column.size ?? 32;
+
+    return (
+      <span className="perch-cell__identity">
+        {typeof face === "string" && face !== "" ? (
+          <img
+            className="perch-cell__face"
+            data-circular={column.circular ? "true" : undefined}
+            src={face}
+            alt=""
+            width={side}
+            height={side}
+          />
+        ) : (
+          // `aria-hidden`, because the name is right beside it: read out, the
+          // initials are the same name a second time and a stutter.
+          <span
+            aria-hidden
+            className="perch-cell__face perch-cell__face--empty"
+            data-circular={column.circular ? "true" : undefined}
+            style={{ width: side, height: side }}
+          >
+            {initials(name)}
+          </span>
+        )}
+        <span className="perch-cell__named">
+          <span className="perch-cell__name">{text(value)}</span>
+          {under === null || under === undefined || under === "" ? null : (
+            <span className="perch-cell__under">{text(under)}</span>
+          )}
+        </span>
       </span>
-      <span className="perch-cell__gauge-value">{held}</span>
-    </span>
-  );
-}
+    );
+  }
+
+  /**
+   * At most two letters, from the first two words.
+   *
+   * By code point rather than by code unit: `name[0]` on a name starting outside
+   * the basic plane is half a character, which renders as a replacement box. The
+   * same reason `graphemes.ts` exists, at the size this needs.
+   */
+  function initials(name: string): string {
+    return name
+      .split(/\s+/)
+      .filter((word) => word !== "")
+      .slice(0, 2)
+      .map((word) => [...word][0] ?? "")
+      .join("")
+      .toUpperCase();
+  }
+
+  /**
+   * A number drawn as a length, with the number kept beside it.
+   *
+   * Both, because a bar answers "which of these is short" at a glance and answers
+   * "how short" not at all. The digits stay for the reader who came for one row.
+   *
+   * The proportion is worked out here. That is not business logic and not state:
+   * it is where a value the server settled falls between two ends the server
+   * declared, and sending a percentage would mean sending the same fact twice.
+   *
+   * `role="meter"` rather than a bare box, so what a sighted reader gets from the
+   * length somebody using a screen reader gets from the value — a div of a given
+   * width says nothing at all.
+   */
+  function gauge(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode {
+    const held =
+      typeof value === "number" && Number.isFinite(value) ? value : undefined;
+    if (held === undefined) {
+      // A number that is not one — `NaN`, an infinity — has no length and no
+      // digits worth showing, so it takes the dash. Anything else is shown as it
+      // is: a column that cannot draw a bar can still say what it holds.
+      return typeof value === "number" ? nothing() : text(value);
+    }
+
+    const low = column.min ?? 0;
+    const high = column.max ?? 100;
+    // Clamped, because a stored value outside the scale is a bar past the end of
+    // its track — and a scale declared backwards is somebody's typo rather than a
+    // reason to draw nothing.
+    const span = Math.abs(high - low);
+    const filled =
+      span === 0 ? 0 : Math.min(100, Math.max(0, ((held - low) / (high - low)) * 100));
+
+    return (
+      <span className="perch-cell__gauge">
+        <span
+          className="perch-cell__gauge-track"
+          role="meter"
+          aria-valuenow={held}
+          aria-valuemin={low}
+          aria-valuemax={high}
+          aria-label={nameOf(column, cell)}
+        >
+          <span
+            className="perch-cell__gauge-fill"
+            style={{ inlineSize: `${filled}%` }}
+          />
+        </span>
+        <span className="perch-cell__gauge-value">{held}</span>
+      </span>
+    );
+  }
 
   registerColumn("TextColumn", (value) => text(value));
   registerColumn("GaugeColumn", (value, _row: Row, column, cell) =>

@@ -145,12 +145,42 @@ describe("a control that has gone quiet in a cell", () => {
   });
 
   it("leaves a choice in a cell still saying that it is one", () => {
-    // The outcome the ban above protects, checked from the other side: with the
-    // frame gone, the chevron is all that separates a select at rest from the
-    // plain text in the cell beside it.
-    const chevron = settled(".perch-table__cell select", "background-image");
+    // With the frame gone at rest, the chevron is all that separates a select
+    // from the plain text in the cell beside it. It used to be a data URI in
+    // this stylesheet; it is a shape the component draws now, so this reads the
+    // component — and refuses the stylesheet a second drawing of it.
+    const drawn = readFileSync(new URL("./columns.tsx", import.meta.url), "utf8");
 
-    expect(chevron, "a cell's select has lost its chevron").toBeDefined();
-    expect(chevron).toContain("url(");
+    expect(drawn, "a cell's select has lost its chevron").toContain("<ChevronDown />");
+    expect(drawn).toContain('className="perch-picker"');
+    for (const body of rulesFor(".perch-table__cell select")) {
+      expect(body, "the stylesheet draws the chevron a second time").not.toContain(
+        "background-image",
+      );
+    }
+  });
+});
+
+describe("the mark on a browser's own select", () => {
+  it("is measured from the thing that was moved", () => {
+    // The wrapper is what the mark is positioned against, so the wrapper is
+    // what the cell's pull has to move. Pulling the control alone left the
+    // chevron a padding inside the edge it is supposed to sit against — and no
+    // test could see it, because jsdom computes no layout.
+    expect(settled(".perch-table__cell .perch-picker", "margin-inline")).toBeDefined();
+    expect(
+      settled(".perch-table__cell .perch-cell__choice", "margin-inline"),
+      "the control is pulled out from under its own mark",
+    ).toBeUndefined();
+  });
+
+  it("takes the colour of the control it sits in", () => {
+    // Naming a colour here is how one drawing ends up with two behaviours: the
+    // styled selects inherit and follow a hover, a disabled state and the dark
+    // ramp, and a mark with a colour of its own does none of that.
+    expect(
+      settled(".perch-picker > svg", "color"),
+      "the mark carries a colour instead of inheriting one",
+    ).toBeUndefined();
   });
 });

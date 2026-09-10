@@ -9,6 +9,7 @@
  */
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "./fields/marks.js";
 import { ColumnMenu, hiddenAtFirst } from "./ColumnMenu.js";
 import { remember, remembered } from "./remembered.js";
 import type {
@@ -810,28 +811,31 @@ export function PanelList({
         {ask === undefined ? null : (
           <label className="perch-list__size">
             Rows per page
-            <select
-              value={String(page.perPage)}
-              onChange={(event) => {
-                // Back to the first page. Page 5 of twenty-five rows is not
-                // page 5 of a hundred, and keeping the number would land the
-                // reader somewhere they did not choose — the same rule sorting
-                // and searching already follow.
-                const size = Number(event.target.value);
-                remember(page.resourcePath, { perPage: size });
-                ask({
-                  ...(sort === undefined ? {} : { sort }),
-                  page: 1,
-                  perPage: size,
-                });
-              }}
-            >
-              {PAGE_SIZES.map((size) => (
-                <option key={size} value={String(size)}>
-                  {size}
-                </option>
-              ))}
-            </select>
+            <span className="perch-picker">
+              <select
+                value={String(page.perPage)}
+                onChange={(event) => {
+                  // Back to the first page. Page 5 of twenty-five rows is not
+                  // page 5 of a hundred, and keeping the number would land the
+                  // reader somewhere they did not choose — the same rule sorting
+                  // and searching already follow.
+                  const size = Number(event.target.value);
+                  remember(page.resourcePath, { perPage: size });
+                  ask({
+                    ...(sort === undefined ? {} : { sort }),
+                    page: 1,
+                    perPage: size,
+                  });
+                }}
+              >
+                {PAGE_SIZES.map((size) => (
+                  <option key={size} value={String(size)}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown />
+            </span>
           </label>
         )}
       </div>
@@ -944,15 +948,18 @@ function narrowing(
           return (
             <label key={filter.name} className="perch-list__narrow">
               <span className="perch-list__narrow-name">{named}</span>
-              <select {...shared}>
-                {/* An empty choice, or the control cannot be put back. */}
-                <option value="">Any</option>
-                {filter.options?.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <span className="perch-picker">
+                <select {...shared}>
+                  {/* An empty choice, or the control cannot be put back. */}
+                  <option value="">Any</option>
+                  {filter.options?.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown />
+              </span>
             </label>
           );
         }
