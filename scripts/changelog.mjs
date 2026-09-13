@@ -7,7 +7,7 @@
  * order in `release:version`.
  *
  * The version comes from `changeset status` rather than being computed here.
- * Under the `fixed` group a bump on one package bumps all five, and reproducing
+ * Under the `fixed` group a bump on one package bumps all six, and reproducing
  * that rule would mean owning a copy of it that can drift.
  */
 import { execFileSync } from "node:child_process";
@@ -24,7 +24,7 @@ import { tmpdir } from "node:os";
 const CHANGELOG = "CHANGELOG.md";
 const HEADER = `# Changelog
 
-All notable changes to Perch. The five \`@perchjs/*\` packages share this file and
+All notable changes to Perch. The six \`@perchjs/*\` packages share this file and
 this version number — they are released together ([ADR 0008](docs/adr/0008-versioning-policy.md)).
 `;
 
@@ -76,7 +76,7 @@ const version = releases[0].newVersion;
 const sections = new Map();
 
 for (const changeset of changesets) {
-  // The packages the author named, not the five the fixed group expands to.
+  // The packages the author named, not the six the fixed group expands to.
   const named = changeset.releases.map((r) => r.name.replace("@perchjs/", ""));
   const type = changeset.releases.reduce(
     (worst, r) => (rank(r.type) > rank(worst) ? r.type : worst),

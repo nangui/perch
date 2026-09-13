@@ -2,10 +2,19 @@
   "$schema": "https://unpkg.com/@changesets/config@3.1.4/schema.json",
   "changelog": false,
   "commit": false,
-  "fixed": [["@perchjs/*"]],
+  "fixed": [
+    [
+      "@perchjs/core",
+      "@perchjs/prisma",
+      "@perchjs/prisma-generator",
+      "@perchjs/nest",
+      "@perchjs/ui",
+      "@perchjs/cli"
+    ]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": ["@perchjs/example-basic"]
 }
