@@ -88,16 +88,80 @@ jobs:
       - name: Formatting
         run: pnpm format:check
 
+  # ---------------------------------------------------------------- release
+  #
+  # Opens a version pull request while changesets are pending, and publishes
+  # once that pull request is merged — which is the moment the changeset files
+  # are gone and the versions in the tree have moved.
+  #
+  # `release:version` runs `scripts/changelog.mjs` before `changeset version`,
+  # because the second consumes the files the first reads. `release:publish`
+  # runs the whole verification again before it publishes: this job already
+  # needed `verify` to reach here, and the tree it is about to send is not the
+  # tree that was verified — `changeset version` rewrote every manifest.
+  release:
+    name: release
+    needs: verify
+    if: github.repository == 'nangui/perch' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Its own group, and never cancelled. The workflow above cancels a
+    # superseded run because a superseded check has nothing left to prove; a
+    # superseded publish has already sent packages to a registry that does not
+    # take them back, and stopping halfway is what leaves the five at different
+    # versions.
+    concurrency:
+      group: release
+      cancel-in-progress: false
+
+    permissions:
+      contents: write
+      pull-requests: write
+      # npm provenance: the registry records which workflow built the tarball.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - uses: changesets/action@v1
+        with:
+          version: pnpm release:version
+          publish: pnpm release:publish
+          title: "chore: release"
+          commit: "chore: release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
+
 # Guardrails still to come, each with what would make it measurable:
 #
-#   concurrency: 100 parallel requests        → once builders exist
-#   attack test: an unauthorised action       → with `can`
+#   concurrency: 100 parallel requests        → over HTTP, not over builders
 #
-# Three have come off this list. The DMMF contract test runs inside `pnpm test`
+# Four have come off this list. The DMMF contract test runs inside `pnpm test`
 # against what a real `prisma generate` hands the generator (ADR 0012); the SQL
 # query counter runs in tooling/database.test.ts, counting the statements the
-# driver actually sends; and both p95 budgets now exist, on /state and on
-# /records, each over 100 HTTP round trips.
+# driver actually sends; both p95 budgets now exist, on /state and on /records,
+# each over 100 HTTP round trips; and the unauthorised action is refused in
+# milestone-a2.http.test.ts, on a request forged to skip the page that would
+# never have drawn the button.
+#
+# The one left is about requests and not about builders. `component.test.ts`
+# holds that 100 parallel derivations of one prototype share nothing, which is
+# the object being immutable; what is still unmeasured is 100 requests in
+# flight against one running panel.
 #
 # They are listed here rather than in a backlog so that adding one is a visible
 # edit to this file, and so that their absence is legible today.
