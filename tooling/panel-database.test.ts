@@ -107,13 +107,22 @@ class AuthorResource {
 
 PanelResource({ model: "Author", slug: "authors" })(AuthorResource);
 
-function assets(): { directory: string; entries: Record<string, string> } {
+function assets(): {
+  directory: string;
+  entries: Record<string, string>;
+  chunks: readonly string[];
+} {
   const directory = mkdtempSync(join(tmpdir(), "perch-panel-db-"));
   writeFileSync(join(directory, "panel-a1b2c3d4.js"), "");
   writeFileSync(join(directory, "panel-e5f6a7b8.css"), "");
   return {
     directory,
     entries: { "panel.js": "panel-a1b2c3d4.js", "panel.css": "panel-e5f6a7b8.css" },
+    // Empty, and required: the asset route reads this as its allowlist, and
+    // the boot iterates it. Missing, the module threw before a single test in
+    // this file ran — which nothing noticed, because it only runs where a
+    // database exists, and that is CI alone.
+    chunks: [],
   };
 }
 
