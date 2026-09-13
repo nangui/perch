@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "description": "Perch Prisma adapter: query execution from the intermediate representation.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nangui/perch.git",
+    "directory": "packages/prisma"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

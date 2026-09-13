@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "description": "Perch Prisma generator: emits the intermediate representation at build time.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nangui/perch.git",
+    "directory": "packages/prisma-generator"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

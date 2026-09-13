@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "description": "Perch CLI: resource and panel code generation.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nangui/perch.git",
+    "directory": "packages/cli"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
