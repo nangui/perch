@@ -146,22 +146,22 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
-# Guardrails still to come, each with what would make it measurable:
+# The guardrails this project set itself before the code they protect existed.
+# All six now run, five of them inside `pnpm test` and one in its own step:
 #
-#   concurrency: 100 parallel requests        → over HTTP, not over builders
+#   the domain stays pure           → `pnpm boundaries` above, depcruise
+#   the DMMF contract               → against what a real `prisma generate` gives
+#   the SQL query counter           → tooling/database.test.ts, real statements
+#   p95 on /state and on /records   → 100 HTTP round trips each
+#   an unauthorised action          → milestone-a2, on a forged request
+#   100 requests at once            → concurrency.http.test.ts
 #
-# Four have come off this list. The DMMF contract test runs inside `pnpm test`
-# against what a real `prisma generate` hands the generator (ADR 0012); the SQL
-# query counter runs in tooling/database.test.ts, counting the statements the
-# driver actually sends; both p95 budgets now exist, on /state and on /records,
-# each over 100 HTTP round trips; and the unauthorised action is refused in
-# milestone-a2.http.test.ts, on a request forged to skip the page that would
-# never have drawn the button.
+# The last one is worth a line, because it was nearly written useless. Node runs
+# each request's synchronous stretch to completion, so a hundred requests whose
+# resolvers never await never interleave: with synchronous resolvers, a build
+# that deliberately held the principal in a shared variable passed every case.
+# The resolvers there yield, which is what a real one does when it reaches a
+# database, and that is what puts the requests inside one another.
 #
-# The one left is about requests and not about builders. `component.test.ts`
-# holds that 100 parallel derivations of one prototype share nothing, which is
-# the object being immutable; what is still unmeasured is 100 requests in
-# flight against one running panel.
-#
-# They are listed here rather than in a backlog so that adding one is a visible
-# edit to this file, and so that their absence is legible today.
+# The list stays rather than being deleted: adding a seventh is a visible edit
+# to this file, and what is measured is legible without reading the suite.
