@@ -1,6 +1,6 @@
 {
   "name": "@perchjs/ui",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Perch React renderer and component registry. Shipped precompiled.",
   "license": "MIT",
   "type": "module",

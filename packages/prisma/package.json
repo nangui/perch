@@ -1,6 +1,6 @@
 {
   "name": "@perchjs/prisma",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Perch Prisma adapter: query execution from the intermediate representation.",
   "license": "MIT",
   "type": "module",

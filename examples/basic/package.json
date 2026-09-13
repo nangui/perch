@@ -1,6 +1,6 @@
 {
   "name": "@perchjs/example-basic",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "The smallest application that shows a Perch panel in a browser.",
   "type": "module",
