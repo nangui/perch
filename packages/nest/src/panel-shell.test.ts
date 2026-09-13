@@ -169,3 +169,46 @@ describe("scripts an application asked for", () => {
     expect(shell().match(/<script/g)).toHaveLength(1);
   });
 });
+
+describe("a stylesheet the host asked for", () => {
+  const withStyles = (styles: readonly string[]): string =>
+    renderShell({
+      root: "/admin",
+      api: "/admin/api/people",
+      operation: "create",
+      title: "New Person",
+      payload: {},
+      scriptFile: "panel-a1b2c3d4.js",
+      styleFile: "panel-e5f6a7b8.css",
+      styles,
+    });
+
+  it("comes after the panel's own, which is what lets it win", () => {
+    // The one way a panel's colours change: the bundle ships compiled and there
+    // is no build to configure, so a theme is a file redefining the custom
+    // properties — and a file linked first would lose to the one it overrides.
+    const html = withStyles(["/theme.css"]);
+
+    expect(html.indexOf("/theme.css")).toBeGreaterThan(
+      html.indexOf("panel-e5f6a7b8.css"),
+    );
+  });
+
+  it("links every one it was given, in the order they were given", () => {
+    const html = withStyles(["/one.css", "/two.css"]);
+
+    expect(html.indexOf("/one.css")).toBeLessThan(html.indexOf("/two.css"));
+  });
+
+  it("cannot break out of the attribute it is put in", () => {
+    // Same reasoning as the payload above: a href is somebody else's string.
+    const html = withStyles(['/x.css" onload="alert(1)']);
+
+    expect(html).not.toContain('onload="alert(1)"');
+    expect(html).toContain("&quot;");
+  });
+
+  it("adds no link at all when none was asked for", () => {
+    expect(shell({}).match(/<link/g)).toHaveLength(1);
+  });
+});

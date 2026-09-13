@@ -16,6 +16,7 @@ function resource(
     navigationGroup?: string;
     navigationSort?: number;
     icon?: IconName;
+    badge?: (user: unknown) => string | undefined | Promise<string | undefined>;
     can?: Authorization;
   } = {},
 ): RegisteredResource {
@@ -35,6 +36,7 @@ function resource(
     },
     instance: {
       form: () => Schema.make([TextInput.make("title")]),
+      ...(over.badge === undefined ? {} : { navigationBadge: over.badge }),
       ...(over.can === undefined ? {} : { can: over.can }),
     },
   };
@@ -159,5 +161,60 @@ describe("the order it comes in", () => {
     );
 
     expect(nav).toEqual([]);
+  });
+});
+
+describe("a count beside a name", () => {
+  it("carries what the resource answered, and nothing where it answered nothing", async () => {
+    const nav = await build([
+      resource("posts", { badge: () => "12" }),
+      resource("tags"),
+    ]);
+
+    expect(nav[0]?.items[0]).toMatchObject({ badge: "12" });
+    expect(nav[0]?.items[1]).not.toHaveProperty("badge");
+  });
+
+  it("is asked with the principal, because a count is a fact about rows", async () => {
+    let asked: unknown = "never";
+    await build(
+      [
+        resource("posts", {
+          badge: (user) => {
+            asked = user;
+            return "1";
+          },
+        }),
+      ],
+      { id: 7 },
+    );
+
+    expect(asked).toEqual({ id: 7 });
+  });
+
+  it("is never asked of a resource this reader cannot reach", async () => {
+    // The policy runs first. A count of rows somebody may not see is a fact
+    // about them, one digit at a time, and asking for it at all is the leak.
+    let asked = false;
+    const nav = await build([
+      resource("posts", {
+        can: { viewAny: () => false },
+        badge: () => {
+          asked = true;
+          return "1";
+        },
+      }),
+    ]);
+
+    expect(nav).toEqual([]);
+    expect(asked).toBe(false);
+  });
+
+  it("waits for one that answers late", async () => {
+    const nav = await build([
+      resource("posts", { badge: () => Promise.resolve("3") }),
+    ]);
+
+    expect(nav[0]?.items[0]).toMatchObject({ badge: "3" });
   });
 });

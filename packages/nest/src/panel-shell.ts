@@ -47,6 +47,15 @@ export interface ShellOptions {
    * arrived after the page was drawn would be a renderer for the next page.
    */
   readonly scripts?: readonly string[];
+  /**
+   * Stylesheets the host asked for, after the panel's own.
+   *
+   * The one way a panel's colours can be changed. The bundle ships compiled and
+   * nobody configures a build to alter it, so a theme is a file that redefines
+   * the custom properties `tokens.css` declares — and last one wins, which is
+   * why these come after.
+   */
+  readonly styles?: readonly string[];
   readonly styleFile: string;
 }
 
@@ -60,6 +69,9 @@ export function renderShell(options: ShellOptions): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${text(options.title)}</title>
 <link rel="stylesheet" href="${attribute(`${options.root}/assets/${options.styleFile}`)}">
+${(options.styles ?? [])
+  .map((href) => `<link rel="stylesheet" href="${attribute(href)}">`)
+  .join("\n")}
 </head>
 <body class="perch-root">
 <div id="perch-panel" data-api="${attribute(options.api)}" data-operation="${attribute(options.operation)}"${

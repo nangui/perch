@@ -14,6 +14,8 @@ export interface NavigationItem {
   readonly label: string;
   readonly href: string;
   readonly icon?: string;
+  /** A count beside the name. Decoration is the icon; this one is read aloud. */
+  readonly badge?: string;
   readonly current?: true;
 }
 
@@ -50,6 +52,12 @@ export function PanelNav({ groups }: PanelNavProps): ReactNode {
                 >
                   <IconMark name={item.icon} className="perch-nav__icon" />
                   {item.label}
+                  {/* Not `aria-hidden`: a number beside a name is the one thing
+                      in this menu that is not decoration, and a reader who
+                      cannot see it is the reader who most needs telling. */}
+                  {item.badge === undefined ? null : (
+                    <span className="perch-nav__badge">{item.badge}</span>
+                  )}
                 </a>
               </li>
             ))}

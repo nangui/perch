@@ -27,7 +27,12 @@ import { PanelRecordsController } from "./panel-records.controller.js";
 import { PanelSaveController } from "./panel-save.controller.js";
 import { PanelStateController } from "./panel-state.controller.js";
 import type { PanelAssets } from "./panel-assets.js";
-import { loadPanelAssets, PANEL_ASSETS, PANEL_SCRIPTS } from "./panel-assets.js";
+import {
+  loadPanelAssets,
+  PANEL_ASSETS,
+  PANEL_SCRIPTS,
+  PANEL_STYLES,
+} from "./panel-assets.js";
 import { PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import type { ResourceClass } from "./resource-registry.js";
 import { PANEL_RESOURCE_TYPES, ResourceRegistry } from "./resource-registry.js";
@@ -103,6 +108,15 @@ export interface PanelModuleOptions {
    * read from disk.
    */
   readonly scripts?: readonly string[];
+  /**
+   * Stylesheets served after the panel's own, which is how its colours change.
+   *
+   * `tokens.css` declares every colour, size and radius as a custom property,
+   * and the bundle ships compiled: there is no build for a host to configure,
+   * so a theme is a file that redefines the properties it wants and is linked
+   * after. A URL this application already serves — nothing here fetches it.
+   */
+  readonly styles?: readonly string[];
   /** Resolved from `@perchjs/ui` when absent; passing it is for tests. */
   readonly assets?: PanelAssets;
 }
@@ -135,6 +149,7 @@ export class PanelModule {
       providers: [
         { provide: PANEL_ASSETS, useValue: assets },
         { provide: PANEL_SCRIPTS, useValue: options.scripts ?? [] },
+        { provide: PANEL_STYLES, useValue: options.styles ?? [] },
         { provide: PANEL_NAVIGATION_GROUPS, useValue: options.navigationGroups ?? [] },
         { provide: PANEL_RESOURCE_TYPES, useValue: options.resources ?? [] },
         {

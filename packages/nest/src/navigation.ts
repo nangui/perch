@@ -22,6 +22,8 @@ export interface NavigationItem {
   readonly label: string;
   readonly href: string;
   readonly icon?: string;
+  /** A count beside the name, asked of the resource for this reader. */
+  readonly badge?: string;
   /** True for the resource whose page is being rendered. */
   readonly current?: true;
 }
@@ -56,7 +58,7 @@ export async function buildNavigation(
     if (href === undefined) continue;
     const group = resource.metadata.navigationGroup ?? "";
     const items = byGroup.get(group) ?? [];
-    items.push(item(resource, href, currentSlug));
+    items.push(await item(resource, href, currentSlug, user));
     byGroup.set(group, items);
   }
 
@@ -67,16 +69,22 @@ export async function buildNavigation(
   });
 }
 
-function item(
+async function item(
   resource: RegisteredResource,
   href: string,
   currentSlug: string | undefined,
-): NavigationItem {
+  user: unknown,
+): Promise<NavigationItem> {
   const { pluralLabel, icon, slug } = resource.metadata;
+  // Asked after the policy, never before: the loop above has already dropped
+  // every resource this reader may not reach, so a count is only ever taken of
+  // rows somebody is allowed to know the number of.
+  const badge = await resource.instance.navigationBadge?.(user);
   return {
     label: pluralLabel,
     href,
     ...(icon === undefined ? {} : { icon }),
+    ...(badge === undefined ? {} : { badge }),
     ...(slug === currentSlug ? { current: true as const } : {}),
   };
 }

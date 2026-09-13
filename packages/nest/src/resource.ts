@@ -56,6 +56,18 @@ export interface PanelResource {
    * one operation at a time, with their own pages and their own actions.
    */
   relations?: () => readonly RelationManager[];
+  /**
+   * A count beside the resource's name in the menu.
+   *
+   * A method and not a metadata field, because what a badge says is a number
+   * that changed since the page was drawn — how many are pending, how many are
+   * mine. It is handed the principal for the same reason the policy is: a count
+   * of rows this reader may not see is a fact about them, one digit at a time.
+   *
+   * Answering `undefined` is answering nothing, and draws nothing. A resource
+   * this reader cannot reach is never asked at all.
+   */
+  navigationBadge?: (user: unknown) => string | undefined | Promise<string | undefined>;
   /** Absent means allowed: the panel already sits behind the guards. */
   can?: Authorization;
   /** Overrides the panel's own choice for this resource alone. */

@@ -7,7 +7,7 @@
  * and quiet in production, because in production the panel still has to be
  * usable around the gap.
  */
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { memo, useCallback } from "react";
 import type { SchemaNode, SchemaPayload } from "@perchjs/core";
 import type { NodeProps } from "./node-props.js";
@@ -124,7 +124,8 @@ const RenderedNode = memo(function RenderedNode({
 }): ReactNode {
   const Renderer = lookupComponent(node.type);
   if (Renderer === undefined) return <UnknownNode type={node.type} id={node.id} />;
-  return (
+  return span(
+    node,
     <Renderer
       node={node}
       value={value}
@@ -139,9 +140,37 @@ const RenderedNode = memo(function RenderedNode({
       valueAt={valueAt}
       errorAt={errorAt}
       renderChild={renderChild}
-    />
+    />,
   );
 });
+
+/**
+ * How much of its row a node was told to take.
+ *
+ * Wrapped rather than handed to every renderer: the grid item is whatever sits
+ * directly in the body, and there are thirty renderers that would each have to
+ * remember to carry a style they have no other reason to know about. One of
+ * them forgetting is a declaration that works on nine fields and not the tenth.
+ *
+ * Only when it was asked for. A node that said nothing renders exactly what it
+ * rendered before, so nothing that already draws gains an element.
+ */
+function span(node: SchemaNode, drawn: ReactNode): ReactNode {
+  const asked = node.columnSpan;
+  if (asked === undefined) return drawn;
+  return (
+    <div
+      className="perch-span"
+      // `full` is every column there turn out to be, which is not a number the
+      // server can know: the grid collapses to one on a narrow screen.
+      {...(asked === "full"
+        ? { "data-span": "full" }
+        : { style: { "--perch-span": String(asked) } as CSSProperties })}
+    >
+      {drawn}
+    </div>
+  );
+}
 
 function UnknownNode({ type, id }: { type: string; id: string }): ReactNode {
   if (process.env["NODE_ENV"] === "production") {

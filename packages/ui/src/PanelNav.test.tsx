@@ -64,3 +64,35 @@ describe("the panel menu", () => {
     expect(screen.queryByRole("navigation")).toBeNull();
   });
 });
+
+describe("a count beside a name", () => {
+  /** Its own groups: the shared ones are what the tests above read by name. */
+  const COUNTED: readonly NavigationGroup[] = [
+    {
+      items: [
+        { label: "Posts", href: "/admin/posts" },
+        { label: "Tags", href: "/admin/tags", badge: "12" },
+      ],
+    },
+  ];
+
+  it("is drawn, and is part of what the link is called", () => {
+    // The opposite of the icon beside it. A mark says nothing a reader needs;
+    // a number is the whole reason the entry looks different today, and hiding
+    // it from a screen reader would hide the only news in the menu.
+    render(<PanelNav groups={COUNTED} />);
+
+    // Loose on the spacing, exact on the fact: the name computation joins the
+    // label and the count without one, and where the space falls is not what
+    // this is about.
+    expect(screen.getByRole("link", { name: /Tags\s*12/ })).toBeTruthy();
+    expect(screen.getByText("12").getAttribute("aria-hidden")).toBeNull();
+  });
+
+  it("is absent from an entry that has none", () => {
+    render(<PanelNav groups={COUNTED} />);
+    const posts = screen.getByRole("link", { name: "Posts" });
+
+    expect(posts.querySelector(".perch-nav__badge")).toBeNull();
+  });
+});

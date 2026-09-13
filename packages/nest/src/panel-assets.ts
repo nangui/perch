@@ -22,6 +22,7 @@ export const PANEL_ASSETS = Symbol("PERCH_PANEL_ASSETS");
 
 /** Addresses an application asked the panel to load beside its own bundle. */
 export const PANEL_SCRIPTS = Symbol("PERCH_PANEL_SCRIPTS");
+export const PANEL_STYLES = Symbol("PERCH_PANEL_STYLES");
 
 export interface PanelAssets {
   readonly directory: string;
