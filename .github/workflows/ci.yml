@@ -158,8 +158,11 @@ jobs:
       # anyone with write access to this repository can publish that package.
       # Then delete NODE_AUTH_TOKEN below and the NPM_TOKEN secret with it.
       #
-      # `id-token: write` above stays either way: provenance needs it now, and
-      # the exchange needs it after.
+      # No provenance, and it is not an oversight: the registry does not generate
+      # it for a private repository, and asking for it anyway is a publish that
+      # fails on a flag rather than on anything real. It comes back the day this
+      # repository is public. `id-token: write` above stays regardless — it is
+      # what the OIDC exchange will need.
       #
       # Still unverified, and only the first release will say: whether the OIDC
       # exchange survives `changeset publish`, which runs `npm publish` once per
@@ -173,7 +176,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
 
 # The guardrails this project set itself before the code they protect existed.
 # All six now run, five of them inside `pnpm test` and one in its own step:
