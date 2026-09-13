@@ -129,6 +129,17 @@ Types: `feat` `fix` `docs` `chore` `refactor` `test` `build` `ci`.
 Scopes: `core` `prisma` `prisma-generator` `nest` `ui` `cli` `docs` `repo`.
 One commit = one logical change. The body explains the *why*, not the *how*.
 
+**Hand a commit over as a file, never as `-m`.** Write the message to the session scratchpad —
+subject on line 1, blank line, body — and give me `git add` one path per line, then
+`git commit -F <path>`.
+
+Not a preference: I run these in interactive zsh, where a `!` inside double quotes is history
+expansion and the command dies with `event not found`. A body quoting the characters `!`, `*`
+and `+` did exactly that. Backticks are the same class of problem — they need escaping inside
+double quotes or the shell runs them as command substitution, and a message that mentions
+`ICON_NAMES` mentions it in backticks. A message file has no shell quoting at all, so the prose
+can say anything. One `git add` per line so a failure names the path it choked on.
+
 **Everything in English** — documentation, code, comments, symbol names, commit messages. The
 repository is the publication: an ADR answers "why is it like this", and that answer is useless
 to a contributor who cannot read it. Drafting in French and publishing in English remains
