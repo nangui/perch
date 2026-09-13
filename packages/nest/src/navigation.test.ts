@@ -211,9 +211,7 @@ describe("a count beside a name", () => {
   });
 
   it("waits for one that answers late", async () => {
-    const nav = await build([
-      resource("posts", { badge: () => Promise.resolve("3") }),
-    ]);
+    const nav = await build([resource("posts", { badge: () => Promise.resolve("3") })]);
 
     expect(nav[0]?.items[0]).toMatchObject({ badge: "3" });
   });

@@ -272,9 +272,9 @@ describe("which rows an action means anything on", () => {
 
 /** What the boot says about a mark, and nothing it says about anything else. */
 const markComplaints = (group: ActionGroup): readonly string[] =>
-  auditTable(Table.make().actions([group])).map((one) => one.problem).filter((problem) =>
-    problem.includes("drawing"),
-  );
+  auditTable(Table.make().actions([group]))
+    .map((one) => one.problem)
+    .filter((problem) => problem.includes("drawing"));
 
 /**
  * A mark the panel has no drawing for.

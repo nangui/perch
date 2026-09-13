@@ -158,9 +158,9 @@ describe("an affix", () => {
 
     for (const side of ["prefix", "suffix"]) {
       const affix = container.querySelector(`.perch-control__affix--${side}`);
-      expect(affix?.querySelector(".perch-control__affix-icon")?.tagName.toLowerCase()).toBe(
-        "svg",
-      );
+      expect(
+        affix?.querySelector(".perch-control__affix-icon")?.tagName.toLowerCase(),
+      ).toBe("svg");
       // Instead of them, here: no words were declared on either side.
       expect(affix?.textContent).toBe("");
     }

@@ -82,10 +82,7 @@ export function Toggle({
         {...(onColor === undefined ? {} : { "data-on-color": onColor })}
       >
         <Switch.Thumb className="perch-toggle__knob">
-          <IconMark
-            name={checked ? onIcon : offIcon}
-            className="perch-toggle__icon"
-          />
+          <IconMark name={checked ? onIcon : offIcon} className="perch-toggle__icon" />
         </Switch.Thumb>
       </Switch.Root>
 

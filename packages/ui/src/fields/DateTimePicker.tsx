@@ -43,7 +43,6 @@ export interface DateTimePickerProps {
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"] as const;
 
-
 /**
  * The two marks this field draws, as shapes rather than as characters.
  *

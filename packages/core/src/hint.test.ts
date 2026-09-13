@@ -46,7 +46,9 @@ describe("a hint", () => {
   });
 
   it("carries a glyph where one was asked for", async () => {
-    const node = await drawn(TextInput.make("key").hint("kept secret").hintIcon("warning"));
+    const node = await drawn(
+      TextInput.make("key").hint("kept secret").hintIcon("warning"),
+    );
 
     expect(node?.hintIcon).toBe("warning");
   });

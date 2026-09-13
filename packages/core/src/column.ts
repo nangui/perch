@@ -579,7 +579,12 @@ export class AvatarColumn extends Column {
   static make(path: string): AvatarColumn {
     // Round by default, because the picture beside a name is a face and a face
     // in a square is a passport photograph.
-    return new AvatarColumn({ path, sortable: false, searchable: false, circular: true });
+    return new AvatarColumn({
+      path,
+      sortable: false,
+      searchable: false,
+      circular: true,
+    });
   }
 
   override get type(): string {

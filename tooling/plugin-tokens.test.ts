@@ -28,7 +28,10 @@ const DECLARED = new Set(
 );
 
 /** Every script a panel loads beside its own bundle. */
-function pluginScripts(): readonly { readonly name: string; readonly source: string }[] {
+function pluginScripts(): readonly {
+  readonly name: string;
+  readonly source: string;
+}[] {
   const here = join(ROOT, "examples/basic/public");
   const found: { name: string; source: string }[] = [];
   for (const file of readdirSync(here)) {

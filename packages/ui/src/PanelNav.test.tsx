@@ -51,9 +51,9 @@ describe("the panel menu", () => {
     const link = screen.getByRole("link", { name: "Tags" });
 
     expect(link.textContent).toBe("Tags");
-    expect(
-      link.querySelector(".perch-nav__icon")?.getAttribute("aria-hidden"),
-    ).toBe("true");
+    expect(link.querySelector(".perch-nav__icon")?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
   });
 
   it("renders nothing at all when there is nothing to reach", () => {

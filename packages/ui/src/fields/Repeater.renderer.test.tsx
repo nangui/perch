@@ -342,7 +342,9 @@ describe("a repeater with nothing in it", () => {
       "No notes yet",
     );
     // And the way out is in the same place a reader is already looking.
-    expect(container.querySelector(".perch-empty button")?.textContent).toBe("Add item");
+    expect(container.querySelector(".perch-empty button")?.textContent).toBe(
+      "Add item",
+    );
   });
 
   it("prefers the words the resource wrote", () => {

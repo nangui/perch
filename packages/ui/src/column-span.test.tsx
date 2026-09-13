@@ -40,7 +40,8 @@ function draw(span?: number | "full"): HTMLElement {
     state: {},
     errors: {},
   };
-  return render(<SchemaRenderer payload={payload} onChange={() => undefined} />).container;
+  return render(<SchemaRenderer payload={payload} onChange={() => undefined} />)
+    .container;
 }
 
 describe("a field that asked for room", () => {

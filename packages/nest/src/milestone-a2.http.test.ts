@@ -62,7 +62,12 @@ const AUTHOR: ModelMeta = model({
 });
 
 const POST: ModelMeta = model({
-  fields: [key(), scalar("title"), scalar("status"), scalar("authorId", { type: "Int" })],
+  fields: [
+    key(),
+    scalar("title"),
+    scalar("status"),
+    scalar("authorId", { type: "Int" }),
+  ],
   relations: [
     {
       name: "author",
@@ -310,9 +315,9 @@ describe("a page of rows with a relation column", () => {
     const rows = page["rows"] as Row[];
 
     expect(rows).toHaveLength(ROWS);
-    expect(rows.every((row) => (row["author"] as Row | undefined)?.["name"] !== undefined)).toBe(
-      true,
-    );
+    expect(
+      rows.every((row) => (row["author"] as Row | undefined)?.["name"] !== undefined),
+    ).toBe(true);
   });
 });
 

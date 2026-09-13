@@ -41,9 +41,7 @@ function luminance(hex: string): number {
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   };
   const [r, g, b] = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
-  return (
-    0.2126 * channel(r ?? 0) + 0.7152 * channel(g ?? 0) + 0.0722 * channel(b ?? 0)
-  );
+  return 0.2126 * channel(r ?? 0) + 0.7152 * channel(g ?? 0) + 0.0722 * channel(b ?? 0);
 }
 
 function contrast(a: string, b: string): number {
@@ -67,7 +65,9 @@ describe.each(RAMPS)("the %s ramp", (which) => {
     // The threshold the guidelines set for body text, applied to every token
     // that ends up as words on a surface.
     for (const name of ["content", "content-secondary", "content-muted"]) {
-      expect(against(name, "surface"), `${name} on surface`).toBeGreaterThanOrEqual(4.5);
+      expect(against(name, "surface"), `${name} on surface`).toBeGreaterThanOrEqual(
+        4.5,
+      );
     }
     // Subtle is for what a reader may skip past — a hint, a unit — so it is held
     // to what large text asks rather than to what body text does.
@@ -121,7 +121,9 @@ describe.each(RAMPS)("the %s ramp", (which) => {
     // plain surface. Left out when this file was written, and named as the gap
     // then: a status is exactly the thing somebody must be able to read.
     for (const state of ["warning", "success", "danger"]) {
-      expect(against(`${state}-content`, `${state}-surface`)).toBeGreaterThanOrEqual(4.5);
+      expect(against(`${state}-content`, `${state}-surface`)).toBeGreaterThanOrEqual(
+        4.5,
+      );
       // On the page too, because a state colour is not only used inside its own
       // badge — a plugin drawing a star takes the colour and not the tint.
       expect(against(`${state}-content`, "surface")).toBeGreaterThanOrEqual(4.5);

@@ -116,7 +116,9 @@ describe("a group of fields that belong together", () => {
 
   it("takes a line of prose and a mark like any other layout", async () => {
     const payload = await drawn(
-      Schema.make([Fieldset.make("Dates").description("Both inclusive.").icon("calendar")]),
+      Schema.make([
+        Fieldset.make("Dates").description("Both inclusive.").icon("calendar"),
+      ]),
     );
 
     expect(payload.schema.children?.[0]?.description).toBe("Both inclusive.");

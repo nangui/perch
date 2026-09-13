@@ -1232,9 +1232,9 @@ describe("a group of actions over a selection", () => {
     const { container } = await withSelection();
     const summary = container.querySelector(".perch-list__bulk-group summary");
 
-    expect(summary?.querySelector(".perch-list__bulk-icon")?.tagName.toLowerCase()).toBe(
-      "svg",
-    );
+    expect(
+      summary?.querySelector(".perch-list__bulk-icon")?.tagName.toLowerCase(),
+    ).toBe("svg");
     expect(summary?.textContent).toBe("Recovery");
   });
 

@@ -41,10 +41,7 @@ function rulesFor(selector: string): readonly string[] {
 function allRules(): readonly (readonly [readonly string[], string])[] {
   return [...STYLES.matchAll(/(^|\n)([^{}@\n][^{}]*?)\{([^{}]*)\}/g)].map(
     (rule) =>
-      [
-        (rule[2] ?? "").split(",").map((one) => one.trim()),
-        rule[3] ?? "",
-      ] as const,
+      [(rule[2] ?? "").split(",").map((one) => one.trim()), rule[3] ?? ""] as const,
   );
 }
 
@@ -77,7 +74,8 @@ describe("a control that has gone quiet in a cell", () => {
     // clauses and beats any selector a cell could write, so the hover a reader
     // gets is the panel's own — and a rule written here would read as the one
     // doing the work while never being reached.
-    const shared = ".perch-control:hover:not([data-disabled=\"true\"]):not([data-readonly=\"true\"])";
+    const shared =
+      '.perch-control:hover:not([data-disabled="true"]):not([data-readonly="true"])';
 
     expect(settled(shared, "border-color"), "no shared hover to inherit").toMatch(
       /^var\(--perch-border/,
@@ -122,7 +120,9 @@ describe("a control that has gone quiet in a cell", () => {
         // The control itself and any state of it, plus every rule that styles a
         // browser select — but not `.perch-control__affix` and its like, which
         // are sub-elements that never carry an image.
-        named.some((one) => /^\.perch-control(?![\w-])/.test(one) || /\bselect$/.test(one)),
+        named.some(
+          (one) => /^\.perch-control(?![\w-])/.test(one) || /\bselect$/.test(one),
+        ),
       )
       .filter(([, body]) => /(?:^|;)\s*background:/m.test(body))
       .map(([named]) => named.join(", "));
@@ -135,7 +135,10 @@ describe("a control that has gone quiet in a cell", () => {
     // right side is where the arrow is drawn — set to the same value, the text
     // runs underneath it. Held as a comparison rather than a figure: what
     // matters is that the arrow's side asks for more.
-    for (const selector of [".perch-table__cell .perch-cell__choice", ".perch-table__cell select"]) {
+    for (const selector of [
+      ".perch-table__cell .perch-cell__choice",
+      ".perch-table__cell select",
+    ]) {
       const right = settled(selector, "padding-right");
       const both = settled(selector, "padding-inline");
 

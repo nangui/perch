@@ -41,7 +41,9 @@ describe("a name a resource asked for", () => {
   });
 
   it("is drawn in one box at one weight, whichever name it was", () => {
-    const boxes = new Set(ICON_NAMES.map((name) => mark(name)?.getAttribute("viewBox")));
+    const boxes = new Set(
+      ICON_NAMES.map((name) => mark(name)?.getAttribute("viewBox")),
+    );
     const weights = new Set(
       ICON_NAMES.map((name) => mark(name)?.getAttribute("stroke-width")),
     );

@@ -31,7 +31,9 @@ const UNDRAWABLE = "\u{1F426}" as IconName;
 describe("a mark a resource asks for", () => {
   it("is refused when the panel has no drawing for it", () => {
     const said = complain(
-      Section.make("Badge").icon(UNDRAWABLE).schema([TextInput.make("name")]),
+      Section.make("Badge")
+        .icon(UNDRAWABLE)
+        .schema([TextInput.make("name")]),
     );
 
     expect(said.some((one) => one.includes("has no drawing for"))).toBe(true);
@@ -41,7 +43,11 @@ describe("a mark a resource asks for", () => {
   });
 
   it("passes a name the panel draws", () => {
-    const said = complain(Section.make("People").icon("users").schema([TextInput.make("name")]));
+    const said = complain(
+      Section.make("People")
+        .icon("users")
+        .schema([TextInput.make("name")]),
+    );
 
     expect(said.some((one) => one.includes("icon"))).toBe(false);
   });
@@ -58,7 +64,9 @@ describe("a mark a resource asks for", () => {
     // is a closed set with a door in it — which is what this was.
     const said = auditInfolist(
       Schema.make([
-        Section.make("Badge").icon(UNDRAWABLE).schema([TextEntry.make("name")]),
+        Section.make("Badge")
+          .icon(UNDRAWABLE)
+          .schema([TextEntry.make("name")]),
       ]),
     ).map((one) => one.problem);
 

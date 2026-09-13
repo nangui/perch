@@ -123,13 +123,7 @@ export function MonthArrow({ back }: { readonly back: boolean }): ReactNode {
  */
 export function CaretMark({ folded }: { readonly folded: boolean }): ReactNode {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 8 8"
-      width="8"
-      height="8"
-      fill="currentColor"
-    >
+    <svg aria-hidden="true" viewBox="0 0 8 8" width="8" height="8" fill="currentColor">
       <path d={folded ? "M2.5 1l4 3-4 3z" : "M1 2.5l3 4 3-4z"} />
     </svg>
   );

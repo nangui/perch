@@ -15,10 +15,12 @@ const table = (...columns: readonly Column[]) => Table.make().columns(columns);
 
 describe("an image column", () => {
   it("hands on an address a browser may fetch", () => {
-    expect(ImageColumn.make("avatar").present("https://example.com/a.png", {}, "avatar")).toBe(
-      "https://example.com/a.png",
+    expect(
+      ImageColumn.make("avatar").present("https://example.com/a.png", {}, "avatar"),
+    ).toBe("https://example.com/a.png");
+    expect(ImageColumn.make("avatar").present("/files/a.png", {}, "avatar")).toBe(
+      "/files/a.png",
     );
-    expect(ImageColumn.make("avatar").present("/files/a.png", {}, "avatar")).toBe("/files/a.png");
   });
 
   it("drops one it may not, rather than sending it to be hidden", () => {
@@ -61,7 +63,9 @@ describe("an image column over a disk", () => {
   it("asks the host what a stored key resolves to", () => {
     // A key is not an address, and where it resolves is the disk's business.
     expect(
-      ImageColumn.make("avatar").disk("public").present("avatars/ada.png", context, "avatar"),
+      ImageColumn.make("avatar")
+        .disk("public")
+        .present("avatars/ada.png", context, "avatar"),
     ).toBe("/files/avatars/ada.png");
   });
 
@@ -71,13 +75,17 @@ describe("an image column over a disk", () => {
     const dubious = { fileUrl: () => "javascript:alert(1)" };
 
     expect(
-      ImageColumn.make("avatar").disk("public").present("avatars/ada.png", dubious, "avatar"),
+      ImageColumn.make("avatar")
+        .disk("public")
+        .present("avatars/ada.png", dubious, "avatar"),
     ).toBeUndefined();
   });
 
   it("has nothing to draw where the host answers nothing", () => {
     expect(
-      ImageColumn.make("avatar").disk("private").present("avatars/ada.png", context, "avatar"),
+      ImageColumn.make("avatar")
+        .disk("private")
+        .present("avatars/ada.png", context, "avatar"),
     ).toBeUndefined();
     expect(
       ImageColumn.make("avatar").disk("public").present("", context, "avatar"),

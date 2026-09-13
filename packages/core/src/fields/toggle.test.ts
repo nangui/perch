@@ -38,7 +38,9 @@ describe("what a switch may hold", () => {
 describe("on the wire", () => {
   it("carries what it was told to draw and to colour", async () => {
     const result = await resolveSchema(
-      Schema.make([Toggle.make("live").onIcon("check").offIcon("close").onColor("success")]),
+      Schema.make([
+        Toggle.make("live").onIcon("check").offIcon("close").onColor("success"),
+      ]),
       {},
       { operation: "create" },
     );

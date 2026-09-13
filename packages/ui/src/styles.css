@@ -1573,7 +1573,6 @@
   padding-right: var(--perch-space-8);
 }
 
-
 /* Focus is not a hint that something can be reached, it is the mark of where
    the reader already is, so it keeps the full frame the rest of the panel uses.
    Restated because the quieting rule above outranks the shared one by order. */
@@ -1605,7 +1604,6 @@
   background-color: transparent;
   line-height: inherit;
 }
-
 
 .perch-table__cell select:focus-visible {
   background-color: var(--perch-surface);
