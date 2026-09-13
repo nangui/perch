@@ -13,8 +13,10 @@ Status: **in implementation**. The documentation is complete and settled.
 `packages/prisma-generator` turns the Prisma schema into the intermediate representation while
 `prisma generate` runs (ADR 0012), `packages/prisma` executes queries from it, `packages/core`
 carries the component tree, the resolution cycle, the trust boundary and the transport format,
-and `packages/ui` renders that tree. Milestone A1 passes over HTTP, within the 150 ms p95
-budget measured on `/state` across 100 round trips.
+and `packages/ui` renders that tree. The four acceptance milestones pass, each held by a test
+that names it: A1 on `/state` within a 150 ms p95 across 100 round trips, A2 on the query layer
+within the same budget, A3 on a repeater written in one transaction, A4 on a module extending a
+form it does not own.
 
 ## Read before acting
 
@@ -61,23 +63,28 @@ documentation; do not relitigate them, apply them.
 
 ## Where we are, and where to start
 
-The critical path is **milestone A1**:
+**The four acceptance milestones pass.** Each is held by a test that names it, so what they
+validate is measured rather than remembered:
 
-> A "city" `Select` whose options depend on a "country" `Select`, updating in a single round
-> trip, with zero lines of JavaScript written by the user.
+| | Validates | Held by |
+|---|---|---|
+| A1 | the state protocol | `core/src/resolve.test.ts`, `ui/src/fields/fields.test.tsx`, and the p95 in `nest/src/panel-state.latency.test.ts` |
+| A2 | the query layer | `nest/src/milestone-a2.http.test.ts` |
+| A3 | the schema tree and persistence | `nest/src/panel-save.repeater.http.test.ts` |
+| A4 | extensibility | `nest/src/schema-hook.http.test.ts` |
 
-**Build in a vertical slice, not layer by layer.** The order is fixed:
+The gate these were written for is cleared. The protocol held at A1, and nothing built since has
+asked for it to be redesigned.
 
-1. `packages/prisma-generator` — DMMF → intermediate representation (PRD 01). Mechanical,
-   unblocks everything.
-2. `packages/core` — `Field`, `Schema`, state resolution, with A1 as the single test.
-3. `packages/ui` — minimal renderer, 3 fields, and A1 running end to end.
+The v0.1 scope in `docs/00-PRD-MASTER.md` §6 is closed — twenty-nine rows, all built — and the
+six CI guardrails all run. What is left is the first publish: `0.1.0`, the five packages
+together (ADR 0008). The release job opens the version pull request; merging it publishes. That
+needs an `NPM_TOKEN` on the repository, which is the one step nobody in this tree can take.
 
-**If A1 is not elegant, or exceeds 150 ms at p95, we stop and redesign the protocol.** Do not
-build A2, A3 or A4 on a shaky A1.
-
-The later milestones: A2 (table + relation + filter + bulk + modal), A3 (nested repeater in a
-transaction), A4 (third-party module injecting a field). Detailed in `docs/00-PRD-MASTER.md` §9.
+**Two tests need a database, and skip without one.** `pnpm test` reports 2920 passing and 23
+skipped on a bare machine, and 2943 passing with none skipped once `DATABASE_URL` points at a
+PostgreSQL — which is what CI gives it. A suite that fails to load reports its tests as skipped
+rather than as failed, so a skip here is worth opening rather than reading past.
 
 ## Package layout
 
