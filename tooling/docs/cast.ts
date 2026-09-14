@@ -72,3 +72,7 @@ export declare class PrismaService implements PrismaClientLike {
   readonly [delegate: string]: unknown;
 }
 export declare const IR: Ir;
+
+/** Helpers of the reader's own that examples call rather than build. */
+export declare function hash(plain: string): Promise<string>;
+export declare function countPending(user: unknown): Promise<number>;

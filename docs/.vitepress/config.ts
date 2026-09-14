@@ -37,8 +37,15 @@ export default defineConfig({
           { text: "Introduction", link: "/" },
           { text: "Installation", link: "/installation" },
           { text: "How the pieces fit", link: "/how-it-fits" },
-          { text: "Deployment", link: "/deployment" },
         ],
+      },
+      {
+        text: "Building a panel",
+        items: [{ text: "Resources", link: "/resources" }],
+      },
+      {
+        text: "Going to production",
+        items: [{ text: "Deployment", link: "/deployment" }],
       },
     ],
 

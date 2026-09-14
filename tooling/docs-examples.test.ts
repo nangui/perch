@@ -113,6 +113,8 @@ const PRELUDE = [
   "UserResource",
   "ada",
   "admin",
+  "countPending",
+  "hash",
   "grace",
   "guest",
   "post",
