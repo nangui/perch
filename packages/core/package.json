@@ -2,6 +2,18 @@
   "name": "@perchjs/core",
   "version": "0.1.0",
   "description": "Perch domain layer: schema engine, state resolution, validation. Depends on nothing.",
+  "keywords": [
+    "perch",
+    "nestjs",
+    "admin-panel",
+    "admin",
+    "crud",
+    "prisma",
+    "typescript",
+    "schema",
+    "validation",
+    "headless"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

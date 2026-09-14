@@ -2,6 +2,18 @@
   "name": "@perchjs/prisma",
   "version": "0.1.0",
   "description": "Perch Prisma adapter: query execution from the intermediate representation.",
+  "keywords": [
+    "perch",
+    "nestjs",
+    "admin-panel",
+    "admin",
+    "crud",
+    "prisma",
+    "typescript",
+    "prisma-client",
+    "postgresql",
+    "query"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

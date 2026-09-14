@@ -2,6 +2,18 @@
   "name": "@perchjs/prisma-generator",
   "version": "0.1.0",
   "description": "Perch Prisma generator: emits the intermediate representation at build time.",
+  "keywords": [
+    "perch",
+    "nestjs",
+    "admin-panel",
+    "admin",
+    "crud",
+    "prisma",
+    "typescript",
+    "prisma-generator",
+    "codegen",
+    "dmmf"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

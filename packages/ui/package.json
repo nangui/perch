@@ -2,6 +2,18 @@
   "name": "@perchjs/ui",
   "version": "0.1.0",
   "description": "Perch React renderer and component registry. Shipped precompiled.",
+  "keywords": [
+    "perch",
+    "nestjs",
+    "admin-panel",
+    "admin",
+    "crud",
+    "prisma",
+    "typescript",
+    "react",
+    "renderer",
+    "components"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

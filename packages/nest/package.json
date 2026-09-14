@@ -2,6 +2,18 @@
   "name": "@perchjs/nest",
   "version": "0.1.0",
   "description": "Perch NestJS adapter: PanelModule, routing, guards, navigation.",
+  "keywords": [
+    "perch",
+    "nestjs",
+    "admin-panel",
+    "admin",
+    "crud",
+    "prisma",
+    "typescript",
+    "nestjs-module",
+    "backend",
+    "server"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

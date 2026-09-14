@@ -2,6 +2,18 @@
   "name": "@perchjs/cli",
   "version": "0.1.0",
   "description": "Perch CLI: resource and panel code generation.",
+  "keywords": [
+    "perch",
+    "nestjs",
+    "admin-panel",
+    "admin",
+    "crud",
+    "prisma",
+    "typescript",
+    "cli",
+    "scaffolding",
+    "generator"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
