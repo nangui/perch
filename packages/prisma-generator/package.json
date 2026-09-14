@@ -2,6 +2,7 @@
   "name": "@perchjs/prisma-generator",
   "version": "0.1.1",
   "description": "Perch Prisma generator: emits the intermediate representation at build time.",
+  "homepage": "https://github.com/nangui/perch/tree/main/packages/prisma-generator#readme",
   "keywords": [
     "perch",
     "nestjs",

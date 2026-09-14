@@ -2,6 +2,7 @@
   "name": "@perchjs/ui",
   "version": "0.1.1",
   "description": "Perch React renderer and component registry. Shipped precompiled.",
+  "homepage": "https://github.com/nangui/perch/tree/main/packages/ui#readme",
   "keywords": [
     "perch",
     "nestjs",
