@@ -2,7 +2,7 @@
   "name": "perch",
   "version": "0.0.0",
   "private": true,
-  "description": "Declarative admin panel framework for NestJS — monorepo root",
+  "description": "Declarative admin panel framework for NestJS \u2014 monorepo root",
   "license": "MIT",
   "author": "Adonai Nangui <adonainangui03@gmail.com>",
   "homepage": "https://github.com/nangui/perch#readme",
@@ -30,7 +30,7 @@
     "format:check": "prettier --check .",
     "changeset": "changeset",
     "release:version": "node scripts/changelog.mjs && changeset version",
-    "release:publish": "pnpm verify && changeset publish",
+    "release:publish": "pnpm build && changeset publish",
     "verify": "pnpm build && pnpm typecheck && pnpm lint && pnpm boundaries && pnpm test && pnpm package:check"
   },
   "devDependencies": {

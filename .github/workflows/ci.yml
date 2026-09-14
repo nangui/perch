@@ -95,10 +95,16 @@ jobs:
   # are gone and the versions in the tree have moved.
   #
   # `release:version` runs `scripts/changelog.mjs` before `changeset version`,
-  # because the second consumes the files the first reads. `release:publish`
-  # runs the whole verification again before it publishes: this job already
-  # needed `verify` to reach here, and the tree it is about to send is not the
-  # tree that was verified — `changeset version` rewrote every manifest.
+  # because the second consumes the files the first reads.
+  #
+  # `release:publish` builds and publishes, and does not verify again. It was
+  # written the other way, on the argument that `changeset version` rewrites
+  # every manifest — true, and beside the point: those rewrites land in a pull
+  # request, and merging it starts a run whose own `verify` covers exactly the
+  # tree about to be sent. Re-running it here cost seven minutes and then
+  # failed, because the suite wants a PostgreSQL this job never starts and the
+  # database test refuses to skip itself in CI. The build stays: publishing
+  # without it would send six tarballs with no `dist` in them.
   release:
     name: release
     needs: verify
@@ -122,7 +128,10 @@ jobs:
       id-token: write
 
     steps:
+      # Full history: `select-mode` reads what is on the base branch.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v6
 
@@ -158,24 +167,36 @@ jobs:
       # anyone with write access to this repository can publish that package.
       # Then delete NODE_AUTH_TOKEN below and the NPM_TOKEN secret with it.
       #
-      # No provenance, and it is not an oversight: the registry does not generate
-      # it for a private repository, and asking for it anyway is a publish that
-      # fails on a flag rather than on anything real. It comes back the day this
-      # repository is public. `id-token: write` above stays regardless — it is
-      # what the OIDC exchange will need.
+      # Provenance is on because the repository is public: the registry does not
+      # generate an attestation for a private one, and this was off for exactly
+      # as long as that was true.
       #
       # Still unverified, and only the first release will say: whether the OIDC
       # exchange survives `changeset publish`, which runs `npm publish` once per
       # package rather than once.
-      - uses: changesets/action@v1
+      # Which of the two this run is: `version` while changesets are pending,
+      # `publish` once they are gone and the manifests have moved.
+      - uses: changesets/action/select-mode@v2
+        id: select
+
+      - uses: changesets/action/version@v2
+        if: steps.select.outputs.mode == 'version'
         with:
-          version: pnpm release:version
-          publish: pnpm release:publish
-          title: "chore: release"
-          commit: "chore: release"
+          script: pnpm release:version
+          pr-title: "chore: release"
+          commit-message: "chore: release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: changesets/action/publish@v2
+        if: steps.select.outputs.mode == 'publish'
+        with:
+          script: pnpm release:publish
+          push-git-tags: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
 
 # The guardrails this project set itself before the code they protect existed.
 # All six now run, five of them inside `pnpm test` and one in its own step:
