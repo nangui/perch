@@ -16,7 +16,10 @@
  */
 import type { INestApplication, Type } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import { PANEL_PATH, PANEL_USER_RESOLVER } from "@perchjs/nest";
+import type { DataAdapter } from "@perchjs/core";
+import { PANEL_DATA_ADAPTER, PANEL_PATH, PANEL_USER_RESOLVER } from "@perchjs/nest";
+import { countQueries } from "./counter.js";
+import type { Counter } from "./counter.js";
 import { ResourceTest } from "./resource.js";
 import type { Wire } from "./wire.js";
 
@@ -36,6 +39,7 @@ export class PanelTest {
   readonly #root: string;
   readonly #principals: Map<string, unknown>;
   readonly #token: string;
+  readonly #counter: Counter;
 
   private constructor(
     app: INestApplication,
@@ -43,12 +47,14 @@ export class PanelTest {
     root: string,
     principals: Map<string, unknown>,
     token: string,
+    counter: Counter,
   ) {
     this.#app = app;
     this.#url = url;
     this.#root = root;
     this.#principals = principals;
     this.#token = token;
+    this.#counter = counter;
   }
 
   static async boot(options: PanelTestOptions): Promise<PanelTest> {
@@ -87,7 +93,13 @@ export class PanelTest {
     const token = "p1";
     principals.set(token, options.as);
 
-    return new PanelTest(app, await app.getUrl(), root, principals, token);
+    // Wrapped once, here: every facade `as()` mints shares the one panel and
+    // therefore the one adapter, so they share the count too.
+    const counter = countQueries(
+      moduleRef.get<DataAdapter | null>(PANEL_DATA_ADAPTER, { strict: false }),
+    );
+
+    return new PanelTest(app, await app.getUrl(), root, principals, token, counter);
   }
 
   /**
@@ -100,12 +112,19 @@ export class PanelTest {
   as(user: unknown): PanelTest {
     const token = `p${String(this.#principals.size + 1)}`;
     this.#principals.set(token, user);
-    return new PanelTest(this.#app, this.#url, this.#root, this.#principals, token);
+    return new PanelTest(
+      this.#app,
+      this.#url,
+      this.#root,
+      this.#principals,
+      token,
+      this.#counter,
+    );
   }
 
   /** The resource named by its own class, so no test spells a slug. */
   resource(type: unknown): ResourceTest {
-    return new ResourceTest(this.wire, type);
+    return new ResourceTest(this.wire, this.#counter, type);
   }
 
   /** Where the panel answers, for a chain to address. */

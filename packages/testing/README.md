@@ -22,10 +22,32 @@ await panel
   .submit()
   .assertNoErrors();
 
+await panel
+  .resource(UserResource)
+  .table()
+  .assertCanSeeRecords([ada, grace])
+  .filter("role", "admin")
+  .assertCanSeeRecords([ada])
+  // The N+1 guardrail: a relation drawn in a column has to arrive with the
+  // rows, and a table that fetched one per row still looks correct on screen.
+  .assertQueryCount(2);
+
+await panel
+  .resource(PostResource)
+  .action("archive", post)
+  .assertVisible()
+  .call({ reason: "obsolete" })
+  .assertProcessed(1)
+  .assertNotification("success", "Post archived");
+
 await panel.as(guest).resource(UserResource).assertForbidden();
 
 await panel.close();
 ```
+
+An action being offered is not an action being permitted — a hidden button was
+never the protection, so `assertVisible` says what the table draws and
+`assertRefused` says what the server did about it.
 
 Nothing here reaches inside the panel. Every assertion is made against what
 crossed the wire, which is the only thing a browser ever sees.

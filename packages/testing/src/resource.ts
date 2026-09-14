@@ -7,26 +7,47 @@
  */
 import { resourceMetadata } from "@perchjs/nest";
 import type { Wire } from "./wire.js";
+import type { Counter } from "./counter.js";
 import { FormTest } from "./form.js";
+import { TableTest } from "./table.js";
+import type { RecordLike } from "./table.js";
+import { ActionTest } from "./action.js";
 
 export class ResourceTest {
   readonly #wire: Wire;
   readonly #slug: string;
   readonly #name: string;
+  readonly #counter: Counter;
 
-  constructor(wire: Wire, type: unknown) {
+  constructor(wire: Wire, counter: Counter, type: unknown) {
     const metadata = resourceMetadata(type);
     const name = (type as { name?: string }).name ?? "the resource";
     if (metadata === undefined) {
       throw new Error(`${name} carries no @PanelResource, so it is not a resource.`);
     }
     this.#wire = wire;
+    this.#counter = counter;
     this.#slug = metadata.slug;
     this.#name = name;
   }
 
   form(): FormTest {
     return new FormTest(this.#wire, this.#slug);
+  }
+
+  table(): TableTest {
+    return new TableTest(this.#wire, this.#slug, this.#counter);
+  }
+
+  /**
+   * One of its actions, against the records named.
+   *
+   * A row action takes one record, a bulk action takes several, and the route
+   * is the same either way — which is also how the panel's own table posts
+   * them.
+   */
+  action(name: string, ...records: readonly RecordLike[]): ActionTest {
+    return new ActionTest(this.#wire, this.#slug, name, records);
   }
 
   /**
