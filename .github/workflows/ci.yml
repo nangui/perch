@@ -185,6 +185,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Checking a release afterwards: read the log, not the registry. Changesets
+      # asks the registry for every version before it publishes one, is told 404
+      # perfectly correctly, and the CDN keeps those answers for a few minutes —
+      # so a package that has just gone out reads as missing. This was taken for
+      # a half-finished release twice, on two different versions, before the
+      # mechanism was understood. `Successfully published` above, and the `PUT
+      # 200` in npm's own debug log, are what actually happened. A read is only
+      # evidence with the cache defeated:
+      #   curl -H 'Cache-Control: no-cache' \
+      #     "https://registry.npmjs.org/@perchjs%2fcore?b=$(date +%s)"
       - uses: changesets/action/publish@v2
         if: steps.select.outputs.mode == 'publish'
         with:
