@@ -39,6 +39,9 @@ export const HOOK_POSITIONS = [
   /** Above everything, inside the shell. The banner position. */
   "shell.start",
   "shell.end",
+  /** In the bar across the top, before and after who is signed in. */
+  "topbar.start",
+  "topbar.end",
   /** Inside the navigation, before and after its groups. */
   "sidebar.start",
   "sidebar.end",
@@ -137,6 +140,17 @@ function at(position: HookPosition): readonly Registered[] {
   return [...(HOOKS.get(position) ?? [])].sort(
     (one, two) => one.order - two.order || one.at - two.at,
   );
+}
+
+/**
+ * Whether anything was put here.
+ *
+ * For the chrome that would otherwise draw a bar with nothing in it. An empty
+ * bar is not a neutral thing: it takes a strip off the top of every page for
+ * something nobody asked for.
+ */
+export function hasRenderHooks(position: HookPosition): boolean {
+  return (HOOKS.get(position) ?? []).length > 0;
 }
 
 export interface RenderHooksProps {

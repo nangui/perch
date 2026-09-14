@@ -10,6 +10,8 @@
  * path and the same file works under any `setGlobalPrefix`.
  */
 import { RenderHooks } from "./hooks.js";
+import { PanelTopbar } from "./PanelTopbar.js";
+import type { PanelUserMenu } from "./PanelUser.js";
 import type { ReactNode } from "react";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
@@ -60,6 +62,7 @@ export function mount(element: HTMLElement): void {
   registerBuiltInColumns();
 
   const menu = <PanelNav groups={groupsOf(navigation)} />;
+  const who = userMenuOf(element.dataset["userMenu"]);
 
   if (operation === "list") {
     // Read once, on the way in. Whatever was said on the page that sent the
@@ -68,23 +71,28 @@ export function mount(element: HTMLElement): void {
     createRoot(element).render(
       <div className="perch-shell">
         <RenderHooks at="shell.start" />
-        {menu}
-        <RenderHooks at="page.start" />
-        <PanelList
-          initial={JSON.parse(payload) as RecordsPage}
-          title={title}
-          {...(flash === undefined ? {} : { flash })}
-          fetchPage={(request) => records(api, request)}
-          runAction={(name, ids, data, key) => runAction(api, name, ids, data, key)}
-          writeCell={(id, path, value) => writeCell(api, id, path, value)}
-          actionForm={(name, ids) => actionForm(api, name, ids)}
-          actionContent={(name, ids) => actionContent(api, name, ids)}
-          actionState={(name) => (request) =>
-            send(api, "create", undefined, request, name)
-          }
-          onPage={remember}
-        />
-        <RenderHooks at="page.end" />
+        <PanelTopbar {...(who === undefined ? {} : { menu: who })} />
+        <div className="perch-shell__body">
+          {menu}
+          <div className="perch-shell__main">
+            <RenderHooks at="page.start" />
+            <PanelList
+              initial={JSON.parse(payload) as RecordsPage}
+              title={title}
+              {...(flash === undefined ? {} : { flash })}
+              fetchPage={(request) => records(api, request)}
+              runAction={(name, ids, data, key) => runAction(api, name, ids, data, key)}
+              writeCell={(id, path, value) => writeCell(api, id, path, value)}
+              actionForm={(name, ids) => actionForm(api, name, ids)}
+              actionContent={(name, ids) => actionContent(api, name, ids)}
+              actionState={(name) => (request) =>
+                send(api, "create", undefined, request, name)
+              }
+              onPage={remember}
+            />
+            <RenderHooks at="page.end" />
+          </div>
+        </div>
         <RenderHooks at="shell.end" />
       </div>,
     );
@@ -96,19 +104,22 @@ export function mount(element: HTMLElement): void {
   const framed = (body: ReactNode): ReactNode => (
     <div className="perch-shell">
       <RenderHooks at="shell.start" />
-      {menu}
-      <div className="perch-shell__main">
-        <Breadcrumb
-          {...(listPath === undefined ? {} : { listPath })}
-          {...(listLabel === undefined ? {} : { listLabel })}
-          current={title}
-        />
-        {/* The list page names itself. A form page had only the trail that led
+      <PanelTopbar {...(who === undefined ? {} : { menu: who })} />
+      <div className="perch-shell__body">
+        {menu}
+        <div className="perch-shell__main">
+          <Breadcrumb
+            {...(listPath === undefined ? {} : { listPath })}
+            {...(listLabel === undefined ? {} : { listLabel })}
+            current={title}
+          />
+          {/* The list page names itself. A form page had only the trail that led
             to it, which says where you came from but not what you are on. */}
-        <h1 className="perch-page__title">{title}</h1>
-        <RenderHooks at="page.start" />
-        {body}
-        <RenderHooks at="page.end" />
+          <h1 className="perch-page__title">{title}</h1>
+          <RenderHooks at="page.start" />
+          {body}
+          <RenderHooks at="page.end" />
+        </div>
       </div>
       <RenderHooks at="shell.end" />
     </div>
@@ -744,4 +755,16 @@ function remember(page: RecordsPage): void {
 function groupsOf(raw: string | undefined): readonly NavigationGroup[] {
   if (raw === undefined) return [];
   return JSON.parse(raw) as readonly NavigationGroup[];
+}
+
+/**
+ * Who is signed in, as the server decided it.
+ *
+ * Absent where the panel was told nothing, which is the ordinary case: an
+ * application that never declared a user menu gets no bar across the top
+ * rather than one saying nothing.
+ */
+function userMenuOf(raw: string | undefined): PanelUserMenu | undefined {
+  if (raw === undefined) return undefined;
+  return JSON.parse(raw) as PanelUserMenu;
 }

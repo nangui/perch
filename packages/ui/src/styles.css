@@ -4591,11 +4591,20 @@ button.perch-table__action:disabled {
 
 .perch-shell {
   display: flex;
+  /* A column now, the bar across the top spanning the navigation as well as
+     the page. Laid out as a row, it became a third column beside them. */
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.perch-shell__body {
+  display: flex;
   /* Stretch, not flex-start: the nav is a column of the page, and left to its
      content height it stopped under the last link with the page ground showing
      through beneath it. */
   align-items: stretch;
-  min-height: 100vh;
+  flex: 1;
+  min-width: 0;
 }
 
 .perch-shell__main {
@@ -4744,4 +4753,118 @@ button.perch-table__action:disabled {
 .perch-pairs tbody td {
   color: var(--perch-content);
   word-break: break-word;
+}
+
+/**
+ * The bar across the top, and who is signed in.
+ *
+ * Drawn only when something is in it — the component decides that, not this
+ * file, because an empty bar that is merely invisible still takes its space.
+ */
+.perch-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-3);
+  padding: var(--perch-space-2) var(--perch-space-5);
+  border-bottom: 1px solid var(--perch-border);
+  background: var(--perch-surface);
+}
+
+.perch-topbar__end {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-3);
+  /* Pushed to the far end, which is where a reader looks for their own name. */
+  margin-left: auto;
+}
+
+.perch-user {
+  position: relative;
+}
+
+.perch-user__button,
+.perch-user--plain {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+  padding: var(--perch-space-1) var(--perch-space-2);
+  border-radius: var(--perch-radius-sm);
+  cursor: pointer;
+  /* The marker a `summary` draws by default: the chevron says the same thing
+     at the weight the rest of the panel is drawn in. */
+  list-style: none;
+}
+
+.perch-user__button::-webkit-details-marker {
+  display: none;
+}
+
+.perch-user--plain {
+  cursor: default;
+}
+
+.perch-user__button:hover {
+  background: var(--perch-surface-muted);
+}
+
+.perch-user__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.perch-user__name {
+  color: var(--perch-content);
+  font-weight: 500;
+  /* A long name shortens rather than pushing the bar wider than the page. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.perch-user__description {
+  color: var(--perch-content-subtle);
+  font-size: var(--perch-text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.perch-user__mark {
+  display: flex;
+  flex: none;
+  color: var(--perch-content-subtle);
+}
+
+.perch-user__panel {
+  position: absolute;
+  right: 0;
+  z-index: 10;
+  min-width: 12rem;
+  margin: var(--perch-space-1) 0 0;
+  padding: var(--perch-space-1);
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface);
+  box-shadow: var(--perch-shadow-popover);
+  list-style: none;
+}
+
+.perch-user__link {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+  padding: var(--perch-space-2) var(--perch-space-3);
+  border-radius: var(--perch-radius-sm);
+  color: var(--perch-content);
+  text-decoration: none;
+}
+
+.perch-user__link:hover {
+  background: var(--perch-surface-muted);
+}
+
+.perch-user__icon {
+  flex: none;
+  color: var(--perch-content-subtle);
 }

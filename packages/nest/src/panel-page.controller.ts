@@ -26,6 +26,8 @@ import type {
   Schema,
 } from "@perchjs/core";
 import { buildNavigation, PANEL_NAVIGATION_GROUPS } from "./navigation.js";
+import { buildUserMenu, PANEL_USER_MENU } from "./user-menu.js";
+import type { UserMenu } from "./user-menu.js";
 import { listRecords, resourcePath } from "./records.js";
 import { resolveSchema, serialise } from "@perchjs/core";
 import { includeFor } from "./infolist-plan.js";
@@ -58,6 +60,7 @@ export class PanelPageController {
   readonly #users: UserResolver;
   readonly #data: DataAdapter | null;
   readonly #groups: readonly string[];
+  readonly #userMenu: UserMenu | undefined;
   readonly #urls: Pick<ResolveOptions, "fileUrl">;
   readonly #disks: PanelDisks;
 
@@ -69,9 +72,11 @@ export class PanelPageController {
     @Inject(PANEL_USER_RESOLVER) users: UserResolver,
     @Inject(PANEL_DATA_ADAPTER) data: DataAdapter | null,
     @Inject(PANEL_NAVIGATION_GROUPS) groups: readonly string[],
+    @Inject(PANEL_USER_MENU) userMenu: UserMenu | undefined,
     @Inject(PANEL_STORAGE) disks: PanelDisks,
   ) {
     this.#groups = groups;
+    this.#userMenu = userMenu;
     this.#registry = registry;
     this.#assets = assets;
     this.#scripts = scripts;
@@ -118,6 +123,7 @@ export class PanelPageController {
       operation: "list",
       payload: records,
       navigation: await this.#navigation(request, root, slug),
+      ...(await this.#user(request)),
       scriptFile: entry(this.#assets, "panel.js"),
       ...(this.#scripts.length === 0 ? {} : { scripts: this.#scripts }),
       ...(this.#styles.length === 0 ? {} : { styles: this.#styles }),
@@ -282,6 +288,15 @@ export class PanelPageController {
     );
   }
 
+  /**
+   * Rebuilt per request, for the reason the navigation is: two readers are two
+   * menus, and one kept across them is one reader's menu shown to another.
+   */
+  async #user(request: IncomingUrl): Promise<{ userMenu?: unknown }> {
+    const menu = await buildUserMenu(this.#userMenu, this.#users.resolve(request));
+    return menu === undefined ? {} : { userMenu: menu };
+  }
+
   async #render(page: {
     resource: RegisteredResource;
     /** The tree this page draws: a form, or the infolist a View page reads. */
@@ -314,6 +329,7 @@ export class PanelPageController {
 
     return renderShell({
       navigation,
+      ...(await this.#user(page.request)),
       root,
       api: `${root}/api/${page.resource.metadata.slug}`,
       title: page.title,

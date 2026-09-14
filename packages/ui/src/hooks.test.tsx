@@ -56,7 +56,7 @@ describe("a position", () => {
     // A registration that quietly does nothing is worse than a failure: the
     // author sees a panel without their component and no reason for it.
     expect(() => {
-      registerRenderHook("topbar.end", Banner);
+      registerRenderHook("footer.end", Banner);
     }).toThrow(/Unknown render hook position/);
   });
 
@@ -73,7 +73,9 @@ describe("a position", () => {
 
   it("admits exactly the positions the chrome draws", () => {
     expect(isHookPosition("shell.start")).toBe(true);
-    expect(isHookPosition("topbar.end")).toBe(false);
+    expect(isHookPosition("topbar.end")).toBe(true);
+    // The panel draws no footer, so there is nowhere to put one.
+    expect(isHookPosition("footer.end")).toBe(false);
   });
 });
 

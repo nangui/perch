@@ -31,6 +31,14 @@ export interface ShellOptions {
   /** The panel's own menu, already filtered by what this user may reach. */
   readonly navigation?: unknown;
   /**
+   * Who is signed in, already named and already filtered.
+   *
+   * Absent where the panel was told nothing about the reader, or where what it
+   * was told produced no name: a menu headed by a blank says somebody is
+   * signed in without saying who.
+   */
+  readonly userMenu?: unknown;
+  /**
    * The relation managers this record has, as tabs to draw under the form.
    *
    * Names and labels, never rows: what a tab holds is fetched when it is
@@ -84,6 +92,10 @@ ${(options.styles ?? [])
     options.navigation === undefined
       ? ""
       : ` data-navigation="${attribute(JSON.stringify(options.navigation))}"`
+  }${
+    options.userMenu === undefined
+      ? ""
+      : ` data-user-menu="${attribute(JSON.stringify(options.userMenu))}"`
   }${
     options.relations === undefined
       ? ""

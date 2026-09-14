@@ -66,9 +66,12 @@ export type { NodeProps } from "./node-props.js";
 export type { SchemaRendererProps } from "./SchemaRenderer.js";
 export { SchemaRenderer } from "./SchemaRenderer.js";
 export { lookupComponent, registerComponent, resetRegistry } from "./registry.js";
+export type { PanelUserItem, PanelUserMenu, PanelUserProps } from "./PanelUser.js";
+export { PanelUser } from "./PanelUser.js";
 export type { HookPosition, RenderHookOptions, RenderHooksProps } from "./hooks.js";
 export {
   HOOK_POSITIONS,
+  hasRenderHooks,
   isHookPosition,
   registerRenderHook,
   RenderHooks,

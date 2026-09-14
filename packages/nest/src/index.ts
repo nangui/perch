@@ -39,6 +39,13 @@ export type { IncomingUrl } from "./panel-root.js";
 export { rootOf, sameOrigin } from "./panel-root.js";
 export type { RedirectAfterCreate } from "./redirect.js";
 export { PANEL_REDIRECT_AFTER_CREATE } from "./redirect.js";
+export type {
+  ResolvedUserMenu,
+  ResolvedUserMenuItem,
+  UserMenu,
+  UserMenuItem,
+} from "./user-menu.js";
+export { buildUserMenu, PANEL_USER_MENU } from "./user-menu.js";
 export type { UserResolver } from "./user-resolver.js";
 export { PANEL_USER_RESOLVER, RequestUserResolver } from "./user-resolver.js";
 export type { PanelModuleOptions } from "./panel.module.js";

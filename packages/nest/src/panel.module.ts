@@ -34,6 +34,8 @@ import {
   PANEL_STYLES,
 } from "./panel-assets.js";
 import { PANEL_NAVIGATION_GROUPS } from "./navigation.js";
+import { PANEL_USER_MENU } from "./user-menu.js";
+import type { UserMenu } from "./user-menu.js";
 import type { ResourceClass } from "./resource-registry.js";
 import { PANEL_RESOURCE_TYPES, ResourceRegistry } from "./resource-registry.js";
 import type { UserResolver } from "./user-resolver.js";
@@ -48,6 +50,14 @@ export interface PanelModuleOptions {
    * stated should at least be stable.
    */
   readonly navigationGroups?: readonly string[];
+  /**
+   * Who is signed in, and what they can do about it.
+   *
+   * Declared rather than discovered: Perch authenticates nobody, so it knows
+   * neither what a principal looks like nor where signing out happens. Absent,
+   * the panel draws no such menu at all rather than a blank one.
+   */
+  readonly userMenu?: UserMenu;
   /** Registered explicitly; discovery by folder scan comes later. */
   readonly resources?: readonly ResourceClass[];
   /**
@@ -151,6 +161,7 @@ export class PanelModule {
         { provide: PANEL_SCRIPTS, useValue: options.scripts ?? [] },
         { provide: PANEL_STYLES, useValue: options.styles ?? [] },
         { provide: PANEL_NAVIGATION_GROUPS, useValue: options.navigationGroups ?? [] },
+        { provide: PANEL_USER_MENU, useValue: options.userMenu },
         { provide: PANEL_RESOURCE_TYPES, useValue: options.resources ?? [] },
         {
           provide: PANEL_USER_RESOLVER,
