@@ -9,7 +9,8 @@
       "@perchjs/prisma-generator",
       "@perchjs/nest",
       "@perchjs/ui",
-      "@perchjs/cli"
+      "@perchjs/cli",
+      "@perchjs/testing"
     ]
   ],
   "linked": [],

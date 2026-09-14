@@ -31,6 +31,7 @@ export { PanelSaveController } from "./panel-save.controller.js";
 export type { Admission, Admitted } from "./admission.js";
 export { admit, AdmissionCycleError } from "./admission.js";
 export type { ShellOptions } from "./panel-shell.js";
+export { PANEL_PATH } from "./panel-path.js";
 export { renderShell } from "./panel-shell.js";
 export type { Authorization, Verdict } from "./authorization.js";
 export { authorize, mayReach } from "./authorization.js";

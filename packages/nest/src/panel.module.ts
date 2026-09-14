@@ -36,6 +36,7 @@ import {
 import { PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { PANEL_USER_MENU } from "./user-menu.js";
 import { resourceMetadata } from "./resource.js";
+import { PANEL_PATH } from "./panel-path.js";
 import { CustomPageController } from "./custom-page.controller.js";
 import { ResourcePageController } from "./resource-page.controller.js";
 import { CustomPageRegistry, PANEL_PAGE_TYPES } from "./custom-page-registry.js";
@@ -178,6 +179,19 @@ export class PanelModule {
         { provide: PANEL_STYLES, useValue: options.styles ?? [] },
         { provide: PANEL_NAVIGATION_GROUPS, useValue: options.navigationGroups ?? [] },
         { provide: PANEL_USER_MENU, useValue: options.userMenu },
+        // Where the panel is mounted, readable rather than only handed to the
+        // router. A harness driving a panel has to address it, and a path
+        // written a second time in a test file is one that drifts from this
+        // one the first time somebody moves the panel.
+        //
+        // With its leading slash, unlike what the router is given: this is a
+        // thing addresses are built from, and a token that sometimes carries
+        // one and sometimes does not is a token every reader gets wrong once.
+        // Empty for a panel mounted at the root, which is what it is.
+        {
+          provide: PANEL_PATH,
+          useValue: normalise(options.path) === "" ? "" : `/${normalise(options.path)}`,
+        },
         { provide: PANEL_PAGE_TYPES, useValue: options.pages ?? [] },
         // A record's own pages, read off the resources rather than listed
         // again: the container has to be told about them before it builds

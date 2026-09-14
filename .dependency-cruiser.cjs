@@ -67,6 +67,20 @@ module.exports = {
       },
     },
 
+    // ------------------------------------------------------- the harness
+    {
+      name: "testing-reaches-only-core-and-nest",
+      comment:
+        "@perchjs/testing drives a panel through @perchjs/nest and reads the " +
+        "shapes @perchjs/core defines. Nothing else: a harness that reached " +
+        "@perchjs/prisma would be a harness that tests one adapter rather " +
+        "than the panel, and one that reached @perchjs/ui would be testing " +
+        "the renderer without a browser.",
+      severity: "error",
+      from: { path: "^packages/testing/src" },
+      to: { path: "^packages/(?!(core|nest|testing)/)" },
+    },
+
     // ----------------------------------------------------- the generator
     {
       name: "generator-imports-core-only",

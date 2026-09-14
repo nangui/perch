@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": ".tsbuild",
+    "tsBuildInfoFile": ".tsbuild/.tsbuildinfo",
+
+    // Relaxed for the reason `nest` relaxes them: a harness boots a Nest
+    // module, and the panels it is written against are declared with legacy
+    // decorators. The domain stays free of both.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "erasableSyntaxOnly": false
+  },
+  "include": ["src/**/*"],
+  "references": [{ "path": "../core" }, { "path": "../nest" }]
+}

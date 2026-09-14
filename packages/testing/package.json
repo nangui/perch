@@ -1,0 +1,72 @@
+{
+  "name": "@perchjs/testing",
+  "version": "0.1.2",
+  "description": "Perch test helpers: drive a panel's forms, tables and actions the way a browser does.",
+  "homepage": "https://github.com/nangui/perch/tree/main/packages/testing#readme",
+  "keywords": [
+    "perch",
+    "nestjs",
+    "admin-panel",
+    "admin",
+    "crud",
+    "testing",
+    "test-helpers",
+    "typescript",
+    "vitest",
+    "jest"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nangui/perch.git",
+    "directory": "packages/testing"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --build",
+    "lint": "eslint src",
+    "package:check": "publint && attw --pack ."
+  },
+  "dependencies": {
+    "@perchjs/core": "workspace:*",
+    "@perchjs/nest": "workspace:*"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/testing": "^11.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^11.1.28",
+    "@nestjs/core": "^11.1.28",
+    "@nestjs/platform-express": "^11.1.28",
+    "@nestjs/testing": "^11.1.28"
+  }
+}

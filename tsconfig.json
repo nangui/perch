@@ -7,6 +7,7 @@
     { "path": "./packages/prisma-generator" },
     { "path": "./packages/nest" },
     { "path": "./packages/ui" },
-    { "path": "./packages/cli" }
+    { "path": "./packages/cli" },
+    { "path": "./packages/testing" }
   ]
 }

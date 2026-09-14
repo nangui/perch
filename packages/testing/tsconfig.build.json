@@ -1,0 +1,11 @@
+{
+  // Separate from tsconfig.json because the dts pipeline cannot run on a
+  // `composite` project (TS6307). Maps off: shipping them is its own decision.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "sourceMap": false,
+    "declarationMap": false
+  },
+  "include": ["src/**/*"]
+}
