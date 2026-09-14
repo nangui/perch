@@ -112,3 +112,46 @@ writeFileSync(
   `${HEADER}\n${entry}${previous === "" ? "" : `\n${previous}`}`,
 );
 console.log(`CHANGELOG.md: added ${version} (${changesets.length} changeset(s)).`);
+
+/**
+ * A changelog per package, saying where the real one is.
+ *
+ * `changesets/action` reads `packages/<name>/CHANGELOG.md` for every package in
+ * the release, to compose the body of its version pull request. It reads them
+ * all at once and does not tolerate one missing — v1 and v2 alike, which is how
+ * two runs died on `ENOENT` before this existed. ADR 0008 §4 wants one changelog
+ * at the root, and it still gets one: these carry a heading, the version, and a
+ * pointer. Nobody edits them, nothing is described twice, and the action finds
+ * the shape it insists on.
+ */
+const directories = new Map(
+  readdirSync("packages").map((dir) => [
+    JSON.parse(readFileSync(join("packages", dir, "package.json"), "utf8")).name,
+    join("packages", dir),
+  ]),
+);
+
+let pointers = 0;
+for (const release of releases) {
+  // A private package is in the plan and not under `packages/`; it publishes
+  // nothing, so nothing reads a changelog for it.
+  const where = directories.get(release.name);
+  if (where === undefined) continue;
+  pointers += 1;
+
+  const file = join(where, CHANGELOG);
+  const note =
+    `The \`@perchjs/*\` packages are released together and share one changelog.\n` +
+    `What changed is in the [root CHANGELOG](../../CHANGELOG.md).\n`;
+  const section = `## ${release.newVersion}\n\n${note}`;
+
+  const before = existsSync(file) ? readFileSync(file, "utf8") : "";
+  const at = before.indexOf("\n## ");
+  const kept = at === -1 ? "" : before.slice(at + 1);
+
+  writeFileSync(
+    file,
+    `# ${release.name}\n\n${section}${kept === "" ? "" : `\n${kept}`}`,
+  );
+}
+console.log(`  and a pointer in each of the ${pointers} published packages.`);
