@@ -1,6 +1,6 @@
 {
   "name": "@perchjs/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Perch CLI: resource and panel code generation.",
   "keywords": [
     "perch",

@@ -1,6 +1,6 @@
 {
   "name": "@perchjs/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Perch domain layer: schema engine, state resolution, validation. Depends on nothing.",
   "keywords": [
     "perch",

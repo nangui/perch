@@ -3,6 +3,13 @@
 All notable changes to Perch. The six `@perchjs/*` packages share this file and
 this version number — they are released together ([ADR 0008](docs/adr/0008-versioning-policy.md)).
 
+## 0.1.1 — 2026-09-14
+
+### Fixed
+
+- Give every package a README and the words somebody would search for. All six went to the registry with a one-line description and nothing else: no page, no keywords, so a reader who found one could not tell what it was for and a reader looking for it could not find it at all. Each now says what it is, that it is part of Perch and released with the other five, and where the reasoning lives. `files` lists only `dist` and `LICENSE`, which is fine — npm puts the README in the tarball whether it is named or not.
+- Point every package at the repository it came from. All six reached the registry with no `repository` field, so their npm pages offer a reader no way back to the source — the root manifest carried one and the published manifests never did. It is also what npm matches a trusted publisher against, and its absence is the likeliest reason that configuring one answered 400 rather than anything about the packages themselves.
+
 ## 0.1.0 — 2026-09-13
 
 ### Breaking
