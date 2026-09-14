@@ -46,6 +46,11 @@ export type {
   UserMenuItem,
 } from "./user-menu.js";
 export { buildUserMenu, PANEL_USER_MENU } from "./user-menu.js";
+export type { PageMetadata, PanelPageOptions } from "./custom-page.js";
+export { PANEL_PAGE, PanelPage, pageMetadata } from "./custom-page.js";
+export type { PageClass, RegisteredPage } from "./custom-page-registry.js";
+export { CustomPageRegistry, PANEL_PAGE_TYPES } from "./custom-page-registry.js";
+export type { PageSaveAnswer } from "./custom-page.controller.js";
 export type { UserResolver } from "./user-resolver.js";
 export { PANEL_USER_RESOLVER, RequestUserResolver } from "./user-resolver.js";
 export type { PanelModuleOptions } from "./panel.module.js";

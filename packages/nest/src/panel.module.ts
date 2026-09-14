@@ -35,6 +35,9 @@ import {
 } from "./panel-assets.js";
 import { PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { PANEL_USER_MENU } from "./user-menu.js";
+import { CustomPageController } from "./custom-page.controller.js";
+import { CustomPageRegistry, PANEL_PAGE_TYPES } from "./custom-page-registry.js";
+import type { PageClass } from "./custom-page-registry.js";
 import type { UserMenu } from "./user-menu.js";
 import type { ResourceClass } from "./resource-registry.js";
 import { PANEL_RESOURCE_TYPES, ResourceRegistry } from "./resource-registry.js";
@@ -60,6 +63,12 @@ export interface PanelModuleOptions {
   readonly userMenu?: UserMenu;
   /** Registered explicitly; discovery by folder scan comes later. */
   readonly resources?: readonly ResourceClass[];
+  /**
+   * Pages with a schema and no model behind them: settings, an import screen,
+   * a dashboard. Listed here for the reason the resources are — explicit,
+   * predictable, and tree-shakable.
+   */
+  readonly pages?: readonly PageClass[];
   /**
    * The disks a `FileUpload` may name, by the names it names them by.
    *
@@ -154,6 +163,10 @@ export class PanelModule {
         guarded(PanelUploadController, guards),
         guarded(PanelRecordsController, guards),
         guarded(PanelSaveController, guards),
+        // Before the HTML controller, whose `:resource` is where a page is
+        // reached; the API routes under `api/page/` cannot be confused with a
+        // resource's, which are one segment shorter.
+        guarded(CustomPageController, guards),
         guarded(PanelPageController, guards),
       ],
       providers: [
@@ -162,6 +175,9 @@ export class PanelModule {
         { provide: PANEL_STYLES, useValue: options.styles ?? [] },
         { provide: PANEL_NAVIGATION_GROUPS, useValue: options.navigationGroups ?? [] },
         { provide: PANEL_USER_MENU, useValue: options.userMenu },
+        { provide: PANEL_PAGE_TYPES, useValue: options.pages ?? [] },
+        CustomPageRegistry,
+        ...(options.pages ?? []),
         { provide: PANEL_RESOURCE_TYPES, useValue: options.resources ?? [] },
         {
           provide: PANEL_USER_RESOLVER,

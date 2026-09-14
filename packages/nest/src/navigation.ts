@@ -12,6 +12,7 @@
  * shown to another.
  */
 import type { RegisteredResource } from "./resource-registry.js";
+import type { RegisteredPage } from "./custom-page-registry.js";
 import { mayReach } from "./authorization.js";
 import { resourcePath } from "./records.js";
 
@@ -45,6 +46,7 @@ export async function buildNavigation(
   root: string,
   declaredGroups: readonly string[] = [],
   currentSlug?: string,
+  pages: readonly RegisteredPage[] = [],
 ): Promise<readonly NavigationGroup[]> {
   const visible: RegisteredResource[] = [];
   for (const resource of resources) {
@@ -59,6 +61,24 @@ export async function buildNavigation(
     const group = resource.metadata.navigationGroup ?? "";
     const items = byGroup.get(group) ?? [];
     items.push(await item(resource, href, currentSlug, user));
+    byGroup.set(group, items);
+  }
+
+  // After the resources, inside whatever group each named. A page is an entry
+  // like any other once it is in the menu, and the same refusal removes it:
+  // one this reader may not reach is not drawn and does not answer.
+  for (const page of sorted(pages)) {
+    if (!(await mayReach(page.instance.can, user))) continue;
+    const href = resourcePath(root, page.metadata.path);
+    if (href === undefined) continue;
+    const group = page.metadata.navigationGroup ?? "";
+    const items = byGroup.get(group) ?? [];
+    items.push({
+      label: page.metadata.label,
+      href,
+      ...(page.metadata.icon === undefined ? {} : { icon: page.metadata.icon }),
+      ...(page.metadata.path === currentSlug ? { current: true as const } : {}),
+    });
     byGroup.set(group, items);
   }
 
@@ -87,6 +107,14 @@ async function item(
     ...(badge === undefined ? {} : { badge }),
     ...(slug === currentSlug ? { current: true as const } : {}),
   };
+}
+
+/** The same rule the resources go through, on the pages' own metadata. */
+function sorted(pages: readonly RegisteredPage[]): readonly RegisteredPage[] {
+  return [...pages].sort((a, b) => {
+    const weight = (a.metadata.navigationSort ?? 0) - (b.metadata.navigationSort ?? 0);
+    return weight !== 0 ? weight : a.metadata.label.localeCompare(b.metadata.label);
+  });
 }
 
 /** `navigationSort` decides, and the label breaks a tie so the order is stable. */

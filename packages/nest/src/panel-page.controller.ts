@@ -27,6 +27,8 @@ import type {
 } from "@perchjs/core";
 import { buildNavigation, PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { buildUserMenu, PANEL_USER_MENU } from "./user-menu.js";
+import { CustomPageRegistry } from "./custom-page-registry.js";
+import { mayReach } from "./authorization.js";
 import type { UserMenu } from "./user-menu.js";
 import { listRecords, resourcePath } from "./records.js";
 import { resolveSchema, serialise } from "@perchjs/core";
@@ -54,6 +56,7 @@ import { PANEL_USER_RESOLVER } from "./user-resolver.js";
 @Controller()
 export class PanelPageController {
   readonly #registry: ResourceRegistry;
+  readonly #pages: CustomPageRegistry;
   readonly #assets: PanelAssets;
   readonly #scripts: readonly string[];
   readonly #styles: readonly string[];
@@ -66,6 +69,7 @@ export class PanelPageController {
 
   constructor(
     registry: ResourceRegistry,
+    pages: CustomPageRegistry,
     @Inject(PANEL_ASSETS) assets: PanelAssets,
     @Inject(PANEL_SCRIPTS) scripts: readonly string[],
     @Inject(PANEL_STYLES) styles: readonly string[],
@@ -78,6 +82,7 @@ export class PanelPageController {
     this.#groups = groups;
     this.#userMenu = userMenu;
     this.#registry = registry;
+    this.#pages = pages;
     this.#assets = assets;
     this.#scripts = scripts;
     this.#styles = styles;
@@ -104,7 +109,10 @@ export class PanelPageController {
     @Req() request: IncomingUrl,
   ): Promise<string> {
     const resource = this.#registry.get(slug);
-    if (resource === undefined) throw new NotFoundException();
+    // Not a resource: a custom page may answer at this address instead. The
+    // resource wins where both exist, and the boot refuses that arrangement,
+    // so nothing is being chosen here that somebody did not already declare.
+    if (resource === undefined) return await this.#page(slug, request);
 
     const root = rootOf(request, slug);
     const records = await listRecords(
@@ -273,6 +281,47 @@ export class PanelPageController {
     });
   }
 
+  /**
+   * A page with a schema and no model behind it.
+   *
+   * The same shell every other page is served as, pointed at the page's own
+   * API: the bundle asks the same two questions of whatever base it was given,
+   * so a dependent `Select` on a settings screen works with nothing written
+   * for pages in the browser at all.
+   */
+  async #page(path: string, request: IncomingUrl): Promise<string> {
+    const page = this.#pages.get(path);
+    // The same answer whether it is absent or forbidden: asking after one
+    // tells a caller nothing about which pages exist.
+    if (page === undefined) throw new NotFoundException();
+
+    const user = this.#users.resolve(request);
+    if (!(await mayReach(page.instance.can, user))) throw new NotFoundException();
+
+    const root = rootOf(request, path);
+    const state = (await page.instance.state?.()) ?? {};
+    const resolved = await resolveSchema(page.instance.schema(), state, {
+      // The page and its values exist already and submitting changes them,
+      // which is what `edit` means to every resolver that reads it.
+      operation: "edit",
+      user,
+    });
+
+    return renderShell({
+      root,
+      api: `${root}/api/page/${encodeURIComponent(path)}`,
+      title: page.metadata.label,
+      operation: "edit",
+      payload: serialise(resolved),
+      navigation: await this.#navigation(request, root, path),
+      ...(await this.#user(request)),
+      scriptFile: entry(this.#assets, "panel.js"),
+      ...(this.#scripts.length === 0 ? {} : { scripts: this.#scripts }),
+      ...(this.#styles.length === 0 ? {} : { styles: this.#styles }),
+      styleFile: entry(this.#assets, "panel.css"),
+    });
+  }
+
   /** Rebuilt per request: two users see two different panels. */
   async #navigation(
     request: IncomingUrl,
@@ -285,6 +334,7 @@ export class PanelPageController {
       root,
       this.#groups,
       currentSlug,
+      this.#pages.all(),
     );
   }
 

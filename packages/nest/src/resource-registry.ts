@@ -52,8 +52,15 @@ import { resourceMetadata } from "./resource.js";
 
 export const PANEL_RESOURCE_TYPES = Symbol("PERCH_PANEL_RESOURCE_TYPES");
 
-/** Segments the panel already routes under its own path. */
-const RESERVED_SLUGS = new Set(["assets", "api"]);
+/**
+ * Segments the panel already routes under its own path.
+ *
+ * `page` is there because a custom page's API lives at `api/page/{path}`: a
+ * resource claiming that slug would put its own routes at the same addresses.
+ * The default slug of a `Page` model is `pages`, so only an explicit one
+ * collides, and the boot says which.
+ */
+const RESERVED_SLUGS = new Set(["assets", "api", "page"]);
 
 /**
  * Which filters need a column of a particular type, and what goes wrong.
