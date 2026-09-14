@@ -4703,3 +4703,45 @@ button.perch-table__action:disabled {
   background: var(--perch-accent-surface);
   color: var(--perch-accent);
 }
+
+/**
+ * The pairs in a Json column, shown.
+ *
+ * A table because that is what two named columns of data are, and because the
+ * headings have to be real ones: the form beside it hides its headings, each
+ * of its cells being a box that carries its own name, and a read page has no
+ * such thing to lean on.
+ */
+.perch-pairs {
+  border-collapse: collapse;
+  /* Not the full width: a settings column of short pairs stretched across a
+     page puts a hand's width of nothing between a key and its value. */
+  width: auto;
+  max-width: 100%;
+  text-align: left;
+}
+
+.perch-pairs th,
+.perch-pairs td {
+  padding: var(--perch-space-1) var(--perch-space-3) var(--perch-space-1) 0;
+  vertical-align: top;
+  font-weight: normal;
+}
+
+.perch-pairs thead th {
+  color: var(--perch-content-subtle);
+  font-size: var(--perch-text-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.perch-pairs tbody th {
+  color: var(--perch-content-subtle);
+  /* Long keys wrap rather than pushing the values off the page. */
+  word-break: break-word;
+}
+
+.perch-pairs tbody td {
+  color: var(--perch-content);
+  word-break: break-word;
+}

@@ -15,6 +15,8 @@ import { RepeatableEntry } from "./entries/repeatable-entry.js";
 import { safeHref, TextEntry } from "./entries/text-entry.js";
 import { IconEntry, markFor } from "./entries/icon-entry.js";
 import { ImageEntry } from "./entries/image-entry.js";
+import { KeyValueEntry } from "./entries/key-value-entry.js";
+import { pairsOf } from "./pairs.js";
 import { fileAddress } from "./file-address.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
@@ -146,6 +148,14 @@ export interface ResolvedNode {
   readonly mark?: string;
   /** The addresses an `ImageEntry` resolved to, already read. */
   readonly pictures?: readonly string[];
+  /**
+   * The rows a `KeyValueEntry` read out of a `Json` column.
+   *
+   * Absent where the column held something that is not a flat object — which
+   * is not the same as absent because it held nothing, and the entry's `value`
+   * is what tells the two apart.
+   */
+  readonly pairs?: readonly (readonly [string, string])[];
   /** Where an entry links to, already built and already checked. */
   readonly href?: string;
   /** Where a `FileUpload`'s stored file can be fetched, if it has one. */
@@ -954,6 +964,12 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
           .filter((one): one is string => one !== undefined)
       : undefined;
 
+  // Read here, because what counts as a row in a shape nobody chose is a rule
+  // somebody wrote. Absent for a column holding something that is not a flat
+  // object: there are no rows in an array or a number, and the entry falls
+  // back to showing the value as the JSON it is rather than as an empty table.
+  const pairs = component instanceof KeyValueEntry ? pairsOf(entryValue) : undefined;
+
   // The fact, not the form. What the dialog draws is fetched when it opens, so
   // a page that merely might open one carries a boolean rather than a schema
   // resolved for a reader who never asked for it.
@@ -1009,12 +1025,18 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     // A picture entry sends addresses and not the value they were minted from.
     // The key is a place on a disk: the browser has no use for it, cannot fetch
     // it, and does not need telling where this application keeps its files.
-    ...(entryValue === undefined || component instanceof ImageEntry
+    // A picture entry sends addresses, and a key-value entry that found rows
+    // sends the rows: the object they were read from is the same data a second
+    // time, and a browser handed both would have to choose between them.
+    ...(entryValue === undefined ||
+    component instanceof ImageEntry ||
+    pairs !== undefined
       ? {}
       : { value: entryValue }),
     ...(tone === undefined ? {} : { tone }),
     ...(mark === undefined ? {} : { mark }),
     ...(pictures === undefined || pictures.length === 0 ? {} : { pictures }),
+    ...(pairs === undefined ? {} : { pairs }),
     ...(href === undefined ? {} : { href }),
     ...(previewUrl === undefined ? {} : { previewUrl }),
     ...(createsOption === undefined ? {} : { createsOption }),

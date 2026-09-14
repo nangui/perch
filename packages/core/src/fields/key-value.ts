@@ -21,11 +21,11 @@
  * refusing any of them there would take the rest of their work with it.
  */
 import { configured } from "../component.js";
+import { pairsOf } from "../pairs.js";
 import type { FieldState, ValueRefusal } from "../field.js";
 import { baseFieldState, Field, isUnset } from "../field.js";
 
-/** One row: what it is called, and what it says. */
-export type Pair = readonly [key: string, value: string];
+export type { Pair } from "../pairs.js";
 
 export interface KeyValueState extends FieldState {
   /** What the first column is called. "Key" unless told otherwise. */
@@ -85,37 +85,14 @@ export class KeyValue extends Field {
   /**
    * The column's object, as the pairs it stands for.
    *
-   * Read defensively: a `Json` column is the one place a panel meets a shape
-   * nobody here chose. Something that is not an object at all is left alone
-   * rather than half-converted — the boundary will refuse it, and refusing
-   * something recognisable beats writing something invented.
-   *
-   * Inside an object, an entry holding something other than text is shown as
-   * the JSON it is rather than dropped. Dropping it would take the entry off
-   * the page, and the next save — which writes the pairs and nothing else —
-   * would take it out of the column too, with nobody having asked. Shown, it
-   * survives; what it costs is that a number saved back is text.
+   * The reading itself is in `pairsOf`, shared with the infolist that shows
+   * the same columns.
    */
   override fromStorage(value: unknown): unknown {
-    if (value === null || typeof value !== "object" || Array.isArray(value)) {
-      return value;
-    }
-
-    const pairs: Pair[] = [];
-    const seen = new Set<string>();
-    for (const [key, held] of Object.entries(value)) {
-      const name = key.trim();
-      // Two keys that differ only by the space around them are one key here,
-      // and the boundary refuses a pair twice — so the second is left out
-      // rather than handed back as a form that cannot be saved.
-      if (name === "" || seen.has(name)) continue;
-      // `undefined` is the one thing JSON has no text for. It is not a value a
-      // column holds either, so there is nothing to lose by passing over it.
-      if (held === undefined) continue;
-      seen.add(name);
-      pairs.push([name, typeof held === "string" ? held : JSON.stringify(held)]);
-    }
-    return pairs;
+    // Not a plain object: left alone rather than half-converted. The boundary
+    // will refuse it, and refusing something recognisable beats writing
+    // something invented.
+    return pairsOf(value) ?? value;
   }
 
   /**

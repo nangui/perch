@@ -45,6 +45,7 @@ import { TextEntry } from "./entries/TextEntry.js";
 import { IconEntry } from "./entries/IconEntry.js";
 import { ImageEntry } from "./entries/ImageEntry.js";
 import { ColorEntry } from "./entries/ColorEntry.js";
+import { KeyValueEntry } from "./entries/KeyValueEntry.js";
 import type { TextFlavour } from "./fields/TextInput.js";
 import type { NodeProps, SearchedOption } from "./node-props.js";
 import { registerComponent } from "./registry.js";
@@ -1313,6 +1314,33 @@ function ColorEntryRenderer({ node }: NodeProps): ReactNode {
   );
 }
 
+function KeyValueEntryRenderer({ node }: NodeProps): ReactNode {
+  return (
+    <FieldShell
+      label={node.label ?? ""}
+      status={{ lifecycle: "rest" }}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
+    >
+      {(binding) => (
+        <KeyValueEntry
+          describedBy={binding.id}
+          value={node.value}
+          {...(node.pairs === undefined ? {} : { pairs: node.pairs })}
+          {...(node.label === undefined ? {} : { label: node.label })}
+          {...(typeof node.props?.["keyLabel"] === "string"
+            ? { keyLabel: node.props["keyLabel"] }
+            : {})}
+          {...(typeof node.props?.["valueLabel"] === "string"
+            ? { valueLabel: node.props["valueLabel"] }
+            : {})}
+          {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
 function PlaceholderRenderer({ node, error, pending, inFlight }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
 
@@ -1677,5 +1705,6 @@ export function registerBuiltInComponents(): void {
   registerComponent("IconEntry", IconEntryRenderer);
   registerComponent("ImageEntry", ImageEntryRenderer);
   registerComponent("ColorEntry", ColorEntryRenderer);
+  registerComponent("KeyValueEntry", KeyValueEntryRenderer);
   registerComponent("RepeatableEntry", RepeatableEntryRenderer);
 }

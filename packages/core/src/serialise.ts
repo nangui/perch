@@ -50,6 +50,8 @@ export interface SchemaNode {
   readonly mark?: string;
   /** Addresses an image entry resolved to, minted and read on the server. */
   readonly pictures?: readonly string[];
+  /** Rows a key-value entry read out of a Json column, on the server. */
+  readonly pairs?: readonly (readonly [string, string])[];
   /** Where it links to. Built and checked on the server; never the raw value. */
   readonly href?: string;
   /**
@@ -121,6 +123,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   Icon: ["icon", "tone"],
   ImageEntry: ["circular", "stacked", "size"],
   ColorEntry: ["copyable"],
+  KeyValueEntry: ["keyLabel", "valueLabel"],
   Tab: ["columns", "icon"],
   Grid: ["columns"],
   Schema: ["columns"],
@@ -215,6 +218,7 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     ...(resolved.tone === undefined ? {} : { tone: resolved.tone }),
     ...(resolved.mark === undefined ? {} : { mark: resolved.mark }),
     ...(resolved.pictures === undefined ? {} : { pictures: resolved.pictures }),
+    ...(resolved.pairs === undefined ? {} : { pairs: resolved.pairs }),
     ...(resolved.href === undefined ? {} : { href: resolved.href }),
     ...(resolved.required === true ? { required: true } : {}),
     ...(component instanceof Field && component.state.inlineLabel
