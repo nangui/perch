@@ -32,29 +32,53 @@ export class ResourceTest {
   /**
    * That this reader cannot reach the resource at all.
    *
-   * Asked of the list page, which is the door a menu leads to. The panel
-   * answers the same thing for a resource that is forbidden and one that does
-   * not exist, on purpose — so this asserts that the door is shut, not which
-   * of the two reasons it gives.
+   * Asked at two doors, because one is not enough to tell what a refusal
+   * means. The panel answers the same thing for a resource that is forbidden,
+   * one that does not exist, and one whose list it cannot serve — so a list
+   * page refusing is not on its own a fact about the reader.
+   *
+   * The create page needs no row and no adapter, and every `viewAny` refusal
+   * closes it too. If the list refuses and the create page does not, the
+   * refusal was about something other than permission, and saying "forbidden"
+   * there would be a green test over a reader who can walk straight in.
    */
   async assertForbidden(): Promise<void> {
-    const response = await this.#wire.get(`/${encodeURIComponent(this.#slug)}`);
-    if (response.ok) {
+    const { list, create } = await this.#doors();
+    if (list.ok) {
       throw new Error(
         `Expected ${this.#name} to be out of reach for this reader, and its list ` +
-          `page answered ${String(response.status)}.`,
+          `page answered ${String(list.status)}.`,
+      );
+    }
+    if (create.ok) {
+      throw new Error(
+        `${this.#name}'s list page answered ${String(list.status)}, but its create ` +
+          `page answered ${String(create.status)} for the same reader. A permission ` +
+          `that shut one would have shut both, so the list is refusing for some ` +
+          `other reason — a missing data adapter, most often — and this reader is ` +
+          `not actually out of reach.`,
       );
     }
   }
 
   /** That this reader can reach it, which is the other half of the same door. */
   async assertAllowed(): Promise<void> {
-    const response = await this.#wire.get(`/${encodeURIComponent(this.#slug)}`);
-    if (!response.ok) {
+    const { list, create } = await this.#doors();
+    if (!list.ok && !create.ok) {
       throw new Error(
-        `Expected ${this.#name} to be reachable for this reader, and its list page ` +
-          `answered ${String(response.status)}.`,
+        `Expected ${this.#name} to be reachable for this reader. Its list page ` +
+          `answered ${String(list.status)} and its create page ` +
+          `${String(create.status)}.`,
       );
     }
+  }
+
+  async #doors(): Promise<{ list: Response; create: Response }> {
+    const at = encodeURIComponent(this.#slug);
+    // In order rather than together: two requests racing through one panel is
+    // the harness making the panel do something its own client never does.
+    const list = await this.#wire.get(`/${at}`);
+    const create = await this.#wire.get(`/${at}/create`);
+    return { list, create };
   }
 }

@@ -53,7 +53,6 @@ export class PanelTest {
 
   static async boot(options: PanelTestOptions): Promise<PanelTest> {
     const principals = new Map<string, unknown>();
-    let minted = 0;
 
     const moduleRef = await Test.createTestingModule({ imports: [options.module] })
       .overrideProvider(PANEL_USER_RESOLVER)
@@ -69,19 +68,26 @@ export class PanelTest {
       })
       .compile();
 
+    // Before the server, so a module that holds no panel is said plainly
+    // rather than as a Nest error naming a symbol nobody has heard of.
+    let root: string;
+    try {
+      root = moduleRef.get<string>(PANEL_PATH, { strict: false });
+    } catch {
+      await moduleRef.close();
+      throw new Error(
+        `${options.module.name} imports no panel. createPanelTest needs the module ` +
+          `that calls PanelModule.forRoot(...), or one that imports it.`,
+      );
+    }
+
     const app = moduleRef.createNestApplication();
     await app.listen(0);
 
-    const token = `p${String((minted += 1))}`;
+    const token = "p1";
     principals.set(token, options.as);
 
-    return new PanelTest(
-      app,
-      await app.getUrl(),
-      moduleRef.get<string>(PANEL_PATH, { strict: false }),
-      principals,
-      token,
-    );
+    return new PanelTest(app, await app.getUrl(), root, principals, token);
   }
 
   /**

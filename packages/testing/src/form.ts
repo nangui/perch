@@ -78,6 +78,8 @@ export class FormTest implements PromiseLike<undefined> {
   readonly #slug: string;
   readonly #steps: Step[] = [];
   #ran = false;
+  /** What it threw, so a second await says the same thing as the first. */
+  #threw: unknown;
 
   /** What the server last said. Empty until the first round trip. */
   #payload: SchemaPayload = {
@@ -88,6 +90,16 @@ export class FormTest implements PromiseLike<undefined> {
   /** What a save answered, once one has happened. */
   #saved: Record<string, unknown> | undefined;
   #status = 0;
+  /**
+   * Why the last save is not an answer about the form.
+   *
+   * A panel that raised answers 500 with no fields named. Left unrecorded, the
+   * tree keeps the errors it had before — which were none — and a test reading
+   * `submit().assertNoErrors()` goes green over a panel that exploded. That is
+   * the worst thing a testing library can do, so every assertion about a save
+   * reads this first.
+   */
+  #failed: string | undefined;
 
   constructor(wire: Wire, slug: string) {
     this.#wire = wire;
@@ -209,11 +221,35 @@ export class FormTest implements PromiseLike<undefined> {
         state: this.#payload.state,
       });
       this.#status = response.status;
-      const answer = (await response.json()) as {
+
+      const body = await response.text();
+      let answer: {
         errors?: Record<string, string>;
         payload?: SchemaPayload;
         record?: Record<string, unknown>;
-      };
+      } = {};
+      try {
+        answer = JSON.parse(body) as typeof answer;
+      } catch {
+        // A panel that blew up answers an HTML page, or nothing at all. Not
+        // an answer this can read, and not a save that happened.
+        this.#failed = `The save of "${this.#slug}" answered ${String(response.status)} with ${
+          body.trim() === "" ? "an empty body" : "something that is not JSON"
+        }.`;
+        return;
+      }
+
+      // A refusal carries errors and is a thing a test may be about. Anything
+      // else that is not a success is the panel failing, and a form that
+      // never saved has no errors to report — which is exactly how a save
+      // that raised would read as a save that went fine.
+      if (!response.ok && answer.errors === undefined) {
+        this.#failed =
+          `The save of "${this.#slug}" answered ${String(response.status)}. ` +
+          `Nothing was written, and the answer names no field, so this is the ` +
+          `panel failing rather than the form being refused.`;
+        return;
+      }
       // A refused save answers with the tree its errors belong to. Kept, so
       // that what follows asserts against the form the reader would be looking
       // at rather than the one they submitted.
@@ -227,6 +263,8 @@ export class FormTest implements PromiseLike<undefined> {
 
   assertNoErrors(): this {
     return this.#step(async () => {
+      // The save not having happened is not the same as the form being clean.
+      if (this.#failed !== undefined) throw new Error(this.#failed);
       const errors = this.#payload.errors;
       if (Object.keys(errors).length > 0) {
         throw new Error(
@@ -240,6 +278,7 @@ export class FormTest implements PromiseLike<undefined> {
   /** The error on one field, or merely that there is one. */
   assertHasError(path: string, message?: string): this {
     return this.#step(async () => {
+      if (this.#failed !== undefined) throw new Error(this.#failed);
       const said = this.#payload.errors[path];
       if (said === undefined) {
         throw new Error(
@@ -272,6 +311,7 @@ export class FormTest implements PromiseLike<undefined> {
    */
   assertRecordCreated(fields: Readonly<Record<string, unknown>>): this {
     return this.#step(async () => {
+      if (this.#failed !== undefined) throw new Error(this.#failed);
       if (this.#saved === undefined) {
         throw new Error(
           this.#status === 0
@@ -324,12 +364,28 @@ export class FormTest implements PromiseLike<undefined> {
     reject?: ((reason: unknown) => B | PromiseLike<B>) | null,
   ): Promise<A | B> {
     try {
-      if (!this.#ran) {
+      if (this.#ran) {
+        // Awaited again. The steps do not run a second time — a chain ending
+        // in `submit` would write twice — but a chain that failed has failed,
+        // and answering the second await with success would be the harness
+        // disagreeing with itself.
+        // Rethrown as it was caught, whatever it was: a step may reject with
+        // something that is not an Error, and replacing it would hide what
+        // the first await already said.
+        if (this.#threw !== undefined) {
+          // eslint-disable-next-line @typescript-eslint/only-throw-error -- the original, not a copy of it
+          throw this.#threw;
+        }
+      } else {
         this.#ran = true;
-        // In order, never in parallel: each step reads what the one before it
-        // brought back, and a chain ending in `submit` run twice would write
-        // twice.
-        for (const step of this.#steps) await step();
+        try {
+          // In order, never in parallel: each step reads what the one before
+          // it brought back.
+          for (const step of this.#steps) await step();
+        } catch (error) {
+          this.#threw = error;
+          throw error;
+        }
       }
       return await Promise.resolve(resolve?.(undefined) as A);
     } catch (error) {
