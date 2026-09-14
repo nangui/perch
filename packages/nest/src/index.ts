@@ -46,6 +46,16 @@ export type {
   UserMenuItem,
 } from "./user-menu.js";
 export { buildUserMenu, PANEL_USER_MENU } from "./user-menu.js";
+export type {
+  PanelResourcePageOptions,
+  ResourcePageMetadata,
+} from "./resource-page.js";
+export {
+  PANEL_RESOURCE_PAGE,
+  PanelResourcePage,
+  resourcePageMetadata,
+} from "./resource-page.js";
+export type { ResourcePageAnswer } from "./resource-page.controller.js";
 export type { PageMetadata, PanelPageOptions } from "./custom-page.js";
 export { PANEL_PAGE, PanelPage, pageMetadata } from "./custom-page.js";
 export type { PageClass, RegisteredPage } from "./custom-page-registry.js";
@@ -66,7 +76,11 @@ export {
 } from "./records-query.js";
 export { project, projectOne, visibleKeys } from "./row-projection.js";
 export { PanelModule } from "./panel.module.js";
-export type { PanelResourceOptions, ResourceMetadata } from "./resource.js";
+export type {
+  PanelResourceOptions,
+  ResourceMetadata,
+  ResourcePageClass,
+} from "./resource.js";
 export { PANEL_RESOURCE, PanelResource, resourceMetadata } from "./resource.js";
 export type { RegisteredResource, ResourceClass } from "./resource-registry.js";
 export { PANEL_RESOURCE_TYPES, ResourceRegistry } from "./resource-registry.js";

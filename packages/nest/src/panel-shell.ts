@@ -39,6 +39,14 @@ export interface ShellOptions {
    */
   readonly userMenu?: unknown;
   /**
+   * The pages this record has, as a strip of links.
+   *
+   * Already filtered by what this reader may reach, so a link is never drawn
+   * to a page that would answer 404. Absent where the resource declared none:
+   * a record with one page has nothing to choose between.
+   */
+  readonly recordPages?: unknown;
+  /**
    * The relation managers this record has, as tabs to draw under the form.
    *
    * Names and labels, never rows: what a tab holds is fetched when it is
@@ -96,6 +104,10 @@ ${(options.styles ?? [])
     options.userMenu === undefined
       ? ""
       : ` data-user-menu="${attribute(JSON.stringify(options.userMenu))}"`
+  }${
+    options.recordPages === undefined
+      ? ""
+      : ` data-record-pages="${attribute(JSON.stringify(options.recordPages))}"`
   }${
     options.relations === undefined
       ? ""

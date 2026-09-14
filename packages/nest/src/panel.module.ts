@@ -35,7 +35,9 @@ import {
 } from "./panel-assets.js";
 import { PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { PANEL_USER_MENU } from "./user-menu.js";
+import { resourceMetadata } from "./resource.js";
 import { CustomPageController } from "./custom-page.controller.js";
+import { ResourcePageController } from "./resource-page.controller.js";
 import { CustomPageRegistry, PANEL_PAGE_TYPES } from "./custom-page-registry.js";
 import type { PageClass } from "./custom-page-registry.js";
 import type { UserMenu } from "./user-menu.js";
@@ -166,6 +168,7 @@ export class PanelModule {
         // Before the HTML controller, whose `:resource` is where a page is
         // reached; the API routes under `api/page/` cannot be confused with a
         // resource's, which are one segment shorter.
+        guarded(ResourcePageController, guards),
         guarded(CustomPageController, guards),
         guarded(PanelPageController, guards),
       ],
@@ -176,6 +179,12 @@ export class PanelModule {
         { provide: PANEL_NAVIGATION_GROUPS, useValue: options.navigationGroups ?? [] },
         { provide: PANEL_USER_MENU, useValue: options.userMenu },
         { provide: PANEL_PAGE_TYPES, useValue: options.pages ?? [] },
+        // A record's own pages, read off the resources rather than listed
+        // again: the container has to be told about them before it builds
+        // anything, and a list kept in two places is one that stops matching.
+        ...(options.resources ?? []).flatMap(
+          (type) => resourceMetadata(type)?.pages ?? [],
+        ),
         CustomPageRegistry,
         ...(options.pages ?? []),
         { provide: PANEL_RESOURCE_TYPES, useValue: options.resources ?? [] },

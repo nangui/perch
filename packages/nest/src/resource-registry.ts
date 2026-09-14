@@ -49,6 +49,9 @@ import { PANEL_SCHEMA_HOOKS } from "./schema-hook.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
 import { resourceMetadata } from "./resource.js";
+import type { ResourcePageClass } from "./resource.js";
+import { resourcePageMetadata } from "./resource-page.js";
+import type { PanelResourcePage } from "./resource-page.js";
 
 export const PANEL_RESOURCE_TYPES = Symbol("PERCH_PANEL_RESOURCE_TYPES");
 
@@ -61,6 +64,9 @@ export const PANEL_RESOURCE_TYPES = Symbol("PERCH_PANEL_RESOURCE_TYPES");
  * collides, and the boot says which.
  */
 const RESERVED_SLUGS = new Set(["assets", "api", "page"]);
+
+/** What the panel already answers at, under one record. */
+const RECORD_SEGMENTS = ["edit", "page"];
 
 /**
  * Which filters need a column of a particular type, and what goes wrong.
@@ -156,6 +162,7 @@ export class ResourceRegistry implements OnModuleInit {
         );
       }
 
+      this.#refusePages(type.name, metadata);
       this.#bySlug.set(metadata.slug, { metadata, type });
     }
   }
@@ -225,6 +232,7 @@ export class ResourceRegistry implements OnModuleInit {
         ...auditSchema(form),
         ...(infolist === undefined ? [] : auditInfolist(infolist)),
         ...this.#undrawableIcon(metadata),
+        ...this.#brokenPages(metadata),
         ...(table === undefined ? [] : auditTable(table)),
         ...this.#unknownDisks(form),
         ...this.#unknownColumnDisks(table),
@@ -1055,6 +1063,75 @@ export class ResourceRegistry implements OnModuleInit {
           `names the disk \`${upload.state.disk}\`, which the panel was not given — ` +
           `it has ${describeDisks(this.#disks)}`,
       }));
+  }
+
+  /**
+   * A record page's own tree, read as its resource's form is.
+   *
+   * It takes no record, which is what makes this possible at all: a schema
+   * built around a row could only be read once a row existed, which is to say
+   * under a reader, in production, with no error at all.
+   */
+  #brokenPages(
+    metadata: ResourceMetadata,
+  ): readonly { field: string; problem: string }[] {
+    return metadata.pages.flatMap((type) => {
+      const page = resourcePageMetadata(type);
+      const instance = this.#moduleRef.get<PanelResourcePage>(type, { strict: false });
+      return [
+        ...auditSchema(instance.schema()).map((one) => ({
+          ...one,
+          field: `${page?.path ?? type.name}: ${one.field}`,
+        })),
+        ...refuseIcon(page?.icon, `the "${page?.path ?? type.name}" page`),
+      ];
+    });
+  }
+
+  /**
+   * The addresses a record's own pages claim.
+   *
+   * `create` is not an id and `edit` is not one either, which is what lets the
+   * generated routes sit beside each other — and what a page claiming `edit`
+   * would quietly lose to. Two things at one address is the failure nobody
+   * sees: whichever wins, the other is simply not there.
+   */
+  #refusePages(name: string, metadata: ResourceMetadata): void {
+    const taken = new Set(RECORD_SEGMENTS);
+    for (const type of metadata.pages) {
+      const page = resourcePageMetadata(type);
+      if (page === undefined) {
+        throw new Error(
+          `${type.name} is listed in the pages of ${name} but carries no ` +
+            `@PanelResourcePage.`,
+        );
+      }
+      if (page.path === "" || page.path.includes("/")) {
+        throw new Error(
+          `${type.name} claims the path ${JSON.stringify(page.path)}, which is not a ` +
+            `single segment. A record's page lives at one segment under it.`,
+        );
+      }
+      if (taken.has(page.path)) {
+        throw new Error(
+          `${type.name} claims the path "${page.path}" under ${name}, which is ` +
+            `already answered there. Give it another path.`,
+        );
+      }
+      taken.add(page.path);
+    }
+  }
+
+  /** One record page, built by the container so it can reach its services. */
+  pageInstance(type: ResourcePageClass): PanelResourcePage {
+    return this.#moduleRef.get<PanelResourcePage>(type, { strict: false });
+  }
+
+  /** Every page of every resource, for the container to be told about. */
+  pageTypes(): readonly ResourcePageClass[] {
+    return [...this.#bySlug.values()].flatMap(
+      (registered) => registered.metadata.pages,
+    );
   }
 
   get(slug: string): RegisteredResource | undefined {

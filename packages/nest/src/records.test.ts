@@ -36,6 +36,7 @@ const resource: RegisteredResource = {
     model: "Post",
     slug: "posts",
     label: "Post",
+    pages: [],
     pluralLabel: "Posts",
   },
   instance: {

@@ -11,6 +11,8 @@
  */
 import { RenderHooks } from "./hooks.js";
 import { PanelTopbar } from "./PanelTopbar.js";
+import { RecordPages } from "./RecordPages.js";
+import type { RecordPage } from "./RecordPages.js";
 import type { PanelUserMenu } from "./PanelUser.js";
 import type { ReactNode } from "react";
 import { createElement } from "react";
@@ -63,6 +65,7 @@ export function mount(element: HTMLElement): void {
 
   const menu = <PanelNav groups={groupsOf(navigation)} />;
   const who = userMenuOf(element.dataset["userMenu"]);
+  const recordPages = recordPagesOf(element.dataset["recordPages"]);
 
   if (operation === "list") {
     // Read once, on the way in. Whatever was said on the page that sent the
@@ -116,6 +119,7 @@ export function mount(element: HTMLElement): void {
           {/* The list page names itself. A form page had only the trail that led
             to it, which says where you came from but not what you are on. */}
           <h1 className="perch-page__title">{title}</h1>
+          <RecordPages pages={recordPages} />
           <RenderHooks at="page.start" />
           {body}
           <RenderHooks at="page.end" />
@@ -767,4 +771,16 @@ function groupsOf(raw: string | undefined): readonly NavigationGroup[] {
 function userMenuOf(raw: string | undefined): PanelUserMenu | undefined {
   if (raw === undefined) return undefined;
   return JSON.parse(raw) as PanelUserMenu;
+}
+
+/**
+ * The pages this record has, as the server filtered them.
+ *
+ * Absent on a create, where there is no record yet, and on a resource that
+ * declared no page of its own — a record with one page has nothing to choose
+ * between.
+ */
+function recordPagesOf(raw: string | undefined): readonly RecordPage[] {
+  if (raw === undefined) return [];
+  return JSON.parse(raw) as readonly RecordPage[];
 }

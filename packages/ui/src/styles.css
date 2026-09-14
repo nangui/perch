@@ -4868,3 +4868,54 @@ button.perch-table__action:disabled {
   flex: none;
   color: var(--perch-content-subtle);
 }
+
+/**
+ * The pages one record has.
+ *
+ * A row of links under the heading, above whatever the page is showing. Not
+ * tabs: these are addresses, and a control that looks like it holds state and
+ * does not is worse than a plain link.
+ */
+.perch-record-pages {
+  margin-bottom: var(--perch-space-5);
+  border-bottom: 1px solid var(--perch-border);
+}
+
+.perch-record-pages__list {
+  display: flex;
+  gap: var(--perch-space-1);
+  margin: 0;
+  padding: 0;
+  /* Narrow windows scroll the strip rather than wrapping it: a second row of
+     links under the first reads as a second kind of thing. */
+  overflow-x: auto;
+  list-style: none;
+}
+
+.perch-record-pages__link {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+  padding: var(--perch-space-2) var(--perch-space-3);
+  /* On the border the strip draws, so the current page joins the page below
+     it rather than sitting on a line that crosses under it. */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--perch-content-subtle);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.perch-record-pages__link:hover {
+  color: var(--perch-content);
+}
+
+.perch-record-pages__link[aria-current="page"] {
+  border-bottom-color: var(--perch-accent);
+  color: var(--perch-content);
+  font-weight: 500;
+}
+
+.perch-record-pages__icon {
+  flex: none;
+}

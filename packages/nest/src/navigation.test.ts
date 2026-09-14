@@ -26,6 +26,7 @@ function resource(
       slug,
       label: slug,
       pluralLabel: over.pluralLabel ?? slug,
+      pages: [],
       ...(over.navigationGroup === undefined
         ? {}
         : { navigationGroup: over.navigationGroup }),

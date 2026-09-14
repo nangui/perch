@@ -8,6 +8,7 @@ import { defaultSlug, plural } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import type { RelationManager } from "./relation-manager.js";
 import type { RedirectAfterCreate } from "./redirect.js";
+import type { PanelResourcePage } from "./resource-page.js";
 import { Injectable, SetMetadata } from "@nestjs/common";
 
 export const PANEL_RESOURCE = Symbol("PERCH_PANEL_RESOURCE");
@@ -22,7 +23,18 @@ export interface PanelResourceOptions {
   readonly navigationGroup?: string;
   readonly navigationSort?: number;
   readonly icon?: IconName;
+  /**
+   * Pages about one record, beside the ones the panel generates.
+   *
+   * Declared here rather than returned by a method, because the container has
+   * to be told about them before it builds anything: a page that cannot be
+   * injected is a page that cannot reach the service it was written for.
+   */
+  readonly pages?: readonly ResourcePageClass[];
 }
+
+/** A class carrying `@PanelResourcePage`. */
+export type ResourcePageClass = new (...args: never[]) => PanelResourcePage;
 
 /** What the registry holds once the defaults are filled in. */
 export interface ResourceMetadata {
@@ -33,6 +45,7 @@ export interface ResourceMetadata {
   readonly navigationGroup?: string;
   readonly navigationSort?: number;
   readonly icon?: IconName;
+  readonly pages: readonly ResourcePageClass[];
 }
 
 /** One `form()` serves Create and Edit, told apart by `operation`. */
@@ -118,6 +131,7 @@ function withDefaults(options: PanelResourceOptions): ResourceMetadata {
       ? {}
       : { navigationSort: options.navigationSort }),
     ...(options.icon === undefined ? {} : { icon: options.icon }),
+    pages: options.pages ?? [],
   };
 }
 

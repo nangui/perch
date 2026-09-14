@@ -68,6 +68,8 @@ export { SchemaRenderer } from "./SchemaRenderer.js";
 export { lookupComponent, registerComponent, resetRegistry } from "./registry.js";
 export type { PanelUserItem, PanelUserMenu, PanelUserProps } from "./PanelUser.js";
 export { PanelUser } from "./PanelUser.js";
+export type { RecordPage, RecordPagesProps } from "./RecordPages.js";
+export { RecordPages } from "./RecordPages.js";
 export type { HookPosition, RenderHookOptions, RenderHooksProps } from "./hooks.js";
 export {
   HOOK_POSITIONS,

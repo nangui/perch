@@ -29,6 +29,7 @@ import { buildNavigation, PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { buildUserMenu, PANEL_USER_MENU } from "./user-menu.js";
 import { CustomPageRegistry } from "./custom-page-registry.js";
 import { mayReach } from "./authorization.js";
+import { resourcePageMetadata } from "./resource-page.js";
 import type { UserMenu } from "./user-menu.js";
 import { listRecords, resourcePath } from "./records.js";
 import { resolveSchema, serialise } from "@perchjs/core";
@@ -282,6 +283,131 @@ export class PanelPageController {
   }
 
   /**
+   * A page about one record, beside the ones the panel generates.
+   *
+   * Declared last of the record routes: `edit` is matched before this, so a
+   * page can never take it. The row is loaded and the resource's `view` is
+   * asked about it first — a page under a record is not a way around the
+   * policy on that record.
+   */
+  @Get(":resource/:id/:page")
+  @Header("content-type", "text/html; charset=utf-8")
+  @Header("cache-control", "no-store")
+  async recordPage(
+    @Param("resource") slug: string,
+    @Param("id") id: string,
+    @Param("page") path: string,
+    @Req() request: IncomingUrl,
+  ): Promise<string> {
+    const resource = this.#registry.get(slug);
+    if (resource === undefined || this.#data === null) throw new NotFoundException();
+
+    const declared = resource.metadata.pages.find(
+      (type) => resourcePageMetadata(type)?.path === path,
+    );
+    if (declared === undefined) throw new NotFoundException();
+
+    const key = recordId(this.#data, resource.metadata.model, id);
+    if (key === null) throw new NotFoundException();
+    const record = await this.#data.findOne(resource.metadata.model, key, {});
+    if (record === null) throw new NotFoundException();
+
+    const user = this.#users.resolve(request);
+    if ((await authorize(resource.instance.can, "view", user, record)) !== "allowed") {
+      throw new NotFoundException();
+    }
+
+    const page = this.#registry.pageInstance(declared);
+    if (!(await mayReach(page.can, user))) throw new NotFoundException();
+
+    const metadata = resourcePageMetadata(declared);
+    const root = rootOf(request, `${slug}/${id}/${path}`);
+    // The row itself unless the page says otherwise, which is what a form
+    // does: fields named after columns show what those columns hold.
+    const state = ((await page.state?.(record)) ?? record) as Record<string, unknown>;
+    const resolved = await resolveSchema(page.schema(), state, {
+      operation: "edit",
+      user,
+      record,
+    });
+    const list = resourcePath(root, slug);
+
+    return renderShell({
+      root,
+      api: `${root}/api/${encodeURIComponent(slug)}/${encodeURIComponent(id)}/page/${encodeURIComponent(path)}`,
+      title: metadata?.label ?? path,
+      operation: "edit",
+      payload: serialise(resolved),
+      navigation: await this.#navigation(request, root, slug),
+      ...(await this.#user(request)),
+      ...(list === undefined
+        ? {}
+        : { listPath: list, listLabel: resource.metadata.pluralLabel }),
+      recordPages: await this.#recordPages(resource, id, root, user, path),
+      scriptFile: entry(this.#assets, "panel.js"),
+      ...(this.#scripts.length === 0 ? {} : { scripts: this.#scripts }),
+      ...(this.#styles.length === 0 ? {} : { styles: this.#styles }),
+      styleFile: entry(this.#assets, "panel.css"),
+    });
+  }
+
+  /**
+   * The strip of links a record carries, so its pages are reachable.
+   *
+   * The generated ones and the declared ones together. A strip holding only
+   * the custom pages would leave a reader on one of them with no way back to
+   * the form, and a record with no page of its own has no strip at all —
+   * there is nothing to choose between.
+   */
+  async #recordPages(
+    resource: RegisteredResource,
+    id: string,
+    root: string,
+    user: unknown,
+    current: string,
+  ): Promise<
+    readonly { label: string; href: string; icon?: string; current?: true }[]
+  > {
+    if (resource.metadata.pages.length === 0) return [];
+
+    const base = resourcePath(root, resource.metadata.slug);
+    if (base === undefined) return [];
+    const at = `${base}/${encodeURIComponent(id)}`;
+    const strip: { label: string; href: string; icon?: string; current?: true }[] = [];
+
+    // The view, where the resource has one at all.
+    if (this.#registry.infolistFor(resource) !== undefined) {
+      strip.push({
+        label: "View",
+        href: at,
+        ...(current === "" ? { current: true } : {}),
+      });
+    }
+    strip.push({
+      label: "Edit",
+      href: `${at}/edit`,
+      ...(current === "edit" ? { current: true as const } : {}),
+    });
+
+    const declared = [...resource.metadata.pages]
+      .map((type) => ({ type, metadata: resourcePageMetadata(type) }))
+      .sort((a, b) => (a.metadata?.sort ?? 0) - (b.metadata?.sort ?? 0));
+    for (const { type, metadata } of declared) {
+      if (metadata === undefined) continue;
+      // The same refusal the route makes, so a link is never drawn to a page
+      // that would answer 404.
+      if (!(await mayReach(this.#registry.pageInstance(type).can, user))) continue;
+      strip.push({
+        label: metadata.label,
+        href: `${at}/${encodeURIComponent(metadata.path)}`,
+        ...(metadata.icon === undefined ? {} : { icon: metadata.icon }),
+        ...(metadata.path === current ? { current: true as const } : {}),
+      });
+    }
+    return strip;
+  }
+
+  /**
    * A page with a schema and no model behind it.
    *
    * The same shell every other page is served as, pointed at the page's own
@@ -377,9 +503,24 @@ export class PanelPageController {
       page.resource.metadata.slug,
     );
 
+    // On the form and the view too, not only on the pages themselves: a strip
+    // a reader can only see once they are already on a custom page is a strip
+    // that never got them there.
+    const strip =
+      page.id === undefined
+        ? []
+        : await this.#recordPages(
+            page.resource,
+            page.id,
+            root,
+            this.#users.resolve(page.request),
+            page.operation === "edit" ? "edit" : "",
+          );
+
     return renderShell({
       navigation,
       ...(await this.#user(page.request)),
+      ...(strip.length === 0 ? {} : { recordPages: strip }),
       root,
       api: `${root}/api/${page.resource.metadata.slug}`,
       title: page.title,
