@@ -14,7 +14,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const DIST = join(ROOT, "packages", "ui", "dist");
@@ -29,23 +29,8 @@ interface Manifest {
   readonly chunks: readonly string[];
 }
 
-let manifest: Manifest;
-
-beforeAll(() => {
-  // Same reason as the boundary suite: on a fresh clone `dist` does not exist,
-  // and a test that fails for an environmental reason gets ignored.
-  if (!existsSync(MANIFEST)) {
-    const build = spawnSync("pnpm", ["--filter", "@perchjs/ui", "run", "build"], {
-      cwd: ROOT,
-      encoding: "utf8",
-      stdio: "pipe",
-    });
-    if (build.status !== 0) {
-      throw new Error(`building @perchjs/ui failed:\n${build.stderr}`);
-    }
-  }
-  manifest = JSON.parse(readFileSync(MANIFEST, "utf8")) as Manifest;
-});
+/** Read once. The run's own setup has already guaranteed it is there. */
+const manifest = JSON.parse(readFileSync(MANIFEST, "utf8")) as Manifest;
 
 const gzipped = (file: string): number =>
   gzipSync(readFileSync(join(DIST, file))).length;

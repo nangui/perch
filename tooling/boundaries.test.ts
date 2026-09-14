@@ -37,30 +37,6 @@ const PACKAGES = readdirSync(new URL("../packages", import.meta.url), {
   .sort();
 
 /**
- * `@perchjs/*` resolves through its exports map, which points into `dist`. On a
- * fresh clone that directory does not exist, every cross-package import reads as
- * unresolvable, and two cases below would fail for an environmental reason
- * rather than a real defect. A test that cries wolf gets ignored, so build once
- * if needed instead.
- */
-beforeAll(() => {
-  const built = PACKAGES.every((p) =>
-    existsSync(join(ROOT, "packages", p, "dist", "index.d.ts")),
-  );
-  if (built) return;
-  const build = spawnSync("pnpm", ["run", "build"], {
-    cwd: ROOT,
-    encoding: "utf8",
-    stdio: "pipe",
-  });
-  if (build.status !== 0) {
-    throw new Error(
-      `pnpm run build failed, boundary tests cannot run:\n${build.stderr}`,
-    );
-  }
-}, 180_000);
-
-/**
  * Error-severity rule names, read from the JSON report. Warnings are excluded on
  * purpose: only errors fail CI, and the fixtures below are legitimately orphan
  * modules, which would otherwise drown every assertion in `no-orphans`.

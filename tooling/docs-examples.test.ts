@@ -118,30 +118,6 @@ const PRELUDE = [
   "post",
 ];
 
-/**
- * On a fresh clone `dist` does not exist and every example fails to resolve a
- * package, which is an environmental failure rather than a wrong page. Built
- * once if needed, the way the boundary and asset proofs beside this one do.
- */
-beforeAll(() => {
-  const built = readdirSync(join(ROOT, "packages")).every(
-    (name) =>
-      !existsSync(join(ROOT, "packages", name, "src")) ||
-      existsSync(join(ROOT, "packages", name, "dist", "index.d.ts")),
-  );
-  if (built) return;
-  const build = spawnSync("pnpm", ["run", "build"], {
-    cwd: ROOT,
-    encoding: "utf8",
-    stdio: "pipe",
-  });
-  if (build.status !== 0) {
-    throw new Error(
-      `pnpm run build failed, the examples cannot be checked:\n${build.stderr}`,
-    );
-  }
-}, 180_000);
-
 describe("the examples in the documentation", () => {
   it("are all compiled, or excused by name", () => {
     const excused = blocks()

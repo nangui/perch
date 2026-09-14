@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const NEST_DIST = join(ROOT, "packages", "nest", "dist");
@@ -19,21 +19,6 @@ interface PanelAssets {
   readonly entries: Record<string, string>;
 }
 type Loader = () => PanelAssets;
-
-beforeAll(() => {
-  // Same reason as the boundary suite: on a fresh clone `dist` does not exist,
-  // and a test that fails for an environmental reason gets ignored.
-  const built =
-    existsSync(join(NEST_DIST, "index.cjs")) &&
-    existsSync(join(ROOT, "packages", "ui", "dist", "manifest.json"));
-  if (built) return;
-  const build = spawnSync("pnpm", ["run", "build"], {
-    cwd: ROOT,
-    encoding: "utf8",
-    stdio: "pipe",
-  });
-  if (build.status !== 0) throw new Error(`pnpm run build failed:\n${build.stderr}`);
-}, 180_000);
 
 describe("the published @perchjs/nest resolves the manifest", () => {
   it("from the ESM build", async () => {
