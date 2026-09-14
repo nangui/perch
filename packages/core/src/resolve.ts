@@ -14,6 +14,8 @@ import { Image, Prime } from "./prime.js";
 import { RepeatableEntry } from "./entries/repeatable-entry.js";
 import { safeHref, TextEntry } from "./entries/text-entry.js";
 import { IconEntry, markFor } from "./entries/icon-entry.js";
+import { ImageEntry } from "./entries/image-entry.js";
+import { fileAddress } from "./file-address.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
 import { FileUpload } from "./fields/file-upload.js";
@@ -142,6 +144,8 @@ export interface ResolvedNode {
   readonly tone?: string;
   /** The mark an `IconEntry` resolved to, by name. Decided here, never drawn from a rule the client holds. */
   readonly mark?: string;
+  /** The addresses an `ImageEntry` resolved to, already read. */
+  readonly pictures?: readonly string[];
   /** Where an entry links to, already built and already checked. */
   readonly href?: string;
   /** Where a `FileUpload`'s stored file can be fetched, if it has one. */
@@ -940,6 +944,16 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       ? ctx.options.fileUrl(component.state.disk, stored)
       : undefined;
 
+  // Minted here and read here, from the row. A list becomes a list of
+  // addresses and a key that no host can answer for drops out of it, so what
+  // reaches an `src` has been looked at by something that is allowed to say no.
+  const pictures =
+    component instanceof ImageEntry
+      ? (Array.isArray(entryValue) ? entryValue : [entryValue])
+          .map((one) => fileAddress(one, component.state.disk, ctx.options.fileUrl))
+          .filter((one): one is string => one !== undefined)
+      : undefined;
+
   // The fact, not the form. What the dialog draws is fetched when it opens, so
   // a page that merely might open one carries a boolean rather than a schema
   // resolved for a reader who never asked for it.
@@ -992,9 +1006,15 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       : { autofocus: component.state.autofocus }),
     ...(description === undefined ? {} : { description }),
     ...(content === undefined ? {} : { content }),
-    ...(entryValue === undefined ? {} : { value: entryValue }),
+    // A picture entry sends addresses and not the value they were minted from.
+    // The key is a place on a disk: the browser has no use for it, cannot fetch
+    // it, and does not need telling where this application keeps its files.
+    ...(entryValue === undefined || component instanceof ImageEntry
+      ? {}
+      : { value: entryValue }),
     ...(tone === undefined ? {} : { tone }),
     ...(mark === undefined ? {} : { mark }),
+    ...(pictures === undefined || pictures.length === 0 ? {} : { pictures }),
     ...(href === undefined ? {} : { href }),
     ...(previewUrl === undefined ? {} : { previewUrl }),
     ...(createsOption === undefined ? {} : { createsOption }),

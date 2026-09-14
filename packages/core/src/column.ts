@@ -11,7 +11,7 @@
  * it.
  */
 import { isResolver } from "./component.js";
-import { safeHref } from "./entries/text-entry.js";
+import { fileAddress } from "./file-address.js";
 import type { EntryTone, ToneChoice } from "./entries/text-entry.js";
 import type { Field } from "./field.js";
 import { normaliseOptions } from "./option.js";
@@ -554,12 +554,9 @@ function address(
   disk: string | undefined,
   context: PresentContext,
 ): string | undefined {
-  if (disk === undefined) return safeHref(value);
-  if (typeof value !== "string" || value === "") return undefined;
-  // Through the host and then through the same reading: what a disk hands back
-  // is an address like any other, and a signed URL from a bucket is exactly the
-  // kind of value nobody should put in an attribute unread.
-  return safeHref(context.fileUrl?.(disk, value));
+  // Shared with the infolist's picture entry, which asks the same question of
+  // the same host. Two answers would be one answer and one drift.
+  return fileAddress(value, disk, context.fileUrl);
 }
 
 /**

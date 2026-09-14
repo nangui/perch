@@ -1141,6 +1141,43 @@
   color: var(--perch-danger-content);
 }
 
+/* The pictures an infolist shows. A side of 40 unless the resource named one:
+   a picture with no size is a picture the browser sizes from the file, and a
+   row of those is a row of different heights. */
+.perch-entry__pictures {
+  flex-wrap: wrap;
+}
+
+.perch-entry__picture {
+  width: var(--perch-picture, 40px);
+  height: var(--perch-picture, 40px);
+  flex: none;
+  object-fit: cover;
+  border-radius: var(--perch-radius);
+  background: var(--perch-surface-muted);
+}
+
+.perch-entry__picture[data-circular="true"] {
+  border-radius: 50%;
+}
+
+/* Overlapping rather than in a line: it says "these belong together and there
+   are this many" in the width of about two. The ring is what keeps the one
+   behind from reading as a smudge on the one in front. */
+.perch-entry__pictures[data-stacked="true"] {
+  gap: 0;
+}
+
+.perch-entry__pictures[data-stacked="true"]
+  .perch-entry__picture
+  + .perch-entry__picture {
+  margin-left: calc(var(--perch-picture, 40px) / -3);
+}
+
+.perch-entry__pictures[data-stacked="true"] .perch-entry__picture {
+  box-shadow: 0 0 0 2px var(--perch-surface);
+}
+
 .perch-entry__link {
   color: var(--perch-accent);
   text-decoration: underline;

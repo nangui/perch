@@ -207,6 +207,7 @@ describe("a prop the server sends", () => {
       "Grid",
       "Icon",
       "Image",
+      "ImageEntry",
       "KeyValue",
       "MarkdownEditor",
       "Radio",

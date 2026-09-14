@@ -43,6 +43,7 @@ import { SearchableSelect } from "./fields/SearchableSelect.js";
 import { TextInput } from "./fields/TextInput.js";
 import { TextEntry } from "./entries/TextEntry.js";
 import { IconEntry } from "./entries/IconEntry.js";
+import { ImageEntry } from "./entries/ImageEntry.js";
 import type { TextFlavour } from "./fields/TextInput.js";
 import type { NodeProps, SearchedOption } from "./node-props.js";
 import { registerComponent } from "./registry.js";
@@ -1266,6 +1267,30 @@ function IconEntryRenderer({ node }: NodeProps): ReactNode {
   );
 }
 
+function ImageEntryRenderer({ node }: NodeProps): ReactNode {
+  return (
+    <FieldShell
+      label={node.label ?? ""}
+      status={{ lifecycle: "rest" }}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
+    >
+      {(binding) => (
+        <ImageEntry
+          describedBy={binding.id}
+          {...(node.pictures === undefined ? {} : { pictures: node.pictures })}
+          {...(node.props?.["circular"] === true ? { circular: true } : {})}
+          {...(node.props?.["stacked"] === true ? { stacked: true } : {})}
+          {...(typeof node.props?.["size"] === "number"
+            ? { size: node.props["size"] }
+            : {})}
+          {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
 function PlaceholderRenderer({ node, error, pending, inFlight }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
 
@@ -1628,5 +1653,6 @@ export function registerBuiltInComponents(): void {
   registerComponent("Repeater", RepeaterRenderer);
   registerComponent("TextEntry", TextEntryRenderer);
   registerComponent("IconEntry", IconEntryRenderer);
+  registerComponent("ImageEntry", ImageEntryRenderer);
   registerComponent("RepeatableEntry", RepeatableEntryRenderer);
 }

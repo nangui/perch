@@ -72,6 +72,10 @@ export type {
   IconToneChoice,
 } from "./entries/icon-entry.js";
 export { IconEntry, markFor } from "./entries/icon-entry.js";
+export type { ImageEntryState } from "./entries/image-entry.js";
+export { ImageEntry } from "./entries/image-entry.js";
+export type { FileUrl } from "./file-address.js";
+export { fileAddress } from "./file-address.js";
 
 // Actions. One class per trigger context, so a callback takes one record and
 // a bulk run composes it.
