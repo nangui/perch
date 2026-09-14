@@ -4,7 +4,7 @@ The Prisma adapter: it runs the queries a panel asks for, from the intermediate
 representation the generator wrote. PostgreSQL only in v0.1.
 
 Part of [Perch](https://github.com/nangui/perch) — an admin panel for NestJS that you declare
-in TypeScript and never write a front end for. The six `@perchjs/*` packages share one version
+in TypeScript and never write a front end for. The seven `@perchjs/*` packages share one version
 number and are released together.
 
 Relations named by a column become one `include` rather than one query per row, which a

@@ -40,3 +40,6 @@ export declare const guest: unknown;
 export declare const ada: Record<string, unknown>;
 export declare const grace: Record<string, unknown>;
 export declare const post: Record<string, unknown>;
+
+/** A guard the reader's application already has. */
+export declare const JwtAuthGuard: new () => { canActivate: () => boolean };

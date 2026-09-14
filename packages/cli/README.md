@@ -4,7 +4,7 @@ Code generation: wires a panel into an application, and writes a resource from a
 model.
 
 Part of [Perch](https://github.com/nangui/perch) — an admin panel for NestJS that you declare
-in TypeScript and never write a front end for. The six `@perchjs/*` packages share one version
+in TypeScript and never write a front end for. The seven `@perchjs/*` packages share one version
 number and are released together.
 
 ```sh

@@ -17,13 +17,14 @@
  */
 import { execFileSync } from "node:child_process";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
-import { existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
@@ -95,6 +96,7 @@ function blocks(): readonly Block[] {
 /** The names an example may lean on, imported so the compiler sees them used. */
 const PRELUDE = [
   "AdminModule",
+  "JwtAuthGuard",
   "PersonResource",
   "PostResource",
   "UserResource",
@@ -104,6 +106,40 @@ const PRELUDE = [
   "guest",
   "post",
 ];
+
+/** The newest mtime under a directory, or nothing where it does not exist. */
+function newest(at: string): number | undefined {
+  if (!existsSync(at)) return undefined;
+  let found = 0;
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const next = join(dir, entry.name);
+      if (entry.isDirectory()) walk(next);
+      else found = Math.max(found, statSync(next).mtimeMs);
+    }
+  };
+  walk(at);
+  return found;
+}
+
+describe("what the examples are compiled against", () => {
+  it("is a build that is not behind its own source", () => {
+    // They resolve through each package's `types`, which points at `dist` —
+    // the surface a reader installs, and the right thing to check them
+    // against. The cost is that a build left behind checks yesterday's API and
+    // says nothing, so a page naming a method renamed this morning passes.
+    // This is that silence, made loud.
+    const behind: string[] = [];
+    for (const name of readdirSync(join(ROOT, "packages"))) {
+      const source = newest(join(ROOT, "packages", name, "src"));
+      if (source === undefined) continue;
+      const built = newest(join(ROOT, "packages", name, "dist"));
+      if (built === undefined || built < source) behind.push(name);
+    }
+
+    expect(behind).toEqual([]);
+  });
+});
 
 describe("the examples in the documentation", () => {
   it("are all compiled, or excused by name", () => {
@@ -123,8 +159,16 @@ describe("the examples in the documentation", () => {
     const dir = mkdtempSync(join(tmpdir(), "perch-docs-"));
     mkdirSync(join(dir, "src"));
     for (const [at, block] of wanted.entries()) {
-      const imported = PRELUDE.filter((name) =>
-        new RegExp(`\\b${name}\\b`).test(block.code),
+      const imported = PRELUDE.filter(
+        (name) =>
+          new RegExp(`\\b${name}\\b`).test(block.code) &&
+          // Unless the example brings its own. A page is entitled to write
+          // `const admin = …`, and handing it a second one produces an error
+          // about a line the author did not write and cannot see.
+          !new RegExp(
+            `(?:const|let|var|class|function|interface|type|enum)\\s+${name}\\b|` +
+              `import[^;]*\\b${name}\\b[^;]*from`,
+          ).test(block.code),
       );
       const head =
         imported.length === 0

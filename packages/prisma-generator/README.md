@@ -4,7 +4,7 @@ A Prisma generator. It runs during `prisma generate` and writes the intermediate
 representation the rest of Perch reads.
 
 Part of [Perch](https://github.com/nangui/perch) — an admin panel for NestJS that you declare
-in TypeScript and never write a front end for. The six `@perchjs/*` packages share one version
+in TypeScript and never write a front end for. The seven `@perchjs/*` packages share one version
 number and are released together.
 
 Prisma 7 strips the runtime DMMF to names and types, so the metadata a panel needs is

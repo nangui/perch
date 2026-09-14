@@ -5,6 +5,10 @@ packages:
   # where they would resolve from every package and undo pnpm's isolation —
   # which is the first thing that stops one adapter importing another.
   - "tooling"
+  # The documentation site. Its dependencies live with it for the same reason
+  # the proofs' do: a site generator resolving from every package is a build
+  # tool inside a published one.
+  - "docs"
 
 # Install scripts run only for what is listed here. esbuild is pulled by vite,
 # itself pulled by vitest, and its postinstall is what puts the platform binary
