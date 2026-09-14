@@ -3,6 +3,12 @@
 All notable changes to Perch. The six `@perchjs/*` packages share this file and
 this version number — they are released together ([ADR 0008](docs/adr/0008-versioning-policy.md)).
 
+## 0.1.2 — 2026-09-14
+
+### Fixed
+
+- Send each package's npm page to its own page rather than to the monorepo's front door. `repository` carries a `directory`, and npm ignores it when it derives a homepage: all six landed on the root README, where a reader looking at `@perchjs/prisma` has to find it among the others. Each names its own now.
+
 ## 0.1.1 — 2026-09-14
 
 ### Fixed
