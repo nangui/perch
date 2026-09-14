@@ -66,6 +66,14 @@ export type { NodeProps } from "./node-props.js";
 export type { SchemaRendererProps } from "./SchemaRenderer.js";
 export { SchemaRenderer } from "./SchemaRenderer.js";
 export { lookupComponent, registerComponent, resetRegistry } from "./registry.js";
+export type { HookPosition, RenderHookOptions, RenderHooksProps } from "./hooks.js";
+export {
+  HOOK_POSITIONS,
+  isHookPosition,
+  registerRenderHook,
+  RenderHooks,
+  resetRenderHooks,
+} from "./hooks.js";
 export { registerBuiltInComponents } from "./renderers.js";
 
 // The transport client: reconciliation and ordering.

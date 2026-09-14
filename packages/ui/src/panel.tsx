@@ -9,6 +9,7 @@
  * Everything it needs comes off the mount element, so the bundle hardcodes no
  * path and the same file works under any `setGlobalPrefix`.
  */
+import { RenderHooks } from "./hooks.js";
 import type { ReactNode } from "react";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
@@ -66,7 +67,9 @@ export function mount(element: HTMLElement): void {
     const flash = takeFlash();
     createRoot(element).render(
       <div className="perch-shell">
+        <RenderHooks at="shell.start" />
         {menu}
+        <RenderHooks at="page.start" />
         <PanelList
           initial={JSON.parse(payload) as RecordsPage}
           title={title}
@@ -81,6 +84,8 @@ export function mount(element: HTMLElement): void {
           }
           onPage={remember}
         />
+        <RenderHooks at="page.end" />
+        <RenderHooks at="shell.end" />
       </div>,
     );
     return;
@@ -90,6 +95,7 @@ export function mount(element: HTMLElement): void {
   // whether the page can be changed.
   const framed = (body: ReactNode): ReactNode => (
     <div className="perch-shell">
+      <RenderHooks at="shell.start" />
       {menu}
       <div className="perch-shell__main">
         <Breadcrumb
@@ -100,8 +106,11 @@ export function mount(element: HTMLElement): void {
         {/* The list page names itself. A form page had only the trail that led
             to it, which says where you came from but not what you are on. */}
         <h1 className="perch-page__title">{title}</h1>
+        <RenderHooks at="page.start" />
         {body}
+        <RenderHooks at="page.end" />
       </div>
+      <RenderHooks at="shell.end" />
     </div>
   );
 

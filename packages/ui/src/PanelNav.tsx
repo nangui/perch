@@ -7,6 +7,7 @@
  * on the client would be the second kind, and hiding a control is not a
  * protection.
  */
+import { RenderHooks } from "./hooks.js";
 import type { ReactNode } from "react";
 import { IconMark } from "./icons.js";
 
@@ -33,6 +34,7 @@ export function PanelNav({ groups }: PanelNavProps): ReactNode {
 
   return (
     <nav className="perch-nav" aria-label="Panel">
+      <RenderHooks at="sidebar.start" />
       {groups.map((group, index) => (
         <div className="perch-nav__group" key={group.label ?? `#${String(index)}`}>
           {group.label === undefined ? null : (
@@ -64,6 +66,7 @@ export function PanelNav({ groups }: PanelNavProps): ReactNode {
           </ul>
         </div>
       ))}
+      <RenderHooks at="sidebar.end" />
     </nav>
   );
 }
