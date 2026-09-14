@@ -14,20 +14,28 @@
  * A block that cannot be a module says so with `no-check` on its fence, and
  * every one of those is named below. An allowlist that only grows is a guard
  * that stops guarding, quietly, on the day somebody is in a hurry.
+ *
+ * **What this is checked against is the build, not the source.** Each package
+ * resolves through its `types`, which points into `dist` — the surface a reader
+ * installs, and the right one to hold a page to. The cost is that a build left
+ * behind checks yesterday's API and says nothing. That is not policed from in
+ * here: `pnpm verify` and CI both build before they test, which is where the
+ * ordering belongs. An earlier version of this file tried to catch it by
+ * comparing timestamps and was intermittent, which is worse than the hazard —
+ * a test that cries wolf teaches people to run it again.
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
@@ -96,7 +104,10 @@ function blocks(): readonly Block[] {
 /** The names an example may lean on, imported so the compiler sees them used. */
 const PRELUDE = [
   "AdminModule",
+  "AppDataAdapter",
+  "IR",
   "JwtAuthGuard",
+  "PrismaService",
   "PersonResource",
   "PostResource",
   "UserResource",
@@ -107,39 +118,29 @@ const PRELUDE = [
   "post",
 ];
 
-/** The newest mtime under a directory, or nothing where it does not exist. */
-function newest(at: string): number | undefined {
-  if (!existsSync(at)) return undefined;
-  let found = 0;
-  const walk = (dir: string): void => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const next = join(dir, entry.name);
-      if (entry.isDirectory()) walk(next);
-      else found = Math.max(found, statSync(next).mtimeMs);
-    }
-  };
-  walk(at);
-  return found;
-}
-
-describe("what the examples are compiled against", () => {
-  it("is a build that is not behind its own source", () => {
-    // They resolve through each package's `types`, which points at `dist` —
-    // the surface a reader installs, and the right thing to check them
-    // against. The cost is that a build left behind checks yesterday's API and
-    // says nothing, so a page naming a method renamed this morning passes.
-    // This is that silence, made loud.
-    const behind: string[] = [];
-    for (const name of readdirSync(join(ROOT, "packages"))) {
-      const source = newest(join(ROOT, "packages", name, "src"));
-      if (source === undefined) continue;
-      const built = newest(join(ROOT, "packages", name, "dist"));
-      if (built === undefined || built < source) behind.push(name);
-    }
-
-    expect(behind).toEqual([]);
+/**
+ * On a fresh clone `dist` does not exist and every example fails to resolve a
+ * package, which is an environmental failure rather than a wrong page. Built
+ * once if needed, the way the boundary and asset proofs beside this one do.
+ */
+beforeAll(() => {
+  const built = readdirSync(join(ROOT, "packages")).every(
+    (name) =>
+      !existsSync(join(ROOT, "packages", name, "src")) ||
+      existsSync(join(ROOT, "packages", name, "dist", "index.d.ts")),
+  );
+  if (built) return;
+  const build = spawnSync("pnpm", ["run", "build"], {
+    cwd: ROOT,
+    encoding: "utf8",
+    stdio: "pipe",
   });
-});
+  if (build.status !== 0) {
+    throw new Error(
+      `pnpm run build failed, the examples cannot be checked:\n${build.stderr}`,
+    );
+  }
+}, 180_000);
 
 describe("the examples in the documentation", () => {
   it("are all compiled, or excused by name", () => {

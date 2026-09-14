@@ -16,7 +16,8 @@
  * These are shapes, not proof that the surrounding code is right, and adding a
  * name here is a decision to let examples lean on it.
  */
-import type { Schema } from "@perchjs/core";
+import type { DataAdapter, Ir, Schema } from "@perchjs/core";
+import type { PrismaClientLike } from "@perchjs/prisma";
 
 /** A resource class, as a reader's own would be. */
 export declare class UserResource {
@@ -43,3 +44,31 @@ export declare const post: Record<string, unknown>;
 
 /** A guard the reader's application already has. */
 export declare const JwtAuthGuard: new () => { canActivate: () => boolean };
+
+/**
+ * The application's own adapter, client and generated representation.
+ *
+ * `IR` is declared here rather than imported in the examples: the file it comes
+ * from is written into the reader's own tree by `prisma generate`, so no
+ * example can import it and still compile here. The pages say where it comes
+ * from in prose, and what is checked is the call that uses it.
+ */
+export declare class AppDataAdapter implements DataAdapter {
+  ir: DataAdapter["ir"];
+  meta: DataAdapter["meta"];
+  findMany: DataAdapter["findMany"];
+  findOne: DataAdapter["findOne"];
+  create: DataAdapter["create"];
+  update: DataAdapter["update"];
+  delete: DataAdapter["delete"];
+  forceDelete: DataAdapter["forceDelete"];
+  restore: DataAdapter["restore"];
+  attach: DataAdapter["attach"];
+  detach: DataAdapter["detach"];
+  transaction: DataAdapter["transaction"];
+}
+export declare class PrismaService implements PrismaClientLike {
+  readonly $transaction: PrismaClientLike["$transaction"];
+  readonly [delegate: string]: unknown;
+}
+export declare const IR: Ir;

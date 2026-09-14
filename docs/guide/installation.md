@@ -53,17 +53,41 @@ npx prisma generate
 
 ## Wire it up
 
+The panel reaches your database through a class the container builds, so it is yours
+to write — and it is three lines, because `PrismaDataAdapter` does the work:
+
+`IR` is the export of the file the generator wrote — `import { IR } from
+"./panel/.generated/ir.js"`, wherever you pointed its `output` at.
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { PrismaDataAdapter } from "@perchjs/prisma";
+
+@Injectable()
+export class AppDataAdapter extends PrismaDataAdapter {
+  constructor(prisma: PrismaService) {
+    super({ client: prisma, ir: IR });
+  }
+}
+```
+
+It takes your client, not one of its own: the panel never opens a connection, never
+owns a pool and never sees your credentials. And it takes the representation the
+generator wrote, which is how it knows the shape of every model without asking the
+database at runtime.
+
+Then:
+
 ```ts
 import { Module } from "@nestjs/common";
 import { PanelModule } from "@perchjs/nest";
-import { PrismaDataAdapter } from "@perchjs/prisma";
 
 @Module({
   imports: [
     PanelModule.forRoot({
       path: "/admin",
       resources: [PersonResource],
-      dataAdapter: PrismaDataAdapter,
+      dataAdapter: AppDataAdapter,
     }),
   ],
 })
@@ -103,7 +127,7 @@ import { PrismaDataAdapter } from "@perchjs/prisma";
     PanelModule.forRoot({
       path: "/admin",
       resources: [PersonResource],
-      dataAdapter: PrismaDataAdapter,
+      dataAdapter: AppDataAdapter,
       // Yours. Whatever they leave on the request is what a policy is asked about.
       guards: [JwtAuthGuard],
     }),
