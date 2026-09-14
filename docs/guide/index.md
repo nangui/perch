@@ -17,7 +17,7 @@ import { Schema, Select, Table, TextColumn, TextInput } from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
 
 @PanelResource({ model: "Person", slug: "people" })
-export class PeopleResource {
+export class PeopleResource implements PanelResource {
   form() {
     return Schema.make([
       TextInput.make("name").required(),

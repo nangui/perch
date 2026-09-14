@@ -13,7 +13,7 @@ import { Schema, Table, TextColumn, TextInput } from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
 
 @PanelResource({ model: "Person" })
-export class PeopleResource {
+export class PeopleResource implements PanelResource {
   form() {
     return Schema.make([TextInput.make("name").required()]);
   }
@@ -67,16 +67,17 @@ import { PanelResource } from "@perchjs/nest";
   // One of the panel's own marks, refused at start-up if it has no drawing.
   icon: "users",
 })
-export class PeopleResource {
+export class PeopleResource implements PanelResource {
   form() {
     return Schema.make([TextInput.make("name")]);
   }
 }
 ```
 
-The model name is checked against the representation the generator wrote. A resource
-naming a model your schema does not have stops the boot, and so does a field naming a
-column that is not on it.
+Every field and every column is checked against the representation the generator wrote.
+One naming a column the model does not have stops the boot, with the name of the field
+and the columns that are there — rather than a form that draws, saves, and refuses the
+row whole.
 
 ## What the panel generates
 
@@ -103,7 +104,7 @@ import { Schema, TextInput } from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
 
 @PanelResource({ model: "Person" })
-export class PeopleResource {
+export class PeopleResource implements PanelResource {
   form() {
     return Schema.make([
       TextInput.make("email").required(),
@@ -130,7 +131,7 @@ import { Schema, SelectFilter, Table, TextColumn, TextInput } from "@perchjs/cor
 import { PanelResource } from "@perchjs/nest";
 
 @PanelResource({ model: "Post" })
-export class PostsResource {
+export class PostsResource implements PanelResource {
   form() {
     return Schema.make([TextInput.make("title")]);
   }
@@ -167,7 +168,7 @@ import { Schema, TextEntry, TextInput } from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
 
 @PanelResource({ model: "Person" })
-export class PeopleResource {
+export class PeopleResource implements PanelResource {
   form() {
     return Schema.make([TextInput.make("name")]);
   }
@@ -189,6 +190,7 @@ default, so it is written down rather than assumed.
 
 ```ts
 import { Schema, TextInput } from "@perchjs/core";
+import type { Authorization } from "@perchjs/nest";
 import { PanelResource } from "@perchjs/nest";
 
 interface User {
@@ -197,8 +199,11 @@ interface User {
 }
 
 @PanelResource({ model: "Post" })
-export class PostsResource {
-  can = {
+export class PostsResource implements PanelResource {
+  // Named, so a misspelled policy is a compile error rather than a rule
+  // nobody calls — which would leave the resource more permissive than
+  // whoever wrote it believes.
+  can: Authorization = {
     // Gates the resource itself — its routes and its menu entry alike.
     viewAny: (user: unknown) => (user as User).role !== "guest",
     // Asked about one record, so it is asked after the row is loaded.
@@ -234,7 +239,7 @@ import { Schema, TextInput } from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
 
 @PanelResource({ model: "Order" })
-export class OrdersResource {
+export class OrdersResource implements PanelResource {
   form() {
     return Schema.make([TextInput.make("reference")]);
   }
@@ -259,7 +264,7 @@ import { Schema, TextInput } from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
 
 @PanelResource({ model: "Person" })
-export class PeopleResource {
+export class PeopleResource implements PanelResource {
   form() {
     return Schema.make([TextInput.make("password").password()]);
   }
@@ -292,7 +297,7 @@ import { Schema, TextInput } from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
 
 @PanelResource({ model: "Person" })
-export class PeopleResource {
+export class PeopleResource implements PanelResource {
   // The reader almost always has more to fill in, so stay on the record.
   redirectAfterCreate = "edit" as const;
 
