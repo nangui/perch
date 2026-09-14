@@ -13,6 +13,7 @@
     "@perchjs/core": "workspace:*",
     "@perchjs/nest": "workspace:*",
     "@perchjs/prisma": "workspace:*",
+    "@perchjs/testing": "workspace:*",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@prisma/client-runtime-utils": "^7.9.1",

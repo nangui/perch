@@ -213,6 +213,9 @@ importers:
       '@perchjs/prisma':
         specifier: workspace:*
         version: link:../packages/prisma
+      '@perchjs/testing':
+        specifier: workspace:*
+        version: link:../packages/testing
       '@prisma/adapter-pg':
         specifier: ^7.9.1
         version: 7.9.1

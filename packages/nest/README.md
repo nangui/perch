@@ -4,11 +4,17 @@ The NestJS adapter: `PanelModule`, the routes, the guards and the navigation. Th
 package an application installs.
 
 Part of [Perch](https://github.com/nangui/perch) — an admin panel for NestJS that you declare
-in TypeScript and never write a front end for. The six `@perchjs/*` packages share one version
+in TypeScript and never write a front end for. The seven `@perchjs/*` packages share one version
 number and are released together.
 
 ```ts
-imports: [PanelModule.forRoot({ path: "/admin", resources: [PersonResource] })]
+import { Module } from "@nestjs/common";
+import { PanelModule } from "@perchjs/nest";
+
+@Module({
+  imports: [PanelModule.forRoot({ path: "/admin", resources: [PersonResource] })],
+})
+export class AppModule {}
 ```
 
 ## Documentation
