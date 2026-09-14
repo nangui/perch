@@ -150,30 +150,27 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      # A token, for the first release only, and it is not the preference.
+      # No npm token anywhere. Each of the six packages names this workflow in
+      # this repository as a trusted publisher, and `id-token: write` above is
+      # what lets GitHub prove a run is that workflow. The credential is minted
+      # per run and expires with it: nothing sits in the repository settings
+      # waiting to be rotated, and there is nothing to leak.
       #
-      # The registry would rather have neither: trusted publishing hands this
-      # workflow a short-lived credential over OIDC and leaves nothing in the
-      # settings to rotate or to leak. It cannot be used yet, and that was
-      # measured rather than assumed — `npm trust github @perchjs/core` answers
-      # 403 while the registry has never heard of the package. The scope exists
-      # and the account owns it; the package does not, and a trusted publisher
-      # is declared against a package.
+      # Granted by, once per package and from a machine logged into npm:
+      #   npm trust github @perchjs/core --file ci.yml --repo nangui/perch --allow-publish
+      # It says plainly what it grants — anyone with write access here can
+      # publish that package — and `npm trust list @perchjs/core` reads it back.
       #
-      # So: publish 0.1.0 with the token below, then run, once per package,
-      #   npm trust github @perchjs/core --file ci.yml --repo nangui/perch
-      # and the same for prisma, prisma-generator, nest, ui and cli — they exist
-      # by then. It asks for a second factor and it says plainly what it grants:
-      # anyone with write access to this repository can publish that package.
-      # Then delete NODE_AUTH_TOKEN below and the NPM_TOKEN secret with it.
+      # It needs npm 12. Every attempt on 11.11.0 answered 400, with no body and
+      # no explanation, because that CLI does not send the permissions field the
+      # registry now requires: `--allow-publish` is not a flag it has. Three
+      # other things were blamed first and each was a real fault worth fixing —
+      # the packages did not exist yet, the repository was private, the
+      # manifests had no `repository` — and none of them was this one. If a 400
+      # comes back, check the npm version before anything else.
       #
       # Provenance is on because the repository is public: the registry does not
-      # generate an attestation for a private one, and this was off for exactly
-      # as long as that was true.
-      #
-      # Still unverified, and only the first release will say: whether the OIDC
-      # exchange survives `changeset publish`, which runs `npm publish` once per
-      # package rather than once.
+      # generate an attestation for a private one.
       # Which of the two this run is: `version` while changesets are pending,
       # `publish` once they are gone and the manifests have moved.
       - uses: changesets/action/select-mode@v2
@@ -195,7 +192,6 @@ jobs:
           push-git-tags: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
 # The guardrails this project set itself before the code they protect existed.
