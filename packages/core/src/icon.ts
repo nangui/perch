@@ -47,6 +47,8 @@ export const ICON_NAMES = [
   "bell",
   "warning",
   "info",
+  // What a page that is not a table asks for.
+  "cog",
 ] as const;
 
 /** Whether a string is a name the panel can draw. */

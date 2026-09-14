@@ -25,7 +25,7 @@ const CSS = "panel-e5f6a7b8.css";
 /** What a submit wrote, so a test can say whether it ran. */
 const written: Record<string, unknown>[] = [];
 
-@PanelPage({ path: "settings", label: "Settings", icon: "star" })
+@PanelPage({ path: "settings", label: "Settings", icon: "cog" })
 class SettingsPage {
   schema(): Schema {
     return Schema.make([

@@ -174,6 +174,18 @@ const DRAWINGS: Readonly<Record<IconName, ReactNode>> = {
       <circle cx="8" cy="5.2" r="0.8" {...FILLED} />
     </>
   ),
+  // Six teeth rather than eight: at the size these are drawn, the gap between
+  // eight of them is narrower than the stroke that draws it, and what reaches
+  // a reader is a dark disc with a texture. Twelve units across, which is what
+  // the circle in `info` and the points of `star` already measure — a mark
+  // wider than its neighbours reads as a bigger mark rather than a different
+  // one.
+  cog: (
+    <>
+      <path d="M6.7 4.0L7.0 2.1L9.0 2.1L9.3 4.0A4.2 4.2 0 0 1 10.8 4.9L12.6 4.1L13.6 5.9L12.1 7.1A4.2 4.2 0 0 1 12.1 8.9L13.6 10.1L12.6 11.9L10.8 11.1A4.2 4.2 0 0 1 9.3 12.0L9.0 13.9L7.0 13.9L6.7 12.0A4.2 4.2 0 0 1 5.2 11.1L3.4 11.9L2.4 10.1L3.9 8.9A4.2 4.2 0 0 1 3.9 7.1L2.4 5.9L3.4 4.1L5.2 4.9Z" />
+      <circle cx="8" cy="8" r="2.1" />
+    </>
+  ),
 };
 
 /** What a name draws, if anything. */
