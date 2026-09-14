@@ -120,6 +120,7 @@ const EXTRA_PROPS: Readonly<Record<string, readonly string[]>> = {
   Image: ["alt"],
   Icon: ["icon", "tone"],
   ImageEntry: ["circular", "stacked", "size"],
+  ColorEntry: ["copyable"],
   Tab: ["columns", "icon"],
   Grid: ["columns"],
   Schema: ["columns"],

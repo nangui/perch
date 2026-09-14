@@ -74,6 +74,8 @@ export type {
 export { IconEntry, markFor } from "./entries/icon-entry.js";
 export type { ImageEntryState } from "./entries/image-entry.js";
 export { ImageEntry } from "./entries/image-entry.js";
+export type { ColorEntryState } from "./entries/color-entry.js";
+export { ColorEntry } from "./entries/color-entry.js";
 export type { FileUrl } from "./file-address.js";
 export { fileAddress } from "./file-address.js";
 

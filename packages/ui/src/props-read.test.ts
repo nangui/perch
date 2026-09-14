@@ -201,6 +201,7 @@ describe("a prop the server sends", () => {
     expect([...types].sort()).toEqual([
       "Callout",
       "CheckboxList",
+      "ColorEntry",
       "DateTimePicker",
       "Fieldset",
       "FileUpload",

@@ -44,6 +44,7 @@ import { TextInput } from "./fields/TextInput.js";
 import { TextEntry } from "./entries/TextEntry.js";
 import { IconEntry } from "./entries/IconEntry.js";
 import { ImageEntry } from "./entries/ImageEntry.js";
+import { ColorEntry } from "./entries/ColorEntry.js";
 import type { TextFlavour } from "./fields/TextInput.js";
 import type { NodeProps, SearchedOption } from "./node-props.js";
 import { registerComponent } from "./registry.js";
@@ -1291,6 +1292,27 @@ function ImageEntryRenderer({ node }: NodeProps): ReactNode {
   );
 }
 
+function ColorEntryRenderer({ node }: NodeProps): ReactNode {
+  return (
+    <FieldShell
+      label={node.label ?? ""}
+      status={{ lifecycle: "rest" }}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
+    >
+      {(binding) => (
+        <ColorEntry
+          describedBy={binding.id}
+          value={node.value}
+          {...(node.props?.["copyable"] === true ? { copyable: true } : {})}
+          {...(node.label === undefined ? {} : { label: node.label })}
+          {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
 function PlaceholderRenderer({ node, error, pending, inFlight }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
 
@@ -1654,5 +1676,6 @@ export function registerBuiltInComponents(): void {
   registerComponent("TextEntry", TextEntryRenderer);
   registerComponent("IconEntry", IconEntryRenderer);
   registerComponent("ImageEntry", ImageEntryRenderer);
+  registerComponent("ColorEntry", ColorEntryRenderer);
   registerComponent("RepeatableEntry", RepeatableEntryRenderer);
 }

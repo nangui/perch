@@ -10,6 +10,7 @@ import type { BadgedValue, ColumnNode, Row } from "@perchjs/core";
 import type { CellHandle } from "./column-registry.js";
 import { ChevronDown } from "./marks.js";
 import { graphemesOf } from "./graphemes.js";
+import { swatchable } from "./colour.js";
 import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
 import { registerColumn } from "./column-registry.js";
@@ -118,16 +119,6 @@ function images(value: unknown, column: ColumnNode): ReactNode {
 }
 
 /**
- * What a colour may be, before it is put in a style.
- *
- * A shape rather than a parse: this half draws the swatch and never has to know
- * what the colour is. What it does have to know is that the value came out of a
- * row, and a row holds whatever it holds — `url(...)` in a background is a
- * request to somewhere nobody chose.
- */
-const COLOUR = /^(#[0-9a-f]{3}|#[0-9a-f]{6}|rgb\([^)]*\)|hsl\([^)]*\))$/i;
-
-/**
  * A swatch, and the value that made it.
  *
  * What is not a colour is shown as the text it is: a swatch of nothing says the
@@ -135,9 +126,12 @@ const COLOUR = /^(#[0-9a-f]{3}|#[0-9a-f]{6}|rgb\([^)]*\)|hsl\([^)]*\))$/i;
  * the column holds a mistake.
  */
 function colour(value: unknown, column: ColumnNode): ReactNode {
-  const said = typeof value === "string" ? value.trim() : "";
-  if (said === "") return nothing();
-  if (!COLOUR.test(said)) return said;
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (raw === "") return nothing();
+  // Not a colour a style may be given: shown as the words it is, rather than
+  // put somewhere it would be obeyed.
+  const said = swatchable(raw);
+  if (said === undefined) return raw;
 
   return (
     <span className="perch-cell__colour">

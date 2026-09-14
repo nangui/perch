@@ -1178,6 +1178,26 @@
   box-shadow: 0 0 0 2px var(--perch-surface);
 }
 
+.perch-entry__colour {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+}
+
+.perch-entry__swatch {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  /* A border, so that a colour the same as the page still reads as a patch and
+     not as a gap where one failed to draw. */
+  border: 1px solid var(--perch-border);
+  border-radius: var(--perch-radius-sm);
+}
+
+.perch-entry__code {
+  font-family: var(--perch-font-mono);
+}
+
 .perch-entry__link {
   color: var(--perch-accent);
   text-decoration: underline;
