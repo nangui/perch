@@ -13,6 +13,7 @@ import { Layout, Schema } from "./layout.js";
 import { Image, Prime } from "./prime.js";
 import { RepeatableEntry } from "./entries/repeatable-entry.js";
 import { safeHref, TextEntry } from "./entries/text-entry.js";
+import { IconEntry, markFor } from "./entries/icon-entry.js";
 import type { ResolvedFlags } from "./field.js";
 import { Field, isDehydrated } from "./field.js";
 import { FileUpload } from "./fields/file-upload.js";
@@ -139,6 +140,8 @@ export interface ResolvedNode {
    * value — and the wire format carries no functions.
    */
   readonly tone?: string;
+  /** The mark an `IconEntry` resolved to, by name. Decided here, never drawn from a rule the client holds. */
+  readonly mark?: string;
   /** Where an entry links to, already built and already checked. */
   readonly href?: string;
   /** Where a `FileUpload`'s stored file can be fetched, if it has one. */
@@ -883,9 +886,18 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
   // From the value it decorates, on the server. The map from a value to a
   // meaning is a rule somebody wrote, and the browser cannot know it.
   const declaredTone =
-    component instanceof TextEntry ? component.state.color : undefined;
+    component instanceof TextEntry
+      ? component.state.color
+      : component instanceof IconEntry
+        ? component.state.colors
+        : undefined;
   const tone =
     typeof declaredTone === "function" ? declaredTone(entryValue) : declaredTone;
+
+  // The same reasoning, for which shape it is. A browser handed the map would
+  // be a browser deciding what a row means.
+  const mark =
+    component instanceof IconEntry ? markFor(component, entryValue) : undefined;
 
   // Built here and checked here. A stored value put straight into an `href` is
   // how `javascript:` becomes somebody else's script, and the browser is not
@@ -982,6 +994,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     ...(content === undefined ? {} : { content }),
     ...(entryValue === undefined ? {} : { value: entryValue }),
     ...(tone === undefined ? {} : { tone }),
+    ...(mark === undefined ? {} : { mark }),
     ...(href === undefined ? {} : { href }),
     ...(previewUrl === undefined ? {} : { previewUrl }),
     ...(createsOption === undefined ? {} : { createsOption }),

@@ -42,6 +42,7 @@ import { MultiSelect } from "./fields/MultiSelect.js";
 import { SearchableSelect } from "./fields/SearchableSelect.js";
 import { TextInput } from "./fields/TextInput.js";
 import { TextEntry } from "./entries/TextEntry.js";
+import { IconEntry } from "./entries/IconEntry.js";
 import type { TextFlavour } from "./fields/TextInput.js";
 import type { NodeProps, SearchedOption } from "./node-props.js";
 import { registerComponent } from "./registry.js";
@@ -1242,6 +1243,29 @@ function TextEntryRenderer({ node }: NodeProps): ReactNode {
   );
 }
 
+function IconEntryRenderer({ node }: NodeProps): ReactNode {
+  // No status, for the reason the text entry gives: an entry is never disabled,
+  // never in flight and never in error.
+  return (
+    <FieldShell
+      label={node.label ?? ""}
+      status={{ lifecycle: "rest" }}
+      {...(node.helperText === undefined ? {} : { help: node.helperText })}
+      {...hintOf(node)}
+    >
+      {(binding) => (
+        <IconEntry
+          describedBy={binding.id}
+          {...(node.mark === undefined ? {} : { mark: node.mark })}
+          {...(node.tone === undefined ? {} : { tone: node.tone })}
+          {...(node.label === undefined ? {} : { label: node.label })}
+          {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
 function PlaceholderRenderer({ node, error, pending, inFlight }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
 
@@ -1603,5 +1627,6 @@ export function registerBuiltInComponents(): void {
   registerComponent("Textarea", TextareaRenderer);
   registerComponent("Repeater", RepeaterRenderer);
   registerComponent("TextEntry", TextEntryRenderer);
+  registerComponent("IconEntry", IconEntryRenderer);
   registerComponent("RepeatableEntry", RepeatableEntryRenderer);
 }

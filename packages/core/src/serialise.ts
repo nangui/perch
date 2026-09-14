@@ -46,6 +46,8 @@ export interface SchemaNode {
   readonly value?: unknown;
   /** Which of the panel's colours it takes, already chosen. */
   readonly tone?: string;
+  /** The mark an entry resolved to, by name. */
+  readonly mark?: string;
   /** Where it links to. Built and checked on the server; never the raw value. */
   readonly href?: string;
   /**
@@ -207,6 +209,7 @@ function node(resolved: ResolvedNode): SchemaNode | undefined {
     ...(resolved.content === undefined ? {} : { content: resolved.content }),
     ...(resolved.value === undefined ? {} : { value: resolved.value }),
     ...(resolved.tone === undefined ? {} : { tone: resolved.tone }),
+    ...(resolved.mark === undefined ? {} : { mark: resolved.mark }),
     ...(resolved.href === undefined ? {} : { href: resolved.href }),
     ...(resolved.required === true ? { required: true } : {}),
     ...(component instanceof Field && component.state.inlineLabel

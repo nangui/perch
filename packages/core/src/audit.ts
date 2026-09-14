@@ -377,6 +377,7 @@ export function refuseIcon(named: unknown, field: string): readonly Complaint[] 
  */
 export const MARK_OPTIONS = [
   "icon",
+  "icons",
   "hintIcon",
   "prefixIcon",
   "suffixIcon",

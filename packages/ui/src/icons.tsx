@@ -205,13 +205,17 @@ export function hasDrawing(name: string | undefined): boolean {
  * declaration that never went through it — a plugin written in JavaScript, a
  * resource's own metadata — and an absent mark is what those get.
  *
- * `aria-hidden` always. A mark carrying meaning of its own would need words
- * beside it, and then the words are what a screen reader should have.
+ * `aria-hidden` unless it is given a `label`. Almost every mark here is
+ * decoration beside words that already say it, and announcing it says the thing
+ * twice. The exception is a mark that *is* the value — an infolist showing a
+ * tick where the record says true — and there the words are what is missing, so
+ * naming it is the difference between a row that reads and one that is silent.
  */
 export function IconMark({
   name,
   className,
   tone,
+  label,
 }: {
   readonly name: string | undefined;
   readonly className: string;
@@ -224,6 +228,13 @@ export function IconMark({
    * strokes in `currentColor` and follows it.
    */
   readonly tone?: string | undefined;
+  /**
+   * What to announce, for the one case where the mark is the value.
+   *
+   * Given, the drawing stops being hidden and becomes an image with a name.
+   * Left out, it stays decoration — which is what it is nearly everywhere.
+   */
+  readonly label?: string | undefined;
 }): ReactNode {
   const drawing = drawingFor(name);
   if (drawing === undefined) return null;
@@ -231,7 +242,9 @@ export function IconMark({
   return (
     <svg
       className={`perch-icon ${className}`}
-      aria-hidden="true"
+      {...(label === undefined
+        ? { "aria-hidden": "true" as const }
+        : { role: "img", "aria-label": label })}
       viewBox="0 0 16 16"
       // The stylesheet is what sizes this. The attributes are here for the one
       // case where it has not loaded: an SVG with no width of its own is 300 by

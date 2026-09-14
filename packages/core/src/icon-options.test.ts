@@ -62,13 +62,18 @@ function declared(): readonly {
   readonly named: boolean;
 }[] {
   return sources().flatMap(({ name, text }) =>
-    [...text.matchAll(/readonly\s+([A-Za-z]*[Ii]con)\??:\s*(string|IconName)/g)].map(
-      (found) => ({
-        option: found[1] ?? "",
-        where: name,
-        named: found[2] === "IconName",
-      }),
-    ),
+    [
+      ...text.matchAll(
+        /readonly\s+([A-Za-z]*[Ii]cons?)\??:\s*(string|IconName|IconChoice)/g,
+      ),
+    ].map((found) => ({
+      option: found[1] ?? "",
+      where: name,
+      // `IconChoice` is a name or a function returning one, which the server
+      // calls before anything crosses. Either way a misspelling is caught
+      // where it is written rather than on a screen.
+      named: found[2] !== "string",
+    })),
   );
 }
 

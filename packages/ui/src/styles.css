@@ -1122,6 +1122,25 @@
   gap: var(--perch-space-2);
 }
 
+/* The mark an infolist shows in place of a word. Sized like the words it stands
+   among, so a column of entries keeps one rhythm whether a row reads as a
+   sentence or as a shape. */
+.perch-entry__mark {
+  font-size: var(--perch-text-control);
+}
+
+.perch-entry__mark[data-tone="success"] {
+  color: var(--perch-success-content);
+}
+
+.perch-entry__mark[data-tone="warning"] {
+  color: var(--perch-warning-content);
+}
+
+.perch-entry__mark[data-tone="danger"] {
+  color: var(--perch-danger-content);
+}
+
 .perch-entry__link {
   color: var(--perch-accent);
   text-decoration: underline;

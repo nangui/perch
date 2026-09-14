@@ -66,6 +66,12 @@ export type {
   UrlChoice,
 } from "./entries/text-entry.js";
 export { safeHref, safePath, TextEntry } from "./entries/text-entry.js";
+export type {
+  IconChoice,
+  IconEntryState,
+  IconToneChoice,
+} from "./entries/icon-entry.js";
+export { IconEntry, markFor } from "./entries/icon-entry.js";
 
 // Actions. One class per trigger context, so a callback takes one record and
 // a bulk run composes it.
