@@ -860,6 +860,9 @@ function RichEditorRenderer({
       label={label}
       status={status}
       required={node.required === true}
+      // A contenteditable with a textbox role. It takes a name, but not from a
+      // `for` — so the shell writes a heading and the surface points at it.
+      labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
       {...hintOf(node)}
     >
@@ -1228,6 +1231,7 @@ function TextEntryRenderer({ node }: NodeProps): ReactNode {
     <FieldShell
       label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
+      labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
       {...hintOf(node)}
     >
@@ -1253,6 +1257,7 @@ function IconEntryRenderer({ node }: NodeProps): ReactNode {
     <FieldShell
       label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
+      labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
       {...hintOf(node)}
     >
@@ -1274,6 +1279,7 @@ function ImageEntryRenderer({ node }: NodeProps): ReactNode {
     <FieldShell
       label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
+      labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
       {...hintOf(node)}
     >
@@ -1298,6 +1304,7 @@ function ColorEntryRenderer({ node }: NodeProps): ReactNode {
     <FieldShell
       label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
+      labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
       {...hintOf(node)}
     >
@@ -1319,6 +1326,7 @@ function KeyValueEntryRenderer({ node }: NodeProps): ReactNode {
     <FieldShell
       label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
+      labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
       {...hintOf(node)}
     >
@@ -1327,7 +1335,9 @@ function KeyValueEntryRenderer({ node }: NodeProps): ReactNode {
           describedBy={binding.id}
           value={node.value}
           {...(node.pairs === undefined ? {} : { pairs: node.pairs })}
-          {...(node.label === undefined ? {} : { label: node.label })}
+          {...(binding["aria-labelledby"] === undefined
+            ? {}
+            : { labelledBy: binding["aria-labelledby"] })}
           {...(typeof node.props?.["keyLabel"] === "string"
             ? { keyLabel: node.props["keyLabel"] }
             : {})}
@@ -1348,6 +1358,7 @@ function PlaceholderRenderer({ node, error, pending, inFlight }: NodeProps): Rea
     <FieldShell
       label={node.label ?? node.path ?? ""}
       status={status}
+      labelable={false}
       inline={node.inlineLabel === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
       {...hintOf(node)}

@@ -17,8 +17,8 @@ export interface KeyValueEntryProps {
   readonly pairs?: readonly (readonly [string, string])[];
   /** What the column held, where it was not an object: shown as the JSON it is. */
   readonly value?: unknown;
-  /** The entry's own name, for what the table is called. */
-  readonly label?: string;
+  /** The heading the shell wrote above, for what the table is called. */
+  readonly labelledBy?: string;
   readonly keyLabel?: string;
   readonly valueLabel?: string;
   readonly placeholder?: string;
@@ -28,7 +28,7 @@ export interface KeyValueEntryProps {
 export function KeyValueEntry({
   pairs,
   value,
-  label,
+  labelledBy,
   keyLabel = "Key",
   valueLabel = "Value",
   placeholder,
@@ -63,11 +63,11 @@ export function KeyValueEntry({
     <table
       className="perch-entry perch-pairs"
       id={describedBy}
-      // Named here rather than by the shell's label. A `label` names a form
-      // control and a table is not one, so the `for` pointing at this element
-      // is inert — and a table is a thing a reader navigates *to*, listed by
-      // name. Without this it is listed as one of several unnamed tables.
-      {...(label === undefined || label === "" ? {} : { "aria-label": label })}
+      // Named by the heading the shell wrote above. A `label for` names a form
+      // control and a table is not one, so the shell writes a heading instead
+      // and this points at it — a table being a thing a reader navigates *to*,
+      // listed by name, and unnamed among the others without this.
+      {...(labelledBy === undefined ? {} : { "aria-labelledby": labelledBy })}
     >
       <thead>
         <tr>

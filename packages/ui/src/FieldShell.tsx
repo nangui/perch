@@ -15,6 +15,13 @@
  * It also owns the accessibility wiring: the label is bound to the control, and
  * the help line is referenced by `aria-describedby` so a screen reader reads
  * the error with the field rather than in isolation.
+ *
+ * Bound only where binding is a thing that can happen. `label for` reaches a
+ * labelable element — a `button`, an `input`, a `select`, a `textarea` — and
+ * nothing else. Pointed at a paragraph, a table or a contenteditable, it is a
+ * claim of an association that was never made: the element has no name, and
+ * the markup says it has one. Such a child says so with `labelable={false}`,
+ * and gets a heading it can name itself with instead.
  */
 import type { ReactNode } from "react";
 import { useId } from "react";
@@ -55,6 +62,16 @@ export interface FieldShellProps {
    */
   readonly inline?: boolean;
   /**
+   * Whether a `for` can reach what is inside.
+   *
+   * True for a control. False for everything a `label` cannot bind to: an
+   * infolist entry, a placeholder, an editor built out of a contenteditable.
+   * Those are given `aria-labelledby` in the binding, and use it where their
+   * own role admits a name — a table does, a paragraph does not, and a
+   * paragraph sitting under its own heading is read in order anyway.
+   */
+  readonly labelable?: boolean;
+  /**
    * Receives the ids to bind. The control must spread `controlProps` onto its
    * focusable element, or the label and the error are announced to nobody.
    */
@@ -83,6 +100,15 @@ export interface ControlBinding {
   readonly [attribute: string]: unknown;
   readonly id: string;
   readonly "aria-describedby": string;
+  /**
+   * The heading above, for a child a `label` cannot reach.
+   *
+   * Present only when the shell was told `labelable={false}`. A child whose
+   * role admits a name puts it on; one whose role does not — a paragraph —
+   * leaves it alone, and is read in order under the heading like any other
+   * run of text.
+   */
+  readonly "aria-labelledby"?: string;
   readonly "aria-invalid": boolean;
   readonly "aria-required": boolean;
   readonly disabled: boolean;
@@ -100,12 +126,30 @@ export function FieldShell({
   status,
   required = false,
   inline = false,
+  labelable = true,
   beside,
   children,
 }: FieldShellProps): ReactNode {
   const controlId = useId();
   const helpId = `${controlId}-help`;
+  const labelId = `${controlId}-label`;
   const invalid = status.error !== undefined;
+
+  // The same words either way. A required editor is required whether or not a
+  // `for` can reach it, and the mark saying so is not the label's binding.
+  const labelText = (
+    <>
+      {label}
+      {required ? (
+        <>
+          {" "}
+          <span className="perch-field__required" aria-hidden="true">
+            *
+          </span>
+        </>
+      ) : null}
+    </>
+  );
 
   const control = children({
     // The declaration's own first, so nothing below can be overwritten by
@@ -119,6 +163,9 @@ export function FieldShell({
     "aria-describedby": helpId,
     "aria-invalid": invalid,
     "aria-required": required,
+    // Only where the label is not doing it. Two names for one element is one
+    // of them being wrong later.
+    ...(labelable ? {} : { "aria-labelledby": labelId }),
     disabled: status.disabled === true,
     readOnly: status.readOnly === true,
   });
@@ -126,17 +173,18 @@ export function FieldShell({
   return (
     <div className="perch-field" {...(inline ? { "data-inline": "true" } : {})}>
       <div className="perch-field__label">
-        <label className="perch-field__label-text" htmlFor={controlId}>
-          {label}
-          {required ? (
-            <>
-              {" "}
-              <span className="perch-field__required" aria-hidden="true">
-                *
-              </span>
-            </>
-          ) : null}
-        </label>
+        {/* A `span` rather than a `label` where there is nothing to bind to:
+            the class is the same, so it looks the same, and what changes is
+            that it stops claiming an association it does not have. */}
+        {labelable ? (
+          <label className="perch-field__label-text" htmlFor={controlId}>
+            {labelText}
+          </label>
+        ) : (
+          <span className="perch-field__label-text" id={labelId}>
+            {labelText}
+          </span>
+        )}
         {tag === undefined ? null : <span className="perch-field__tag">{tag}</span>}
         {/* At the other end of the row, because the line under the control
             belongs to the error — a hint living there is replaced by one

@@ -147,7 +147,11 @@ export function RichEditorSurface({
       attributes: {
         class: "perch-rich__page",
         id: binding.id,
-        "aria-label": label,
+        // The heading above, rather than a second copy of its words: one of
+        // two copies is the one that stops matching.
+        ...(binding["aria-labelledby"] === undefined
+          ? { "aria-label": label }
+          : { "aria-labelledby": binding["aria-labelledby"] }),
         "aria-describedby": binding["aria-describedby"],
         role: "textbox",
         "aria-multiline": "true",
