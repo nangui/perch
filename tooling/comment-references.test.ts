@@ -49,6 +49,17 @@ function sources(directory: string): string[] {
   return out;
 }
 
+/**
+ * Files that guard a document, and so cannot avoid naming one.
+ *
+ * This file has always exempted itself, for the same reason: the patterns it
+ * refuses are written in it. The exemption is that principle said out loud
+ * rather than a second one. Keep it to files whose subject is the document —
+ * a guard that reads a page and checks it against the tree is not pointing a
+ * reader somewhere else, it is holding the page to what is there.
+ */
+const ABOUT_A_DOCUMENT = new Set(["tooling/counts-live.test.ts"]);
+
 /** `file:line` for every citation, so a failure says where to go. */
 function citations(): string[] {
   const here = fileURLToPath(import.meta.url);
@@ -56,7 +67,7 @@ function citations(): string[] {
 
   for (const root of ROOTS) {
     for (const file of sources(join(ROOT, root))) {
-      if (file === here) continue;
+      if (file === here || ABOUT_A_DOCUMENT.has(relative(ROOT, file))) continue;
       const lines = readFileSync(file, "utf8").split("\n");
       lines.forEach((line, index) => {
         if (CITATIONS.some((pattern) => pattern.test(line))) {

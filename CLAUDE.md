@@ -76,15 +76,29 @@ validate is measured rather than remembered:
 The gate these were written for is cleared. The protocol held at A1, and nothing built since has
 asked for it to be redesigned.
 
-The v0.1 scope in `docs/00-PRD-MASTER.md` §6 is closed — twenty-nine rows, all built — and the
-six CI guardrails all run. What is left is the first publish: `0.1.0`, the five packages
-together (ADR 0008). The release job opens the version pull request; merging it publishes. That
-needs an `NPM_TOKEN` on the repository, which is the one step nobody in this tree can take.
+**v0.1 is closed and published.** Its thirty rows in `docs/00-PRD-MASTER.md` §6 are all built,
+and six packages are on npm at `0.1.2`. The release job opens the version pull request; merging
+it publishes, through npm's trusted publishing rather than a token.
 
-**Two tests need a database, and skip without one.** `pnpm test` reports 2920 passing and 23
-skipped on a bare machine, and 2943 passing with none skipped once `DATABASE_URL` points at a
-PostgreSQL — which is what CI gives it. A suite that fails to load reports its tests as skipped
-rather than as failed, so a skip here is worth opening rather than reading past.
+**`@perchjs/testing` is the seventh package, and it is not published.** It is built and it is in
+the `fixed` version group (ADR 0008), so the next release will try to publish it; npm answers
+404 for that name today. A trusted publisher has to be configured for it, or the release
+publishes six packages and fails on the seventh. That is the one step nobody in this tree can
+take.
+
+**v0.2 is in progress.** Render hooks, the user menu, custom pages, custom resource pages and
+`@perchjs/testing` are built, and the guide is thirty-six pages whose every TypeScript block is
+compiled against what the packages publish. What is left is the rest of the documentation named
+in PRD 10 §4.2 — a page per column and per action, `llms.txt`, the auth recipes, a deployed demo
+— and `discoverResources`, which PRD 04 assigns to v0.2 and which the scope table in PRD 00 does
+not carry. A changeset for `0.2.0` is pending.
+
+**Two suites need a database, and skip without one.** `tooling/database.test.ts` and
+`tooling/panel-database.test.ts` skip what touches PostgreSQL unless `DATABASE_URL` is set,
+which is what CI gives them. The count is deliberately not written here: it changes with
+almost every commit, and a number nobody maintains is worse than none. A suite that fails
+to load reports its tests as skipped rather than as failed, so a skip here is worth opening
+rather than reading past.
 
 ## Package layout
 
@@ -96,10 +110,15 @@ rather than as failed, so a skip here is worth opening rather than reading past.
 | `@perchjs/nest` | `PanelModule`, routing, guards, navigation | core |
 | `@perchjs/ui` | React renderer, component registry | core (types only) |
 | `@perchjs/cli` | code generation | core |
+| `@perchjs/testing` | driving a panel the way a browser does | core, nest |
 
 ## Stack
 
-NestJS · Prisma · PostgreSQL · React 19 · Tailwind v4 · Radix · Zod · strict TypeScript.
+NestJS · Prisma · PostgreSQL · React 19 · Tailwind v4 · Radix · strict TypeScript.
+
+PRD 02 and ARCH 12 name Zod as the validation engine, and nothing in the tree depends on it:
+validation was built without it. Do not assume it is there, and do not settle the difference on
+your own initiative — say so and let me decide which of the two is wrong.
 
 Prisma only, PostgreSQL only, Express only in v0.1. The `DataAdapter` interface exists to make
 other adapters possible later — **do not implement one now, and never cross the boundary.**
@@ -115,6 +134,11 @@ These are not tasks for later. They exist before the code they protect.
 - attack tests: forged state, unknown path, unauthorised action
 - DMMF contract test
 
+More have been added since, and they read the source rather than the behaviour: that no comment
+cites a document by number, that every example in the documentation compiles against what the
+packages publish, that no declared style token goes unread, that every count written in prose
+matches the tree, that no TypeScript file sits outside every project. Most live in `tooling/`.
+
 ## How we work
 
 **You run no git command.** Not `init`, not `add`, not `commit`, not `push`, not `gh`. You give
@@ -126,7 +150,7 @@ and wait for my confirmation.
 
 **Commits:** Conventional Commits, in English, imperative, subject ≤ 72 characters.
 Types: `feat` `fix` `docs` `chore` `refactor` `test` `build` `ci`.
-Scopes: `core` `prisma` `prisma-generator` `nest` `ui` `cli` `docs` `repo`.
+Scopes: `core` `prisma` `prisma-generator` `nest` `ui` `cli` `testing` `docs` `repo`.
 One commit = one logical change. The body explains the *why*, not the *how*.
 
 **Hand a commit over as a file, never as `-m`.** Write the message to the session scratchpad —

@@ -1,5 +1,5 @@
 /**
- * A number written in prose still says what the tree says.
+ * A number or a list written in prose still says what the tree says.
  *
  * The front page, the contributing guide and the changeset notes each count
  * something out loud: how many packages ship together, how many decisions have
@@ -11,6 +11,12 @@
  * to six to seven, and was corrected in six places at once only when adding a
  * changeset happened to put the release machinery in front of somebody. The
  * decision count was out by seven records.
+ *
+ * The lists are here for the same reason a count is: `@perchjs/testing` was
+ * built, released with the others and missing from both the package table and
+ * the commit scopes in CLAUDE.md, which is the file every session is told to
+ * read in full before acting. A seventh package that the orientation does not
+ * mention is one nobody orients by.
  *
  * Only the counts that earn their place are here. The others were rewritten to
  * say `every` and cannot rot; this guards the ones a reader is genuinely better
@@ -143,6 +149,31 @@ describe("a count written in prose", () => {
       spelt(truth),
       `${claim.page} says ${String(found?.[1])} ${claim.counts}; there are ${String(truth)}.`,
     ).toContain(found?.[1]);
+  });
+});
+
+describe("a list written in prose", () => {
+  it("names every package that ships, in CLAUDE.md", () => {
+    // Two lists, one fact. The table says what each package is for; the scopes
+    // line says what a commit touching it may be called. A package missing
+    // from either is a package somebody has to invent a place for.
+    const page = read("CLAUDE.md");
+    const scopes = /^Scopes: (.+)\.$/m.exec(page)?.[1] ?? "";
+    const missing = publishable().flatMap((name) => {
+      const short = name.replace("@perchjs/", "");
+      const out: string[] = [];
+      if (!page.includes(`| \`${name}\``)) out.push(`${name} (package table)`);
+      if (!scopes.includes(`\`${short}\``)) out.push(`${name} (commit scopes)`);
+      return out;
+    });
+
+    expect(missing, `CLAUDE.md does not mention: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("found the scopes line at all", () => {
+    // Without this the rule above passes by matching nothing rather than by
+    // finding every package named.
+    expect(/^Scopes: (.+)\.$/m.exec(read("CLAUDE.md"))?.[1]).toContain("`core`");
   });
 });
 
