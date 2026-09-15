@@ -45,6 +45,7 @@ export default defineConfig({
           { text: "Resources", link: "/resources" },
           { text: "Forms", link: "/forms" },
           { text: "Tables", link: "/tables" },
+          { text: "Actions", link: "/actions" },
         ],
       },
       {
