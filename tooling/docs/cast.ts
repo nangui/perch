@@ -76,3 +76,16 @@ export declare const IR: Ir;
 /** Helpers of the reader's own that examples call rather than build. */
 export declare function hash(plain: string): Promise<string>;
 export declare function countPending(user: unknown): Promise<number>;
+
+/**
+ * Renderers a plugin brings with it.
+ *
+ * Typed loosely on purpose: `react` is not a dependency of the proofs, and an
+ * example about registering a component is not an example about React's types.
+ */
+export declare const StarRatingRenderer: Parameters<
+  typeof import("@perchjs/ui").registerComponent
+>[1];
+export declare const AuditIndicator: Parameters<
+  typeof import("@perchjs/ui").registerRenderHook
+>[1];

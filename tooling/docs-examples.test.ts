@@ -105,6 +105,8 @@ function blocks(): readonly Block[] {
 const PRELUDE = [
   "AdminModule",
   "AppDataAdapter",
+  "AuditIndicator",
+  "StarRatingRenderer",
   "IR",
   "JwtAuthGuard",
   "PrismaService",

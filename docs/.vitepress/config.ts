@@ -50,6 +50,7 @@ export default defineConfig({
           { text: "Actions", link: "/actions" },
           { text: "Notifications", link: "/notifications" },
           { text: "Testing", link: "/testing" },
+          { text: "Plugins", link: "/plugins" },
         ],
       },
       {
