@@ -28,7 +28,7 @@ Last one wins, which is why yours comes after.
 
 ## Tokens
 
-Every colour, size, radius and shadow is a custom property. Sixty-eight of them, grouped
+Every colour, size, radius and shadow is a custom property. Sixty-seven of them, grouped
 by what they are for rather than by what they look like.
 
 ```css
@@ -44,12 +44,9 @@ Seventeen families: `accent`, `border`, `content`, `control`, `danger`, `focus`,
 `help`, `modal`, `pending`, `radius`, `shadow`, `space`, `success`, `surface`, `text` and
 `warning`.
 
-All but one are read by something. `--perch-font-serif` names a stack the panel never
-draws with, so setting it changes nothing today; it is there for a surface that wants it
-later.
-
-That distinction is worth making when you are hunting for the token that controls a
-thing. A token nothing reads is a setting that looks like it works.
+Every one of them is read by something. A token nothing reads is a setting that looks
+like it works, so when you cannot find the one that controls a thing, the answer is that
+it is controlled somewhere else rather than that you have missed it.
 
 Component styles reference these and never a raw colour. That is the rule the token layer
 exists to make possible: a screen that names `#21594a` cannot be re-themed, and one theme
@@ -57,8 +54,8 @@ is how raw colours get back into components.
 
 ## Fonts
 
-The panel ships no font files. The three font tokens are stacks with real fallbacks, so
-you can load the named faces yourself or let the fallback stand.
+The panel ships no font files. Both font tokens are stacks with real fallbacks, so you
+can load the named faces yourself or let the fallback stand.
 
 ```css
 :root {

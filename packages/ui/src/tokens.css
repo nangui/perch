@@ -168,7 +168,6 @@
   /* Type. The panel ships no font files: these are stacks, and an integrator
      may load the named faces or let the fallback stand. */
   --perch-font-sans: "Libre Franklin", system-ui, -apple-system, sans-serif;
-  --perch-font-serif: "Newsreader", Georgia, serif;
   --perch-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 
   --perch-text-xs: 10px;
