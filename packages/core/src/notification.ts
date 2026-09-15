@@ -26,8 +26,16 @@ export class Notification {
   }
 
   static make(): Notification {
-    // Neutral until something says otherwise. An empty title is what the audit
-    // catches, not what this pretends to fill in.
+    // Neutral until something says otherwise, and empty rather than invented:
+    // a title this filled in would be words nobody wrote, shown to a reader as
+    // though somebody had.
+    //
+    // Nothing catches an empty one, and nothing here can. The audit runs what
+    // a resource declares, its form and its table and its infolist, and reads
+    // the tree each answers with. A notification is in none of them: it is what
+    // an action's callback returns, at the moment it returns it, and the boot
+    // never runs a callback. So an action that builds one and forgets the title
+    // shows a blank message, and nothing will have said so first.
     return new Notification({ title: "", tone: "info" });
   }
 
