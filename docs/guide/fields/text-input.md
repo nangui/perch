@@ -23,12 +23,16 @@ export class PeopleResource implements PanelResource {
 ## Flavours
 
 The kind of thing the box holds. Each one changes the keyboard a phone offers and what
-the browser refuses before the form is sent, **and each is checked again on arrival**.
+the browser refuses before the form is sent.
 
-That second half is the part worth knowing. An `input[type=email]` refuses what a person
-types and refuses nothing else: anything reaching the field another way, a forged state
-or a cell edited in a table, was writing `not-an-address` into a column the form said
-held an address.
+`.email()`, `.url()` and `.numeric()` are **also checked on arrival**, which is the part
+worth knowing: an `input[type=email]` refuses what a person types and refuses nothing
+else, so anything reaching the field another way, a forged state or a cell edited in a
+table, was writing `not-an-address` into a column the form said held an address.
+
+`.tel()` and `.password()` add no such check. A telephone number has no shape worth
+refusing across countries, and a password is whatever somebody chose. If either needs a
+shape, `.rule()` is where it goes.
 
 ```ts
 import { Schema, TextInput } from "@perchjs/core";

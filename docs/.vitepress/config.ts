@@ -60,6 +60,8 @@ export default defineConfig({
           { text: "ToggleButtons", link: "/fields/toggle-buttons" },
           { text: "DateTimePicker", link: "/fields/date-time-picker" },
           { text: "FileUpload", link: "/fields/file-upload" },
+          { text: "Repeater", link: "/fields/repeater" },
+          { text: "TagsInput", link: "/fields/tags-input" },
         ],
       },
       {
