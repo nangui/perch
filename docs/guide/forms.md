@@ -227,6 +227,7 @@ Each has a page of its own, with what it accepts and what it stores.
 [DateTimePicker](/fields/date-time-picker) · [FileUpload](/fields/file-upload) ·
 [Repeater](/fields/repeater) · [TagsInput](/fields/tags-input) ·
 [KeyValue](/fields/key-value) · [ColorPicker](/fields/color-picker) ·
-[Hidden](/fields/hidden) · [Placeholder](/fields/placeholder)
+[Hidden](/fields/hidden) · [Placeholder](/fields/placeholder) ·
+[RichEditor](/fields/rich-editor) · [MarkdownEditor](/fields/markdown-editor)
 
-Still to be written: `RichEditor` and `MarkdownEditor`.
+That is all eighteen.

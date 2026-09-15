@@ -65,6 +65,8 @@ export default defineConfig({
           { text: "KeyValue", link: "/fields/key-value" },
           { text: "ColorPicker", link: "/fields/color-picker" },
           { text: "Hidden", link: "/fields/hidden" },
+          { text: "RichEditor", link: "/fields/rich-editor" },
+          { text: "MarkdownEditor", link: "/fields/markdown-editor" },
           { text: "Placeholder", link: "/fields/placeholder" },
         ],
       },
