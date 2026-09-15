@@ -225,7 +225,8 @@ Each has a page of its own, with what it accepts and what it stores.
 [Radio](/fields/radio) · [CheckboxList](/fields/checkbox-list) ·
 [ToggleButtons](/fields/toggle-buttons) ·
 [DateTimePicker](/fields/date-time-picker) · [FileUpload](/fields/file-upload) ·
-[Repeater](/fields/repeater) · [TagsInput](/fields/tags-input)
+[Repeater](/fields/repeater) · [TagsInput](/fields/tags-input) ·
+[KeyValue](/fields/key-value) · [ColorPicker](/fields/color-picker) ·
+[Hidden](/fields/hidden) · [Placeholder](/fields/placeholder)
 
-Still to be written: `KeyValue`, `ColorPicker`, `RichEditor`, `MarkdownEditor`, `Hidden`,
-`Placeholder`.
+Still to be written: `RichEditor` and `MarkdownEditor`.

@@ -62,6 +62,10 @@ export default defineConfig({
           { text: "FileUpload", link: "/fields/file-upload" },
           { text: "Repeater", link: "/fields/repeater" },
           { text: "TagsInput", link: "/fields/tags-input" },
+          { text: "KeyValue", link: "/fields/key-value" },
+          { text: "ColorPicker", link: "/fields/color-picker" },
+          { text: "Hidden", link: "/fields/hidden" },
+          { text: "Placeholder", link: "/fields/placeholder" },
         ],
       },
       {
