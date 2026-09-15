@@ -222,8 +222,9 @@ export type {
   StateTransform,
   RuleKind,
   ValidationRule,
+  ValueRefusal,
 } from "./field.js";
-export { baseFieldState, Field, isDehydrated } from "./field.js";
+export { baseFieldState, Field, isDehydrated, isUnset } from "./field.js";
 
 export type { CheckboxState } from "./fields/checkbox.js";
 export { Checkbox } from "./fields/checkbox.js";

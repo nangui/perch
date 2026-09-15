@@ -79,8 +79,8 @@ subscribes, and a tab that is opened fetches nothing because it was resolved wit
 Two halves. A class on the server that says what it is and what it admits:
 
 ```ts
-import type { FieldState } from "@perchjs/core";
-import { baseFieldState, configured, Field } from "@perchjs/core";
+import type { FieldState, ValueRefusal } from "@perchjs/core";
+import { baseFieldState, configured, Field, isUnset } from "@perchjs/core";
 
 export interface StarRatingState extends FieldState {
   readonly max?: number;
@@ -108,8 +108,9 @@ export class StarRating extends Field {
   }
 
   /** What may arrive. Anything else is dropped at the boundary. */
-  override admits(value: unknown): "wrong-shape" | undefined {
-    if (value === undefined || value === null || value === "") return undefined;
+  override admits(value: unknown): ValueRefusal | undefined {
+    // Clearing is always allowed: it is the one thing no declaration names.
+    if (isUnset(value)) return undefined;
     return typeof value === "number" && Number.isInteger(value) && value >= 0
       ? undefined
       : "wrong-shape";
@@ -129,11 +130,9 @@ registerComponent("StarRating", StarRatingRenderer);
 somebody posts, and it is asked before any of your code sees the value. A field that
 admits everything is a field with no boundary, whatever its renderer draws.
 
-Two rough edges, both worth knowing before you start. The type of what `admits` returns is
-not exported, so the union is written out above rather than named. And the built-in test
-for "nothing at all" is not exported either, which is why the first line of `admits` spells
-out `undefined`, `null` and the empty string by hand. Both are available to the framework's
-own fields and not yet to yours.
+`isUnset` is the framework's own test for "nothing at all", and using it rather than
+writing the three cases by hand is what keeps your field agreeing with every other one
+about what empty means.
 
 ## A data source of your own
 
