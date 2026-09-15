@@ -54,6 +54,10 @@ export default defineConfig({
           { text: "Textarea", link: "/fields/textarea" },
           { text: "Select", link: "/fields/select" },
           { text: "Checkbox", link: "/fields/checkbox" },
+          { text: "Toggle", link: "/fields/toggle" },
+          { text: "Radio", link: "/fields/radio" },
+          { text: "CheckboxList", link: "/fields/checkbox-list" },
+          { text: "ToggleButtons", link: "/fields/toggle-buttons" },
         ],
       },
       {

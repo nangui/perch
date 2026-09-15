@@ -221,8 +221,9 @@ change is `.disabled()`, and both of those are enforced again on the way back in
 Each has a page of its own, with what it accepts and what it stores.
 
 [TextInput](/fields/text-input) · [Textarea](/fields/textarea) ·
-[Select](/fields/select) · [Checkbox](/fields/checkbox)
+[Select](/fields/select) · [Checkbox](/fields/checkbox) · [Toggle](/fields/toggle) ·
+[Radio](/fields/radio) · [CheckboxList](/fields/checkbox-list) ·
+[ToggleButtons](/fields/toggle-buttons)
 
-Still to be written: `Toggle`, `Radio`, `CheckboxList`, `ToggleButtons`, `DateTimePicker`,
-`FileUpload`, `Repeater`, `TagsInput`, `KeyValue`, `ColorPicker`, `RichEditor`,
-`MarkdownEditor`, `Hidden`, `Placeholder`.
+Still to be written: `DateTimePicker`, `FileUpload`, `Repeater`, `TagsInput`, `KeyValue`,
+`ColorPicker`, `RichEditor`, `MarkdownEditor`, `Hidden`, `Placeholder`.
