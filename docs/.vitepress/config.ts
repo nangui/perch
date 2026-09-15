@@ -48,6 +48,7 @@ export default defineConfig({
           { text: "Tables", link: "/tables" },
           { text: "Infolists", link: "/infolists" },
           { text: "Configuration", link: "/configuration" },
+          { text: "Styling", link: "/styling" },
           { text: "Navigation", link: "/navigation" },
           { text: "Users", link: "/users" },
           { text: "Actions", link: "/actions" },
