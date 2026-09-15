@@ -41,7 +41,10 @@ export default defineConfig({
       },
       {
         text: "Building a panel",
-        items: [{ text: "Resources", link: "/resources" }],
+        items: [
+          { text: "Resources", link: "/resources" },
+          { text: "Forms", link: "/forms" },
+        ],
       },
       {
         text: "Going to production",
