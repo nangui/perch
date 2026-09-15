@@ -43,6 +43,7 @@ export default defineConfig({
         text: "Building a panel",
         items: [
           { text: "Resources", link: "/resources" },
+          { text: "Schemas", link: "/schemas" },
           { text: "Forms", link: "/forms" },
           { text: "Tables", link: "/tables" },
           { text: "Infolists", link: "/infolists" },
