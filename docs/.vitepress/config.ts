@@ -47,6 +47,16 @@ export default defineConfig({
         ],
       },
       {
+        text: "Fields",
+        collapsed: false,
+        items: [
+          { text: "TextInput", link: "/fields/text-input" },
+          { text: "Textarea", link: "/fields/textarea" },
+          { text: "Select", link: "/fields/select" },
+          { text: "Checkbox", link: "/fields/checkbox" },
+        ],
+      },
+      {
         text: "Going to production",
         items: [{ text: "Deployment", link: "/deployment" }],
       },
