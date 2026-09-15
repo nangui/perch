@@ -89,3 +89,7 @@ export declare const StarRatingRenderer: Parameters<
 export declare const AuditIndicator: Parameters<
   typeof import("@perchjs/ui").registerRenderHook
 >[1];
+
+/** Modules of the reader's own, whose providers their resolvers inject. */
+export declare const CityModule: new () => unknown;
+export declare const BillingModule: new () => unknown;

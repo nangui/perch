@@ -106,6 +106,8 @@ const PRELUDE = [
   "AdminModule",
   "AppDataAdapter",
   "AuditIndicator",
+  "BillingModule",
+  "CityModule",
   "StarRatingRenderer",
   "IR",
   "JwtAuthGuard",
