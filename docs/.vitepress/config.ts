@@ -58,6 +58,8 @@ export default defineConfig({
           { text: "Radio", link: "/fields/radio" },
           { text: "CheckboxList", link: "/fields/checkbox-list" },
           { text: "ToggleButtons", link: "/fields/toggle-buttons" },
+          { text: "DateTimePicker", link: "/fields/date-time-picker" },
+          { text: "FileUpload", link: "/fields/file-upload" },
         ],
       },
       {
