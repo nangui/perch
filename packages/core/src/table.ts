@@ -2,10 +2,15 @@
  * The table a resource declares.
  *
  * The columns, which of them may be sorted by or searched, the filters a
- * reader can narrow it with, and the actions a row offers. Bulk actions,
- * pagination sizes and the empty state are not here; each needs a route or a
- * renderer that does not exist yet, and an option that does nothing is worse
- * than an absent one.
+ * reader can narrow it with, the actions a row offers, the ones above the
+ * table and the ones a selection takes, where it opens, and what it says when
+ * there is nothing to show.
+ *
+ * How many rows a page holds is not here. A reader picks that and the browser
+ * remembers it, and a declared size would be a number a resource states and a
+ * table ignores. An option that does nothing is worse than an absent one,
+ * which is the rule that kept bulk actions and the empty state out of this
+ * list until they had a route and a renderer to reach.
  */
 import type { Action, ActsOn, Confirmation, ModalWidth } from "./action.js";
 import { actsOn, ActionGroup, everyAction } from "./action.js";
