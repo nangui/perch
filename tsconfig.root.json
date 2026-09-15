@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // Nothing here is built. The project exists so that the configuration
+    // files belonging to no package are read by something: the root
+    // tsconfig.json lists references and no files of its own, so every one of
+    // them sat outside every project.
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "types": ["node"],
+    // Two of the three are JavaScript, and the architecture rules carry a
+    // `@type` tag naming the cruiser's own configuration type. Without
+    // `checkJs` neither the tag nor anything else in those files is read.
+    "allowJs": true,
+    "checkJs": true
+  },
+  // Globs rather than names for the per-package ones: there is one build
+  // configuration per package, and the next package should arrive covered
+  // rather than be remembered.
+  "include": [
+    "vitest.config.ts",
+    "eslint.config.mjs",
+    ".dependency-cruiser.cjs",
+    "**/tsdown.config.ts",
+    "**/prisma.config.ts"
+  ]
+}

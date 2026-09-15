@@ -11,7 +11,7 @@
  *
  * @type {import('dependency-cruiser').IConfiguration}
  */
-module.exports = {
+const configuration = {
   forbidden: [
     // ---------------------------------------------------------------- domain
     {
@@ -233,3 +233,10 @@ module.exports = {
     cache: false,
   },
 };
+
+// Through a named binding rather than straight onto `module.exports`: a
+// `@type` tag on the export assignment declares the module's shape instead of
+// checking what is assigned to it, so the annotation above was decoration.
+// On a binding it is enforced, and the rules below are read against the
+// cruiser's own types.
+module.exports = configuration;

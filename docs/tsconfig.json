@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    // The site is built by VitePress, which compiles this file itself. Nothing
+    // here is emitted; the project exists so the config is checked at all.
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "types": ["node"]
+  },
+  // Named rather than globbed: `**/*` skips dotted directories, and the only
+  // TypeScript this package has lives in one of them.
+  "include": [".vitepress/**/*.ts"]
+}

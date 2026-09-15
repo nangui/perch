@@ -2,6 +2,7 @@
   "name": "perch",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "Declarative admin panel framework for NestJS \u2014 monorepo root",
   "license": "MIT",
   "author": "Adonai Nangui <adonainangui03@gmail.com>",
@@ -20,8 +21,8 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "build": "turbo run build",
-    "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint && eslint scripts",
+    "typecheck": "turbo run typecheck && tsc -p tsconfig.root.json",
+    "lint": "turbo run lint && eslint scripts vitest.config.ts eslint.config.mjs .dependency-cruiser.cjs \"**/tsdown.config.ts\" \"**/prisma.config.ts\"",
     "package:check": "turbo run package:check",
     "test": "vitest run",
     "boundaries": "depcruise packages --config .dependency-cruiser.cjs",
