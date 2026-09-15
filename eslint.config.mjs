@@ -1,7 +1,12 @@
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/coverage/**", "**/node_modules/**"] },
+  {
+    // `.generated/` is a build output like `dist/`: a Prisma client written by
+    // the generator, not by anybody here. Linting it reports 300 problems
+    // nobody can fix without editing a file that is rewritten on every run.
+    ignores: ["**/dist/**", "**/coverage/**", "**/node_modules/**", "**/.generated/**"],
+  },
   ...tseslint.configs.strictTypeChecked,
   {
     languageOptions: {

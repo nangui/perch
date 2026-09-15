@@ -18,6 +18,7 @@
  */
 import type { DataAdapter, Ir, Schema } from "@perchjs/core";
 import type { PrismaClientLike } from "@perchjs/prisma";
+import type { registerComponent, registerRenderHook } from "@perchjs/ui";
 
 /** A resource class, as a reader's own would be. */
 export declare class UserResource {
@@ -83,12 +84,8 @@ export declare function countPending(user: unknown): Promise<number>;
  * Typed loosely on purpose: `react` is not a dependency of the proofs, and an
  * example about registering a component is not an example about React's types.
  */
-export declare const StarRatingRenderer: Parameters<
-  typeof import("@perchjs/ui").registerComponent
->[1];
-export declare const AuditIndicator: Parameters<
-  typeof import("@perchjs/ui").registerRenderHook
->[1];
+export declare const StarRatingRenderer: Parameters<typeof registerComponent>[1];
+export declare const AuditIndicator: Parameters<typeof registerRenderHook>[1];
 
 /** Modules of the reader's own, whose providers their resolvers inject. */
 export declare const CityModule: new () => unknown;

@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "typecheck": "tsc",
+    "lint": "eslint ."
+  },
   "description": "Cross-package proofs. Never published; not a package of the framework.",
   "devDependencies": {
     "@nestjs/common": "^11.1.28",

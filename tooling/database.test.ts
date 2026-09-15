@@ -40,7 +40,7 @@ const withDatabase = DATABASE_URL === undefined ? describe.skip : describe;
 const statements: string[] = [];
 
 const textOf = (arg: unknown): string =>
-  typeof arg === "string" ? arg : ((arg as { text?: string })?.text ?? "");
+  typeof arg === "string" ? arg : ((arg as { text?: string } | null)?.text ?? "");
 
 /**
  * Counts every statement exactly once, at the connection.
@@ -63,8 +63,8 @@ function record(target: pg.Pool): void {
   });
 }
 
-let pool: pg.Pool;
-let client: { $disconnect: () => Promise<void> };
+let pool: pg.Pool | undefined;
+let client: { $disconnect: () => Promise<void> } | undefined;
 let adapter: DataAdapter;
 
 beforeAll(async () => {
@@ -77,11 +77,11 @@ beforeAll(async () => {
   // static import would break the file for anyone who has never run the
   // generator — including when this suite is meant to skip.
   const { PrismaClient } = (await import("./.generated/client/index.js")) as {
-    PrismaClient: new (options: unknown) => Record<string, never>;
+    PrismaClient: new (options: unknown) => { $disconnect: () => Promise<void> };
   };
   const { IR } = (await import("./.generated/ir.ts")) as { IR: Ir };
 
-  client = new PrismaClient({ adapter: new PrismaPg(pool) }) as never;
+  client = new PrismaClient({ adapter: new PrismaPg(pool) });
   adapter = new PrismaDataAdapter({ client: client as never, ir: IR });
 
   // `forceDelete`, because this means destroy: `delete` marks a soft-deleting
@@ -122,7 +122,7 @@ withDatabase("reading, against a real database", () => {
     });
     for (let i = 0; i < 4; i += 1) {
       await adapter.create("Post", {
-        set: { title: `Post ${i}`, published: i % 2 === 0 },
+        set: { title: `Post ${String(i)}`, published: i % 2 === 0 },
         relations: {
           author: { connect: [author["id"] as Id] },
           comments: {
@@ -385,11 +385,11 @@ withDatabase("writing, against a real database", () => {
 withDatabase("no query per row", () => {
   async function seed(from: number, to: number): Promise<void> {
     const author = await adapter.create("Author", {
-      set: { email: `bulk${from}@example.com`, name: `Bulk ${from}` },
+      set: { email: `bulk${String(from)}@example.com`, name: `Bulk ${String(from)}` },
     });
     for (let i = from; i < to; i += 1) {
       await adapter.create("Post", {
-        set: { title: `Bulk ${i}` },
+        set: { title: `Bulk ${String(i)}` },
         relations: {
           author: { connect: [author["id"] as Id] },
           comments: { create: [{ set: { body: "one" } }, { set: { body: "two" } }] },

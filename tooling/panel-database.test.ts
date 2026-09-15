@@ -48,8 +48,8 @@ import { PanelModule, PanelResource } from "@perchjs/nest";
 const DATABASE_URL = process.env["DATABASE_URL"];
 const withDatabase = DATABASE_URL === undefined ? describe.skip : describe;
 
-let pool: pg.Pool;
-let client: { $disconnect: () => Promise<void> };
+let pool: pg.Pool | undefined;
+let client: { $disconnect: () => Promise<void> } | undefined;
 let adapter: DataAdapter;
 
 /**
@@ -73,6 +73,10 @@ class AppAdapter implements DataAdapter {
   forceDelete: DataAdapter["forceDelete"] = (model, ids) =>
     adapter.forceDelete(model, ids);
   restore: DataAdapter["restore"] = (model, ids) => adapter.restore(model, ids);
+  attach: DataAdapter["attach"] = (model, id, relation, targets) =>
+    adapter.attach(model, id, relation, targets);
+  detach: DataAdapter["detach"] = (model, id, relation, targets) =>
+    adapter.detach(model, id, relation, targets);
   transaction: DataAdapter["transaction"] = (fn) => adapter.transaction(fn);
 }
 
@@ -126,7 +130,7 @@ function assets(): {
   };
 }
 
-let app: INestApplication;
+let app: INestApplication | undefined;
 let url: string;
 
 beforeAll(async () => {
@@ -134,11 +138,11 @@ beforeAll(async () => {
 
   pool = new pg.Pool({ connectionString: DATABASE_URL });
   const { PrismaClient } = (await import("./.generated/client/index.js")) as {
-    PrismaClient: new (options: unknown) => Record<string, never>;
+    PrismaClient: new (options: unknown) => { $disconnect: () => Promise<void> };
   };
   const { IR } = (await import("./.generated/ir.ts")) as { IR: Ir };
 
-  client = new PrismaClient({ adapter: new PrismaPg(pool) }) as never;
+  client = new PrismaClient({ adapter: new PrismaPg(pool) });
   adapter = new PrismaDataAdapter({ client: client as never, ir: IR });
 
   const moduleRef = await Test.createTestingModule({
@@ -221,7 +225,7 @@ withDatabase("the panel over the real adapter", () => {
     expect(answer.status).toBe(200);
     expect(body.total).toBe(1);
     expect(body.rows[0]?.["name"]).toBe("Ada Lovelace");
-    expect((body.rows[0]?.["country"] as Row)?.["name"]).toBe(COUNTRY);
+    expect((body.rows[0]?.["country"] as Row | undefined)?.["name"]).toBe(COUNTRY);
   });
 
   it("filters on the text the reader typed", async () => {

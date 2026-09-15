@@ -20,6 +20,10 @@
       "cache": false,
       "persistent": true
     },
+    "@perchjs/tooling#typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
     "@perchjs/docs#build": {
       "dependsOn": ["^build"],
       "outputs": [".vitepress/dist/**", ".vitepress/cache/**"]

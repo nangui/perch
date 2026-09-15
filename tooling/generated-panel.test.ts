@@ -193,7 +193,7 @@ describe("with --write", () => {
     expect(app).toContain("imports: [AdminModule, PrismaModule]");
   }, 30_000);
 
-  it("wires the service the application already had", async () => {
+  it("wires the service the application already had", () => {
     const data = readFileSync(join(generated, "src", "admin", "panel-data.ts"), "utf8");
     const admin = readFileSync(
       join(generated, "src", "admin", "admin.module.ts"),

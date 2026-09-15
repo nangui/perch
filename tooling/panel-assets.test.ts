@@ -5,8 +5,6 @@
  * to resolve; this loads both published builds and says it *works*. Neither
  * implies the other: the guard passes on a specifier that resolves nowhere.
  */
-import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -47,7 +45,9 @@ describe("the published @perchjs/nest resolves the manifest", () => {
     // packages/nest/tsconfig.build.json turns the two decorator flags on against
     // the repository default; this notices if that changes.
     const module = (await import(pathToFileURL(join(NEST_DIST, "index.js")).href)) as {
-      PanelAssetsController: new (...args: never[]) => { read: unknown };
+      PanelAssetsController: (new (...args: never[]) => object) & {
+        prototype: { read: (...args: never[]) => unknown };
+      };
     };
     const controller = module.PanelAssetsController;
 

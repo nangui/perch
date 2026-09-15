@@ -9,7 +9,6 @@
  * The manifest is checked alongside, because a budget met by a file nobody
  * serves proves nothing.
  */
-import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { join } from "node:path";

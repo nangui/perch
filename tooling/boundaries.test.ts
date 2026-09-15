@@ -13,29 +13,14 @@
  * checked here.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const DEPCRUISE = join(ROOT, "node_modules", ".bin", "depcruise");
 const ARGS = ["packages", "--config", ".dependency-cruiser.cjs"];
-/**
- * Every workspace package, read from disk rather than listed. A sixth package
- * was added and both hardcoded lists silently stopped covering the workspace;
- * deriving it is what makes that impossible rather than merely unlikely.
- */
-const PACKAGES = readdirSync(new URL("../packages", import.meta.url), {
-  withFileTypes: true,
-})
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => entry.name)
-  .filter((name) =>
-    existsSync(new URL(`../packages/${name}/package.json`, import.meta.url)),
-  )
-  .sort();
-
 /**
  * Error-severity rule names, read from the JSON report. Warnings are excluded on
  * purpose: only errors fail CI, and the fixtures below are legitimately orphan

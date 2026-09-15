@@ -1,0 +1,21 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    // Nothing here is built or shipped: these files are proofs, run by vitest.
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "types": ["node"],
+    // The database suites import `.generated/ir.ts` by that name, because that
+    // is the file: the generator writes no `.js` beside it, and an import
+    // spelled `.js` would resolve to nothing outside a bundler. Safe only
+    // because this project emits nothing.
+    "allowImportingTsExtensions": true
+  },
+  // `.generated/` is a build output. Its own types are checked where they are
+  // used, which is enough, and checking it here would fail on code nobody in
+  // this tree wrote and the generator rewrites on every run.
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", ".generated"]
+}

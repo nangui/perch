@@ -24,7 +24,7 @@
  * comparing timestamps and was intermittent, which is worse than the hazard —
  * a test that cries wolf teaches people to run it again.
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -35,7 +35,7 @@ import {
 } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
