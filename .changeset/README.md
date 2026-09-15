@@ -6,12 +6,12 @@ made the change. `pnpm changeset` creates one interactively.
 Two things here differ from a default Changesets setup, both required by
 [ADR 0008](../docs/adr/0008-versioning-policy.md):
 
-- **`fixed` covers `@perchjs/*`.** The five packages always carry the same
-  version and are published together, including those unchanged in that release.
-  So the bump you pick in a changeset applies to all five, whichever package you
-  name.
+- **`fixed` covers `@perchjs/*`.** Every one of them carries the same version
+  and is published with the others, including those unchanged in that release.
+  So the bump you pick in a changeset applies to all of them, whichever package
+  you name.
 - **`changelog` is `false`.** Changesets would otherwise write one CHANGELOG per
-  package — five files describing the same release. `scripts/changelog.mjs`
+  package, each describing the same release. `scripts/changelog.mjs`
   folds the pending changesets into the single root `CHANGELOG.md` instead, and
   `pnpm release:version` runs it before the bump.
 

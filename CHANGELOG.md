@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Perch. The six `@perchjs/*` packages share this file and
+All notable changes to Perch. Every `@perchjs/*` package shares this file and
 this version number — they are released together ([ADR 0008](docs/adr/0008-versioning-policy.md)).
 
 ## 0.1.2 — 2026-09-14
