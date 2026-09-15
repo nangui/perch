@@ -47,6 +47,7 @@ export default defineConfig({
           { text: "Tables", link: "/tables" },
           { text: "Infolists", link: "/infolists" },
           { text: "Actions", link: "/actions" },
+          { text: "Notifications", link: "/notifications" },
         ],
       },
       {
