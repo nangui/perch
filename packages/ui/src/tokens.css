@@ -215,8 +215,4 @@
      the offset; it uses the surface token so it works on any ground. */
   --perch-focus-ring:
     0 0 0 1px var(--perch-surface), 0 0 0 3px var(--perch-accent-ring);
-
-  /* Debounce, exposed as tokens so a field cannot invent its own timing. */
-  --perch-debounce-text: 400ms;
-  --perch-debounce-immediate: 0ms;
 }

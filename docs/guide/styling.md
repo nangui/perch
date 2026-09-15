@@ -28,8 +28,8 @@ Last one wins, which is why yours comes after.
 
 ## Tokens
 
-Every colour, size, radius and shadow is a custom property. Seventy of them, grouped by
-what they are for rather than by what they look like.
+Every colour, size, radius and shadow is a custom property. Sixty-eight of them, grouped
+by what they are for rather than by what they look like.
 
 ```css
 :root {
@@ -40,13 +40,16 @@ what they are for rather than by what they look like.
 }
 ```
 
-Eighteen families: `accent`, `border`, `content`, `control`, `danger`, `debounce`,
-`focus`, `font`, `help`, `modal`, `pending`, `radius`, `shadow`, `space`, `success`,
-`surface`, `text` and `warning`.
+Seventeen families: `accent`, `border`, `content`, `control`, `danger`, `focus`, `font`,
+`help`, `modal`, `pending`, `radius`, `shadow`, `space`, `success`, `surface`, `text` and
+`warning`.
 
-`debounce` is the odd one, and the one to leave alone. It holds two durations rather than
-a colour, and nothing currently reads them: changing `--perch-debounce-text` changes
-nothing. It is named here so that you do not spend an afternoon finding that out.
+All but one are read by something. `--perch-font-serif` names a stack the panel never
+draws with, so setting it changes nothing today; it is there for a surface that wants it
+later.
+
+That distinction is worth making when you are hunting for the token that controls a
+thing. A token nothing reads is a setting that looks like it works.
 
 Component styles reference these and never a raw colour. That is the rule the token layer
 exists to make possible: a screen that names `#21594a` cannot be re-themed, and one theme
