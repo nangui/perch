@@ -18,7 +18,7 @@ import type { Authorization } from "./authorization.js";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
-import { model } from "./__fixtures__/ir.js";
+import { key, model, scalar } from "./__fixtures__/ir.js";
 
 interface Principal {
   readonly id: string;
@@ -32,13 +32,15 @@ const ROWS: Row[] = [
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [] };
+    // Holding the model `meta` describes. A representation and a metadata that
+    // disagree is a double contradicting itself, and the boot refuses it.
+    return { models: [this.meta()] };
   }
   meta(): ModelMeta {
     // Strictly what the panel asks of it: the type of the key it looks rows up
     // by.
     // `fields` empty on purpose: nothing here reads a column off the model.
-    return model({ fields: [] });
+    return model({ fields: [key(), scalar("title"), scalar("author")] });
   }
   findMany(): Promise<{ rows: readonly Row[]; total: number }> {
     return Promise.resolve({ rows: ROWS, total: ROWS.length });

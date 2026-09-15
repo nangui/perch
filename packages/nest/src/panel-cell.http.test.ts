@@ -46,6 +46,11 @@ import { PanelResource } from "./resource.js";
 import { key, model, scalar } from "./__fixtures__/ir.js";
 
 const META = model({
+  // Named for the resource that uses it. The default is `Post`, and a
+  // representation that names one model while the resource names another is a
+  // double contradicting itself.
+  name: "Person",
+  dbName: "Person",
   fields: [
     key(),
     scalar("title"),

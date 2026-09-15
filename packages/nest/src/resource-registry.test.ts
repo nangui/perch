@@ -423,10 +423,24 @@ describe("a column reading a path the model does not have", () => {
     );
   });
 
-  it("says nothing about a model the IR does not carry at all", async () => {
-    // That is one problem, not one per column, and the read path tolerates it
-    // the same way rather than complaining about every path.
-    await expect(boot(GhostResource)).resolves.toBeUndefined();
+  it("reports a model the IR does not carry as one problem, not one per column", async () => {
+    // One problem, which is what it is: every check here begins by looking the
+    // model up, so a mistyped `model` would otherwise silence the audit of
+    // every field, column and relation on the resource — and the panel would
+    // start with none of them ever having been looked at.
+    await expect(boot(GhostResource)).rejects.toThrow(
+      "`model` names `Ghost`, which the generated schema does not have",
+    );
+  });
+
+  it("names the models it does have, so the typo is visible", async () => {
+    await expect(boot(GhostResource)).rejects.toThrow("It holds: Post");
+  });
+
+  it("says nothing about the columns, which are not the problem", async () => {
+    // `anything` is not a column on anything. Complaining about it would bury
+    // the one line that matters under one line per path.
+    await expect(boot(GhostResource)).rejects.not.toThrow("anything");
   });
 });
 

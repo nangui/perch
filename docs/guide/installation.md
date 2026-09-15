@@ -5,7 +5,7 @@ title: Installation
 # Installation
 
 Perch goes into an application you already have. It authenticates nobody, owns no
-database connection and replaces none of your routing — it mounts under a path you
+database connection and replaces none of your routing. It mounts under a path you
 choose and reads the Prisma schema you already wrote.
 
 ## What you need
@@ -25,15 +25,15 @@ pnpm add -D @perchjs/prisma-generator @perchjs/cli
 ```
 
 Three at runtime, and `@perchjs/core` is there because your own resources import
-from it — a package you import is a package you declare. `@perchjs/ui` is not in
+from it: a package you import is a package you declare. `@perchjs/ui` is not in
 the list: the panel serves it, `@perchjs/nest` depends on it, and nothing you
 write ever imports it.
 
 ## Generate the intermediate representation
 
 Perch does not read your database at runtime to find out what a model looks like. It
-reads what the generator wrote while `prisma generate` ran — the columns, their types,
-the relations, the unique constraints — so that a panel starting up knows the shape of
+reads what the generator wrote while `prisma generate` ran: the columns, their types,
+the relations, the unique constraints. A panel starting up knows the shape of
 everything before it serves anything.
 
 Add the generator to `schema.prisma`:
@@ -54,9 +54,9 @@ npx prisma generate
 ## Wire it up
 
 The panel reaches your database through a class the container builds, so it is yours
-to write — and it is three lines, because `PrismaDataAdapter` does the work:
+to write, and it is three lines, because `PrismaDataAdapter` does the work:
 
-`IR` is the export of the file the generator wrote — `import { IR } from
+`IR` is the export of the file the generator wrote: `import { IR } from
 "./panel/.generated/ir.js"`, wherever you pointed its `output` at.
 
 ```ts
@@ -94,8 +94,8 @@ import { PanelModule } from "@perchjs/nest";
 export class AppModule {}
 ```
 
-The panel is at `/admin`. Every route under it — the pages, the assets and the four
-protocol routes — is registered by the module; you write none of them.
+The panel is at `/admin`. Every route under it, the pages and the assets and the four
+protocol routes, is registered by the module. You write none of them.
 
 ## Or let the CLI do it
 
@@ -105,7 +105,7 @@ npx perch resource Person
 ```
 
 The first writes the module and registers it. The second reads a model out of the
-generated representation and writes a resource whose form and table match its columns —
+generated representation and writes a resource whose form and table match its columns:
 a file that compiles, passes your lint and runs without editing.
 
 ## Putting it behind your own auth

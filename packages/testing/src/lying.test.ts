@@ -18,6 +18,19 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createPanelTest } from "./harness.js";
 import type { PanelTest } from "./harness.js";
 
+const text = (name: string): FieldMeta => ({
+  name,
+  kind: "scalar",
+  type: "String",
+  isRequired: false,
+  isList: false,
+  isId: false,
+  isUnique: false,
+  isReadOnly: false,
+  hasDefault: false,
+  isLongText: false,
+});
+
 const KEY: FieldMeta = {
   name: "id",
   kind: "scalar",
@@ -35,14 +48,14 @@ const KEY: FieldMeta = {
 @Injectable()
 class Exploding implements DataAdapter {
   ir(): Ir {
-    return { models: [] };
+    return { models: [this.meta()] };
   }
   meta(): ModelMeta {
     return {
       name: "Person",
       dbName: "Person",
       primaryKey: KEY,
-      fields: [KEY],
+      fields: [KEY, text("email")],
       relations: [],
       uniqueConstraints: [],
       hasSoftDelete: false,

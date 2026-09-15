@@ -4,6 +4,7 @@
  * `commit-uploads.test.ts` pins the ordering as a function; this pins it as a
  * save, because the order only matters where the two writes actually happen.
  */
+import { key, model, scalar } from "./__fixtures__/ir.js";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -51,15 +52,17 @@ class Disk implements StorageAdapter {
 
 const ROW: Row = { id: 1, title: "Old", cover: "covers/old" };
 
+/** Written out once, so the representation and the metadata cannot drift. */
+const POST = model({ fields: [key(), scalar("title"), scalar("cover")] });
+
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [] };
+    // Holding the model `meta` describes. A representation and a metadata that
+    // disagree is a double contradicting itself, and the boot refuses it.
+    return { models: [this.meta()] };
   }
   meta(): ModelMeta {
-    return {
-      name: "Post",
-      primaryKey: { name: "id", type: "Int" },
-    } as unknown as ModelMeta;
+    return POST;
   }
   findMany(): Promise<{ rows: readonly Row[]; total: number }> {
     return Promise.resolve({ rows: [], total: 0 });

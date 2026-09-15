@@ -31,6 +31,19 @@ const CITIES: Record<string, Record<string, string>> = {
   be: { brussels: "Brussels" },
 };
 
+const text = (name: string): FieldMeta => ({
+  name,
+  kind: "scalar",
+  type: "String",
+  isRequired: false,
+  isList: false,
+  isId: false,
+  isUnique: false,
+  isReadOnly: false,
+  hasDefault: false,
+  isLongText: false,
+});
+
 const KEY: FieldMeta = {
   name: "id",
   kind: "scalar",
@@ -49,7 +62,9 @@ const written: Row[] = [];
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [] };
+    // Holding the model `meta` describes. The two disagreeing is a double
+    // contradicting itself, and the boot refuses it.
+    return { models: [this.meta()] };
   }
   meta(): ModelMeta {
     // Written out rather than cast: the panel reads the primary key to look a
@@ -59,7 +74,7 @@ class MemoryAdapter implements DataAdapter {
       name: "Person",
       dbName: "Person",
       primaryKey: KEY,
-      fields: [KEY],
+      fields: [KEY, text("email"), text("countryId"), text("cityId")],
       relations: [],
       uniqueConstraints: [],
       hasSoftDelete: false,

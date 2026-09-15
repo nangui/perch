@@ -5,7 +5,7 @@ title: Resources
 # Resources
 
 A resource is a class that describes one Prisma model's CRUD. It says what the form
-holds, what the table shows, and who may do what — and the panel serves the pages from
+holds, what the table shows, and who may do what, and the panel serves the pages from
 that.
 
 ```ts
@@ -57,7 +57,7 @@ import { PanelResource } from "@perchjs/nest";
   // and the plural is mechanical: `Person` becomes `persons`. Say it when the
   // language disagrees with the machine.
   slug: "people",
-  // One of them, and several. `Person` and `Persons` by default — same
+  // One of them, and several. `Person` and `Persons` by default: same
   // mechanism, same reason to override it.
   label: "Person",
   pluralLabel: "People",
@@ -76,12 +76,12 @@ export class PeopleResource implements PanelResource {
 
 Every field and every column is checked against the representation the generator wrote.
 One naming a column the model does not have stops the boot, with the name of the field
-and the columns that are there — rather than a form that draws, saves, and refuses the
+and the columns that are there, rather than a form that draws, saves, and refuses the
 row whole.
 
 ## What the panel generates
 
-Four pages, at the resource's slug — `people` in the resource above:
+Four pages, at the resource's slug, which is `people` in the resource above:
 
 | Page | Route | Exists when |
 |---|---|---|
@@ -119,7 +119,7 @@ export class PeopleResource implements PanelResource {
 ```
 
 It is rebuilt on every request. Builders are immutable and a tree is never cached between
-readers — one that was would be one reader's resolved state shown to another.
+readers. One that was would be one reader's resolved state shown to another.
 
 ## `table()`
 
@@ -156,7 +156,7 @@ export class PostsResource implements PanelResource {
 ```
 
 A relation named by a column becomes part of the page's single query. That is not a
-convention you have to keep — it is a blocking test.
+convention you have to keep. It is a blocking test.
 
 ## `infolist()`
 
@@ -182,7 +182,7 @@ export class PeopleResource implements PanelResource {
 Putting a `TextInput` in an infolist stops the boot rather than drawing a box on a page
 with nothing to save it.
 
-## `can` — who may do what
+## `can`, or who may do what
 
 Absent means allowed: the panel already sits behind your guards, and requiring a policy
 on every resource would mean writing `() => true` a great many times. It is a debatable
@@ -201,10 +201,10 @@ interface User {
 @PanelResource({ model: "Post" })
 export class PostsResource implements PanelResource {
   // Named, so a misspelled policy is a compile error rather than a rule
-  // nobody calls — which would leave the resource more permissive than
+  // nobody calls, which would leave the resource more permissive than
   // whoever wrote it believes.
   can: Authorization = {
-    // Gates the resource itself — its routes and its menu entry alike.
+    // Gates the resource itself: its routes and its menu entry alike.
     viewAny: (user: unknown) => (user as User).role !== "guest",
     // Asked about one record, so it is asked after the row is loaded.
     view: (user: unknown, record: unknown) =>
@@ -226,7 +226,7 @@ Three things that are true of all of them:
 - **A `viewAny` refusal removes the menu entry *and* protects the routes.** Both halves,
   every time. A hidden link is not a protection, and a protected route with a visible
   link is a button that fails.
-- **They are asked on the server, at execution time** — never inferred from what the
+- **They are asked on the server, at execution time**, never inferred from what the
   browser was sent.
 - **`restore`, `forceDelete` and `viewDeleted` are separate.** Being allowed to hide a
   row is not being allowed to bring one back, and neither is being allowed to leave
@@ -274,7 +274,7 @@ export class PeopleResource implements PanelResource {
   }
 
   /**
-   * The same, for a save — and it does not always receive the whole form. A cell
+   * The same, for a save, and it does not always receive the whole form. A cell
    * written from the table is a save of one field, so this may be handed the one
    * key that was written. Adding to what arrives is safe; reading a field that
    * was not sent is not.
@@ -309,18 +309,18 @@ export class PeopleResource implements PanelResource {
 
 ## What else a resource can carry
 
-- **Relation managers** (`relations()`) — children edited beside a record rather than
+- **Relation managers** (`relations()`): children edited beside a record rather than
   inside its form, each with its own table and its own actions. A repeater writes its
   rows with the parent in one transaction; these work one operation at a time.
-- **Pages of its own** (`pages` on the decorator) — statistics for this order, an audit
-  trail for this post: a page under the record's address, reached from a strip of links
+- **Pages of its own** (`pages` on the decorator): statistics for this order, an audit
+  trail for this post. A page under the record's address, reached from a strip of links
   the record carries.
 
 Both have pages of their own coming.
 
 ## What a resource is not
 
-It is not a place for business logic. A resolver may call a service — that is the whole
-reason resources come from the container — but the service is yours, and the resource is
+It is not a place for business logic. A resolver may call a service, which is the whole
+reason resources come from the container, but the service is yours and the resource is
 the description of a screen. When the two start to blur, the screen is usually the thing
 that should move.

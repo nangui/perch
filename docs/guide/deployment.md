@@ -5,7 +5,7 @@ title: Deployment
 # Deployment
 
 A panel is part of your application. There is no separate service to run, no front-end
-build to configure and nothing of Perch's to deploy on its own — if your NestJS app is
+build to configure and nothing of Perch's to deploy on its own. If your NestJS app is
 running, the panel is running.
 
 What follows is the short list of things that are true about it in production, and each
@@ -14,8 +14,8 @@ one is here because getting it wrong fails in a way that is hard to read.
 ## The build order is not negotiable
 
 Perch does not ask your database what a model looks like. It reads what the generator
-wrote while `prisma generate` ran — the columns, their types, the relations, the unique
-constraints — so the generated representation has to exist before your application is
+wrote while `prisma generate` ran: the columns, their types, the relations, the unique
+constraints. So the generated representation has to exist before your application is
 compiled, and it has to be regenerated whenever the schema changes.
 
 ```sh
@@ -69,7 +69,7 @@ A CDN in front of the assets is worth having. A CDN in front of the pages is a d
 ## Behind a reverse proxy
 
 The panel builds every link from the path the request arrived on. Mount it wherever you
-like — `setGlobalPrefix`, a path on a shared domain, a subdomain — and the links come out
+like (`setGlobalPrefix`, a path on a shared domain, a subdomain) and the links come out
 right, because nothing is hardcoded.
 
 What breaks that is a proxy that **strips a prefix without telling the application**. If
@@ -80,7 +80,7 @@ path, or mount the panel at the path the outside world uses.
 ## What Perch needs from the environment
 
 Nothing of its own. It opens no connection, owns no pool, reads no environment variable
-and holds no secret — the adapter you wrote takes your client, and your client reads your
+and holds no secret. The adapter you wrote takes your client, and your client reads your
 configuration. If `DATABASE_URL` is set for your application, it is set for the panel.
 
 The same goes for authentication: the guards you passed to `forRoot` are your

@@ -22,8 +22,8 @@ export class PeopleResource implements PanelResource {
     return Schema.make([
       TextInput.make("name").required(),
       Select.make("countryId").options({ fr: "France", be: "Belgium" }).live(),
-      // Shown only once a country has been answered, and the panel decides that
-      // — on the server, where the rule was written.
+      // Shown only once a country has been answered, and the panel decides
+      // that on the server, where the rule was written.
       Select.make("cityId")
         .options(({ get }): Record<string, string> =>
           get("countryId") === "fr" ? { paris: "Paris" } : {},
@@ -50,15 +50,15 @@ to do that.
 visible, or what options it offers, that decision is made where the rule was written.
 The browser is an interpreter: it draws what it is given and sends back what was typed.
 
-This is not a performance trade-off that was lost — it is what makes the rest possible.
+This is not a performance trade-off that was lost. It is what makes the rest possible.
 A condition evaluated in the browser is a condition an attacker can answer differently,
 and a panel where a hidden field can be saved by hand is not an admin panel, it is a form
 with decoration.
 
 ## Where to go next
 
-- **[Installation](/installation)** — putting a panel into an existing NestJS application.
-- **[How the pieces fit](/how-it-fits)** — what each package does, and what happens on a
+- **[Installation](/installation)**: putting a panel into an existing NestJS application.
+- **[How the pieces fit](/how-it-fits)**: what each package does, and what happens on a
   round trip.
 
 ## Status

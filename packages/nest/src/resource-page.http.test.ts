@@ -21,7 +21,7 @@ import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
 import { PanelResourcePage } from "./resource-page.js";
-import { model } from "./__fixtures__/ir.js";
+import { key, model, scalar } from "./__fixtures__/ir.js";
 
 const ROWS: Row[] = [
   { id: 1, title: "Ada's post", views: 120 },
@@ -34,10 +34,12 @@ const written: { id: unknown; state: Record<string, unknown> }[] = [];
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [] };
+    // Holding the model `meta` describes. A representation and a metadata that
+    // disagree is a double contradicting itself, and the boot refuses it.
+    return { models: [this.meta()] };
   }
   meta(): ModelMeta {
-    return model({ fields: [] });
+    return model({ fields: [key(), scalar("title")] });
   }
   findMany(): Promise<{ rows: readonly Row[]; total: number }> {
     return Promise.resolve({ rows: ROWS, total: ROWS.length });

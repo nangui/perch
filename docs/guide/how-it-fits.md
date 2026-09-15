@@ -20,7 +20,7 @@ intentions.
 
 `core` importing nothing is the load-bearing one. It means the engine that decides what
 a form holds has no idea that Nest exists, that Prisma exists or that anything is drawn
-in React — so the decisions it makes cannot quietly depend on any of them.
+in React, so the decisions it makes cannot quietly depend on any of them.
 
 ## What happens when somebody changes a field
 
@@ -28,12 +28,12 @@ This is the cycle the whole framework is shaped around. A reader picks a country
 city list appears.
 
 1. **The browser sends what is in the form**, and the path that just changed. Nothing
-   else — it does not send its opinion about what should now be visible, because it has
+   else. It does not send its opinion about what should now be visible, because it has
    none.
 2. **The server replays that state against the schema tree.** Every value is checked
    against the field it claims to belong to. A path no field admits, a field that is
-   invisible, one that is disabled or read-only: dropped, in silence. Silence on purpose
-   — a message saying *which* value was refused is a message that teaches somebody how to
+   invisible, one that is disabled or read-only: dropped, in silence. Silence on purpose:
+   a message saying *which* value was refused is a message that teaches somebody how to
    craft the next one.
 3. **The tree is resolved against what survived.** Conditions run, options are computed,
    defaults fill in. All of it here, where the rules were written and where the principal
@@ -46,7 +46,7 @@ aspiration.
 ## What never crosses
 
 An invisible field is not sent, not validated and not saved. A field a reader may not see
-is absent from the payload rather than present and marked — hiding it in the browser
+is absent from the payload rather than present and marked. Hiding it in the browser
 would mean it had already been sent, and a payload is a thing anybody can read.
 
 The same holds for an action: a button a policy hides is not a protection, so the
@@ -62,5 +62,5 @@ draws arrives already resolved.
 
 A plugin that needs a component of its own registers it in the browser under its own key,
 through the same call the built-in fields use. Nothing in `core` knows that plugins exist
-— an extension point the engine has to be told about is an extension point the engine got
+An extension point the engine has to be told about is an extension point the engine got
 wrong.

@@ -5,6 +5,7 @@
  * name nobody declared, a row that does not exist, a principal the resource
  * says no to, and a guard that says no to this particular row.
  */
+import { key, model, scalar } from "./__fixtures__/ir.js";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -79,15 +80,18 @@ class ArchiveAction extends Action {
   }
 }
 
+/** Written out once, so the representation and the metadata cannot drift. */
+const POST = model({ fields: [key(), scalar("title")] });
+
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [] };
+    // Holding the model `meta` describes. A double whose representation and
+    // whose metadata disagree is one the boot now refuses, and rightly: every
+    // other check begins by looking the model up.
+    return { models: [POST] };
   }
   meta(): ModelMeta {
-    return {
-      name: "Post",
-      primaryKey: { name: "id", type: "Int" },
-    } as unknown as ModelMeta;
+    return POST;
   }
   findMany(query: Query): Promise<{ rows: readonly Row[]; total: number }> {
     // Honours the one clause the action route builds. A double that ignored it

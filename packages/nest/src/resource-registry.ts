@@ -231,6 +231,7 @@ export class ResourceRegistry implements OnModuleInit {
       const complaints = [
         ...auditSchema(form),
         ...(infolist === undefined ? [] : auditInfolist(infolist)),
+        ...this.#unknownModel(metadata),
         ...this.#undrawableIcon(metadata),
         ...this.#brokenPages(metadata),
         ...(table === undefined ? [] : auditTable(table)),
@@ -1063,6 +1064,45 @@ export class ResourceRegistry implements OnModuleInit {
           `names the disk \`${upload.state.disk}\`, which the panel was not given — ` +
           `it has ${describeDisks(this.#disks)}`,
       }));
+  }
+
+  /**
+   * A resource pointing at a model the schema does not have.
+   *
+   * Checked first, and it is the one refusal that matters most: every other
+   * check here begins by looking the model up, and each of them quietly
+   * returns nothing when it cannot be found. So a single mistyped `model`
+   * does not merely go unnoticed — it silences the audit of every field,
+   * every column and every relation on that resource, and the panel starts
+   * with none of them ever having been looked at.
+   *
+   * What it costs to get wrong is a panel that boots, draws its menu, and
+   * answers the first request with an error from the database about a table
+   * nobody named.
+   */
+  #unknownModel(
+    metadata: ResourceMetadata,
+  ): readonly { field: string; problem: string }[] {
+    // No adapter, no representation to check against. A panel without one is
+    // a legitimate arrangement — the boot has nothing to say about a schema
+    // it was never shown.
+    if (this.#data === null) return [];
+
+    const ir = this.#data.ir();
+    if (findModel(ir, metadata.model) !== undefined) return [];
+
+    const known = ir.models.map((one) => one.name).sort();
+    return [
+      {
+        field: "model",
+        problem:
+          `names \`${metadata.model}\`, which the generated schema does not have. ` +
+          (known.length === 0
+            ? "It holds no models at all — check that `prisma generate` ran and " +
+              "that the adapter was given what it wrote"
+            : `It holds: ${known.join(", ")}`),
+      },
+    ];
   }
 
   /**
