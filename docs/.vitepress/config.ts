@@ -44,6 +44,7 @@ export default defineConfig({
         items: [
           { text: "Resources", link: "/resources" },
           { text: "Forms", link: "/forms" },
+          { text: "Tables", link: "/tables" },
         ],
       },
       {
