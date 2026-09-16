@@ -94,8 +94,12 @@ import { PanelModule } from "@perchjs/nest";
 export class AppModule {}
 ```
 
-The panel is at `/admin`. Every route under it, the pages and the assets and the four
-protocol routes, is registered by the module. You write none of them.
+The panel is at `/admin`. Opening it sends you to the first table your menu offers,
+which is built for whoever is asking: two readers with different policies land in two
+places, and a reader who may reach nothing gets a 404 rather than an empty panel.
+
+Every route under it, the pages and the assets and the four protocol routes, is
+registered by the module. You write none of them.
 
 ## Or let the CLI do it
 

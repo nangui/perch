@@ -59,5 +59,5 @@ authenticate: everyone who opens it is the same anonymous visitor, which is
 what makes it a demo. An application puts its own guards on `forRoot`, and
 [Users](../../docs/guide/users.md) says how.
 
-`/admin` is sent to the first table by a redirect this application owns. The
-panel has no route at its own mount path.
+`/admin` sends a visitor to the first table their menu offers, which the panel
+does for itself.

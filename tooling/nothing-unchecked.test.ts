@@ -24,7 +24,7 @@
  * people to run it again.
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -41,6 +41,11 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
  * it runs, which is why this can be asked during a full run at all. And
  * counting what is uncommitted means a file is covered from the moment it is
  * written, not from the moment somebody commits it.
+ *
+ * Deleted files are dropped. git goes on listing one until the removal is
+ * staged, and no project claims a file that is not there, so a rule reading
+ * the list alone fails on every deletion until somebody runs `git add`. That
+ * is a guard crying wolf at the person doing the tidying.
  */
 function tracked(): string[] {
   const listed = execFileSync(
@@ -60,7 +65,7 @@ function tracked(): string[] {
   if (listed.length === 0) {
     throw new Error("git ls-files returned nothing; this must run in a checkout.");
   }
-  return listed;
+  return listed.filter((path) => existsSync(join(ROOT, path)));
 }
 
 /** Config files, which is the one thing that is looked for on disk. */

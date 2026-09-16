@@ -28,6 +28,18 @@ export function rootOf(request: IncomingUrl, suffix: string): string {
   return end.slice(0, cut);
 }
 
+/**
+ * The mount path itself, for the one route that answers at it.
+ *
+ * `rootOf` works by cutting the suffix a route serves off the URL that reached
+ * it, and the panel's own root serves no suffix: the whole path is the answer.
+ * Trailing slashes go, so `/admin` and `/admin/` build the same addresses.
+ */
+export function rootHere(request: IncomingUrl): string {
+  const raw = (request.originalUrl ?? request.url ?? "").split("?")[0] ?? "";
+  return decodePath(raw).replace(/\/+$/, "");
+}
+
 function decodePath(path: string): string {
   try {
     return decodeURIComponent(path);

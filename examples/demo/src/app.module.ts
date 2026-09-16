@@ -9,7 +9,6 @@ import { PanelModule } from "@perchjs/nest";
 import { DemoDataAdapter } from "./adapter.js";
 import { ImagesController } from "./images.controller.js";
 import { PrismaModule } from "./prisma.module.js";
-import { RootController } from "./root.controller.js";
 import { ObserversResource } from "./observers.resource.js";
 import { Seed } from "./seed.js";
 import { SightingsResource } from "./sightings.resource.js";
@@ -29,7 +28,7 @@ import { SpeciesResource } from "./species.resource.js";
       navigationGroups: ["Records", "Reference"],
     }),
   ],
-  controllers: [ImagesController, RootController],
+  controllers: [ImagesController],
   providers: [Seed],
 })
 export class AppModule {}

@@ -15,6 +15,7 @@ import {
   NotFoundException,
   Param,
   Query,
+  Redirect,
   Req,
 } from "@nestjs/common";
 import type {
@@ -44,7 +45,7 @@ import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
 import type { IncomingUrl } from "./panel-root.js";
-import { rootOf } from "./panel-root.js";
+import { rootHere, rootOf, sameOrigin } from "./panel-root.js";
 import { recordId } from "./record-id.js";
 import type { ManagedRelation } from "./relation-records.js";
 import { managedRelations } from "./relation-records.js";
@@ -91,6 +92,58 @@ export class PanelPageController {
     this.#data = data;
     this.#urls = fileUrls(disks);
     this.#disks = disks;
+  }
+
+  /**
+   * The panel's own address, which until now answered nothing.
+   *
+   * Every other page route names a resource, so a reader who mounted a panel
+   * at `/admin` and opened `/admin` met a 404 while the documentation told
+   * them the panel was there. It is the address an application advertises and
+   * the one somebody pastes into a message.
+   *
+   * A redirect rather than a page of its own. What a panel's front door should
+   * show is a question with several defensible answers and no default, and the
+   * one thing that is certainly right is that a reader wants to be looking at
+   * something. So it sends them to the first thing the menu offers them.
+   *
+   * Theirs, not the first declared. The navigation is built per request and
+   * filtered by what this reader may reach, so two readers can land in two
+   * places and a reader who may reach nothing lands nowhere: 404, the same
+   * answer every other refusal here gives, because a panel that says "there is
+   * nothing here for you" has still said there is a panel.
+   *
+   * Never cached. The target depends on who asked, and a shared cache holding
+   * one reader's would send the next one to a page they may not open.
+   */
+  @Get()
+  @Header("cache-control", "no-store")
+  @Redirect()
+  async enter(
+    @Req() request: IncomingUrl,
+  ): Promise<{ url: string; statusCode: number }> {
+    const root = rootHere(request);
+    const groups = await buildNavigation(
+      this.#registry.all(),
+      this.#users.resolve(request),
+      root,
+      this.#groups,
+      undefined,
+      this.#pages.all(),
+    );
+
+    const first = groups.flatMap((group) => group.items)[0]?.href;
+    if (first === undefined) throw new NotFoundException();
+
+    // Through the same check every other address in this panel goes through.
+    // The root is derived from the URL that reached here, which is the
+    // caller's to write, so what is built on it is the caller's too.
+    const url = sameOrigin(first);
+    if (url === undefined) throw new NotFoundException();
+
+    // Found, not moved: which page this is depends on the reader, so nothing
+    // may remember it.
+    return { url, statusCode: 302 };
   }
 
   /**
