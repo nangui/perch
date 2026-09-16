@@ -1,4 +1,8 @@
+import { cpSync, statSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { defineConfig } from "vitepress";
+import { llmsTxt } from "./llms.js";
+import { SIDEBAR } from "./sidebar.js";
 
 /**
  * The documentation site.
@@ -21,6 +25,40 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
 
+  /**
+   * What the built site carries beyond its pages.
+   *
+   * `llms.txt` at the root, which is where the convention puts it, and a
+   * markdown copy of every page beside its HTML. The second half is the one
+   * people skip: the proposal asks a site to serve a clean markdown version of
+   * each page at the same address with `.md` appended, and here that costs
+   * nothing, because markdown is what the pages already are.
+   *
+   * Written at build rather than committed. A generated file in the tree is a
+   * file somebody edits by hand once, and from then on the generator and the
+   * page disagree.
+   */
+  buildEnd(site) {
+    writeFileSync(
+      join(site.outDir, "llms.txt"),
+      llmsTxt({
+        guide: site.srcDir,
+        title: "Perch",
+        summary:
+          "An admin panel for NestJS. Declare a resource in TypeScript and " +
+          "you never write a front end.",
+      }),
+      "utf8",
+    );
+    // Markdown and the directories holding it, named rather than excluded by
+    // what a path happens to contain: a page called `publications.md` has the
+    // word `public` in it.
+    cpSync(site.srcDir, site.outDir, {
+      recursive: true,
+      filter: (from) => statSync(from).isDirectory() || from.endsWith(".md"),
+    });
+  },
+
   themeConfig: {
     nav: [
       { text: "Guide", link: "/" },
@@ -30,94 +68,10 @@ export default defineConfig({
       },
     ],
 
-    sidebar: [
-      {
-        text: "Getting started",
-        items: [
-          { text: "Introduction", link: "/" },
-          { text: "Installation", link: "/installation" },
-          { text: "How the pieces fit", link: "/how-it-fits" },
-        ],
-      },
-      {
-        text: "Building a panel",
-        items: [
-          { text: "Resources", link: "/resources" },
-          { text: "Schemas", link: "/schemas" },
-          { text: "Forms", link: "/forms" },
-          { text: "Tables", link: "/tables" },
-          { text: "Infolists", link: "/infolists" },
-          { text: "Configuration", link: "/configuration" },
-          { text: "Styling", link: "/styling" },
-          { text: "Advanced", link: "/advanced" },
-          { text: "Navigation", link: "/navigation" },
-          { text: "Users", link: "/users" },
-          { text: "Actions", link: "/actions" },
-          { text: "Notifications", link: "/notifications" },
-          { text: "Testing", link: "/testing" },
-          { text: "Plugins", link: "/plugins" },
-        ],
-      },
-      {
-        text: "Fields",
-        collapsed: false,
-        items: [
-          { text: "TextInput", link: "/fields/text-input" },
-          { text: "Textarea", link: "/fields/textarea" },
-          { text: "Select", link: "/fields/select" },
-          { text: "Checkbox", link: "/fields/checkbox" },
-          { text: "Toggle", link: "/fields/toggle" },
-          { text: "Radio", link: "/fields/radio" },
-          { text: "CheckboxList", link: "/fields/checkbox-list" },
-          { text: "ToggleButtons", link: "/fields/toggle-buttons" },
-          { text: "DateTimePicker", link: "/fields/date-time-picker" },
-          { text: "FileUpload", link: "/fields/file-upload" },
-          { text: "Repeater", link: "/fields/repeater" },
-          { text: "TagsInput", link: "/fields/tags-input" },
-          { text: "KeyValue", link: "/fields/key-value" },
-          { text: "ColorPicker", link: "/fields/color-picker" },
-          { text: "Hidden", link: "/fields/hidden" },
-          { text: "RichEditor", link: "/fields/rich-editor" },
-          { text: "MarkdownEditor", link: "/fields/markdown-editor" },
-          { text: "Placeholder", link: "/fields/placeholder" },
-        ],
-      },
-      {
-        text: "Columns",
-        collapsed: false,
-        items: [
-          { text: "TextColumn", link: "/columns/text" },
-          { text: "BadgeColumn", link: "/columns/badge" },
-          { text: "IconColumn", link: "/columns/icon" },
-          { text: "ImageColumn", link: "/columns/image" },
-          { text: "AvatarColumn", link: "/columns/avatar" },
-          { text: "ColorColumn", link: "/columns/color" },
-          { text: "GaugeColumn", link: "/columns/gauge" },
-          { text: "ToggleColumn", link: "/columns/toggle" },
-          { text: "CheckboxColumn", link: "/columns/checkbox" },
-          { text: "TextInputColumn", link: "/columns/text-input" },
-          { text: "SelectColumn", link: "/columns/select" },
-        ],
-      },
-      {
-        text: "Actions",
-        collapsed: false,
-        items: [
-          { text: "CreateAction", link: "/actions/create" },
-          { text: "EditAction", link: "/actions/edit" },
-          { text: "ViewAction", link: "/actions/view" },
-          { text: "DeleteAction", link: "/actions/delete" },
-          { text: "RestoreAction", link: "/actions/restore" },
-          { text: "ForceDeleteAction", link: "/actions/force-delete" },
-          { text: "ReplicateAction", link: "/actions/replicate" },
-          { text: "DetachAction", link: "/actions/detach" },
-        ],
-      },
-      {
-        text: "Going to production",
-        items: [{ text: "Deployment", link: "/deployment" }],
-      },
-    ],
+    // A copy, because VitePress takes a mutable sidebar and this one is shared
+    // with the thing that builds llms.txt. Handing over the constant itself
+    // would be handing over something a theme is free to write to.
+    sidebar: SIDEBAR.map((section) => ({ ...section, items: [...section.items] })),
 
     socialLinks: [{ icon: "github", link: "https://github.com/nangui/perch" }],
 

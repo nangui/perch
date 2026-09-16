@@ -45,6 +45,10 @@ export declare const post: Record<string, unknown>;
 
 /** A guard the reader's application already has. */
 export declare const JwtAuthGuard: new () => { canActivate: () => boolean };
+/** The other three the auth recipes name, each somebody else's to write. */
+export declare const SessionGuard: new () => { canActivate: () => boolean };
+export declare const ClerkGuard: new () => { canActivate: () => boolean };
+export declare const AuthjsGuard: new () => { canActivate: () => boolean };
 
 /**
  * The application's own adapter, client and generated representation.
