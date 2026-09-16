@@ -36,9 +36,22 @@ export interface PrismaDelegate {
   deleteMany: (args: Record<string, unknown>) => Promise<{ count: number }>;
 }
 
+/**
+ * What this adapter needs of a client: one method.
+ *
+ * No index signature for the delegates, though the delegates are what it spends
+ * its time calling. TypeScript gives an object literal an implicit one and
+ * never gives a class one, and a Prisma client is a class — so an interface
+ * asking for it is an interface a Prisma client cannot satisfy, which is the
+ * only thing it exists to describe. It was written that way, and the two
+ * integration suites in this repository each got past it with a cast to
+ * `never`. A contract nobody can meet without lying about the type is a
+ * contract stated wrong.
+ *
+ * Looking a delegate up by name is this file's business and is done below.
+ */
 export interface PrismaClientLike {
   readonly $transaction: <T>(fn: (tx: PrismaClientLike) => Promise<T>) => Promise<T>;
-  readonly [delegate: string]: unknown;
 }
 
 export interface PrismaDataAdapterOptions {
@@ -362,7 +375,7 @@ export class PrismaDataAdapter implements DataAdapter {
 
   #delegate(model: string): PrismaDelegate {
     const name = delegateName(model);
-    const delegate = this.#client[name];
+    const delegate = (this.#client as unknown as Record<string, unknown>)[name];
     if (delegate === undefined) {
       throw new Error(`the Prisma client has no \`${name}\` delegate for ${model}.`);
     }
