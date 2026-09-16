@@ -52,6 +52,18 @@ docker run -p 3000:3000 -e DATABASE_URL="postgresql://..." perch-demo
 Built from the repository root, because the demo depends on the framework
 beside it rather than on a published version.
 
+## Before you deploy it
+
+It is an open write endpoint. No authentication, no rate limit, no cap on how
+many rows a visitor may make: that is what makes it a demo, and it is also
+what it means to put it on the internet. Between two resets somebody can fill
+the table, and the table is in your database.
+
+So give it a database of its own, one nothing else shares and nothing else
+would miss, and set `DEMO_RESET_MINUTES` low enough that the worst case is
+short. Put it behind whatever your platform offers for abuse, the way you
+would any unauthenticated form.
+
 ## What it is not
 
 It has no authentication. Perch authenticates nobody and the demo has nobody to

@@ -45,7 +45,7 @@ import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
 import type { IncomingUrl } from "./panel-root.js";
-import { rootHere, rootOf, sameOrigin } from "./panel-root.js";
+import { rootHere, rootOf } from "./panel-root.js";
 import { recordId } from "./record-id.js";
 import type { ManagedRelation } from "./relation-records.js";
 import { managedRelations } from "./relation-records.js";
@@ -132,13 +132,12 @@ export class PanelPageController {
       this.#pages.all(),
     );
 
-    const first = groups.flatMap((group) => group.items)[0]?.href;
-    if (first === undefined) throw new NotFoundException();
-
-    // Through the same check every other address in this panel goes through.
-    // The root is derived from the URL that reached here, which is the
-    // caller's to write, so what is built on it is the caller's too.
-    const url = sameOrigin(first);
+    // Already an address of this origin, and not because it is trusted: the
+    // navigation builds every entry through the same check the row actions go
+    // through, and drops the ones that do not pass. Asking again here would be
+    // the same question twice on the same value, which is how two answers come
+    // to differ.
+    const url = groups.flatMap((group) => group.items)[0]?.href;
     if (url === undefined) throw new NotFoundException();
 
     // Found, not moved: which page this is depends on the reader, so nothing

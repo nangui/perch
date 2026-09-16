@@ -15,12 +15,22 @@ function hue(seed: string): number {
   return total;
 }
 
+/**
+ * Two letters, and only letters.
+ *
+ * The name comes out of the address, so it is whatever anybody asks for, and
+ * it is put into markup by hand. Two characters is not enough to write a tag
+ * even so, but `<` is enough to make the document malformed and the picture
+ * not draw at all. Keeping letters is simpler to be sure of than escaping
+ * whatever else arrives.
+ */
 function initials(seed: string): string {
   const words = seed.split(/[\s-]+/).filter((word) => word !== "");
   return words
     .slice(0, 2)
     .map((word) => word.charAt(0).toUpperCase())
-    .join("");
+    .join("")
+    .replace(/[^A-Z0-9]/g, "");
 }
 
 @Controller("demo-images")

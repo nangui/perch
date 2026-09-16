@@ -13,6 +13,7 @@
  * nothing is told nothing.
  */
 import { mkdtempSync, writeFileSync } from "node:fs";
+import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Injectable, type INestApplication } from "@nestjs/common";
@@ -94,6 +95,73 @@ const enter = async (url: string, role?: string): Promise<Response> =>
     redirect: "manual",
     ...(role === undefined ? {} : { headers: { "x-role": role } }),
   });
+
+/**
+ * A path sent exactly as written.
+ *
+ * `fetch` normalises one before it leaves, which is the opposite of what these
+ * need: the address this route builds is made from the URL that reached it, so
+ * the interesting cases are the ones a browser or a proxy would pass through
+ * unnormalised.
+ */
+async function raw(
+  url: string,
+  path: string,
+): Promise<{ status: number; location?: string }> {
+  const target = new URL(url);
+  return await new Promise((resolve, reject) => {
+    const call = httpRequest(
+      {
+        // `getUrl` answers `[::1]`, and `hostname` keeps the brackets that
+        // make it a URL rather than a host somebody can look up.
+        hostname: target.hostname.replace(/^\[|\]$/g, ""),
+        port: target.port,
+        path,
+        method: "GET",
+      },
+      (response) => {
+        response.resume();
+        const location = response.headers.location;
+        resolve({
+          status: response.statusCode ?? 0,
+          ...(location === undefined ? {} : { location }),
+        });
+      },
+    );
+    call.on("error", reject);
+    call.end();
+  });
+}
+
+describe("the address it builds", () => {
+  it("offers no way off this origin", async () => {
+    // The root is cut from the URL that reached the route, so it is the
+    // caller's to write. These are the shapes that have got past a check like
+    // this before: a scheme-less origin, and one spelled with escapes. Express
+    // turns them away before the route sees them, which is the first of the
+    // two answers; the second is that whatever does reach it is built into an
+    // address through the same same-origin check every other link here uses.
+    //
+    // A literal tab is the third shape, and it is absent on purpose: Node's
+    // client refuses to send a path containing one, so a test for it would be
+    // testing the client. `redirect.test.ts` holds that case at the unit.
+    const url = await serve([PostsResource]);
+
+    for (const path of ["//evil.example/admin", "/%2f%2fevil.example/admin"]) {
+      const response = await raw(url, path);
+      expect(
+        response.location ?? "",
+        `${path} came back pointing at ${String(response.location)}`,
+      ).not.toMatch(/^(https?:)?\/\//);
+    }
+  });
+
+  it("answers the panel's address and not a lookalike", async () => {
+    const url = await serve([PostsResource]);
+
+    expect((await raw(url, "/admin")).location).toBe("/admin/posts");
+  });
+});
 
 describe("the panel's own address", () => {
   it("sends a reader to the first thing their menu offers", async () => {
