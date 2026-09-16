@@ -1,0 +1,74 @@
+// The demo's schema: bird records, which is what a perch is for.
+//
+// Chosen because the shape is the one an admin panel is actually for and the
+// data is real: species, the people who record them, the places they are
+// recorded, and the records themselves. Four models rather than two, because a
+// panel with no relation to follow shows nothing a form builder would not.
+//
+// `Sighting` soft-deletes. It is the row a visitor will delete, and a demo
+// where deleting is final is a demo that is empty by the afternoon.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+// Into `src/`, and checked in, which is what the file it writes asks for: it
+// is the metadata the panel is built from, so a change to it belongs in a diff
+// somebody reads. It also means this application typechecks and builds with no
+// database and no generator run, which is what a deployment wants.
+generator perch {
+  provider = "node ../../packages/prisma-generator/dist/generator.js"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Observer {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(120)
+  email     String   @unique @db.VarChar(255)
+  avatarUrl String?  @db.VarChar(500)
+  joinedAt  DateTime @default(now())
+
+  sightings Sighting[]
+}
+
+model Species {
+  id         Int     @id @default(autoincrement())
+  commonName String  @unique @db.VarChar(120)
+  latinName  String  @unique @db.VarChar(120)
+  family     String  @db.VarChar(80)
+  status     String  @db.VarChar(24)
+  photoUrl   String? @db.VarChar(500)
+
+  sightings Sighting[]
+}
+
+model Site {
+  id      Int    @id @default(autoincrement())
+  name    String @unique @db.VarChar(120)
+  region  String @db.VarChar(80)
+  habitat String @db.VarChar(40)
+
+  sightings Sighting[]
+}
+
+model Sighting {
+  id         Int       @id @default(autoincrement())
+  seenAt     DateTime
+  count      Int       @default(1)
+  certainty  String    @db.VarChar(24)
+  notes      String?   @db.Text
+  confirmed  Boolean   @default(false)
+  deletedAt  DateTime?
+  speciesId  Int
+  observerId Int
+  siteId     Int
+
+  species  Species  @relation(fields: [speciesId], references: [id], onDelete: Cascade)
+  observer Observer @relation(fields: [observerId], references: [id], onDelete: Cascade)
+  site     Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+}

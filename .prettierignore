@@ -8,3 +8,7 @@ pnpm-lock.yaml
 # human control.
 *.md
 docs/
+
+# Written by `prisma generate`. Formatting it is undone on the next run, and
+# the diff it leaves is noise in the one file that is meant to be read as a diff.
+examples/demo/src/generated/

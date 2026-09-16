@@ -30,8 +30,10 @@ coverage
 # Output of the DMMF contract test.
 .contract/
 
-# Output of the integration tests.
+# Output of the integration tests, and the demo's Prisma client. The demo's
+# Perch representation is checked in: it is read rather than run.
 tooling/.generated/
+examples/demo/src/generated/client/
 
 # The built documentation site.
 docs/.vitepress/dist
