@@ -83,6 +83,23 @@ export default defineConfig({
         ],
       },
       {
+        text: "Columns",
+        collapsed: false,
+        items: [
+          { text: "TextColumn", link: "/columns/text" },
+          { text: "BadgeColumn", link: "/columns/badge" },
+          { text: "IconColumn", link: "/columns/icon" },
+          { text: "ImageColumn", link: "/columns/image" },
+          { text: "AvatarColumn", link: "/columns/avatar" },
+          { text: "ColorColumn", link: "/columns/color" },
+          { text: "GaugeColumn", link: "/columns/gauge" },
+          { text: "ToggleColumn", link: "/columns/toggle" },
+          { text: "CheckboxColumn", link: "/columns/checkbox" },
+          { text: "TextInputColumn", link: "/columns/text-input" },
+          { text: "SelectColumn", link: "/columns/select" },
+        ],
+      },
+      {
         text: "Going to production",
         items: [{ text: "Deployment", link: "/deployment" }],
       },

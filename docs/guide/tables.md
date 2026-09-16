@@ -226,9 +226,21 @@ depend on it most.
 
 ## The columns
 
-`TextColumn` · `IconColumn` · `ImageColumn` · `AvatarColumn` · `ColorColumn` ·
-`BadgeColumn` · `GaugeColumn` · `ToggleColumn` · `CheckboxColumn` · `SelectColumn` ·
-`TextInputColumn`
+Read only:
+[TextColumn](./columns/text) ·
+[BadgeColumn](./columns/badge) ·
+[IconColumn](./columns/icon) ·
+[ImageColumn](./columns/image) ·
+[AvatarColumn](./columns/avatar) ·
+[ColorColumn](./columns/color) ·
+[GaugeColumn](./columns/gauge)
 
-The last four are editable in place: a cell is a control, and writing one is a save of
-that one field. Pages for each are being written.
+Written from the cell:
+[ToggleColumn](./columns/toggle) ·
+[CheckboxColumn](./columns/checkbox) ·
+[TextInputColumn](./columns/text-input) ·
+[SelectColumn](./columns/select)
+
+The last four are editable in place: the cell is a control, and writing one is a save of
+that one field through the form. Every rule the value has to keep is the form's, asked
+where it is declared. A table that checked its own way would be a second boundary.
