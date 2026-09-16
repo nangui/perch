@@ -100,6 +100,20 @@ export default defineConfig({
         ],
       },
       {
+        text: "Actions",
+        collapsed: false,
+        items: [
+          { text: "CreateAction", link: "/actions/create" },
+          { text: "EditAction", link: "/actions/edit" },
+          { text: "ViewAction", link: "/actions/view" },
+          { text: "DeleteAction", link: "/actions/delete" },
+          { text: "RestoreAction", link: "/actions/restore" },
+          { text: "ForceDeleteAction", link: "/actions/force-delete" },
+          { text: "ReplicateAction", link: "/actions/replicate" },
+          { text: "DetachAction", link: "/actions/detach" },
+        ],
+      },
+      {
         text: "Going to production",
         items: [{ text: "Deployment", link: "/deployment" }],
       },

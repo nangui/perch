@@ -130,16 +130,22 @@ export const hard = ArchiveAction.make().name("archive-forever").label("Archive 
 Eight of them, and none takes a callback of yours. The framework knows what each one
 means, which is why they are worth using rather than writing again.
 
-Three of them navigate. `CreateAction`, `EditAction` and `ViewAction` are links to pages
-that already exist, and going there is what they do.
+Three navigate. They are links to pages that already exist, so going there is all they
+do and the page answers for who may open it:
+[CreateAction](./actions/create) ·
+[EditAction](./actions/edit) ·
+[ViewAction](./actions/view)
 
-Five of them act. `DeleteAction`, `RestoreAction`, `ForceDeleteAction`, `ReplicateAction`
-and `DetachAction` carry no callback and are not inert: the route knows what each means,
-including the difference between hiding a row, bringing it back and leaving nothing to
-bring back.
+Five act. They carry no callback and are not inert, and each asks its own policy rather
+than a shared one:
+[DeleteAction](./actions/delete) ·
+[RestoreAction](./actions/restore) ·
+[ForceDeleteAction](./actions/force-delete) ·
+[ReplicateAction](./actions/replicate) ·
+[DetachAction](./actions/detach)
 
-`ReplicateAction` takes two options of its own, `.excludeAttributes()` for the columns a
-copy must not carry, and `.beforeReplicaSaved()` for the ones it must change.
+The route knows the difference between hiding a row, bringing it back and leaving nothing
+to bring back, so a resource never declares it twice.
 
 ## Authorization
 
