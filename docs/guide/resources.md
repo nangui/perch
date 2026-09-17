@@ -287,6 +287,38 @@ export class PeopleResource implements PanelResource {
 }
 ```
 
+## Shaping what is shown
+
+The third hook, running the other way: the row as it was read, before the Edit form opens
+on it.
+
+```ts
+import { Schema, TextInput } from "@perchjs/core";
+import { PanelResource } from "@perchjs/nest";
+
+@PanelResource({ model: "Person" })
+export class PeopleResource implements PanelResource {
+  form() {
+    return Schema.make([TextInput.make("hours").numeric()]);
+  }
+
+  mutateFormDataBeforeFill(data: Record<string, unknown>) {
+    return { ...data, hours: Number(data["minutes"] ?? 0) / 60 };
+  }
+}
+```
+
+For where a stored shape and an edited shape stop agreeing: a column holding minutes and
+a field asking for hours. A form's `default` cannot do this, because `default` is for a
+row that does not exist yet.
+
+Two things it is not. It does not change the record: the policies, the relation managers
+and everything else asking about the row go on seeing what the database holds. And it is
+not a way to put something on the page that the form does not carry, because only the
+paths the tree makes visible are serialised.
+
+It is asked on an Edit page and nowhere else. A create has no row to read.
+
 ## Where a create lands
 
 `"edit"`, `"index"` or `"none"`. Set it on the panel for all of them, or on one resource

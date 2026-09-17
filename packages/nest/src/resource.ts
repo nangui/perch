@@ -100,6 +100,27 @@ export interface PanelResource {
   mutateFormDataBeforeSave?: (
     data: Record<string, unknown>,
   ) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  /**
+   * The other direction: the row as read, before the Edit form opens on it.
+   *
+   * The pair to the two above, and the one that runs the other way. They are
+   * the last thing to touch what is written; this is the first thing to touch
+   * what is shown, which is where a stored shape and an edited shape stop
+   * agreeing. A column holding minutes and a field asking for hours is the
+   * ordinary case, and doing that conversion in the form's `default` would put
+   * it somewhere that never sees an existing row.
+   *
+   * What it returns fills the form. The record itself is untouched, so the
+   * policies, the relation managers and everything else asking about this row
+   * go on seeing what the database holds.
+   *
+   * It cannot be used to send something to the browser that the form does not
+   * carry: only the paths the tree makes visible are serialised, so a key
+   * added here for any other purpose is dropped before the page is written.
+   */
+  mutateFormDataBeforeFill?: (
+    data: Record<string, unknown>,
+  ) => Record<string, unknown> | Promise<Record<string, unknown>>;
 }
 
 export function PanelResource(options: PanelResourceOptions): ClassDecorator {

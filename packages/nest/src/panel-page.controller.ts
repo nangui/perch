@@ -258,9 +258,11 @@ export class PanelPageController {
         ir: this.#data.ir(),
         model: resource.metadata.model,
       }),
-      // The whole row. `serialise` keeps only the paths the tree makes visible,
-      // so a column the form does not carry never reaches the browser.
-      state: record,
+      // The whole row, once the resource has had its say about how it reads.
+      // `serialise` keeps only the paths the tree makes visible, so a column
+      // the form does not carry never reaches the browser, whether it was in
+      // the row or added here.
+      state: await filled(resource, record),
       record,
     });
   }
@@ -605,4 +607,18 @@ function entry(assets: PanelAssets, name: string): string {
   // reaching a browser as a broken tag.
   if (file === undefined) throw new Error(`the asset manifest names no "${name}".`);
   return file;
+}
+
+/**
+ * The row as the form should open on it.
+ *
+ * Copied before it is handed over, so a hook that writes to what it was given
+ * cannot reach the record the policies and the relation managers are reading.
+ */
+async function filled(
+  resource: RegisteredResource,
+  record: Row,
+): Promise<Record<string, unknown>> {
+  const fill = resource.instance.mutateFormDataBeforeFill?.bind(resource.instance);
+  return fill === undefined ? record : await fill({ ...record });
 }

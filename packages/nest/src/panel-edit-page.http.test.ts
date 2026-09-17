@@ -114,6 +114,31 @@ class PostResource {
   };
 }
 
+/**
+ * The same rows, read differently on the way to the form.
+ *
+ * A second slug over one model, so the fill hook can be asked about the rows
+ * that are already there without a second fixture to keep in step.
+ */
+@PanelResource({ model: "Post", slug: "filled", label: "Filled" })
+class FilledResource {
+  form(): Schema {
+    return Schema.make([TextInput.make("title"), TextInput.make("body")]);
+  }
+  mutateFormDataBeforeFill(data: Record<string, unknown>): Record<string, unknown> {
+    // Writing into what it was handed as well as returning something, because
+    // a hook that does is the one that would reach the record if it were not
+    // given a copy.
+    data["title"] = "scribbled";
+    const body = data["body"];
+    return {
+      ...data,
+      title: `Draft of ${typeof body === "string" ? body : ""}`,
+      secretScore: 9,
+    };
+  }
+}
+
 function assets(): PanelAssets {
   const directory = mkdtempSync(join(tmpdir(), "perch-edit-"));
   writeFileSync(join(directory, "panel-a1b2c3d4.js"), "");
@@ -135,7 +160,7 @@ afterEach(async () => {
 async function serve(withAdapter = true, globalPrefix?: string): Promise<string> {
   const base = {
     path: "/admin",
-    resources: [PostResource],
+    resources: [PostResource, FilledResource],
     guards: [HeaderGuard],
     assets: assets(),
   };
@@ -165,6 +190,44 @@ function payloadOf(html: string): SchemaPayload {
       .replaceAll("&amp;", "&"),
   ) as SchemaPayload;
 }
+
+describe("a resource that reads the row differently", () => {
+  // The pair to the two hooks that shape what is written, running the other
+  // way. A column holding one shape and a field asking for another is the
+  // ordinary case, and a form's `default` cannot do it: `default` is for a row
+  // that does not exist yet.
+  it("fills the form with what the hook returned", async () => {
+    const html = await (await get(await serve(), "/admin/filled/1/edit")).text();
+
+    expect(payloadOf(html).state["title"]).toBe("Draft of …");
+  });
+
+  it("leaves the stored row alone for everything else", async () => {
+    // The hook writes into what it is handed as well as returning something.
+    // Given the record itself it would be editing the row the policies and the
+    // relation managers read, so it is given a copy.
+    const url = await serve();
+    const filled = await (await get(url, "/admin/filled/1/edit")).text();
+    const plain = await (await get(url, "/admin/posts/1/edit")).text();
+
+    expect(payloadOf(filled).state["title"]).toBe("Draft of …");
+    expect(payloadOf(plain).state["title"]).toBe("Ada's post");
+  });
+
+  it("cannot put on the page what the form does not carry", async () => {
+    // It returns `secretScore` too. Only the paths the tree makes visible are
+    // serialised, so a hook is not a way to hand the browser a column.
+    const html = await (await get(await serve(), "/admin/filled/1/edit")).text();
+
+    expect(payloadOf(html).state["secretScore"]).toBeUndefined();
+  });
+
+  it("is not asked on a create, where there is no row to read", async () => {
+    const html = await (await get(await serve(), "/admin/filled/create")).text();
+
+    expect(payloadOf(html).state["title"]).toBeUndefined();
+  });
+});
 
 describe("the page carries the row", () => {
   it("fills the form with what is stored", async () => {
