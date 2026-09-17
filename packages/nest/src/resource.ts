@@ -3,7 +3,7 @@
  * `@Injectable`: instantiating through the container is what lets a resolver
  * inject a business service and call `this.cities.byCountry(…)`.
  */
-import type { IconName, Schema, Table } from "@perchjs/core";
+import type { IconName, Row, Schema, Table, WriteTree } from "@perchjs/core";
 import { defaultSlug, plural } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import type { RelationManager } from "./relation-manager.js";
@@ -118,6 +118,34 @@ export interface PanelResource {
    * carry: only the paths the tree makes visible are serialised, so a key
    * added here for any other purpose is dropped before the page is written.
    */
+  /**
+   * Writes the row instead of the panel, and answers with what was written.
+   *
+   * The escape hatch. An application with domain logic writes through a
+   * service or an event bus, and a panel that can only reach into its tables
+   * is a panel it cannot use. What arrives is the write the form produced:
+   * `set` for the columns, `relations` for what rides with them, which is
+   * where a repeater's rows are.
+   *
+   * What it answers with becomes the row. It has to carry the model's key,
+   * because the panel names the row by it and a create goes to it, and it is
+   * refused outright if it does not: the alternative is a save that answers
+   * with nothing and a reader left on a form that has already been used.
+   *
+   * Nothing wraps it in a transaction. The framework's own write is wrapped
+   * because a row and its repeater's rows are one write; what replaces it may
+   * not be a database at all, and promising atomicity over it would be
+   * promising something nothing here can keep.
+   */
+  handleRecordCreation?: (data: WriteTree) => Row | Promise<Row>;
+  /**
+   * The same for a save, handed the row as it stands as well as the write.
+   *
+   * It answers for every save, including a cell written from a table: a hook
+   * honoured on one route and not the other writes to a database the
+   * application said it does not use, on whichever route was forgotten.
+   */
+  handleRecordUpdate?: (record: Row, data: WriteTree) => Row | Promise<Row>;
   mutateFormDataBeforeFill?: (
     data: Record<string, unknown>,
   ) => Record<string, unknown> | Promise<Record<string, unknown>>;

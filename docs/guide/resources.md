@@ -319,6 +319,60 @@ paths the tree makes visible are serialised.
 
 It is asked on an Edit page and nowhere else. A create has no row to read.
 
+## Writing the row yourself
+
+The escape hatch. Where the database is not the model, a panel that can only
+reach into your tables is a panel you cannot use: the write has to go through the
+service or the bus that owns it.
+
+```ts
+import type { Row, WriteTree } from "@perchjs/core";
+import { Schema, TextInput } from "@perchjs/core";
+import { PanelResource } from "@perchjs/nest";
+
+@PanelResource({ model: "Order" })
+export class OrdersResource implements PanelResource {
+  form() {
+    return Schema.make([TextInput.make("reference")]);
+  }
+
+  async handleRecordCreation(data: WriteTree): Promise<Row> {
+    return await orders.place(data.set ?? {});
+  }
+
+  async handleRecordUpdate(record: Row, data: WriteTree): Promise<Row> {
+    return await orders.amend(record["id"], data.set ?? {});
+  }
+}
+```
+
+What arrives is the write the form produced: `set` for the columns, `relations` for
+what rides with them, which is where a repeater's rows are.
+
+### Answer with the row, carrying its key
+
+The panel names the row by its key and a create goes to it. A hook that answers with
+anything else is refused by name rather than tolerated, because the alternative is a
+save that answers with nothing and a reader left on a form that has already been used.
+
+### Every save, including a cell
+
+`handleRecordUpdate` answers for a cell written from the table as much as for the Edit
+page. A cell is a save of one field and reaches the database by a path of its own, so a
+hook honoured on one route and not the other would write to the database you said you
+do not use, on whichever route was forgotten.
+
+### Nothing wraps it in a transaction
+
+The panel's own write is wrapped, because a row and its repeater's rows are one write.
+What replaces it may not be a database at all, so wrapping it would promise an
+atomicity nothing here can keep. That guarantee becomes yours along with the write.
+
+### The shaping hooks still run
+
+`mutateFormDataBeforeCreate` and `mutateFormDataBeforeSave` come first: they shape the
+data, and this receives what they produced.
+
 ## Where a create lands
 
 `"edit"`, `"index"` or `"none"`. Set it on the panel for all of them, or on one resource

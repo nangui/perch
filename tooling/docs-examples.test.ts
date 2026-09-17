@@ -120,9 +120,27 @@ const PRELUDE = [
   "countPending",
   "hash",
   "grace",
+  "orders",
   "guest",
   "post",
 ];
+
+describe("the cast of characters", () => {
+  it("holds exactly the names an example may lean on", () => {
+    // Two lists that have to agree, and nothing was making them. A name went
+    // into the cast and not into this one, so the page naming it failed with
+    // `Cannot find name`, which reads as a mistake in the page. Three others
+    // went in and were used by nothing, which is the same disagreement
+    // pointing the other way.
+    const declared = [
+      ...readFileSync(join(ROOT, "tooling/docs/cast.ts"), "utf8").matchAll(
+        /^export declare (?:class|const|function) (\w+)/gm,
+      ),
+    ].map((found) => found[1]);
+
+    expect(declared.sort()).toEqual([...PRELUDE].sort());
+  });
+});
 
 describe("the examples in the documentation", () => {
   it("are all compiled, or excused by name", () => {

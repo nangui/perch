@@ -43,6 +43,7 @@ import { fileUrls } from "./file-urls.js";
 import { readState } from "./form-body.js";
 import { withOptions } from "./relationship-options.js";
 import type { IncomingUrl } from "./panel-root.js";
+import { createRecord, updateRecord } from "./handle-record.js";
 import { rootOf } from "./panel-root.js";
 import { resourcePath } from "./records.js";
 import { recordId } from "./record-id.js";
@@ -133,13 +134,7 @@ export class PanelSaveController {
 
     let record: Row;
     try {
-      // In a transaction, because a row and its repeater's rows are one write.
-      // Prisma's nested write is already one statement and would roll back on
-      // its own; asking here is what makes the guarantee the adapter's contract
-      // rather than a property one adapter happens to have.
-      record = await data.transaction(async (tx) =>
-        tx.create(resource.metadata.model, write),
-      );
+      record = await createRecord(resource, data, write);
     } catch (error) {
       await undoCommitted(committed, this.#disks);
       throw error;
@@ -221,7 +216,7 @@ export class PanelSaveController {
 
     let updated: Row;
     try {
-      updated = await data.transaction(async (tx) => tx.update(model, key, write));
+      updated = await updateRecord(resource, data, key, record, write);
     } catch (error) {
       await undoCommitted(committed, this.#disks);
       throw error;

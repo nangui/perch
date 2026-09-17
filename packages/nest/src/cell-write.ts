@@ -15,6 +15,7 @@
 import { NotFoundException } from "@nestjs/common";
 import type { DataAdapter, NotificationState, Table } from "@perchjs/core";
 import { dehydrate, WritableColumn } from "@perchjs/core";
+import { updateRecord } from "./handle-record.js";
 import { admit } from "./admission.js";
 import { authorize } from "./authorization.js";
 import { fileUrls } from "./file-urls.js";
@@ -114,7 +115,9 @@ export async function writeCell(request: CellWrite): Promise<CellWriteResponse> 
   const mutate = resource.instance.mutateFormDataBeforeSave?.bind(resource.instance);
   const set = (await mutate?.({ ...written.set })) ?? written.set;
 
-  const updated = await data.transaction(async (tx) => tx.update(model, key, { set }));
+  // The same write every other save goes through, so an application that
+  // replaces persistence is not bypassed by a cell.
+  const updated = await updateRecord(resource, data, key, record, { set });
   return { value: updated[path] };
 }
 

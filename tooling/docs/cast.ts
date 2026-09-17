@@ -45,10 +45,6 @@ export declare const post: Record<string, unknown>;
 
 /** A guard the reader's application already has. */
 export declare const JwtAuthGuard: new () => { canActivate: () => boolean };
-/** The other three the auth recipes name, each somebody else's to write. */
-export declare const SessionGuard: new () => { canActivate: () => boolean };
-export declare const ClerkGuard: new () => { canActivate: () => boolean };
-export declare const AuthjsGuard: new () => { canActivate: () => boolean };
 
 /**
  * The application's own adapter, client and generated representation.
@@ -81,6 +77,14 @@ export declare const IR: Ir;
 /** Helpers of the reader's own that examples call rather than build. */
 export declare function hash(plain: string): Promise<string>;
 export declare function countPending(user: unknown): Promise<number>;
+/** The application's own service, for the resource that writes its own rows. */
+export declare const orders: {
+  place: (data: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  amend: (
+    id: unknown,
+    data: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>;
+};
 
 /**
  * Renderers a plugin brings with it.
