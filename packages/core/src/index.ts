@@ -167,6 +167,7 @@ export {
   searchablePaths,
   presentRows,
   serialiseTable,
+  shownColumns,
   sortablePaths,
   Table,
 } from "./table.js";

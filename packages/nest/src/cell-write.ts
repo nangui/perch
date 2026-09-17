@@ -14,7 +14,7 @@
  */
 import { NotFoundException } from "@nestjs/common";
 import type { DataAdapter, NotificationState, Table } from "@perchjs/core";
-import { dehydrate, WritableColumn } from "@perchjs/core";
+import { dehydrate, shownColumns, WritableColumn } from "@perchjs/core";
 import { announce, updateRecord } from "./handle-record.js";
 import { admit } from "./admission.js";
 import { authorize } from "./authorization.js";
@@ -53,7 +53,11 @@ export async function writeCell(request: CellWrite): Promise<CellWriteResponse> 
   // The column first, because it decides whether this path is a thing a table
   // may write at all — before a record is read, and before a policy is asked
   // about a row nobody may edit through here anyway.
-  const column = writable(table, request.path);
+  // Narrowed for this reader first. A column they may not see is not one they
+  // may write: the list would not have offered the control, and a request that
+  // arrives anyway is asking for a column that is not in their table at all.
+  const shown = table === undefined ? undefined : await shownColumns(table, user);
+  const column = writable(shown, request.path);
   if (column === undefined) throw new NotFoundException();
   // A shape no control of this kind produces. Refused here rather than handed
   // to a form that would refuse it in silence, because silence is for a state

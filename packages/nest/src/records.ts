@@ -27,6 +27,7 @@ import {
   normaliseOptions,
   presentRows,
   serialiseTable,
+  shownColumns,
   SOFT_DELETE_FIELD,
   WritableColumn,
 } from "@perchjs/core";
@@ -201,7 +202,14 @@ export async function listOf(options: {
    */
   readonly user?: unknown;
 }): Promise<RecordsResponse> {
-  const { data, model, table, raw, scope } = options;
+  const { data, model, raw, scope } = options;
+  // Narrowed for this reader before anything reads the columns: what is
+  // projected out of a row, what is presented and what is sent all follow from
+  // them, so a column refused here is one whose values never leave the server.
+  const table =
+    options.table === undefined
+      ? undefined
+      : await shownColumns(options.table, options.user);
   const mayReadDeleted = options.mayReadDeleted ?? true;
   const ir = data.ir();
   const read = await readList(model, ir, raw, table, mayReadDeleted, {

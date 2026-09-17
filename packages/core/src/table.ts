@@ -340,6 +340,24 @@ function presentAt(
   return { ...row, [head]: presentAt(row[head], rest, present) };
 }
 
+/**
+ * The table as this reader gets it, with the columns they may not have gone.
+ *
+ * Narrowed once, here, because everything downstream reads the columns to
+ * decide what it does: which paths are projected out of a row, which values are
+ * presented, which headings are sent. Filtering the headings alone would leave
+ * the values in the response, which is the shape of a column hidden by styling
+ * and the reason this is not that.
+ */
+export async function shownColumns(table: Table, user: unknown): Promise<Table> {
+  const kept: Column[] = [];
+  for (const column of table.state.columns) {
+    const when = column.state.visible;
+    if (when === undefined || (await when(user))) kept.push(column);
+  }
+  return kept.length === table.state.columns.length ? table : table.columns(kept);
+}
+
 export function serialiseTable(table: Table): ColumnTree {
   return {
     columns: table.state.columns.map((column) => ({

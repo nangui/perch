@@ -70,6 +70,33 @@ These are the same three [TextEntry](../infolists) declares, applied by the same
 function. A panel where a date reads one way on a record and another in the list of them
 is a panel nobody trusts about either.
 
+## Keeping a column from a reader
+
+```ts
+import { Table, TextColumn } from "@perchjs/core";
+
+Table.make().columns([
+  TextColumn.make("name"),
+  TextColumn.make("salary").visible(
+    (user) => (user as { role?: string } | undefined)?.role === "admin",
+  ),
+]);
+```
+
+Not the same as taking it off, and the difference is the whole reason it exists. A
+column the reader turned off is a column whose values were read, sent and are sitting in
+the page. One refused here is not in their table at all: its values are not projected out
+of the row, not presented and never leave the server. A salary column hidden by styling
+is a salary column in the response.
+
+It is not writable either. A cell control the list never offered is not one a request can
+ask for afterwards, so a write to that path is refused the way a path no column declares
+is refused.
+
+Asked once per request, with the reader, the way the heading's label is decided once for
+the table. Per row would be the heading equivalent of N+1, and a column that came and
+went down a page is not one anybody can read.
+
 ## Taking a column off
 
 ```ts

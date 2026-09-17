@@ -37,6 +37,15 @@ export interface ColumnState {
    */
   readonly toggleable?: { readonly hiddenByDefault: boolean };
   /**
+   * Whether this reader gets the column at all.
+   *
+   * Given the reader and not a record. A column heading is decided once for
+   * the table, the way its label is: asking per row would be the heading
+   * equivalent of N+1, and a column that came and went down a page is not a
+   * column anybody can read.
+   */
+  readonly visible?: (user: unknown) => boolean | Promise<boolean>;
+  /**
    * How the value reads, where reading it is not the same as showing it.
    *
    * The rule only. What it turns into is the browser's answer, because the
@@ -153,6 +162,22 @@ export abstract class Column {
    */
   searchable(on = true): this {
     return this.with({ ...this.state, searchable: on });
+  }
+
+  /**
+   * Keeps the column from a reader who may not have it.
+   *
+   * Not the same as `toggleable`, and the difference is the whole point. A
+   * column taken off is a column whose values were still read, sent and sitting
+   * in the page; one refused here is not in the table at all, so its values are
+   * not projected, not presented and not sent. A salary column hidden by
+   * styling is a salary column in the response.
+   *
+   * Asked once per request, with the reader. Absent means always there, which
+   * is the right default: a column nobody guarded is one the author meant.
+   */
+  visible(when: (user: unknown) => boolean | Promise<boolean>): this {
+    return this.with({ ...this.state, visible: when });
   }
 
   /**
