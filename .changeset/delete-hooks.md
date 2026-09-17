@@ -1,0 +1,5 @@
+---
+"@perchjs/nest": minor
+---
+
+Add `beforeDelete` and `afterDelete`, which completes the six lifecycle hooks. Three decisions come with them. They are told once per row, because a delete is one statement for however many were ticked and these are about a row: fifty rows is fifty calls, which is a cost worth knowing before one is wired to a round trip. They are told about a permanent delete as well as a mark, since an index kept in step by them would otherwise go stale on the operation that really removes the row; a restore is not a delete and says nothing. And they follow the model rather than the screen, so a row deleted through another resource's relation manager still reaches the resource whose model it is, and where two resources share a model each that declared the hook hears about it. `beforeDelete` runs inside the write, so raising stops the delete; `afterDelete` runs once the write has settled, since an announcement made inside a transaction is one made for a delete that may still roll back.

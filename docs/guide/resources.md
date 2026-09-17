@@ -355,6 +355,24 @@ files of a row that exists.
 They are told about every save, a cell written from the table included. A cell is a save
 of one field, and a resource watching for saves is watching for that one too.
 
+### And around a delete
+
+`beforeDelete(record)` and `afterDelete(record)` complete the set, with three things
+worth knowing.
+
+They are told **once per row**. A delete is one statement for however many were ticked,
+and these are not: fifty rows is fifty calls, so a hook that makes a round trip will be
+felt on a bulk delete in a way the delete itself is not.
+
+They are told about a **permanent** delete as well as a mark. Otherwise an index kept in
+step by these would go stale on exactly the operation that really removes the row. A
+restore is not a delete and says nothing.
+
+They follow the **model**, not the screen. A row deleted through another resource's
+relation manager is still a row of yours, and yours is the resource that asked to be
+told. Where two resources share a model, one for what is live and another for what is
+archived, each that declared the hook hears about it.
+
 The pair names what arrives: a before hook is handed the write the form produced, which
 has already crossed the boundary, so there is nothing in it the client invented.
 

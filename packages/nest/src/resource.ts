@@ -154,6 +154,24 @@ export interface PanelResource {
    * raising inside that would delete the files of a row that exists.
    */
   afterCreate?: (record: Row) => void | Promise<void>;
+  /**
+   * Told that a row of this resource's model is about to be deleted.
+   *
+   * Once per row, and a delete is one statement for however many were ticked,
+   * so fifty rows is fifty calls: a hook that makes a round trip will be felt
+   * on a bulk delete in a way the delete itself is not.
+   *
+   * It runs inside the write, so raising stops the delete, and it is told
+   * about a destroy as well as a mark. A hook that keeps an index in step
+   * would leave it stale after every permanent delete otherwise.
+   *
+   * By model rather than by screen. A row deleted through another resource's
+   * relation manager is still a row of this one, and this is the resource that
+   * said it wanted to know.
+   */
+  beforeDelete?: (record: Row) => void | Promise<void>;
+  /** The same once the rows are gone and the write has settled. */
+  afterDelete?: (record: Row) => void | Promise<void>;
   /** The same before a save, handed the row as it stands and the write. */
   beforeSave?: (record: Row, data: WriteTree) => void | Promise<void>;
   /** The same after one, for every save including a cell from a table. */

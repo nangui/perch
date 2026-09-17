@@ -18,17 +18,43 @@ import type { INestApplication } from "@nestjs/common";
 import { Injectable } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { DataAdapter, Id, Ir, ModelMeta, Row, WriteTree } from "@perchjs/core";
-import { Schema, Table, TextColumn, TextInput, TextInputColumn } from "@perchjs/core";
+import {
+  DeleteAction,
+  ForceDeleteAction,
+  RestoreAction,
+  Schema,
+  Table,
+  TextColumn,
+  TextInput,
+  TextInputColumn,
+} from "@perchjs/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { PanelAssets } from "./panel-assets.js";
 import { PanelModule } from "./panel.module.js";
 import { PanelResource } from "./resource.js";
 import { key, model, scalar } from "./__fixtures__/ir.js";
 
-const ROWS: Row[] = [{ id: 1, title: "Ada's post" }];
+const ROWS: Row[] = [
+  { id: 1, title: "Ada's post" },
+  { id: 2, title: "Grace's post" },
+  // The row the database refuses to delete, for the announcement that must
+  // not be made when the write does not happen.
+  { id: 3, title: "Stubborn" },
+];
 
 /** What the panel reached for, so a test can say it did not. */
 const touched: string[] = [];
+/**
+ * Makes the transaction fail after its body has succeeded.
+ *
+ * A double whose `transaction` only calls its argument cannot tell an
+ * announcement made inside the write from one made after it: both are skipped
+ * when the statement itself raises. What separates them is a write that
+ * succeeds and is then rolled back, which is the case the separation exists
+ * for and the only one that measures it.
+ */
+let failCommit = false;
+
 /** Every announcement, in order, so a test can say when it was made. */
 const told: string[] = [];
 
@@ -38,13 +64,36 @@ const offered: { create?: WriteTree; update?: [Row, WriteTree] } = {};
 @Injectable()
 class MemoryAdapter implements DataAdapter {
   ir(): Ir {
-    return { models: [this.meta()] };
+    return {
+      models: [
+        this.meta(),
+        model({ name: "Refusing", fields: [key(), scalar("title")] }),
+      ],
+    };
   }
-  meta(): ModelMeta {
-    return model({ fields: [key(), scalar("title"), scalar("draftNote")] });
+  meta(name = "Post"): ModelMeta {
+    return model({ name, fields: [key(), scalar("title"), scalar("draftNote")] });
   }
-  findMany(): Promise<{ rows: readonly Row[]; total: number }> {
-    return Promise.resolve({ rows: ROWS, total: ROWS.length });
+  /**
+   * Narrows on the one clause an action's selection sends.
+   *
+   * A double that answered with every row whatever it was asked would make a
+   * test about one row pass for reasons of its own: the hooks fired twice and
+   * the assertion that caught it was the count, not the behaviour.
+   */
+  findMany(query: {
+    clauses?: readonly { path: string; operator: string; value: unknown }[];
+  }): Promise<{ rows: readonly Row[]; total: number }> {
+    const chosen = (query.clauses ?? []).find(
+      (clause) => clause.path === "id" && clause.operator === "in",
+    );
+    const rows =
+      chosen === undefined
+        ? ROWS
+        : ROWS.filter((row) =>
+            (chosen.value as readonly unknown[]).includes(row["id"]),
+          );
+    return Promise.resolve({ rows, total: rows.length });
   }
   findOne(_model: string, id: Id): Promise<Row | null> {
     return Promise.resolve(ROWS.find((row) => row["id"] === id) ?? null);
@@ -57,14 +106,18 @@ class MemoryAdapter implements DataAdapter {
     touched.push("update");
     return Promise.resolve({ id, ...data.set });
   }
-  delete(): Promise<number> {
-    throw new Error("not needed here");
+  delete(_model: string, ids: readonly Id[]): Promise<number> {
+    touched.push("delete");
+    if (ids.includes(3)) return Promise.reject(new Error("the database said no"));
+    return Promise.resolve(ids.length);
   }
-  forceDelete(): Promise<number> {
-    throw new Error("not needed here");
+  forceDelete(_model: string, ids: readonly Id[]): Promise<number> {
+    touched.push("forceDelete");
+    return Promise.resolve(ids.length);
   }
-  restore(): Promise<number> {
-    throw new Error("not needed here");
+  restore(_model: string, ids: readonly Id[]): Promise<number> {
+    touched.push("restore");
+    return Promise.resolve(ids.length);
   }
   attach(): Promise<void> {
     return Promise.resolve();
@@ -72,8 +125,10 @@ class MemoryAdapter implements DataAdapter {
   detach(): Promise<void> {
     return Promise.resolve();
   }
-  transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
-    return fn(this);
+  async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
+    const answer = await fn(this);
+    if (failCommit) throw new Error("rolled back");
+    return answer;
   }
 }
 
@@ -91,7 +146,9 @@ const wrote = (data: WriteTree, path: string): string => {
   return typeof held === "string" ? held : "";
 };
 const table = (): Table =>
-  Table.make().columns([TextColumn.make("title"), TextInputColumn.make("title")]);
+  Table.make()
+    .columns([TextColumn.make("title"), TextInputColumn.make("title")])
+    .actions([DeleteAction.make(), ForceDeleteAction.make(), RestoreAction.make()]);
 
 /** Writes its own rows, and says what it was given. */
 @PanelResource({ model: "Post", slug: "handled" })
@@ -114,6 +171,12 @@ class HandledResource {
   afterSave(record: Row): void {
     told.push(`afterSave:${String(record["id"])}`);
   }
+  beforeDelete(record: Row): void {
+    told.push(`beforeDelete:${String(record["id"])}`);
+  }
+  afterDelete(record: Row): void {
+    told.push(`afterDelete:${String(record["id"])}`);
+  }
   handleRecordCreation(data: WriteTree): Row {
     offered.create = data;
     return { id: 7, title: `service: ${wrote(data, "title")}` };
@@ -132,6 +195,22 @@ class KeylessResource {
   }
   handleRecordCreation(): Row {
     return { title: "written somewhere" };
+  }
+}
+
+/** Refuses the delete from inside the write. */
+@PanelResource({ model: "Refusing", slug: "refusing" })
+class RefusingResource {
+  form(): Schema {
+    return Schema.make([TextInput.make("title")]);
+  }
+  table(): Table {
+    return Table.make()
+      .columns([TextColumn.make("title")])
+      .actions([DeleteAction.make()]);
+  }
+  beforeDelete(): void {
+    throw new Error("not this one");
   }
 }
 
@@ -160,6 +239,7 @@ function assets(): PanelAssets {
 let app: INestApplication | undefined;
 
 beforeEach(() => {
+  failCommit = false;
   touched.length = 0;
   told.length = 0;
   delete offered.create;
@@ -176,7 +256,7 @@ async function serve(): Promise<string> {
     imports: [
       PanelModule.forRoot({
         path: "/admin",
-        resources: [HandledResource, KeylessResource, PlainResource],
+        resources: [HandledResource, KeylessResource, PlainResource, RefusingResource],
         dataAdapter: MemoryAdapter,
         assets: assets(),
       }),
@@ -281,6 +361,109 @@ describe("a resource told when a row is written", () => {
     await post(url, "/admin/api/plain", { state: { title: "Ada" } });
 
     expect(told).toEqual([]);
+  });
+});
+
+const act = async (
+  url: string,
+  at: string,
+  name: string,
+  body: unknown,
+): Promise<Response> =>
+  await fetch(`${url}${at}/actions/${name}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+describe("a resource told a row was deleted", () => {
+  it("hears the pair around each row, and once per row", async () => {
+    // A delete is one statement for however many were ticked. The hook is not:
+    // it is about a row, so fifty rows is fifty calls, which is a cost worth
+    // knowing before a bulk delete is wired to a round trip.
+    const url = await serve();
+    await act(url, "/admin/api/handled", "DeleteAction", { ids: [1, 2] });
+
+    expect(told).toEqual([
+      "beforeDelete:1",
+      "beforeDelete:2",
+      "afterDelete:1",
+      "afterDelete:2",
+    ]);
+  });
+
+  it("hears a permanent delete as well as a mark", async () => {
+    // Otherwise an index kept in step by these hooks goes stale on every
+    // force delete, which is the one that really removes the row.
+    const url = await serve();
+    await act(url, "/admin/api/handled", "ForceDeleteAction", { ids: [1] });
+
+    expect(told).toEqual(["beforeDelete:1", "afterDelete:1"]);
+  });
+
+  it("says nothing about a restore, which is not a delete", async () => {
+    const url = await serve();
+    await act(url, "/admin/api/handled", "RestoreAction", { ids: [1] });
+
+    expect(touched).toEqual(["restore"]);
+    expect(told).toEqual([]);
+  });
+
+  it("is told about its model's rows, not about its own screen", async () => {
+    // The decision this hook turns on. `plain` and `handled` are two resources
+    // over one model, which is an ordinary arrangement: one screen for what is
+    // live and another for what is archived. A row deleted from either is a row
+    // of both, and the one that asked to be told is told.
+    const url = await serve();
+    await act(url, "/admin/api/plain", "DeleteAction", { ids: [1] });
+
+    expect(told).toEqual(["beforeDelete:1", "afterDelete:1"]);
+  });
+});
+
+describe("a delete that does not happen", () => {
+  it("is not announced", async () => {
+    // The worst thing these hooks could do: emit an event, drop a cache or
+    // clear an index entry for a row that is still there. The announcement is
+    // carried out of the write for exactly this, so a write that raises never
+    // reaches it.
+    const url = await serve();
+    const response = await act(url, "/admin/api/handled", "DeleteAction", { ids: [3] });
+
+    expect(response.status).toBe(500);
+    expect(told).toEqual(["beforeDelete:3"]);
+    expect(told).not.toContain("afterDelete:3");
+  });
+});
+
+describe("a delete rolled back after the statement", () => {
+  it("is not announced either", async () => {
+    // The case the separation exists for, and the one a doubled transaction
+    // that only calls its argument cannot show: the statement succeeded, the
+    // write did not. An announcement made inside it would have told a resource
+    // about a row that is still there.
+    failCommit = true;
+    const url = await serve();
+    const response = await act(url, "/admin/api/handled", "DeleteAction", { ids: [1] });
+
+    expect(response.status).toBe(500);
+    expect(touched).toContain("delete");
+    expect(told).toEqual(["beforeDelete:1"]);
+  });
+});
+
+describe("a before hook that refuses", () => {
+  it("stops the delete before the statement is issued", async () => {
+    // The claim `beforeDelete` makes by running inside the write. Without it
+    // the hook is a notification dressed as a veto: the rows go, and the only
+    // sign is an error after the fact.
+    const url = await serve();
+    const response = await act(url, "/admin/api/refusing", "DeleteAction", {
+      ids: [1],
+    });
+
+    expect(response.status).toBe(500);
+    expect(touched).not.toContain("delete");
   });
 });
 

@@ -147,6 +147,8 @@ export class PanelActionController {
       user,
       refusedAlready: refused,
       collected: collected.accepted,
+      // Whose rows these are, which is not always whose screen they were on.
+      watching: this.#registry.forModel(target.model).map((one) => one.instance),
       ...(target.scope === undefined ? {} : { scope: target.scope }),
     });
     if (scoped !== undefined) this.#replays.remember(scoped, answer, now);

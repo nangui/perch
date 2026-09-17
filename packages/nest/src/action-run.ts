@@ -34,6 +34,7 @@ import {
 } from "@perchjs/core";
 import { loadSelection, readSelection } from "./action-selection.js";
 import type { Authorization } from "./authorization.js";
+import type { PanelResource } from "./resource.js";
 import { authorize, permissionFor } from "./authorization.js";
 
 export interface ActionAnswer {
@@ -235,14 +236,36 @@ export async function carryAction(options: {
    * end names the relation.
    */
   readonly scope?: ActionTarget["scope"];
+  /**
+   * The resources whose model these rows are, for the two hooks a delete says.
+   *
+   * By model rather than by screen: a row deleted through another resource's
+   * relation manager is still a row of this one, and this is the resource that
+   * asked to be told. Several is an ordinary arrangement, one screen for what
+   * is live and another for what is archived, and each of them is told.
+   */
+  readonly watching?: readonly PanelResource[];
 }): Promise<ActionAnswer> {
-  const { data, model, action, rows, user, refusedAlready, collected, scope } = options;
+  const {
+    data,
+    model,
+    action,
+    rows,
+    user,
+    refusedAlready,
+    collected,
+    scope,
+    watching = [],
+  } = options;
   // Read once, not once per row. `meta` is documented as resolved at bootstrap
   // and never called on a hot path, and five hundred rows is one.
   const primaryKey = data.meta(model).primaryKey.name;
   const key = (row: Row): Id => row[primaryKey] as Id;
 
-  return await data.transaction(async (tx) => {
+  /** Rows that went, told about once the write has settled and not before. */
+  const deleted: Row[] = [];
+
+  const answer = await data.transaction(async (tx) => {
     // The three the framework carries out itself. Each is still asked of every
     // record — the guard decides which rows it may touch — and each is one
     // statement for fifty rows rather than fifty.
@@ -252,7 +275,19 @@ export async function carryAction(options: {
       const refused = refusedAlready + (rows.length - admitted.length);
       if (admitted.length === 0) return { processed: 0, refused };
 
+      // Inside the write, so raising stops the delete. A restore is not a
+      // delete and says nothing; a destroy is one and says the same as a mark,
+      // or an index kept in step would go stale on every permanent delete.
+      if (port !== "restore") {
+        for (const resource of watching) {
+          for (const record of admitted) await resource.beforeDelete?.(record);
+        }
+      }
+
       const processed = await tx[port](model, admitted.map(key));
+      // Carried out of the transaction: an announcement made inside it is one
+      // made for a delete that may still roll back.
+      if (port !== "restore") deleted.push(...admitted);
       return { processed, refused };
     }
 
@@ -303,6 +338,11 @@ export async function carryAction(options: {
     const outcome = await runAction({ action, records: rows, user, data: collected });
     return { ...outcome, refused: outcome.refused + refusedAlready };
   });
+
+  for (const resource of watching) {
+    for (const record of deleted) await resource.afterDelete?.(record);
+  }
+  return answer;
 }
 
 /**
