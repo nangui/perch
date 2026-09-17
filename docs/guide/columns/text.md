@@ -42,6 +42,34 @@ to act on it is the half that matters.
 relation a column reads is folded into one `include` on the page's single query, so a
 table of two hundred rows showing an author each is still one query.
 
+## Reading a value rather than showing it
+
+A stored timestamp is an instant and an amount is a number. Neither is what a reader
+wants to see.
+
+```ts
+import { Table, TextColumn } from "@perchjs/core";
+
+Table.make().columns([
+  TextColumn.make("seenAt").label("Seen").dateTime({ timezone: "Europe/Paris" }),
+  TextColumn.make("total").money("EUR"),
+  TextColumn.make("count").numeric({ decimals: 0 }),
+]);
+```
+
+The rule is declared here and applied in the browser, which is the whole point. Which
+wall clock a timestamp is read against and which currency an amount is in are decisions
+somebody makes once; how a date reads and where the thousands separator falls belong to
+whoever is looking. One answer is read by several people, and each of them is owed their
+own.
+
+A value the rule does not fit is shown as it stands. A word under a rule that says date
+stays that word, because hiding it would take away the one place anybody could notice.
+
+These are the same three [TextEntry](../infolists) declares, applied by the same
+function. A panel where a date reads one way on a record and another in the list of them
+is a panel nobody trusts about either.
+
 ## Taking a column off
 
 ```ts

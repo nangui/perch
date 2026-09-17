@@ -79,7 +79,7 @@ export class SightingsResource implements PanelResource {
         TextColumn.make("species.commonName").label("Species").searchable().sortable(),
         TextColumn.make("site.name").label("Site").searchable(),
         TextColumn.make("observer.name").label("Observer"),
-        TextColumn.make("seenAt").label("Seen").sortable(),
+        TextColumn.make("seenAt").label("Seen").dateTime().sortable(),
         TextColumn.make("count").sortable(),
         BadgeColumn.make("certainty").color((value) =>
           value === "certain"

@@ -6,6 +6,7 @@
  * enforced by the signature rather than by a review.
  */
 import type { ReactNode } from "react";
+import { formatValue } from "./format.js";
 import type { BadgedValue, ColumnNode, Row } from "@perchjs/core";
 import type { CellHandle } from "./column-registry.js";
 import { ChevronDown } from "./marks.js";
@@ -554,7 +555,9 @@ export function registerBuiltInColumns(): void {
     );
   }
 
-  registerColumn("TextColumn", (value) => text(value));
+  registerColumn("TextColumn", (value, _row: Row, column: ColumnNode) =>
+    text(formatValue(value, column) ?? value),
+  );
   registerColumn("GaugeColumn", (value, _row: Row, column, cell) =>
     gauge(value, column, cell),
   );

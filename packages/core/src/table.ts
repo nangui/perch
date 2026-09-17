@@ -63,6 +63,11 @@ export interface ColumnNode {
   readonly toggleable?: true;
   readonly hiddenByDefault?: true;
   readonly boolean?: true;
+  /** How the value reads. Applied in the browser, where the locale is. */
+  readonly format?: string;
+  readonly timezone?: string;
+  readonly currency?: string;
+  readonly decimals?: number;
   readonly circular?: true;
   readonly stacked?: true;
   readonly size?: number;
@@ -351,6 +356,16 @@ export function serialiseTable(table: Table): ColumnTree {
               : {}),
           }),
       ...(column.state.boolean === undefined ? {} : { boolean: true as const }),
+      ...(column.state.format === undefined ? {} : { format: column.state.format }),
+      ...(column.state.timezone === undefined
+        ? {}
+        : { timezone: column.state.timezone }),
+      ...(column.state.currency === undefined
+        ? {}
+        : { currency: column.state.currency }),
+      ...(column.state.decimals === undefined
+        ? {}
+        : { decimals: column.state.decimals }),
       ...(column.state.circular === undefined ? {} : { circular: true as const }),
       ...(column.state.stacked === undefined ? {} : { stacked: true as const }),
       ...(column.state.size === undefined ? {} : { size: column.state.size }),

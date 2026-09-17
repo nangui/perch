@@ -36,6 +36,21 @@ export interface ColumnState {
    * nobody declared as optional is one the author meant.
    */
   readonly toggleable?: { readonly hiddenByDefault: boolean };
+  /**
+   * How the value reads, where reading it is not the same as showing it.
+   *
+   * The rule only. What it turns into is the browser's answer, because the
+   * locale is the reader's and one response is read by several: a date sent
+   * with the zone it belongs to shows as a French date to one reader and an
+   * American one to another, and formatting it here would pick for both.
+   */
+  readonly format?: "dateTime" | "money" | "numeric";
+  /** Which wall clock a timestamp is read against. */
+  readonly timezone?: string;
+  /** The currency an amount is in, which no row carries. */
+  readonly currency?: string;
+  /** How many decimal places a number keeps. */
+  readonly decimals?: number;
   /** Renders a check or a cross rather than the value. */
   readonly boolean?: true;
   /** An image drawn as a circle, which is what a table of faces wants. */
@@ -182,6 +197,36 @@ export abstract class Column {
 export class TextColumn extends Column {
   static make(path: string): TextColumn {
     return new TextColumn({ path, sortable: false, searchable: false });
+  }
+
+  /**
+   * A date and a time, read in `timezone` and the reader's own where none is
+   * named.
+   *
+   * The same three a text entry declares, and the same formatter applies them,
+   * because it is one question: a panel where a date reads one way on a record
+   * and another in the list of them is a panel nobody trusts about either.
+   */
+  dateTime(options: { readonly timezone?: string } = {}): this {
+    return this.with({
+      ...this.state,
+      format: "dateTime",
+      ...(options.timezone === undefined ? {} : { timezone: options.timezone }),
+    });
+  }
+
+  /** A number, grouped the way the reader's locale groups numbers. */
+  numeric(options: { readonly decimals?: number } = {}): this {
+    return this.with({
+      ...this.state,
+      format: "numeric",
+      ...(options.decimals === undefined ? {} : { decimals: options.decimals }),
+    });
+  }
+
+  /** An amount, in a currency the row does not carry and the column declares. */
+  money(currency: string): this {
+    return this.with({ ...this.state, format: "money", currency });
   }
 
   override get type(): string {

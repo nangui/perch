@@ -16,6 +16,7 @@
  */
 import type { ReactNode } from "react";
 import { CopyButton } from "./CopyButton.js";
+import { formatValue } from "../format.js";
 
 export interface TextEntryProps {
   /** Whatever the record held. Absent, null and empty all read as nothing. */
@@ -50,60 +51,9 @@ function plain(value: unknown): string | undefined {
   return undefined;
 }
 
-/** A number, or nothing. A numeric string counts: JSON carries some that way. */
-function numberOf(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-  return undefined;
-}
-
-function dateOf(value: unknown): Date | undefined {
-  if (typeof value !== "string" && typeof value !== "number") return undefined;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date;
-}
-
+/** The same formatter the table's text column uses, asked the same question. */
 function formatted(props: TextEntryProps): string | undefined {
-  const { value, format, timezone, currency, decimals } = props;
-
-  try {
-    if (format === "dateTime") {
-      const date = dateOf(value);
-      if (date === undefined) return undefined;
-      return new Intl.DateTimeFormat(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-        ...(timezone === undefined ? {} : { timeZone: timezone }),
-      }).format(date);
-    }
-
-    if (format === "money") {
-      const amount = numberOf(value);
-      if (amount === undefined || currency === undefined) return undefined;
-      return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(
-        amount,
-      );
-    }
-
-    if (format === "numeric") {
-      const amount = numberOf(value);
-      if (amount === undefined) return undefined;
-      return new Intl.NumberFormat(undefined, {
-        ...(decimals === undefined
-          ? {}
-          : { minimumFractionDigits: decimals, maximumFractionDigits: decimals }),
-      }).format(amount);
-    }
-  } catch {
-    // A zone or a currency code the runtime does not know. The value is still
-    // worth showing, and one entry may not take the page with it.
-    return undefined;
-  }
-
-  return undefined;
+  return formatValue(props.value, props);
 }
 
 /** Only the ones the stylesheet has. An unknown name is not a colour. */
