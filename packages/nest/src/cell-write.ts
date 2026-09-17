@@ -15,7 +15,7 @@
 import { NotFoundException } from "@nestjs/common";
 import type { DataAdapter, NotificationState, Table } from "@perchjs/core";
 import { dehydrate, WritableColumn } from "@perchjs/core";
-import { updateRecord } from "./handle-record.js";
+import { announce, updateRecord } from "./handle-record.js";
 import { admit } from "./admission.js";
 import { authorize } from "./authorization.js";
 import { fileUrls } from "./file-urls.js";
@@ -118,6 +118,8 @@ export async function writeCell(request: CellWrite): Promise<CellWriteResponse> 
   // The same write every other save goes through, so an application that
   // replaces persistence is not bypassed by a cell.
   const updated = await updateRecord(resource, data, key, record, { set });
+  // A cell is a save, and a resource watching for one is watching for this too.
+  await announce(resource, "afterSave", updated);
   return { value: updated[path] };
 }
 

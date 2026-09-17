@@ -139,6 +139,26 @@ export interface PanelResource {
    */
   handleRecordCreation?: (data: WriteTree) => Row | Promise<Row>;
   /**
+   * Told that a row is about to be written, and what with.
+   *
+   * Before anything is committed, so raising here stops the write. The write
+   * is the one the form produced and has already crossed the boundary, so
+   * nothing here has to check what the client sent.
+   */
+  beforeCreate?: (data: WriteTree) => void | Promise<void>;
+  /**
+   * Told that a row was written, once there is nothing left to undo.
+   *
+   * After the uploads are settled rather than at the end of the write: a
+   * create undoes its committed files if the write throws, and an announcement
+   * raising inside that would delete the files of a row that exists.
+   */
+  afterCreate?: (record: Row) => void | Promise<void>;
+  /** The same before a save, handed the row as it stands and the write. */
+  beforeSave?: (record: Row, data: WriteTree) => void | Promise<void>;
+  /** The same after one, for every save including a cell from a table. */
+  afterSave?: (record: Row) => void | Promise<void>;
+  /**
    * The same for a save, handed the row as it stands as well as the write.
    *
    * It answers for every save, including a cell written from a table: a hook

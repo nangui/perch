@@ -29,6 +29,9 @@ const ROWS: Row[] = [{ id: 1, title: "Ada's post" }];
 
 /** What the panel reached for, so a test can say it did not. */
 const touched: string[] = [];
+/** Every announcement, in order, so a test can say when it was made. */
+const told: string[] = [];
+
 /** What a hook was handed, so a test can say what the panel offered it. */
 const offered: { create?: WriteTree; update?: [Row, WriteTree] } = {};
 
@@ -99,6 +102,18 @@ class HandledResource {
   table(): Table {
     return table();
   }
+  beforeCreate(data: WriteTree): void {
+    told.push(`beforeCreate:${wrote(data, "title")}`);
+  }
+  afterCreate(record: Row): void {
+    told.push(`afterCreate:${String(record["id"])}`);
+  }
+  beforeSave(record: Row, data: WriteTree): void {
+    told.push(`beforeSave:${String(record["id"])}:${wrote(data, "title")}`);
+  }
+  afterSave(record: Row): void {
+    told.push(`afterSave:${String(record["id"])}`);
+  }
   handleRecordCreation(data: WriteTree): Row {
     offered.create = data;
     return { id: 7, title: `service: ${wrote(data, "title")}` };
@@ -146,6 +161,7 @@ let app: INestApplication | undefined;
 
 beforeEach(() => {
   touched.length = 0;
+  told.length = 0;
   delete offered.create;
   delete offered.update;
 });
@@ -234,6 +250,37 @@ describe("a resource that writes its own rows", () => {
     await patch(url, "/admin/api/plain/1/cell", { path: "title", value: "Hopper" });
 
     expect(touched).toEqual(["create", "update", "update"]);
+  });
+});
+
+describe("a resource told when a row is written", () => {
+  it("hears the pair around a create, in order", async () => {
+    const url = await serve();
+    await post(url, "/admin/api/handled", { state: { title: "Ada" } });
+
+    expect(told).toEqual(["beforeCreate:Ada", "afterCreate:7"]);
+  });
+
+  it("hears the pair around a save", async () => {
+    const url = await serve();
+    await patch(url, "/admin/api/handled/1", { state: { title: "Grace" } });
+
+    expect(told).toEqual(["beforeSave:1:Grace", "afterSave:1"]);
+  });
+
+  it("hears a cell written from the table as the save it is", async () => {
+    // The route that slips past everything, for the third time in this file.
+    const url = await serve();
+    await patch(url, "/admin/api/handled/1/cell", { path: "title", value: "Hopper" });
+
+    expect(told).toEqual(["beforeSave:1:Hopper", "afterSave:1"]);
+  });
+
+  it("says nothing where a resource declared none", async () => {
+    const url = await serve();
+    await post(url, "/admin/api/plain", { state: { title: "Ada" } });
+
+    expect(told).toEqual([]);
   });
 });
 

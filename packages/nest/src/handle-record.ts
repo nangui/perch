@@ -60,6 +60,7 @@ export async function createRecord(
   data: DataAdapter,
   write: WriteTree,
 ): Promise<Row> {
+  await resource.instance.beforeCreate?.(write);
   const handle = resource.instance.handleRecordCreation?.bind(resource.instance);
   if (handle === undefined) {
     return await data.transaction(async (tx) =>
@@ -76,6 +77,7 @@ export async function updateRecord(
   record: Row,
   write: WriteTree,
 ): Promise<Row> {
+  await resource.instance.beforeSave?.(record, write);
   const handle = resource.instance.handleRecordUpdate?.bind(resource.instance);
   if (handle === undefined) {
     return await data.transaction(async (tx) =>
@@ -87,4 +89,23 @@ export async function updateRecord(
   // reading it back inside the hook would be a second query for a row the panel
   // has already got.
   return answered(resource, data, "handleRecordUpdate", await handle(record, write));
+}
+
+/**
+ * Said once the row is written and everything around it has settled.
+ *
+ * Outside the write rather than at the end of it, which is not tidiness. A
+ * create commits its uploads before the row and undoes them if the write
+ * throws; an `afterCreate` raising inside that would delete the files of a row
+ * that exists. So the announcement waits until there is nothing left to undo.
+ *
+ * Which means it is called at each of the three sites rather than in one, and
+ * each of the three has a test saying it was.
+ */
+export async function announce(
+  resource: RegisteredResource,
+  moment: "afterCreate" | "afterSave",
+  record: Row,
+): Promise<void> {
+  await resource.instance[moment]?.(record);
 }

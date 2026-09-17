@@ -319,6 +319,45 @@ paths the tree makes visible are serialised.
 
 It is asked on an Edit page and nowhere else. A create has no row to read.
 
+## Being told a row was written
+
+Four hooks that change nothing and are told what happened, for the work that goes
+beside a write rather than into it: an index to update, an event to emit, a cache to
+drop.
+
+```ts
+import type { Row, WriteTree } from "@perchjs/core";
+import { Schema, TextInput } from "@perchjs/core";
+import { PanelResource } from "@perchjs/nest";
+
+@PanelResource({ model: "Order" })
+export class OrdersResource implements PanelResource {
+  form() {
+    return Schema.make([TextInput.make("reference")]);
+  }
+
+  async afterCreate(record: Row) {
+    await orders.place(record);
+  }
+
+  async beforeSave(record: Row, data: WriteTree) {
+    await orders.amend(record["id"], data.set ?? {});
+  }
+}
+```
+
+`beforeCreate(data)` and `beforeSave(record, data)` run before anything is committed, so
+raising in one stops the write. `afterCreate(record)` and `afterSave(record)` run once
+there is nothing left to undo: a create commits its uploads before the row and undoes
+them if the write fails, and an announcement raising inside that window would delete the
+files of a row that exists.
+
+They are told about every save, a cell written from the table included. A cell is a save
+of one field, and a resource watching for saves is watching for that one too.
+
+The pair names what arrives: a before hook is handed the write the form produced, which
+has already crossed the boundary, so there is nothing in it the client invented.
+
 ## Writing the row yourself
 
 The escape hatch. Where the database is not the model, a panel that can only

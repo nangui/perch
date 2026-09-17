@@ -43,7 +43,7 @@ import { fileUrls } from "./file-urls.js";
 import { readState } from "./form-body.js";
 import { withOptions } from "./relationship-options.js";
 import type { IncomingUrl } from "./panel-root.js";
-import { createRecord, updateRecord } from "./handle-record.js";
+import { announce, createRecord, updateRecord } from "./handle-record.js";
 import { rootOf } from "./panel-root.js";
 import { resourcePath } from "./records.js";
 import { recordId } from "./record-id.js";
@@ -140,6 +140,8 @@ export class PanelSaveController {
       throw error;
     }
     await dropReplaced(committed, this.#disks);
+    // Only now: there is nothing left that a failure here would undo.
+    await announce(resource, "afterCreate", record);
 
     const where = this.#where(resource, request, slug, data, record);
     const shown = identity(data, resource.metadata.model, record);
@@ -224,6 +226,7 @@ export class PanelSaveController {
     // Only now: an attachment the row no longer points at, and only because it
     // has stopped pointing at it.
     await dropReplaced(committed, this.#disks);
+    await announce(resource, "afterSave", updated);
 
     return {
       record: identity(data, model, updated),
