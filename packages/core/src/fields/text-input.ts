@@ -4,7 +4,7 @@
  */
 import { configured } from "../component.js";
 import type { FieldState, ValidationRule } from "../field.js";
-import { baseFieldState, Field, lengthRules, ruleFor } from "../field.js";
+import { baseFieldState, Field, isUnset, lengthRules, ruleFor } from "../field.js";
 import type { TextFlavour } from "../inference.js";
 import type { IconName } from "../icon.js";
 
@@ -163,12 +163,21 @@ export class TextInput extends Field {
  * column with a curious value in it: one is a bug the reader cannot get past,
  * the other is a row somebody fixes. So: something, an `@`, something with a
  * dot in it, and no spaces.
+ *
+ * Loose about what an address looks like, and not about what is being looked
+ * at. Each of these used to begin `!isText(value) ||`, which was written to let
+ * emptiness past, emptiness being `required`'s question and not this one. It
+ * let everything past that was not a string: `true` went through a rule saying
+ * the column holds an address, because it is not text and therefore was never
+ * asked. The boundary does not catch it either, and is right not to: it judges
+ * shape, and a boolean is a scalar. So this is where it is caught.
  */
 function flavourRules(flavour: TextFlavour): readonly ValidationRule[] {
   if (flavour === "email") {
     return [
       ruleFor("email", (value) =>
-        !isText(value) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+        isBlank(value) ||
+        (isText(value) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()))
           ? true
           : "Must be an email address.",
       ),
@@ -177,18 +186,30 @@ function flavourRules(flavour: TextFlavour): readonly ValidationRule[] {
   if (flavour === "url") {
     return [
       ruleFor("url", (value) =>
-        !isText(value) || isUrl(value) ? true : "Must be a link.",
+        isBlank(value) || (isText(value) && isUrl(value)) ? true : "Must be a link.",
       ),
     ];
   }
   if (flavour === "numeric") {
     return [
+      // `numberOf` takes a number as readily as it takes the string a browser
+      // sends, so a cell writing 42 is as good as a form sending "42".
       ruleFor("numeric", (value) =>
-        !isText(value) || numberOf(value) !== undefined ? true : "Must be a number.",
+        isBlank(value) || numberOf(value) !== undefined ? true : "Must be a number.",
       ),
     ];
   }
   return [];
+}
+
+/**
+ * Nothing to look at, which is a different question from nothing being there.
+ *
+ * Whether a field may be empty is `required`'s to answer, so these rules stay
+ * quiet for the empty value and for the string of spaces that reads as one.
+ */
+function isBlank(value: unknown): boolean {
+  return isUnset(value) || (typeof value === "string" && value.trim() === "");
 }
 
 /** Anything else is the field's own business: `admits` has already had its say. */

@@ -21,6 +21,53 @@ const saving = async (field: TextInput, value: unknown) => {
   return tree.errors["at"];
 };
 
+describe("a value that is not text at all", () => {
+  // The hole these rules had. Each began `!isText(value) ||`, written to let
+  // emptiness past, and emptiness is `required`'s question rather than theirs.
+  // What it let past was everything that is not a string: `true` went through
+  // a rule saying the column holds an address, because it was never asked.
+  //
+  // The boundary does not catch it and is right not to. It judges shape, and a
+  // boolean is a scalar like any other, which is what lets a text field hold
+  // whatever a text field holds. Content is this layer's question.
+  it("is refused by an address", async () => {
+    const field = TextInput.make("at").email();
+
+    expect(await saving(field, true)).toBe("Must be an email address.");
+    expect(await saving(field, false)).toBe("Must be an email address.");
+    expect(await saving(field, 42)).toBe("Must be an email address.");
+  });
+
+  it("is refused by a link", async () => {
+    const field = TextInput.make("at").url();
+
+    expect(await saving(field, true)).toBe("Must be a link.");
+    expect(await saving(field, 42)).toBe("Must be a link.");
+  });
+
+  it("is refused by a number, which still takes a number", async () => {
+    // The one flavour where the old escape gave the right answer for the wrong
+    // reason: a real number passed because it was not text, rather than
+    // because it is a number. Both have to hold now.
+    const field = TextInput.make("at").numeric();
+
+    expect(await saving(field, true)).toBe("Must be a number.");
+    expect(await saving(field, 42)).toBeUndefined();
+    expect(await saving(field, 3.5)).toBeUndefined();
+    expect(await saving(field, "42")).toBeUndefined();
+  });
+
+  it("leaves emptiness to `required`, spaces included", async () => {
+    // Which is what the escape was for, and the part worth keeping: a rule
+    // about what an address looks like has nothing to say about not having one.
+    const field = TextInput.make("at").email();
+
+    expect(await saving(field, "")).toBeUndefined();
+    expect(await saving(field, null)).toBeUndefined();
+    expect(await saving(field, "   ")).toBeUndefined();
+  });
+});
+
 describe("an address", () => {
   const field = TextInput.make("at").email();
 
@@ -85,7 +132,20 @@ describe("what the rules stay out of", () => {
     expect(await saving(TextInput.make("at").numeric(), "   ")).toBeUndefined();
   });
 
-  it("a value that is not text, which `admits` has already had its say on", async () => {
-    expect(await saving(TextInput.make("at").email(), 12)).toBeUndefined();
+  it("nothing else, and in particular not a value that is not text", async () => {
+    // This said the opposite, and gave a reason: `admits` has already had its
+    // say. It has not. `admits` judges shape, and its shape for a text field is
+    // any scalar, so it answers yes to `true` and to `12` and always did. The
+    // test encoded the intention rather than what the code does, and between
+    // them a boolean reached a column the form said held an address.
+    //
+    // Refused here rather than narrowed there, deliberately. Narrowing what a
+    // flavoured field admits would change what `TextInputColumn` reads to
+    // decide whether a field has a shape of its own, and a panel with a text
+    // cell over an email field would stop booting. That is a bigger decision
+    // than this bug.
+    expect(await saving(TextInput.make("at").email(), 12)).toBe(
+      "Must be an email address.",
+    );
   });
 });

@@ -30,6 +30,9 @@ worth knowing: an `input[type=email]` refuses what a person types and refuses no
 else, so anything reaching the field another way, a forged state or a cell edited in a
 table, was writing `not-an-address` into a column the form said held an address.
 
+Anything, including a value that is not text. A forged state can carry `true` as easily
+as it can carry a word, and a check that only looked at strings never asked about it.
+
 `.tel()` and `.password()` add no such check. A telephone number has no shape worth
 refusing across countries, and a password is whatever somebody chose. If either needs a
 shape, `.rule()` is where it goes.
