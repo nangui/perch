@@ -33,6 +33,9 @@ coverage
 # Output of the integration tests, and the demo's Prisma client. The demo's
 # Perch representation is checked in: it is read rather than run.
 tooling/.generated/
+
+# Fixtures the discovery suite writes while it runs.
+tooling/.discover/
 examples/demo/src/generated/client/
 
 # The built documentation site.

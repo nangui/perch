@@ -83,6 +83,8 @@ export type {
   ResourceMetadata,
   ResourcePageClass,
 } from "./resource.js";
+export type { DiscoverOptions } from "./discover-resources.js";
+export { discoverResources } from "./discover-resources.js";
 export { PANEL_RESOURCE, PanelResource, resourceMetadata } from "./resource.js";
 export type { RegisteredResource, ResourceClass } from "./resource-registry.js";
 export { PANEL_RESOURCE_TYPES, ResourceRegistry } from "./resource-registry.js";

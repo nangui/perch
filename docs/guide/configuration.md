@@ -46,12 +46,74 @@ honest or absent, and an option that does nothing is not offered at all.
 
 ## Resources are listed
 
-An explicit list is the recommended way and the only one that exists today. It is
-predictable, it survives a bundler, and it makes the set of resources a thing you can read
-rather than a thing you have to run the application to find out.
+An explicit list is the recommended way. It is predictable, it survives a bundler, and it
+makes the set of resources something you can read rather than something you have to run
+the application to find out.
 
-Discovery by folder scan is planned and not written. When it arrives, the list will still
-be the recommendation.
+## Or found in a folder
+
+For a codebase where adding a resource should not also mean editing a module:
+
+```ts
+import { Module } from "@nestjs/common";
+import { discoverResources, PanelModule } from "@perchjs/nest";
+
+const resources = await discoverResources({ in: "dist/**/*.resource.js" });
+
+@Module({
+  imports: [
+    PanelModule.forRoot({
+      path: "/admin",
+      resources,
+      dataAdapter: AppDataAdapter,
+    }),
+  ],
+})
+export class AdminModule {}
+```
+
+### Point it at what is on disk when the panel starts
+
+This is the mistake everybody makes once, including the example that first described this
+feature. `src/**/*.resource.ts` is where you wrote them; your application is running the
+JavaScript built from them, and those files are not there any more.
+
+Rather than finding nothing and serving a panel with no resources, it refuses, and the
+message says this is probably why. It says the same thing when the sources are still
+there to be matched, which is what happens when you run from the project root: the
+pattern is not empty, the file will not load, and the reason is the same one.
+
+### A bundler leaves nothing to find
+
+The other half of the same question. `nest build` runs `tsc` and writes one file per
+module, so `dist/**/*.resource.js` matches what you expect. A bundler collapses the whole
+application into one file, and a folder scan over that finds nothing at all.
+
+If you bundle, list your resources. That is the recommended way anyway, and it is the one
+that survives a bundler by construction, because a name in an array is a reference a
+bundler can follow.
+
+### It is awaited, which the runtime decides
+
+Finding the files is a synchronous question. Loading a module is not one an ESM runtime
+will answer synchronously, so `discoverResources` returns a promise and you wait for it
+where the module is declared.
+
+### Both, if you like
+
+Listing and finding are two ways of naming the same thing, and a class named by both is
+one resource rather than two fighting over a URL:
+
+```ts
+import { discoverResources } from "@perchjs/nest";
+
+const found = await discoverResources({ in: "dist/**/*.resource.js" });
+export const resources = [PostResource, ...found];
+```
+
+A file the pattern matches that exports no resource is refused too. A pattern saying
+`*.resource.js` is a claim about what those files are, and a file that quietly is not one
+is a resource missing from the panel with nothing anywhere to say so.
 
 ## Reaching your database
 

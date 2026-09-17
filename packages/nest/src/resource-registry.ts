@@ -153,6 +153,10 @@ export class ResourceRegistry implements OnModuleInit {
       }
 
       const clash = this.#bySlug.get(metadata.slug);
+      // The same class twice is one resource. Listing them and finding them are
+      // two ways of naming the same thing and may be used together, so a class
+      // named both ways must not read as two resources fighting over a URL.
+      if (clash?.type === type) continue;
       if (clash !== undefined) {
         // Two resources on one URL: whichever wins, the other is unreachable
         // and nothing would say why.
