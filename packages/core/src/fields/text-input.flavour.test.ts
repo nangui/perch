@@ -27,9 +27,11 @@ describe("a value that is not text at all", () => {
   // What it let past was everything that is not a string: `true` went through
   // a rule saying the column holds an address, because it was never asked.
   //
-  // The boundary does not catch it and is right not to. It judges shape, and a
-  // boolean is a scalar like any other, which is what lets a text field hold
-  // whatever a text field holds. Content is this layer's question.
+  // Two answers now, and these are the second. The boundary refuses a boolean
+  // in a flavoured field outright, so nothing that is not text reaches a rule
+  // through the save. These still hold, and holding them is the point: a rule
+  // that assumes what reached it is the right shape is a rule that is wrong
+  // the day something else does.
   it("is refused by an address", async () => {
     const field = TextInput.make("at").email();
 

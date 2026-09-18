@@ -259,3 +259,46 @@ describe("a select that declared nothing", () => {
     expect(clean.state).toEqual({ status: "" });
   });
 });
+
+describe("a value of the wrong shape for what the field said it holds", () => {
+  const flavoured = () =>
+    resolveSchema(
+      Schema.make([
+        TextInput.make("email").email(),
+        TextInput.make("count").numeric(),
+        TextInput.make("note"),
+      ]),
+      { email: "ada@example.com", count: "3", note: "kept" },
+      EDIT,
+    );
+
+  it("is dropped at the boundary, not argued with", async () => {
+    // A flavour is a shape, and `true` is not a badly written address: it is
+    // not one. Discarded the way every other shape violation is, in silence,
+    // so nothing is said back to whoever forged it.
+    const { state, rejected } = sanitize(await flavoured(), { email: true });
+
+    // What comes back is what was accepted, so a refused path is simply not
+    // in it: the value that was there stays there because nothing replaced it.
+    expect(state).not.toHaveProperty("email");
+    expect(rejected).toEqual([{ path: "email", reason: "wrong-shape" }]);
+  });
+
+  it("lets a number into the one field that holds numbers", async () => {
+    // A browser sends `"42"` and a cell writes 42, and both are the number the
+    // column holds. Refusing one of the two would refuse the table.
+    const { state, rejected } = sanitize(await flavoured(), { count: 42 });
+
+    expect(state["count"]).toBe(42);
+    expect(rejected).toEqual([]);
+  });
+
+  it("leaves a field that declared no shape taking anything scalar", async () => {
+    // Which is not laziness: it is the field with no shape of its own, and
+    // what a table's text cell reads to know it is looking at one.
+    const { state, rejected } = sanitize(await flavoured(), { note: true });
+
+    expect(state["note"]).toBe(true);
+    expect(rejected).toEqual([]);
+  });
+});

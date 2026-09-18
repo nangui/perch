@@ -37,6 +37,11 @@ So the column fits a field that narrows nothing. The question is not "does it ta
 string": a stored file key is a string and a colour is a string. It is whether the field
 takes a string *and* anything else, which is what a field with no shape does.
 
+A flavour is a shape, so `.email()`, `.url()`, `.numeric()`, `.tel()` and `.password()`
+all put a field out of reach of this column. A cell over one of them is refused at boot.
+That is a change: it used to be allowed, and the write it offered went through a rule
+that would catch a badly written address but not a value that was not text at all.
+
 ## Clearing a cell is allowed here
 
 The empty string is a value this column may write, because clearing a cell is a thing

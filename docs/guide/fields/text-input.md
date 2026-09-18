@@ -31,7 +31,13 @@ else, so anything reaching the field another way, a forged state or a cell edite
 table, was writing `not-an-address` into a column the form said held an address.
 
 Anything, including a value that is not text. A forged state can carry `true` as easily
-as it can carry a word, and a check that only looked at strings never asked about it.
+as it can carry a word.
+
+That one is refused a step earlier, at the boundary rather than by the rule. A flavour is
+a shape, and `true` is not a badly written address: it is not one. It is discarded the
+way every other shape violation is, in silence, with nothing said back to whoever sent
+it. The rule still answers for text that is text and not an address, which is the case a
+person can actually produce.
 
 `.tel()` and `.password()` add no such check. A telephone number has no shape worth
 refusing across countries, and a password is whatever somebody chose. If either needs a

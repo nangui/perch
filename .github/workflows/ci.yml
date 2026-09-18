@@ -161,9 +161,13 @@ jobs:
       # It says plainly what it grants — anyone with write access here can
       # publish that package — and `npm trust list @perchjs/core` reads it back.
       #
-      # It needs npm 12. Every attempt on 11.11.0 answered 400, with no body and
-      # no explanation, because that CLI does not send the permissions field the
-      # registry now requires: `--allow-publish` is not a flag it has. Three
+      # It needs npm 11.15.0 or later, which is what the command's own
+      # prerequisites say; `npm 12` was written here from the version that
+      # happened to work. Every attempt on 11.11.0 answered 400, with no body
+      # and no explanation, because that CLI does not send the permissions
+      # field the registry now requires: `--allow-publish` is not a flag it
+      # has. It also wants two-factor authentication on the account, and the
+      # package has to exist on the registry already. Three
       # other things were blamed first and each was a real fault worth fixing —
       # the packages did not exist yet, the repository was private, the
       # manifests had no `repository` — and none of them was this one. If a 400

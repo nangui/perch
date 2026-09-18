@@ -3,7 +3,8 @@
  * so a hand-written field and an inferred one describe themselves the same way.
  */
 import { configured } from "../component.js";
-import type { FieldState, ValidationRule } from "../field.js";
+import type { FieldState, ValidationRule, ValueRefusal } from "../field.js";
+import type { Option } from "../option.js";
 import { baseFieldState, Field, isUnset, lengthRules, ruleFor } from "../field.js";
 import type { TextFlavour } from "../inference.js";
 import type { IconName } from "../icon.js";
@@ -78,6 +79,37 @@ export class TextInput extends Field {
     return super.with(patch);
   }
 
+  /**
+   * What may arrive, once the field has said what it holds.
+   *
+   * A text field that declared no flavour takes any scalar, and that is not
+   * laziness: it is the field with no shape of its own, and what the table's
+   * text cell reads to know it is looking at one.
+   *
+   * A flavour is a shape. `.email()` says the column holds an address, and an
+   * address is text: `true` is not a badly written one, it is not one at all.
+   * Refused here rather than validated, so it is discarded the way every other
+   * shape violation is, in silence, with nothing said back to whoever forged
+   * it. The rule below still answers for text that is text and not an address.
+   *
+   * `.numeric()` is the one that takes two shapes. A browser sends `"42"` and
+   * a cell writes 42, and both are the number the column holds.
+   */
+  override admits(
+    value: unknown,
+    options: readonly Option[] | undefined,
+  ): ValueRefusal | undefined {
+    if (isUnset(value)) return undefined;
+
+    const flavour = this.state.flavour;
+    if (flavour === "text") return super.admits(value, options);
+    if (flavour === "numeric") {
+      return typeof value === "number" || typeof value === "string"
+        ? super.admits(value, options)
+        : "wrong-shape";
+    }
+    return typeof value === "string" ? super.admits(value, options) : "wrong-shape";
+  }
   override get declaredRules(): readonly ValidationRule[] {
     return [
       ...lengthRules(this.state.minLength, this.state.maxLength),
@@ -169,8 +201,11 @@ export class TextInput extends Field {
  * emptiness past, emptiness being `required`'s question and not this one. It
  * let everything past that was not a string: `true` went through a rule saying
  * the column holds an address, because it is not text and therefore was never
- * asked. The boundary does not catch it either, and is right not to: it judges
- * shape, and a boolean is a scalar. So this is where it is caught.
+ * asked.
+ *
+ * The boundary refuses that now, so these are the second answer rather than the
+ * only one. Kept as the second: a rule that assumes what reached it is the
+ * right shape is a rule that is wrong the day anything else does.
  */
 function flavourRules(flavour: TextFlavour): readonly ValidationRule[] {
   if (flavour === "email") {
