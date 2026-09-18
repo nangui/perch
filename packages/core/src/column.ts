@@ -37,6 +37,11 @@ export interface ColumnState {
    */
   readonly toggleable?: { readonly hiddenByDefault: boolean };
   /**
+   * Attributes to put on the cell, for whoever is reading the page from
+   * outside: a tour, a test, a screen reader.
+   */
+  readonly extraAttributes?: Readonly<Record<string, string>>;
+  /**
    * What the column shows in place of a value it does not have.
    *
    * Words, not a value: it is not formatted, not sorted by and not what the
@@ -183,6 +188,23 @@ export abstract class Column {
    */
   searchable(on = true): this {
     return this.with({ ...this.state, searchable: on });
+  }
+
+  /**
+   * Attributes to put on every cell of this column.
+   *
+   * For whoever reads the page from outside it: a tour that needs to point at
+   * a column, a test that needs to find one, a screen reader that needs a word
+   * the value does not carry.
+   *
+   * Only attributes that describe. `data-*`, `aria-*`, `title` and `role` say
+   * something about the cell; the rest of that namespace tells a browser to do
+   * something, and a table is not the place to be told. The boot refuses the
+   * others by name, and the renderer will not let one overwrite what the cell
+   * is already saying about itself.
+   */
+  extraAttributes(attributes: Readonly<Record<string, string>>): this {
+    return this.with({ ...this.state, extraAttributes: { ...attributes } });
   }
 
   /**

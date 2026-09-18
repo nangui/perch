@@ -130,6 +130,37 @@ describe("a column that asks for a width", () => {
   });
 });
 
+describe("a column that puts attributes on its cells", () => {
+  it("lands them where somebody reading from outside can find them", () => {
+    const table = drawn(
+      TextColumn.make("at").extraAttributes({ "data-tour": "when", title: "Seen at" }),
+    );
+    const cell = table.querySelector("tbody td");
+
+    expect(cell?.getAttribute("data-tour")).toBe("when");
+    expect(cell?.getAttribute("title")).toBe("Seen at");
+  });
+
+  it("cannot overwrite what the cell already says about itself", () => {
+    // `data-label` is how a row becomes a stack on a narrow screen: each cell
+    // carries the heading it would have had. A column taking that name is
+    // unlabelled exactly where the label is all there is.
+    const table = drawn(
+      TextColumn.make("at").label("Seen").extraAttributes({ "data-label": "stolen" }),
+    );
+
+    expect(table.querySelector("tbody td")?.getAttribute("data-label")).toBe("Seen");
+  });
+
+  it("does not lose the classes the column asked for", () => {
+    const table = drawn(
+      TextColumn.make("at").alignment("end").extraAttributes({ "data-tour": "when" }),
+    );
+
+    expect(table.querySelector("tbody td")?.className).toContain("--end");
+  });
+});
+
 describe("a column a narrow window can do without", () => {
   it("is marked for the stylesheet rather than left out of the markup", () => {
     // Which is what makes it a layout decision. The value is in the page and

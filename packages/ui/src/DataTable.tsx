@@ -284,6 +284,12 @@ export function DataTable({
             {rendered.map(({ column, render }) => (
               <td
                 key={column.path}
+                {...(column.extraAttributes ?? {})}
+                // After the author's own, never before: what a cell says about
+                // itself is not theirs to overwrite, and `data-label` below is
+                // the only thing naming this column once a row is a stack. The
+                // boot refuses these by name too, so this is the second of two
+                // answers rather than the only one.
                 className={shape(column, "perch-table__cell")}
                 // Carried on every cell, read by the stylesheet only where the
                 // window is too narrow for a row to be a row. A heading above

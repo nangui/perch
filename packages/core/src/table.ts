@@ -73,6 +73,8 @@ export interface ColumnNode {
   readonly toggleable?: true;
   readonly hiddenByDefault?: true;
   readonly boolean?: true;
+  /** Attributes the cell carries, for whoever reads the page from outside. */
+  readonly extraAttributes?: Readonly<Record<string, string>>;
   /** Words shown where the row holds nothing. Not a value, and not sorted by. */
   readonly placeholder?: string;
   /** A value read where the row holds nothing, formatted like any other. */
@@ -394,6 +396,9 @@ export function serialiseTable(table: Table): ColumnTree {
               : {}),
           }),
       ...(column.state.boolean === undefined ? {} : { boolean: true as const }),
+      ...(column.state.extraAttributes === undefined
+        ? {}
+        : { extraAttributes: column.state.extraAttributes }),
       ...(column.state.placeholder === undefined
         ? {}
         : { placeholder: column.state.placeholder }),

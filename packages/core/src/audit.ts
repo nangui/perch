@@ -11,6 +11,7 @@
  * silence is refused because a client asked for it; everything here is a line
  * of somebody's own form, and the only useful answer is which line.
  */
+import type { Column } from "./column.js";
 import type { Component } from "./component.js";
 import { isResolver } from "./component.js";
 import { normaliseOptions } from "./option.js";
@@ -636,6 +637,15 @@ function unknownZone(name: string, zone: string): Complaint {
 const DESCRIBING = /^(?:data-[a-z][\w.:-]*|aria-[a-z-]+|title|role)$/;
 
 /**
+ * What a cell already says about itself, and what an author may not overwrite.
+ *
+ * `data-label` is how a row becomes a stack on a narrow screen: each cell
+ * carries the heading it would have had. An attribute taking that name leaves
+ * the column unlabelled exactly where the label is the only thing naming it.
+ */
+const CELL_BINDINGS = new Set(["data-label", "class", "style"]);
+
+/**
  * A message for a limit the field does not have.
  *
  * `.validationMessages({ maxLength: "…" })` on a field with no maximum is a
@@ -850,6 +860,7 @@ export function auditTable(table: Table): readonly Complaint[] {
   const complaints: Complaint[] = [];
   inspectEmpty(table, complaints);
   inspectHidden(table, complaints);
+  for (const column of table.state.columns) inspectCellAttributes(column, complaints);
 
   // Two of them under two names, which the name check above cannot see. They
   // decide one thing between them, so a reader can set them against each other
@@ -1047,4 +1058,39 @@ export function describeComplaints(
 ): string {
   const lines = complaints.map(({ field, problem }) => `  - \`${field}\` ${problem}`);
   return `${subject} declares a form that cannot work:\n${lines.join("\n")}`;
+}
+
+/**
+ * Attributes on a cell, held to the same rule a control's are.
+ *
+ * The same regular expression, asked of the same names, so an attribute
+ * allowed on a control and refused on a cell cannot come about by two lists
+ * drifting apart. A cell takes what describes it; the rest of that namespace
+ * tells a browser to do something, and a table is not the place to be told.
+ */
+function inspectCellAttributes(column: Column, into: Complaint[]): void {
+  const extra = column.state.extraAttributes;
+  if (extra === undefined) return;
+
+  for (const name of Object.keys(extra)) {
+    if (CELL_BINDINGS.has(name)) {
+      into.push({
+        field: column.state.path,
+        problem:
+          `puts \`${name}\` on its cells, which is what the table already says ` +
+          "there — `data-label` is how a row becomes a stack on a narrow screen, " +
+          "and a column that overwrites it is unlabelled exactly where the label " +
+          "is all there is",
+      });
+      continue;
+    }
+    if (DESCRIBING.test(name)) continue;
+    into.push({
+      field: column.state.path,
+      problem:
+        `puts \`${name}\` on its cells, and a cell takes only attributes that ` +
+        "describe it — `data-*`, `aria-*`, `title`, `role`. The rest of that " +
+        "namespace tells a browser to do something",
+    });
+  }
 }

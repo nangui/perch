@@ -70,6 +70,28 @@ These are the same three [TextEntry](../infolists) declares, applied by the same
 function. A panel where a date reads one way on a record and another in the list of them
 is a panel nobody trusts about either.
 
+## Attributes for whoever reads the page from outside
+
+```ts
+import { Table, TextColumn } from "@perchjs/core";
+
+Table.make().columns([
+  TextColumn.make("reference").extraAttributes({ "data-tour": "reference" }),
+]);
+```
+
+For a tour that needs to point at a column, a test that needs to find one, a screen
+reader that needs a word the value does not carry.
+
+Only attributes that describe: `data-*`, `aria-*`, `title` and `role`. The rest of that
+namespace tells a browser to do something, and a table is not the place to be told. The
+others are refused at boot, by name.
+
+`data-label` is refused too, and it is not an oversight. It is how a row becomes a stack
+on a narrow screen: each cell carries the heading it would have had. A column that took
+that name would be unlabelled exactly where the label is the only thing naming it, which
+is a bug that never shows on the machine it was written on.
+
 ## When the row holds nothing
 
 ```ts
