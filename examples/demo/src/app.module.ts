@@ -14,6 +14,7 @@ import { Seed } from "./seed.js";
 import { SightingsResource } from "./sightings.resource.js";
 import { SitesResource } from "./sites.resource.js";
 import { SpeciesResource } from "./species.resource.js";
+import { QueryUserResolver } from "./who.js";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SpeciesResource } from "./species.resource.js";
       path: "/admin",
       resources: [SightingsResource, SpeciesResource, ObserversResource, SitesResource],
       dataAdapter: DemoDataAdapter,
+      userResolver: QueryUserResolver,
       // What the panel's own container may inject: the adapter needs the client.
       imports: [PrismaModule],
       // Records first: the reference tables are what it points at.

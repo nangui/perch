@@ -28,6 +28,24 @@ export interface DataTableSort {
   readonly direction: SortDirection;
 }
 
+/**
+ * What a column says about the room it takes, as classes.
+ *
+ * Classes rather than inline styles, because both of these are the
+ * stylesheet's business: one is a rule that only applies below a width, and
+ * the other has to be overridable by a theme. A style attribute is the one
+ * thing a theme cannot reach.
+ */
+function shape(column: ColumnNode, base: string): string {
+  return [
+    base,
+    column.alignment === undefined ? "" : `${base}--${column.alignment}`,
+    column.hiddenWhenNarrow === true ? `${base}--wide-only` : "",
+  ]
+    .filter((one) => one !== "")
+    .join(" ");
+}
+
 export interface DataTableProps {
   readonly columns: ColumnTree;
   readonly rows: readonly Row[];
@@ -221,7 +239,13 @@ export function DataTable({
               key={column.path}
               scope="col"
               aria-sort={ariaSort(column, sort, onSort !== undefined)}
-              className="perch-table__head"
+              className={shape(column, "perch-table__head")}
+              // The width is asked for once, on the heading: a table divides
+              // what it has by its columns, and saying it on every cell would
+              // be saying it five hundred times to no further effect.
+              {...(column.width === undefined
+                ? {}
+                : { style: { width: column.width } })}
             >
               {header(column, sort, onSort)}
             </th>
@@ -260,7 +284,7 @@ export function DataTable({
             {rendered.map(({ column, render }) => (
               <td
                 key={column.path}
-                className="perch-table__cell"
+                className={shape(column, "perch-table__cell")}
                 // Carried on every cell, read by the stylesheet only where the
                 // window is too narrow for a row to be a row. A heading above
                 // eight columns is no use when they are stacked, so each cell

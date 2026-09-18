@@ -63,6 +63,12 @@ export interface ColumnNode {
   readonly toggleable?: true;
   readonly hiddenByDefault?: true;
   readonly boolean?: true;
+  /** Which edge the value sits against. Logical, so it holds right to left. */
+  readonly alignment?: string;
+  /** What the column asks to be, as a CSS length the server has checked. */
+  readonly width?: string;
+  /** Left out where a row is drawn as a stack. */
+  readonly hiddenWhenNarrow?: true;
   /** How the value reads. Applied in the browser, where the locale is. */
   readonly format?: string;
   readonly timezone?: string;
@@ -374,6 +380,13 @@ export function serialiseTable(table: Table): ColumnTree {
               : {}),
           }),
       ...(column.state.boolean === undefined ? {} : { boolean: true as const }),
+      ...(column.state.alignment === undefined
+        ? {}
+        : { alignment: column.state.alignment }),
+      ...(column.state.width === undefined ? {} : { width: column.state.width }),
+      ...(column.state.hiddenWhenNarrow === undefined
+        ? {}
+        : { hiddenWhenNarrow: true as const }),
       ...(column.state.format === undefined ? {} : { format: column.state.format }),
       ...(column.state.timezone === undefined
         ? {}

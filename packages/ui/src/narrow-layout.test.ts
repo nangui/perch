@@ -86,3 +86,24 @@ describe("the shell in a narrow window", () => {
     expect(block).toBeGreaterThan(flex);
   });
 });
+
+describe("a column that says how much room it takes", () => {
+  it("is aligned by a logical property, so it holds right to left", () => {
+    // `text-align: right` pins a column of numbers to the wrong end of the row
+    // for a reader in Arabic or Hebrew. `end` is the edge the line finishes
+    // at, whichever side that is.
+    expect(STYLES).toContain("text-align: end");
+    expect(STYLES).not.toMatch(/\.perch-table__cell--end\s*\{\s*text-align:\s*right/);
+  });
+
+  it("is dropped only below the width where a row stops being a row", () => {
+    // The same breakpoint the rest of this file is about. A column hidden at
+    // one width and a layout that stacks at another is two answers to one
+    // question, and a reader meets whichever is worse.
+    const at = STYLES.indexOf("perch-table__cell--wide-only");
+    expect(at).toBeGreaterThan(-1);
+    expect(STYLES.slice(STYLES.lastIndexOf("@media", at), at)).toContain(
+      "(max-width: 40rem)",
+    );
+  });
+});

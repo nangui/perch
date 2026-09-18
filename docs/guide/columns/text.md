@@ -70,6 +70,36 @@ These are the same three [TextEntry](../infolists) declares, applied by the same
 function. A panel where a date reads one way on a record and another in the list of them
 is a panel nobody trusts about either.
 
+## How much room it takes
+
+```ts
+import { Table, TextColumn } from "@perchjs/core";
+
+Table.make().columns([
+  TextColumn.make("name").width("12rem"),
+  TextColumn.make("total").money("EUR").alignment("end"),
+  TextColumn.make("createdAt").dateTime().hideWhenNarrow(),
+]);
+```
+
+`alignment` takes `start`, `center` or `end`. `end` is what a column of numbers wants,
+so the digits line up and two amounts can be compared by their shape rather than read.
+They are logical edges rather than left and right, because a panel read right to left
+puts the start of a line on the other side, and a column of numbers pinned to the left
+there is pinned to the wrong end of the row.
+
+`width` is a request, not an instruction: a table divides what it has, and a column
+asking for more than there is gets what is left. Anything that is not a CSS length is
+dropped where it is declared rather than written into the page.
+
+`hideWhenNarrow` leaves the column out below the width where a row stops being a row and
+becomes a stack. There, eight columns are eight lines to scroll past for the two somebody
+came for, and this is how a column says it is not one of the two.
+
+It is a layout decision and not a permission. The value is still read, still sent and
+comes back when the window is wider, with nothing fetched again. `visible()` below is the
+one that keeps a value from a reader.
+
 ## Keeping a column from a reader
 
 ```ts

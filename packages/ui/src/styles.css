@@ -4919,3 +4919,34 @@ button.perch-table__action:disabled {
 .perch-record-pages__icon {
   flex: none;
 }
+
+/* Which edge a column's values sit against.
+   Logical properties, not left and right: a panel read right to left puts the
+   start of a line on the other side, and a column of numbers pinned to the
+   left there is pinned to the wrong end of the row. */
+.perch-table__head--start,
+.perch-table__cell--start {
+  text-align: start;
+}
+
+.perch-table__head--center,
+.perch-table__cell--center {
+  text-align: center;
+}
+
+.perch-table__head--end,
+.perch-table__cell--end {
+  text-align: end;
+}
+
+/* A column that says it is not one of the two somebody came for.
+   Below the width where a row stops being a row, every column becomes a line
+   of its own, so eight of them is eight lines to scroll past. The value is
+   still read and still sent: this is a layout decision, and `visible()` is the
+   one that keeps a value from a reader. */
+@media (max-width: 40rem) {
+  .perch-table__head--wide-only,
+  .perch-table__cell--wide-only {
+    display: none;
+  }
+}

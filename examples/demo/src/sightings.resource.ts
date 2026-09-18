@@ -78,9 +78,12 @@ export class SightingsResource implements PanelResource {
       .columns([
         TextColumn.make("species.commonName").label("Species").searchable().sortable(),
         TextColumn.make("site.name").label("Site").searchable(),
-        TextColumn.make("observer.name").label("Observer"),
-        TextColumn.make("seenAt").label("Seen").dateTime().sortable(),
-        TextColumn.make("count").sortable(),
+        // Dropped first on a phone: a record is read by its species and where
+        // it was, and the rest is what somebody widens the window for.
+        TextColumn.make("observer.name").label("Observer").hideWhenNarrow(),
+        TextColumn.make("seenAt").label("Seen").dateTime().sortable().width("11rem"),
+        // Digits against the end of the row, so two counts compare by shape.
+        TextColumn.make("count").numeric().alignment("end").width("6rem").sortable(),
         BadgeColumn.make("certainty").color((value) =>
           value === "certain"
             ? "success"

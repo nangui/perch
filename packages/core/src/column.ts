@@ -37,6 +37,18 @@ export interface ColumnState {
    */
   readonly toggleable?: { readonly hiddenByDefault: boolean };
   /**
+   * Which edge the value sits against.
+   *
+   * Logical, not left and right: a panel read in Arabic or Hebrew puts the
+   * start of a line on the other side, and a column pinned to the left there
+   * is a column pinned to the wrong end of the row.
+   */
+  readonly alignment?: "start" | "center" | "end";
+  /** How wide the column asks to be, as a CSS length. */
+  readonly width?: string;
+  /** Left out where the window is too narrow for a row to be a row. */
+  readonly hiddenWhenNarrow?: true;
+  /**
    * Whether this reader gets the column at all.
    *
    * Given the reader and not a record. A column heading is decided once for
@@ -162,6 +174,47 @@ export abstract class Column {
    */
   searchable(on = true): this {
     return this.with({ ...this.state, searchable: on });
+  }
+
+  /**
+   * Which edge the value sits against: `start`, `center` or `end`.
+   *
+   * `end` is what a column of numbers wants, so the digits line up and a
+   * reader can compare two amounts by their shape rather than by reading
+   * them. Logical rather than left and right, because a panel read
+   * right to left puts the start of a line on the other side.
+   */
+  alignment(edge: "start" | "center" | "end"): this {
+    return this.with({ ...this.state, alignment: edge });
+  }
+
+  /**
+   * How wide to ask to be, as a CSS length.
+   *
+   * A request rather than an instruction: a table divides what it has, and a
+   * column asking for more than there is gets what is left. Anything that is
+   * not a length is dropped rather than written into the page, since a value
+   * that cannot be meant is a value somebody mistyped.
+   */
+  width(length: string): this {
+    return /^\d+(\.\d+)?(px|rem|em|ch|%)$/.test(length.trim())
+      ? this.with({ ...this.state, width: length.trim() })
+      : this;
+  }
+
+  /**
+   * Leaves the column out where the window is too narrow for a row to be a row.
+   *
+   * There, a row is a stack and every column is a line of its own, so eight of
+   * them is eight lines to scroll past for the two somebody came for. This is
+   * how a column says it is not one of the two.
+   *
+   * A layout decision and not a permission: the value is still read, still
+   * sent and still there for a wider window. `visible()` is the one that keeps
+   * a value from a reader.
+   */
+  hideWhenNarrow(): this {
+    return this.with({ ...this.state, hiddenWhenNarrow: true });
   }
 
   /**

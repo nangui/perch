@@ -95,7 +95,7 @@ class PeopleResource {
   table(): Table {
     return Table.make().columns([
       TextColumn.make("name"),
-      TextInputColumn.make("salary").visible(isAdmin),
+      TextInputColumn.make("salary").visible(isAdmin).sortable().searchable(),
     ]);
   }
 }
@@ -137,13 +137,56 @@ async function serve(): Promise<string> {
 
 interface Records {
   readonly rows: readonly Row[];
-  readonly columns: { readonly columns: readonly { readonly path: string }[] };
+  readonly columns: {
+    readonly columns: readonly { readonly path: string }[];
+    readonly searchable?: true;
+  };
+  readonly sort?: { readonly path: string };
 }
 
 const records = async (url: string, role: string): Promise<Records> =>
   (await (
     await fetch(`${url}/admin/api/people/records`, { headers: { "x-role": role } })
   ).json()) as Records;
+
+describe("ordering and searching by a column a reader may not have", () => {
+  // The oracle this whole declaration would leak without. Sorting by a column
+  // reveals the order of its values and searching one answers whether any row
+  // matches, which is the reason `sortable()` and `searchable()` are
+  // permissions rather than conveniences. A column refused to this reader must
+  // not become either by the back door.
+  it("is not a column they may order by", async () => {
+    const url = await serve();
+    const answer = (await (
+      await fetch(`${url}/admin/api/people/records?sort=salary&direction=asc`, {
+        headers: { "x-role": "visitor" },
+      })
+    ).json()) as Records;
+
+    expect(answer.sort?.path).not.toBe("salary");
+  });
+
+  it("is a column the reader who has it may order by", async () => {
+    const url = await serve();
+    const answer = (await (
+      await fetch(`${url}/admin/api/people/records?sort=salary&direction=asc`, {
+        headers: { "x-role": "admin" },
+      })
+    ).json()) as Records;
+
+    expect(answer.sort?.path).toBe("salary");
+  });
+
+  it("does not make the table searchable for them", async () => {
+    // `salary` is the only searchable column here. Narrowed away, the table
+    // has nothing to search, and saying it does would offer a box that answers
+    // questions about values this reader may not see.
+    const url = await serve();
+
+    expect((await records(url, "visitor")).columns.searchable).toBeUndefined();
+    expect((await records(url, "admin")).columns.searchable).toBe(true);
+  });
+});
 
 describe("writing a column a reader may not have", () => {
   it("is refused, because it is not in their table", async () => {
