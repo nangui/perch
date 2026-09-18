@@ -94,6 +94,7 @@ export declare const orders: {
  */
 export declare const StarRatingRenderer: Parameters<typeof registerComponent>[1];
 export declare const AuditIndicator: Parameters<typeof registerRenderHook>[1];
+export declare const SparklineRenderer: Parameters<typeof registerComponent>[1];
 
 /** Modules of the reader's own, whose providers their resolvers inject. */
 export declare const CityModule: new () => unknown;

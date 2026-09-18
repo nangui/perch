@@ -109,6 +109,7 @@ const PRELUDE = [
   "BillingModule",
   "CityModule",
   "StarRatingRenderer",
+  "SparklineRenderer",
   "IR",
   "JwtAuthGuard",
   "PrismaService",

@@ -134,6 +134,44 @@ admits everything is a field with no boundary, whatever its renderer draws.
 writing the three cases by hand is what keeps your field agreeing with every other one
 about what empty means.
 
+## An entry of your own
+
+An infolist entry is registered through the same door as a field, and that is worth
+saying plainly because nothing else does: there is one registry, and a renderer under a
+key is a renderer under a key.
+
+```ts
+import type { EntryState } from "@perchjs/core";
+import { configured, Entry } from "@perchjs/core";
+
+export class Sparkline extends Entry {
+  static make(name: string): Sparkline {
+    return configured(new Sparkline({ name, children: [] }));
+  }
+
+  override get type(): string {
+    return "Sparkline";
+  }
+
+  protected override with(patch: Partial<EntryState>): this {
+    return super.with(patch);
+  }
+}
+```
+
+```ts
+import { registerComponent } from "@perchjs/ui";
+
+registerComponent("Sparkline", SparklineRenderer);
+```
+
+What is different from a field is what an entry is not. It holds no state, so there is no
+`admits()` to write: nothing arrives through it, and the boundary an entry would guard
+does not exist. It reads a path off the record and draws it, and the policy that decided
+whether this reader may see the record has already run.
+
+That is the whole difference. Everything else, the registry included, is the same.
+
 ## A data source of your own
 
 `DataAdapter` is the port every query goes through, and the reason `@perchjs/nest` never
