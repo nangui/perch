@@ -25,6 +25,7 @@ import {
   findModel,
   isResolver,
   normaliseOptions,
+  computedRows,
   presentRows,
   serialiseTable,
   shownColumns,
@@ -238,9 +239,15 @@ export async function listOf(options: {
       : [];
 
   return {
-    rows: presentRows(project(found.rows, visibleKeys(model, ir, table)), table, {
-      fileUrl: (disk, key) => (options.disks ?? {})[disk]?.url(key),
-    }),
+    // Computed before projected: a resolver reads the row the database gave,
+    // and what is kept afterwards is what it returned.
+    rows: presentRows(
+      project(computedRows(found.rows, table), visibleKeys(model, ir, table)),
+      table,
+      {
+        fileUrl: (disk, key) => (options.disks ?? {})[disk]?.url(key),
+      },
+    ),
     total: found.total,
     page: Math.floor((query.skip ?? 0) / perPage) + 1,
     perPage,

@@ -70,6 +70,54 @@ These are the same three [TextEntry](../infolists) declares, applied by the same
 function. A panel where a date reads one way on a record and another in the list of them
 is a panel nobody trusts about either.
 
+## A value the row implies and does not hold
+
+```ts
+import { Table, TextColumn } from "@perchjs/core";
+
+Table.make().columns([
+  TextColumn.make("fullName").value(
+    (row) => `${String(row["firstName"])} ${String(row["lastName"])}`,
+  ),
+]);
+```
+
+For a full name from two columns, a word for a pair of flags, a count of days from a
+date.
+
+### It is synchronous, and that is the constraint
+
+It runs once per row. A hundred rows is a hundred calls and five hundred is five
+hundred. Made to await, it would be a query per row on a page that is otherwise one
+query, which is the one thing this design will not have. A value worth a query is a value
+the row should be carrying.
+
+### It reads the whole row
+
+Before anything is cut away, so it may read columns this table does not show. Only what
+it returns leaves the server: a full name built from two columns nobody displays arrives
+as a full name and nothing else.
+
+### It cannot be sorted or searched
+
+Ordering and searching happen in the query, and the query has only the columns the model
+has. A value worked out in the application is not one of them. Declaring both is refused
+at boot, because the alternative is an error from the database with nothing in the panel
+to explain it.
+
+### It cannot be written from the table either
+
+A control over a computed value is a control whose writes vanish. The save lands and the
+cell draws what the resolver says again, so the reader watches their own typing undo
+itself with nothing anywhere to explain it. Refused at boot for the same reason as the
+rest.
+
+### It is called `value`, not `state`
+
+The specification calls it `state`. Here that word is what every component calls its own
+declaration, and a column already has one, so the method would have had to displace it.
+The name is the only difference.
+
 ## Attributes for whoever reads the page from outside
 
 ```ts

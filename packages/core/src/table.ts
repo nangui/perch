@@ -310,6 +310,36 @@ export class Table {
  * and a column that only judged the paths without a dot in them would be a rule
  * with a way around it written on the label.
  */
+/**
+ * The rows with every computed cell worked out, before anything is cut away.
+ *
+ * Before, and that is the whole of why it is its own pass. A resolver is
+ * handed the row as the database gave it, so it may read columns this table
+ * does not show; what is projected afterwards is the value it returned and not
+ * the row it read. A full name built from two columns nobody displays leaves
+ * the server as a full name.
+ *
+ * Once per row, which is the cost this declaration carries and the reason it
+ * is synchronous.
+ */
+export function computedRows(
+  rows: readonly Row[],
+  table: Table | undefined,
+): readonly Row[] {
+  const computed = (table?.state.columns ?? []).filter(
+    (column) => column.state.value !== undefined,
+  );
+  if (computed.length === 0) return rows;
+
+  return rows.map((row) => {
+    const out: Record<string, unknown> = { ...row };
+    for (const column of computed) {
+      out[column.state.path] = column.state.value?.(row);
+    }
+    return out;
+  });
+}
+
 export function presentRows(
   rows: readonly Row[],
   table: Table | undefined,

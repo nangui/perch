@@ -12,6 +12,7 @@
  * of somebody's own form, and the only useful answer is which line.
  */
 import type { Column } from "./column.js";
+import { WritableColumn } from "./column.js";
 import type { Component } from "./component.js";
 import { isResolver } from "./component.js";
 import { normaliseOptions } from "./option.js";
@@ -860,7 +861,10 @@ export function auditTable(table: Table): readonly Complaint[] {
   const complaints: Complaint[] = [];
   inspectEmpty(table, complaints);
   inspectHidden(table, complaints);
-  for (const column of table.state.columns) inspectCellAttributes(column, complaints);
+  for (const column of table.state.columns) {
+    inspectCellAttributes(column, complaints);
+    inspectComputed(column, complaints);
+  }
 
   // Two of them under two names, which the name check above cannot see. They
   // decide one thing between them, so a reader can set them against each other
@@ -1068,6 +1072,50 @@ export function describeComplaints(
  * drifting apart. A cell takes what describes it; the rest of that namespace
  * tells a browser to do something, and a table is not the place to be told.
  */
+/**
+ * A computed column asking the database for something it does not have.
+ *
+ * Ordering and searching happen in the query, and the query knows only the
+ * columns the model has. A value worked out in this process is not one of
+ * them, so the adapter would raise with nothing in the panel to say why.
+ * Refused where it is declared instead.
+ */
+function inspectComputed(column: Column, into: Complaint[]): void {
+  if (column.state.value === undefined) return;
+
+  if (column.state.path.includes(".")) {
+    into.push({
+      field: column.state.path,
+      problem:
+        "works its value out and is named by a path through a relation, so " +
+        "there is nowhere to put what it returns: a computed column owns the " +
+        "name it is read by",
+    });
+  }
+
+  if (column instanceof WritableColumn) {
+    into.push({
+      field: column.state.path,
+      problem:
+        "offers a control in the table and works its own value out, so a write " +
+        "through it is a write nobody sees: the save lands and the cell draws " +
+        "what the resolver says again",
+    });
+  }
+
+  const asked = (["sortable", "searchable"] as const).filter(
+    (one) => column.state[one],
+  );
+  if (asked.length > 0) {
+    into.push({
+      field: column.state.path,
+      problem:
+        `works its value out and is \`${asked.join("`, `")}\`, which happens in ` +
+        "the query, and the query has only the columns the model has, so it " +
+        "would be asked to order by something that is not there",
+    });
+  }
+}
 function inspectCellAttributes(column: Column, into: Complaint[]): void {
   const extra = column.state.extraAttributes;
   if (extra === undefined) return;

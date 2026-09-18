@@ -37,7 +37,10 @@ class MemoryAdapter implements DataAdapter {
     return { models: [this.meta()] };
   }
   meta(): ModelMeta {
-    return model({ name: "Person", fields: [key(), scalar("name"), scalar("salary")] });
+    return model({
+      name: "Person",
+      fields: [key(), scalar("name"), scalar("salary"), scalar("band")],
+    });
   }
   findMany(): Promise<{ rows: readonly Row[]; total: number }> {
     return Promise.resolve({ rows: ROWS, total: ROWS.length });
@@ -96,6 +99,11 @@ class PeopleResource {
     return Table.make().columns([
       TextColumn.make("name"),
       TextInputColumn.make("salary").visible(isAdmin).sortable().searchable(),
+      // Worked out from a column no column of this table shows, which is the
+      // case that says when the resolver runs.
+      TextColumn.make("band").value((row) =>
+        Number(row["salary"] ?? 0) > 50000 ? "senior" : "junior",
+      ),
     ]);
   }
 }
@@ -148,6 +156,28 @@ const records = async (url: string, role: string): Promise<Records> =>
   (await (
     await fetch(`${url}/admin/api/people/records`, { headers: { "x-role": role } })
   ).json()) as Records;
+
+describe("a column worked out from the row", () => {
+  it("reads the row the database gave, before anything is cut away", async () => {
+    // The ordering this turns on. Computed after the projection, the resolver
+    // would be handed a row holding only what the columns declare, so it would
+    // read `undefined` and every band would come out junior.
+    const url = await serve();
+    const [row] = (await records(url, "visitor")).rows;
+
+    expect(row?.["band"]).toBe("senior");
+  });
+
+  it("sends what it returned and not what it read", async () => {
+    // `salary` is hidden from this reader and is not in their table at all.
+    // The value derived from it still travels, because that is what the
+    // resource asked for and all that leaves the server.
+    const [row] = (await records(await serve(), "visitor")).rows;
+
+    expect(row).not.toHaveProperty("salary");
+    expect(row?.["band"]).toBe("senior");
+  });
+});
 
 describe("ordering and searching by a column a reader may not have", () => {
   // The oracle this whole declaration would leak without. Sorting by a column
@@ -224,7 +254,7 @@ describe("a column a reader may not have", () => {
     const url = await serve();
     const paths = (await records(url, "visitor")).columns.columns.map((c) => c.path);
 
-    expect(paths).toEqual(["name"]);
+    expect(paths).toEqual(["name", "band"]);
   });
 
   it("does not send its values either, which is the point", async () => {
@@ -243,7 +273,11 @@ describe("a column a reader may not have", () => {
     const url = await serve();
     const answer = await records(url, "admin");
 
-    expect(answer.columns.columns.map((c) => c.path)).toEqual(["name", "salary"]);
+    expect(answer.columns.columns.map((c) => c.path)).toEqual([
+      "name",
+      "salary",
+      "band",
+    ]);
     expect(answer.rows[0]?.["salary"]).toBe(90000);
   });
 

@@ -14,6 +14,7 @@ import { isResolver } from "./component.js";
 import { fileAddress } from "./file-address.js";
 import type { EntryTone, ToneChoice } from "./entries/text-entry.js";
 import type { Field } from "./field.js";
+import type { Row } from "./data-adapter.js";
 import { normaliseOptions } from "./option.js";
 
 export interface ColumnState {
@@ -36,6 +37,12 @@ export interface ColumnState {
    * nobody declared as optional is one the author meant.
    */
   readonly toggleable?: { readonly hiddenByDefault: boolean };
+  /**
+   * Works the cell's value out from the row instead of reading one path.
+   *
+   * Synchronous on purpose: see the method that sets it.
+   */
+  readonly value?: (record: Row) => unknown;
   /**
    * Attributes to put on the cell, for whoever is reading the page from
    * outside: a tour, a test, a screen reader.
@@ -188,6 +195,35 @@ export abstract class Column {
    */
   searchable(on = true): this {
     return this.with({ ...this.state, searchable: on });
+  }
+
+  /**
+   * Works this cell's value out from the row, rather than reading one path.
+   *
+   * For the value a row implies and does not hold: a full name from two
+   * columns, a count of days from a date, a word for a pair of flags.
+   *
+   * **Synchronous, and that is the constraint that matters.** It runs once per
+   * row, so a hundred rows is a hundred calls and five hundred is five
+   * hundred. Made async, it would be a query per row on a page that is
+   * otherwise one query, which is the thing this codebase says out loud it
+   * will not have. A value worth a query is a value the row should be
+   * carrying, and the same sentence is written above `BadgeColumn.color`.
+   *
+   * It is handed the whole row, before anything is cut away, so it may read
+   * columns no column of this table shows. Only what it returns leaves the
+   * server.
+   *
+   * The boot refuses it beside `sortable` or `searchable`: a database cannot
+   * order by a value that does not exist in it, and asking would be an error
+   * from the adapter with nothing in the panel to explain it.
+   *
+   * Called `value` and not `state`, which is the name the specification uses,
+   * because `state` is what every component here calls its own declaration and
+   * this column already has one.
+   */
+  value(resolve: (record: Row) => unknown): this {
+    return this.with({ ...this.state, value: resolve });
   }
 
   /**

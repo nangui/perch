@@ -165,6 +165,7 @@ export {
   declaredActions,
   declaredFilters,
   searchablePaths,
+  computedRows,
   presentRows,
   serialiseTable,
   shownColumns,
