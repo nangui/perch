@@ -53,6 +53,56 @@ describe("a column that says which edge its values sit against", () => {
   });
 });
 
+describe("a column with nothing to show", () => {
+  const drawnWith = (column: TextColumn, row: Row): string => {
+    const tree: ColumnTree = serialiseTable(Table.make().columns([column]));
+    return (
+      render(
+        <DataTable columns={tree} rows={[row]} caption="Rows" />,
+      ).container.querySelector("tbody td")?.textContent ?? ""
+    );
+  };
+
+  it("draws a dash where the column said nothing", () => {
+    expect(drawnWith(TextColumn.make("at"), { id: 1 })).toBe("\u2014");
+  });
+
+  it("reads the words a column put there instead", () => {
+    // `Never signed in` reads as a fact. A dash reads as a gap somebody should
+    // worry about, which is a different thing to say about the same row.
+    expect(
+      drawnWith(TextColumn.make("at").placeholder("Never signed in"), { id: 1 }),
+    ).toBe("Never signed in");
+  });
+
+  it("stands a default in as a value, and formats it like one", () => {
+    // The difference between the two. A default goes through everything a
+    // stored value goes through; a placeholder is words and goes through none
+    // of it.
+    const drawn = drawnWith(TextColumn.make("at").numeric().default(1234), { id: 1 });
+
+    expect(drawn).not.toBe("1234");
+    expect(drawn).toContain("1");
+  });
+
+  it("prefers the default, and falls to the placeholder only after it", () => {
+    expect(
+      drawnWith(TextColumn.make("at").default("stood in").placeholder("nothing"), {
+        id: 1,
+      }),
+    ).toBe("stood in");
+  });
+
+  it("leaves a value that is there alone", () => {
+    expect(
+      drawnWith(TextColumn.make("at").default("stood in").placeholder("nothing"), {
+        id: 1,
+        at: "held",
+      }),
+    ).toBe("held");
+  });
+});
+
 describe("a column that asks for a width", () => {
   it("asks once, on the heading", () => {
     // A table divides what it has by its columns. Saying it on every cell

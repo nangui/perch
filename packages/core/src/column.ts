@@ -37,6 +37,15 @@ export interface ColumnState {
    */
   readonly toggleable?: { readonly hiddenByDefault: boolean };
   /**
+   * What the column shows in place of a value it does not have.
+   *
+   * Words, not a value: it is not formatted, not sorted by and not what the
+   * row holds. A column that wants a stand-in value wants `default`.
+   */
+  readonly placeholder?: string;
+  /** A value to read where the row holds nothing, formatted like any other. */
+  readonly default?: unknown;
+  /**
    * Which edge the value sits against.
    *
    * Logical, not left and right: a panel read in Arabic or Hebrew puts the
@@ -174,6 +183,33 @@ export abstract class Column {
    */
   searchable(on = true): this {
     return this.with({ ...this.state, searchable: on });
+  }
+
+  /**
+   * Words to show where the row holds nothing.
+   *
+   * A cell with no value draws a dash, which says the column is empty and
+   * nothing else. This is for where the reason is worth a few words: `Never
+   * signed in` reads as a fact, and a dash reads as a gap somebody should
+   * worry about.
+   *
+   * Not a value. It is not formatted, it is not what a sort orders by, and it
+   * is not what the row holds. `default` is the one that stands in as a value.
+   */
+  placeholder(words: string): this {
+    return this.with({ ...this.state, placeholder: words });
+  }
+
+  /**
+   * A value to read where the row holds nothing.
+   *
+   * Formatted like any other, because it is one: a `default` of `0` under
+   * `numeric` reads as the locale writes zero. It changes what is shown and
+   * nothing else, so a sort still orders by what the database holds, which is
+   * the honest answer and occasionally a surprising one.
+   */
+  default(value: unknown): this {
+    return this.with({ ...this.state, default: value });
   }
 
   /**

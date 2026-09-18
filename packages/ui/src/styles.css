@@ -4950,3 +4950,10 @@ button.perch-table__action:disabled {
     display: none;
   }
 }
+
+/* Words a column shows where the row holds nothing.
+   Dimmed, and readable: it is a fact about the row rather than decoration, so
+   unlike the dash it is not hidden from a screen reader. */
+.perch-cell__placeholder {
+  color: var(--perch-content-muted);
+}

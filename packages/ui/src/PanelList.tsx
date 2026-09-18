@@ -680,7 +680,7 @@ export function PanelList({
           caption={title}
           {...(page.columns.empty === undefined
             ? {}
-            : { empty: <EmptyState {...page.columns.empty} /> })}
+            : { empty: <EmptyState {...page.columns.empty} page={page} /> })}
           rowHref={(action, row) => href(page, action, row)}
           rowActions={(row) => [...offered(page, row), ...(rowActions ?? [])]}
           {...(sort === undefined ? {} : { sort })}
@@ -1164,10 +1164,14 @@ function EmptyState({
   heading,
   description,
   icon,
+  actions,
+  page,
 }: {
   readonly heading?: string;
   readonly description?: string;
   readonly icon?: string;
+  readonly actions?: readonly string[];
+  readonly page: RecordsPage;
 }): ReactNode {
   return (
     <>
@@ -1178,6 +1182,12 @@ function EmptyState({
         <p className="perch-table__empty-heading">{heading}</p>
       )}
       {description === undefined ? null : <p>{description}</p>}
+      {/* The header's own actions, offered again where the reader is looking.
+          Named rather than declared here, so nothing is authorised twice: what
+          is drawn is what the header was already going to draw for them, and a
+          reader who may not create gets no button because a table asked for
+          one. */}
+      {headerActions(page, actions)}
     </>
   );
 }
@@ -1388,13 +1398,17 @@ function href(page: RecordsPage, action: ActionNode, row: Row): string | undefin
  * (navigation), and an action the renderer has no meaning for is skipped rather
  * than drawn — the same rule the row actions follow.
  */
-function headerActions(page: RecordsPage): ReactNode {
+function headerActions(page: RecordsPage, only?: readonly string[]): ReactNode {
   const path = page.resourcePath;
   if (path === undefined) return null;
+  // Nothing asked for is nothing drawn, which is what an empty state that
+  // named no action means. The header itself passes nothing and gets them all.
+  if (only !== undefined && only.length === 0) return null;
 
   // Built before it is wrapped: a table whose only header action is one the
   // renderer skips would otherwise leave an empty element in the header.
   const links = page.columns.headerActions
+    .filter((action) => only === undefined || only.includes(action.name))
     .filter((action) => action.type === "CreateAction")
     .map((action) => (
       <a

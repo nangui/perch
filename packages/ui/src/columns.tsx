@@ -40,6 +40,30 @@ function text(value: unknown): ReactNode {
 }
 
 /** The em dash a table uses for a cell with nothing in it. */
+/**
+ * What a text cell shows, in the order the column decides it.
+ *
+ * `default` first, because it stands in as a value and everything after treats
+ * it as one: a default of `0` under `numeric` reads as the locale writes zero.
+ * `placeholder` after, because it is words rather than a value, and it is only
+ * reached where there is still nothing to read. The dash is last and is what a
+ * column that said neither still gets.
+ */
+function reading(value: unknown, column: ColumnNode): ReactNode {
+  const held =
+    value === undefined || value === null || value === "" ? column.default : value;
+  if (held === undefined || held === null || held === "") {
+    return column.placeholder === undefined ? (
+      nothing()
+    ) : (
+      // Dimmed and readable: it is a fact about the row, not a decoration, so
+      // it is not hidden from a screen reader the way the dash is.
+      <span className="perch-cell__placeholder">{column.placeholder}</span>
+    );
+  }
+  return text(formatValue(held, column) ?? held);
+}
+
 function nothing(): ReactNode {
   return <span aria-hidden>—</span>;
 }
@@ -556,7 +580,7 @@ export function registerBuiltInColumns(): void {
   }
 
   registerColumn("TextColumn", (value, _row: Row, column: ColumnNode) =>
-    text(formatValue(value, column) ?? value),
+    reading(value, column),
   );
   registerColumn("GaugeColumn", (value, _row: Row, column, cell) =>
     gauge(value, column, cell),

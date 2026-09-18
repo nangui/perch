@@ -215,6 +215,27 @@ Without one the table says so in the plainest words it has. With one it can say 
 is nothing yet and what to do about it, which is the difference between an empty page and
 a page that looks broken.
 
+A table can offer its own header actions here as well, by the name they were declared
+with:
+
+```ts
+import { CreateAction, Table, TextColumn } from "@perchjs/core";
+
+Table.make()
+  .columns([TextColumn.make("title")])
+  .headerActions([CreateAction.make().name("create")])
+  .emptyState({
+    heading: "No posts yet",
+    description: "The first one takes a minute.",
+    actions: ["create"],
+  });
+```
+
+Named rather than declared again, and that is the whole of it: an action declared twice
+is authorised twice, and the second place is the one somebody forgets. The empty state
+can only re-offer what the header already offers this reader, so a reader who may not
+create gets no button because a table asked for one.
+
 ## On a narrow screen
 
 The table stops being a grid and becomes a stack: each row is a block, each cell a line.

@@ -85,4 +85,38 @@ describe("the token sheet", () => {
 
     expect(invented).toEqual([]);
   });
+
+  it("holds every token a rule asks for and has nothing to fall back on", () => {
+    // The other direction, and the one that was missing. A `var()` naming a
+    // token nothing declares is not an error anywhere: the property falls back
+    // to whatever it inherits and the rule quietly does nothing, which looks
+    // exactly like a rule that works until somebody compares two screens.
+    //
+    // Written after reaching for `--perch-text-muted`, which reads like a name
+    // this sheet would have and is not one it has. `--perch-content-muted` is.
+    //
+    // Only where there is no fallback. `var(--perch-picture, 40px)` is a token
+    // a component sets at run time and a size for when it has not, which is
+    // what the second argument is for and is not a mistake. Six rules here do
+    // that, and a check that called them wrong would be a check nobody keeps.
+    const known = new Set(declared());
+
+    const walk = (at: string): readonly string[] =>
+      readdirSync(at, { withFileTypes: true }).flatMap((entry) => {
+        const next = join(at, entry.name);
+        if (entry.isDirectory()) return walk(next);
+        return entry.name.endsWith(".css") ? [next] : [];
+      });
+
+    const missing = walk(HERE).flatMap((file) => {
+      const text = readFileSync(file, "utf8");
+      return [...text.matchAll(/var\(\s*(--perch-[a-z0-9-]+)\s*([,)])/g)]
+        .filter((found) => found[2] === ")")
+        .map((found) => found[1] ?? "")
+        .filter((token) => !known.has(token))
+        .map((token) => `${file.slice(HERE.length + 1)}: ${token}`);
+    });
+
+    expect([...new Set(missing)]).toEqual([]);
+  });
 });

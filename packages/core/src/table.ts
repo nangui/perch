@@ -43,6 +43,16 @@ export interface EmptyState {
   readonly heading?: string;
   readonly description?: string;
   readonly icon?: IconName;
+  /**
+   * Header actions to offer here as well, by the name they were declared with.
+   *
+   * Named rather than declared again, and that is the whole of the design: an
+   * action declared twice is authorised twice, and the second place is the one
+   * somebody forgets. These can only re-offer what the header already offers
+   * this reader, so a reader who may not create does not get a create button
+   * because a table put one in its empty state.
+   */
+  readonly actions?: readonly string[];
 }
 
 /** What crosses the wire, as a `ColumnTree`. */
@@ -63,6 +73,10 @@ export interface ColumnNode {
   readonly toggleable?: true;
   readonly hiddenByDefault?: true;
   readonly boolean?: true;
+  /** Words shown where the row holds nothing. Not a value, and not sorted by. */
+  readonly placeholder?: string;
+  /** A value read where the row holds nothing, formatted like any other. */
+  readonly default?: unknown;
   /** Which edge the value sits against. Logical, so it holds right to left. */
   readonly alignment?: string;
   /** What the column asks to be, as a CSS length the server has checked. */
@@ -380,6 +394,10 @@ export function serialiseTable(table: Table): ColumnTree {
               : {}),
           }),
       ...(column.state.boolean === undefined ? {} : { boolean: true as const }),
+      ...(column.state.placeholder === undefined
+        ? {}
+        : { placeholder: column.state.placeholder }),
+      ...(column.state.default === undefined ? {} : { default: column.state.default }),
       ...(column.state.alignment === undefined
         ? {}
         : { alignment: column.state.alignment }),

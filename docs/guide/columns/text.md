@@ -70,6 +70,32 @@ These are the same three [TextEntry](../infolists) declares, applied by the same
 function. A panel where a date reads one way on a record and another in the list of them
 is a panel nobody trusts about either.
 
+## When the row holds nothing
+
+```ts
+import { Table, TextColumn } from "@perchjs/core";
+
+Table.make().columns([
+  TextColumn.make("lastSeen").dateTime().placeholder("Never signed in"),
+  TextColumn.make("credits").numeric().default(0),
+]);
+```
+
+A cell with no value draws a dash, which says the column is empty and nothing else.
+These two say something better, and they are not the same thing.
+
+`placeholder` is **words**. They are not formatted, they are not what a sort orders by,
+and they are not what the row holds. `Never signed in` reads as a fact; a dash reads as a
+gap somebody should worry about.
+
+`default` is a **value**, and goes through everything a stored one goes through: a
+default of `0` under `numeric` reads as the locale writes zero. It changes what is shown
+and nothing else, so a sort still orders by what the database holds. That is the honest
+answer and occasionally a surprising one.
+
+Declared together, the default stands in first and the placeholder is only reached if
+there is still nothing.
+
 ## How much room it takes
 
 ```ts
