@@ -1,6 +1,6 @@
 {
   "name": "@perchjs/testing",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Perch test helpers: drive a panel's forms, tables and actions the way a browser does.",
   "homepage": "https://github.com/nangui/perch/tree/main/packages/testing#readme",
   "keywords": [

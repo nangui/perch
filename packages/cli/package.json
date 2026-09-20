@@ -1,6 +1,6 @@
 {
   "name": "@perchjs/cli",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Perch CLI: resource and panel code generation.",
   "homepage": "https://github.com/nangui/perch/tree/main/packages/cli#readme",
   "keywords": [

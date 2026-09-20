@@ -1,6 +1,6 @@
 {
   "name": "@perchjs/nest",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Perch NestJS adapter: PanelModule, routing, guards, navigation.",
   "homepage": "https://github.com/nangui/perch/tree/main/packages/nest#readme",
   "keywords": [
