@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "prisma generate && tsdown",
-    "typecheck": "tsc --build",
-    "lint": "eslint src",
+    "typecheck": "prisma generate && tsc --build",
+    "lint": "prisma generate && eslint src",
     "generate": "prisma generate",
     "db:push": "prisma db push",
     "start": "node dist/main.js"

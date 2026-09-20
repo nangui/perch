@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "tsc",
-    "lint": "eslint ."
+    "generate": "prisma generate",
+    "typecheck": "prisma generate && tsc",
+    "lint": "prisma generate && eslint ."
   },
   "description": "Cross-package proofs. Never published; not a package of the framework.",
   "devDependencies": {
