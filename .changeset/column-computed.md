@@ -1,5 +1,0 @@
----
-"@perchjs/core": minor
----
-
-Add `.value()` on a column, for the value a row implies and does not hold: a full name from two columns, a word for a pair of flags. It is synchronous, and that is the constraint rather than an oversight: it runs once per row, so made to await it would be a query per row on a page that is otherwise one query, and a value worth a query is a value the row should be carrying. It is handed the row before anything is cut away, so it may read columns the table does not show, and only what it returns leaves the server. Declaring it on a column a table writes is refused too: a control over a computed value is a control whose writes vanish, since the save lands and the cell draws what the resolver says again. Declaring it beside `sortable` or `searchable` is refused at boot as well, ordering and searching happening in a query that has only the columns the model has. It is called `value` and not `state`, which is the name the specification uses, because `state` is what every component here calls its own declaration and a column already has one.

@@ -1,5 +1,0 @@
----
-"@perchjs/nest": minor
----
-
-Add `handleRecordCreation` and `handleRecordUpdate`, which replace persistence entirely. PRD 05 calls this the escape hatch and says the tool is unusable without it in an application that has domain logic, which is right: where the database is not the model, a panel that can only reach into the tables is a panel nobody can use. A resource that declares either is handed the write the form produced and answers with the row, and the adapter is not reached. It answers for every save, a cell written from a table included, because a hook honoured on one route and not the other writes to a database the application said it does not use on whichever route was forgotten. A hook that answers with something that is not the row, carrying the model's key, is refused by name: the panel names the row by its key and a create goes to it, so the alternative is a save that answers with nothing and says why nowhere. Nothing wraps it in a transaction, the framework's own write being wrapped because a row and its repeater's rows are one write, and what replaces it may not be a database at all.
