@@ -86,6 +86,44 @@ const entry = (props: Record<string, unknown>, value?: unknown): string => {
   return container.querySelector(".perch-entry")?.textContent ?? "";
 };
 
+describe("an entry that did not say what to call it", () => {
+  it("is named by its path, the way a field in the same position is", () => {
+    // The two halves of one declaration. `TextInput.make("family")` draws
+    // FAMILY above the box; the entry drew a word with nothing beside it.
+    const { container } = render(
+      <PanelView
+        payload={payload([
+          { id: "a", type: "TextEntry", path: "family", value: "Troglodytidae" },
+        ])}
+      />,
+    );
+
+    expect(container.querySelector(".perch-field__label-text")?.textContent).toBe(
+      "family",
+    );
+  });
+
+  it("is left unnamed where a resource asked for none", () => {
+    // An empty string is a name somebody chose, not the absence of one. It is
+    // the way out for the entry that reads as a heading on its own.
+    const { container } = render(
+      <PanelView
+        payload={payload([
+          {
+            id: "a",
+            type: "TextEntry",
+            path: "family",
+            label: "",
+            value: "Troglodytidae",
+          },
+        ])}
+      />,
+    );
+
+    expect(container.querySelector(".perch-field__label-text")?.textContent).toBe("");
+  });
+});
+
 describe("a value the server said how to present", () => {
   it("reads a timestamp in the zone that was named, not the machine's", () => {
     // 08:00 UTC is 10:00 in Paris. A page that showed 08:00 would be right
@@ -344,6 +382,29 @@ describe("a value that can be copied", () => {
     expect(
       container.querySelector(".perch-entry__copy")?.getAttribute("aria-label"),
     ).toBe("Copy");
+  });
+
+  it("borrows the path where the entry declared no name", () => {
+    // The same fallback the label above the value uses. A page of several copy
+    // buttons that all say "Copy" tells a screen reader nothing.
+    withClipboard();
+    const container = render(
+      <PanelView
+        payload={payload([
+          {
+            id: "a",
+            type: "TextEntry",
+            path: "family",
+            value: "Troglodytidae",
+            props: { copyable: true },
+          },
+        ])}
+      />,
+    ).container;
+
+    expect(
+      container.querySelector(".perch-entry__copy")?.getAttribute("aria-label"),
+    ).toBe("Copy family");
   });
 
   it("offers none where there is nothing to copy", () => {
