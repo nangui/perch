@@ -114,6 +114,9 @@ importers:
         specifier: ^8.23.0
         version: 8.23.0
     devDependencies:
+      '@perchjs/prisma-generator':
+        specifier: workspace:*
+        version: link:../../packages/prisma-generator
       '@types/pg':
         specifier: ^8.21.0
         version: 8.21.0

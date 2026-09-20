@@ -5,7 +5,7 @@
   "description": "The public demo: a Perch panel over a real dataset, the way a real application runs it.",
   "type": "module",
   "scripts": {
-    "build": "tsdown",
+    "build": "prisma generate && tsdown",
     "typecheck": "tsc --build",
     "lint": "eslint src",
     "generate": "prisma generate",
@@ -25,6 +25,7 @@
     "pg": "^8.23.0"
   },
   "devDependencies": {
+    "@perchjs/prisma-generator": "workspace:*",
     "@types/pg": "^8.21.0",
     "prisma": "^7.9.1",
     "typescript": "5.9.3"
