@@ -68,6 +68,35 @@ describe("what an entry shows", () => {
     ).toBeUndefined();
   });
 
+  it("is named by the path it reads, where it was given no name", async () => {
+    // The same fallback a field has, and a column in its heading. An entry had
+    // none, so the two halves of one declaration read differently:
+    // `TextInput.make("family")` drew a name above the box and
+    // `TextEntry.make("family")` drew nothing beside the value.
+    //
+    // Asserted on what crosses the wire, because that is where it has to be
+    // true. The renderer cannot do this: an entry's node carries no path at
+    // all, its value being read here and inlined.
+    const tree = await read(Schema.make([TextEntry.make("title")]));
+
+    expect(serialise(tree).schema.children?.[0]?.label).toBe("title");
+  });
+
+  it("keeps the name it was given, over the path", async () => {
+    const tree = await read(Schema.make([TextEntry.make("title").label("Headline")]));
+
+    expect(serialise(tree).schema.children?.[0]?.label).toBe("Headline");
+  });
+
+  it("is left unnamed where a resource asked for none", async () => {
+    // An empty string is a name somebody chose rather than the absence of one.
+    // It is the way out for the entry that reads as a heading on its own, and
+    // the fallback must not take it back.
+    const tree = await read(Schema.make([TextEntry.make("title").label("")]));
+
+    expect(serialise(tree).schema.children?.[0]?.label).toBe("");
+  });
+
   it("says what to show where the record has nothing", async () => {
     // The difference between "empty" and "this page is broken". Without it an
     // absent value is a gap in the layout that says neither.

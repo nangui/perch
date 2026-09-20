@@ -1224,34 +1224,12 @@ function TabsRenderer({ node, renderChild }: NodeProps): ReactNode {
   );
 }
 
-/**
- * What names an entry, where the entry did not say.
- *
- * Its path, which is what a field in the same position already falls back to
- * and what a column falls back to in its heading. An entry was the one thing
- * that fell back to nothing: `TextEntry.make("family")` drew a value with no
- * name beside it, while `TextInput.make("family")` drew `FAMILY` above the
- * box. The same declaration, read two ways, and the difference was not a
- * decision anybody had made.
- *
- * `.label("")` still means no name. An empty string is a name a resource chose
- * rather than the absence of one, so it is left alone here.
- *
- * Not for `RepeatableEntry`, whose label is the heading of a group rather than
- * the name of a value. Nothing else that groups draws itself a heading out of
- * a path either.
- */
-function entryName(node: NodeProps["node"]): string | undefined {
-  return node.label ?? node.path;
-}
-
 function TextEntryRenderer({ node }: NodeProps): ReactNode {
-  const name = entryName(node);
   // No status: an entry is never disabled, never in flight and never in error.
   // Passing a resting one would say those states exist for it.
   return (
     <FieldShell
-      label={name ?? ""}
+      label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
       labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
@@ -1261,7 +1239,7 @@ function TextEntryRenderer({ node }: NodeProps): ReactNode {
         <TextEntry
           value={node.value}
           describedBy={binding.id}
-          {...(name === undefined ? {} : { label: name })}
+          {...(node.label === undefined ? {} : { label: node.label })}
           {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
           {...(node.tone === undefined ? {} : { tone: node.tone })}
           {...(node.href === undefined ? {} : { href: node.href })}
@@ -1273,12 +1251,11 @@ function TextEntryRenderer({ node }: NodeProps): ReactNode {
 }
 
 function IconEntryRenderer({ node }: NodeProps): ReactNode {
-  const name = entryName(node);
   // No status, for the reason the text entry gives: an entry is never disabled,
   // never in flight and never in error.
   return (
     <FieldShell
-      label={name ?? ""}
+      label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
       labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
@@ -1289,7 +1266,7 @@ function IconEntryRenderer({ node }: NodeProps): ReactNode {
           describedBy={binding.id}
           {...(node.mark === undefined ? {} : { mark: node.mark })}
           {...(node.tone === undefined ? {} : { tone: node.tone })}
-          {...(name === undefined ? {} : { label: name })}
+          {...(node.label === undefined ? {} : { label: node.label })}
           {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
         />
       )}
@@ -1298,10 +1275,9 @@ function IconEntryRenderer({ node }: NodeProps): ReactNode {
 }
 
 function ImageEntryRenderer({ node }: NodeProps): ReactNode {
-  const name = entryName(node);
   return (
     <FieldShell
-      label={name ?? ""}
+      label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
       labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
@@ -1324,10 +1300,9 @@ function ImageEntryRenderer({ node }: NodeProps): ReactNode {
 }
 
 function ColorEntryRenderer({ node }: NodeProps): ReactNode {
-  const name = entryName(node);
   return (
     <FieldShell
-      label={name ?? ""}
+      label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
       labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
@@ -1338,7 +1313,7 @@ function ColorEntryRenderer({ node }: NodeProps): ReactNode {
           describedBy={binding.id}
           value={node.value}
           {...(node.props?.["copyable"] === true ? { copyable: true } : {})}
-          {...(name === undefined ? {} : { label: name })}
+          {...(node.label === undefined ? {} : { label: node.label })}
           {...(node.placeholder === undefined ? {} : { placeholder: node.placeholder })}
         />
       )}
@@ -1347,10 +1322,9 @@ function ColorEntryRenderer({ node }: NodeProps): ReactNode {
 }
 
 function KeyValueEntryRenderer({ node }: NodeProps): ReactNode {
-  const name = entryName(node);
   return (
     <FieldShell
-      label={name ?? ""}
+      label={node.label ?? ""}
       status={{ lifecycle: "rest" }}
       labelable={false}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}

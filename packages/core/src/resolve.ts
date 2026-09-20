@@ -853,6 +853,31 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
       ? await value(component.state.readOnly, rc, false, count)
       : false;
   const label = await value(component.state.label, rc, undefined, count);
+  // An entry that said nothing is named by the path it reads, which is what a
+  // field in the same position falls back to and what a column falls back to in
+  // its heading. An entry was the one thing that fell back to nothing:
+  // `TextEntry.make("family")` drew a value with no name beside it while
+  // `TextInput.make("family")` drew one above the box.
+  //
+  // Here rather than in the renderer, because the wire node of an entry carries
+  // no path at all. Its value is read on the server and inlined, so the client
+  // has nothing to fall back to and would need the path shipped for no other
+  // reason than to name something. The server knows the path; naming is its
+  // job, as everything else about how a record reads is.
+  //
+  // `.label("")` still means no name: an empty string is a name a resource
+  // chose rather than the absence of one, and it survives this untouched.
+  //
+  // Not a repeatable, whose label is the heading of a group rather than the
+  // name of a value. Nothing else that groups draws itself a heading from a
+  // path either.
+  const named =
+    label === undefined &&
+    component instanceof Entry &&
+    !(component instanceof RepeatableEntry) &&
+    component.recordPath !== ""
+      ? component.recordPath
+      : label;
   const helperText = await value(component.state.helperText, rc, undefined, count);
   const hint = await value(component.state.hint, rc, undefined, count);
   // A layout's own line of prose. Resolved rather than copied from the state
@@ -1008,7 +1033,7 @@ async function resolveNode(node: WalkedNode, ctx: PassContext): Promise<Resolved
     disabled,
     own: { visible, disabled },
     readOnly,
-    ...(label === undefined ? {} : { label }),
+    ...(named === undefined ? {} : { label: named }),
     ...(helperText === undefined ? {} : { helperText }),
     ...(hint === undefined ? {} : { hint }),
     ...(component.state.hintIcon === undefined
