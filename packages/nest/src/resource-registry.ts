@@ -259,6 +259,7 @@ export class ResourceRegistry implements OnModuleInit {
         ...(table === undefined
           ? []
           : this.#unshowableModals(table, infolist, managers)),
+        ...(table === undefined ? [] : this.#unopenableViews(table, infolist)),
         ...(table === undefined ? [] : this.#collidingCopies(metadata.model, table)),
         ...this.#unscopableRelations(metadata.model, managers),
         ...this.#unmakeableChildren(metadata.model, managers),
@@ -463,9 +464,9 @@ export class ResourceRegistry implements OnModuleInit {
    * said it once. Without one there is nothing to open, and the page it would
    * otherwise have navigated to does not exist either.
    *
-   * The page form says the same thing by answering 404 to a reader. A modal
-   * cannot: the button is already on their screen, and pressing it would open
-   * a dialog that says nothing and then closes.
+   * The page form is refused just beside this one, and used to be let through
+   * on the grounds that its 404 said the same thing. Both are a button on a
+   * reader's screen that leads nowhere; neither is answerable by the reader.
    */
   #unshowableModals(
     table: Table,
@@ -524,6 +525,40 @@ export class ResourceRegistry implements OnModuleInit {
     }
 
     return complaints;
+  }
+
+  /**
+   * A View that leads to a page this resource does not draw.
+   *
+   * The same fault as the dialog above, in the form that used to be let
+   * through. A `ViewAction` left as a link navigates to the record's View
+   * page, and that page is the resource's infolist. Without one the route
+   * answers 404, correctly: there is nothing for it to draw.
+   *
+   * It was allowed on the grounds that the page form says the same thing by
+   * answering 404 to a reader. It does not say it to anybody who can act on
+   * it. The button is already on the reader's screen in both cases, and what
+   * they get for pressing it is a dead end either way — the difference is only
+   * in how it is spelled. The person who can fix it is the one who wrote the
+   * list, and they are here, at boot, rather than reading a bug report.
+   *
+   * Row actions only. A link inside a relation manager is already refused
+   * whole by `#unfollowableActions`, a child having no page of its own at all.
+   */
+  #unopenableViews(
+    table: Table,
+    infolist: Schema | undefined,
+  ): readonly { field: string; problem: string }[] {
+    if (infolist !== undefined) return [];
+
+    return everyAction(table.state.actions)
+      .filter((action) => action.page === "view")
+      .map((action) => ({
+        field: action.state.name ?? action.type,
+        problem:
+          "links to the record's View page, and this resource has no " +
+          "`infolist()` — the page it leads to answers 404",
+      }));
   }
 
   /**

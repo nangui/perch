@@ -795,6 +795,76 @@ describe("a copy that would collide with what it copied", () => {
   });
 });
 
+describe("a view that is a link with nothing to land on", () => {
+  it("stops the boot rather than drawing a button that answers 404", async () => {
+    // The half that used to be let through, on the grounds that a 404 says the
+    // same thing to the reader. It says it just as uselessly: the button is on
+    // their screen either way, and neither of them can be fixed by the person
+    // who pressed it.
+    @PanelResource({ model: "Post", slug: "unopenable" })
+    class UnopenableResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .actions([ViewAction.make()]);
+      }
+    }
+
+    await expect(
+      Test.createTestingModule({
+        imports: [
+          PanelModule.forRoot({
+            path: "/admin",
+            resources: [UnopenableResource],
+            dataAdapter: MemoryAdapter,
+            assets: assets(),
+          }),
+        ],
+      })
+        .compile()
+        .then(async (ref) => {
+          await ref.init();
+        }),
+    ).rejects.toThrow(/no `infolist\(\)`/);
+  });
+
+  it("lets one through where the resource says how a record reads", async () => {
+    // The other side of the rule, which is what keeps it a rule about the
+    // infolist rather than a rule against the View button.
+    @PanelResource({ model: "Post", slug: "openable" })
+    class OpenableResource {
+      form(): Schema {
+        return Schema.make([TextInput.make("title")]);
+      }
+      infolist(): Schema {
+        return Schema.make([TextEntry.make("title")]);
+      }
+      table(): Table {
+        return Table.make()
+          .columns([TextColumn.make("title")])
+          .actions([ViewAction.make()]);
+      }
+    }
+
+    const ref = await Test.createTestingModule({
+      imports: [
+        PanelModule.forRoot({
+          path: "/admin",
+          resources: [OpenableResource],
+          dataAdapter: MemoryAdapter,
+          assets: assets(),
+        }),
+      ],
+    }).compile();
+
+    await expect(ref.init()).resolves.toBeDefined();
+    await ref.close();
+  });
+});
+
 describe("a view opened in place with nothing to show", () => {
   it("stops the boot rather than opening an empty dialog", async () => {
     // The page form says this by answering 404 to a reader who navigates. A
@@ -865,36 +935,6 @@ describe("a view opened in place with nothing to show", () => {
           await ref.init();
         }),
     ).rejects.toThrow(/not one/);
-  });
-
-  it("says nothing about one that only navigates", async () => {
-    // A `ViewAction` that has not been asked to open in place is a link, and a
-    // link to a page that does not exist is the page's own 404.
-    @PanelResource({ model: "Post", slug: "navigating" })
-    class NavigatingResource {
-      form(): Schema {
-        return Schema.make([TextInput.make("title")]);
-      }
-      table(): Table {
-        return Table.make()
-          .columns([TextColumn.make("title")])
-          .actions([ViewAction.make()]);
-      }
-    }
-
-    const ref = await Test.createTestingModule({
-      imports: [
-        PanelModule.forRoot({
-          path: "/admin",
-          resources: [NavigatingResource],
-          dataAdapter: MemoryAdapter,
-          assets: assets(),
-        }),
-      ],
-    }).compile();
-
-    await expect(ref.init()).resolves.toBeDefined();
-    await ref.close();
   });
 });
 
