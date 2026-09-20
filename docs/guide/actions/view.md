@@ -7,13 +7,24 @@ title: ViewAction
 The button that shows a record's infolist.
 
 ```ts
-import { Schema, Table, TextColumn, TextInput, ViewAction } from "@perchjs/core";
+import {
+  Schema,
+  Table,
+  TextColumn,
+  TextEntry,
+  TextInput,
+  ViewAction,
+} from "@perchjs/core";
 import { PanelResource } from "@perchjs/nest";
 
 @PanelResource({ model: "Post" })
 export class PostsResource implements PanelResource {
   form() {
     return Schema.make([TextInput.make("title")]);
+  }
+
+  infolist() {
+    return Schema.make([TextEntry.make("title")]);
   }
 
   table() {
@@ -23,6 +34,10 @@ export class PostsResource implements PanelResource {
   }
 }
 ```
+
+The `infolist()` is not optional here. It is what the button opens, and a resource that
+offers one without saying how a record reads is refused at boot rather than left to draw
+a button that answers 404. That holds for both forms below.
 
 ## Or in place, without leaving the list
 
