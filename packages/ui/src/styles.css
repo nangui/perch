@@ -4235,7 +4235,8 @@
 }
 
 @media (max-width: 40rem) {
-  .perch-list__form {
+  .perch-list__form,
+  .perch-list__range {
     grid-column: 1 / -1;
   }
 }
@@ -4319,11 +4320,27 @@
 }
 
 /* Two dates under one name. Laid out along the row rather than stacked, so the
-   pair reads as one control and the bar keeps its height. */
+   pair reads as one control and the bar keeps its height.
+
+   Two cells of the bar, for the same reason the schema filter takes two: the
+   bar hands every filter one cell sized for one control, and this one holds
+   two of them with a dash between. Sharing a single cell left each box at
+   about 79px, which is under what a native date control needs — so the browser
+   clipped it, taking the calendar button off the end and leaving no way to
+   open the picker by clicking. A number range degrades quietly there, being a
+   text box; a date range does not, and neither should have to.
+
+   Room to sit at their own width, not to be stretched across. Two cells is
+   what they need, not what they should fill: stretched to the full span, each
+   box grew half as wide again as every other control in the bar, and the
+   calendar button drifted off to the far end of a mostly empty box. The
+   trailing `1fr` is what keeps them their own size — with a track to take the
+   free space, the three that hold something size to what they hold. */
 .perch-list__range {
+  grid-column: span 2;
   display: grid;
-  grid-template-areas: "name name name" "from dash to";
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas: "name name name name" "from dash to .";
+  grid-template-columns: auto auto auto 1fr;
   align-items: center;
   gap: var(--perch-space-1) var(--perch-space-2);
   min-width: 0;
