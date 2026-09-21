@@ -130,6 +130,9 @@ export const SIDEBAR: readonly SidebarSection[] = [
   },
   {
     text: "Going to production",
-    items: [{ text: "Deployment", link: "/deployment" }],
+    items: [
+      { text: "Deployment", link: "/deployment" },
+      { text: "Upgrade", link: "/upgrade" },
+    ],
   },
 ];
