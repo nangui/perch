@@ -76,22 +76,23 @@ validate is measured rather than remembered:
 The gate these were written for is cleared. The protocol held at A1, and nothing built since has
 asked for it to be redesigned.
 
-**v0.1 is closed and published.** Its thirty rows in `docs/00-PRD-MASTER.md` §6 are all built,
-and six packages are on npm at `0.1.2`. The release job opens the version pull request; merging
-it publishes, through npm's trusted publishing rather than a token.
+**v0.1 and v0.2 are closed and published.** All seven packages are on npm at `0.2.0`,
+published together through npm's trusted publishing rather than a token. The release job opens
+the version pull request; merging it publishes. Read a release afterwards in the job log, not
+off the registry: a public read can answer 404 for minutes after a successful publish, and has.
 
-**`@perchjs/testing` is the seventh package, and it is not published.** It is built and it is in
-the `fixed` version group (ADR 0008), so the next release will try to publish it; npm answers
-404 for that name today. A trusted publisher has to be configured for it, or the release
-publishes six packages and fails on the seventh. That is the one step nobody in this tree can
-take.
+**What is left of PRD 10 §4.2 is the deployed demo.** Its code is written and its Dockerfile
+with it, under `examples/demo`: four resources over a bird-sightings schema, seeded at boot and
+reset hourly. Where it is deployed is a decision nobody in this tree can take. Everything else
+in that table is built, `llms.txt` and the auth recipes included, and every TypeScript block in
+the guide is compiled against what the packages publish.
 
-**v0.2 is in progress.** Render hooks, the user menu, custom pages, custom resource pages and
-`@perchjs/testing` are built, and the guide is thirty-six pages whose every TypeScript block is
-compiled against what the packages publish. What is left is the rest of the documentation named
-in PRD 10 §4.2 — a page per column and per action, `llms.txt`, the auth recipes, a deployed demo
-— and `discoverResources`, which PRD 04 assigns to v0.2 and which the scope table in PRD 00 does
-not carry. A changeset for `0.2.0` is pending.
+**The next release is `0.3.0`, and two of its changes are breaking.** A resource offering
+`ViewAction` as a link must now declare an `infolist()`, refused at boot rather than drawn as a
+button that answers 404; and an entry with no label of its own now takes the path it reads, as
+a field and a column already did. Both are written up in `docs/guide/upgrade.md`, which exists
+because PRD 10 §4.2 asks for an upgrade guide from the first breaking change and this is it.
+Before 1.0 a minor is the breaking one (ADR 0008 §2), which is why they land together.
 
 **Two suites need a database, and skip without one.** `tooling/database.test.ts` and
 `tooling/panel-database.test.ts` skip what touches PostgreSQL unless `DATABASE_URL` is set,
