@@ -303,3 +303,39 @@ describe("the parser's own ceiling", () => {
     expect(staged).toEqual([]);
   });
 });
+
+describe("a field name the parser would pay for", () => {
+  it("is refused, and quickly, rather than held and then served", async () => {
+    // A bracket group of digits is read as an array index, so the first name
+    // claims a length and the second walks it to make the array an object.
+    // Unguarded, this holds the event loop for a hundred seconds and then
+    // answers 200 as though nothing had happened — so the refusal is what is
+    // asserted, and the deadline is what says it arrived instead of the wait.
+    const form = new FormData();
+    form.set("path", "cover");
+    form.set("state", "{}");
+    form.set("items[4294967294]", "x");
+    form.set("items[k]", "y");
+    form.set(
+      "file",
+      new Blob([new Uint8Array(10)], { type: "image/png" }),
+      "cover.png",
+    );
+
+    const response = await fetch(`${url}/admin/api/posts/upload`, {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.timeout(5000),
+    });
+
+    expect(response.status).toBe(400);
+    expect(staged).toEqual([]);
+  });
+
+  it("leaves a name with no brackets in it alone", async () => {
+    // The guard is on the shape of the name, so the four this route reads have
+    // to keep working — otherwise it is a refusal of the route, not of an
+    // attack.
+    expect((await send("cover", SMALL)).status).toBe(200);
+  });
+});

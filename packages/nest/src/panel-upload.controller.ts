@@ -76,6 +76,38 @@ interface UploadedPart {
  */
 export const UPLOAD_CEILING_BYTES = 32 * 1024 * 1024;
 
+/**
+ * What else the parser is told, beside the ceiling.
+ *
+ * This route reads four names — `path`, `state`, `id` and `file` — and every
+ * one of them is flat, so a name carrying brackets is not one it has a use
+ * for. Saying so is not tidiness. The parser reads a bracket group of digits
+ * as an array index and the index is unbounded, so one name can claim a
+ * length; a second name on the same base then walks that length to turn the
+ * array into an object, synchronously, before any of this file runs. Measured
+ * on multer 2.4.0 at the ceiling above and nothing else: `items[4294967294]`
+ * holds the event loop for 100 seconds, and the route answers 200 afterwards
+ * as though nothing had happened. The guard exists and is off unless asked
+ * for.
+ *
+ * Depth rather than the newer index limit, for two reasons. The refusal has to
+ * arrive as a refusal: `LIMIT_FIELD_NESTING` is a code the Express adapter
+ * maps to 400, while `LIMIT_FIELD_ARRAY_INDEX` is one it does not know, and an
+ * error it does not know is returned unwrapped and leaves as a 500 with a
+ * stack trace in the log. And depth has been read since multer 2.2.0, where
+ * the index limit needs 2.4.0 — an option an older parser does not know is
+ * not refused, it is ignored, so the narrower one protects fewer of the
+ * installations this package says it supports.
+ *
+ * Both routes are told from here, so the two cannot drift. Declared as a
+ * binding rather than inline because the adapter's own type lists what busboy
+ * took and stops there; multer reads this from the same object.
+ */
+const UPLOAD_LIMITS = {
+  fileSize: UPLOAD_CEILING_BYTES,
+  fieldNestingDepth: 0,
+};
+
 export interface UploadAnswer {
   readonly file: StagedFile;
 }
@@ -104,9 +136,7 @@ export class PanelUploadController {
   // Memory, because the port takes bytes, and bounded twice: the parser stops
   // at the ceiling so nothing larger is ever held, and the field's own limit is
   // checked below.
-  @UseInterceptors(
-    FileInterceptor("file", { limits: { fileSize: UPLOAD_CEILING_BYTES } }),
-  )
+  @UseInterceptors(FileInterceptor("file", { limits: UPLOAD_LIMITS }))
   async upload(
     @Param("resource") slug: string,
     @UploadedFile() part: UploadedPart | undefined,
@@ -150,9 +180,7 @@ export class PanelUploadController {
    */
   @Post(":id/relations/:relation/upload")
   @HttpCode(200)
-  @UseInterceptors(
-    FileInterceptor("file", { limits: { fileSize: UPLOAD_CEILING_BYTES } }),
-  )
+  @UseInterceptors(FileInterceptor("file", { limits: UPLOAD_LIMITS }))
   async uploadToChild(
     @Param("resource") slug: string,
     @Param("id") id: string,
