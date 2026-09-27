@@ -413,6 +413,12 @@ async function sendFile(
 
   const response = await fetch(`${api}/upload`, {
     method: "POST",
+    // The one request here that is not JSON, and a multipart body is one of the
+    // three a form on another page can send. A header is not: setting one from
+    // another origin asks the panel's permission first, and nothing grants it.
+    // The name is written again in the adapter, which is where it is read; a
+    // test holds the two together, this package importing no value from either.
+    headers: { "x-perch-panel": "1" },
     body: form,
     credentials: "same-origin",
   });

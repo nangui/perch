@@ -10,6 +10,7 @@ import type { CanActivate, DynamicModule, Type } from "@nestjs/common";
 import type { DataAdapter } from "@perchjs/core";
 import { Module, UseGuards } from "@nestjs/common";
 import { RouterModule } from "@nestjs/core";
+import { CrossSiteGuard } from "./cross-site.js";
 import { PANEL_DATA_ADAPTER } from "./data-adapter.token.js";
 import type { PanelDisks } from "./storage.token.js";
 import { PANEL_STORAGE } from "./storage.token.js";
@@ -246,11 +247,19 @@ function guarded<T extends Type<object>>(
   controller: T,
   guards: readonly Type<CanActivate>[],
 ): T {
-  if (guards.length === 0) return controller;
-
+  // Always subclassed now, where a panel declaring no guards of its own used to
+  // be left alone: one of these is the panel's rather than the host's, and a
+  // panel with nothing in front of it is the one that can least afford to skip
+  // it.
+  //
+  // Last rather than first, so the host still decides who a caller is before
+  // anything decides what they sent. A caller with no credentials hears 403
+  // from the guard that says so, which is what a panel route has always
+  // answered; and a forged request is one the reader is signed in for, by
+  // definition, so it reaches this one anyway.
   const scoped = class extends controller {};
   Object.defineProperty(scoped, "name", { value: controller.name });
-  UseGuards(...guards)(scoped);
+  UseGuards(...guards, CrossSiteGuard)(scoped);
   return scoped;
 }
 

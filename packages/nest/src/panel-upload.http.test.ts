@@ -125,6 +125,10 @@ async function send(
   }
   const response = await fetch(`${url}/admin/api/${slug}/upload`, {
     method: "POST",
+    // What the panel's own client sends here. A multipart body is one of the
+    // three a form on another page can send, so this route asks for something
+    // a form cannot: the header below, which the renderer sets.
+    headers: { "x-perch-panel": "1" },
     body: form,
   });
   return {
@@ -324,6 +328,7 @@ describe("a field name the parser would pay for", () => {
 
     const response = await fetch(`${url}/admin/api/posts/upload`, {
       method: "POST",
+      headers: { "x-perch-panel": "1" },
       body: form,
       signal: AbortSignal.timeout(5000),
     });
@@ -337,5 +342,29 @@ describe("a field name the parser would pay for", () => {
     // to keep working — otherwise it is a refusal of the route, not of an
     // attack.
     expect((await send("cover", SMALL)).status).toBe(200);
+  });
+});
+
+describe("a form on another page, at the one route that takes a file", () => {
+  it("stages nothing without the header the renderer sets", async () => {
+    // The content type here is one a form can send, so the type cannot be what
+    // separates them. A header can: setting one from another origin is asked
+    // for first, and nothing here grants it.
+    const form = new FormData();
+    form.set("path", "cover");
+    form.set("state", "{}");
+    form.set(
+      "file",
+      new Blob([new Uint8Array(10)], { type: "image/png" }),
+      "cover.png",
+    );
+
+    const response = await fetch(`${url}/admin/api/posts/upload`, {
+      method: "POST",
+      body: form,
+    });
+
+    expect(response.status).toBe(404);
+    expect(staged).toEqual([]);
   });
 });

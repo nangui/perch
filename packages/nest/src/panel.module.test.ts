@@ -6,6 +6,7 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import type { DynamicModule, Type } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
 import { PanelAssetsController } from "./panel-assets.controller.js";
 import { PanelStateController } from "./panel-state.controller.js";
@@ -37,12 +38,24 @@ function routedPaths(module: ReturnType<typeof PanelModule.forRoot>): string[] {
   });
 }
 
+/** Whether a controller, or a subclass standing in for it, is on the module. */
+function mounts(module: DynamicModule, controller: Type<object>): boolean {
+  return (module.controllers ?? []).some(
+    (mounted) =>
+      mounted === controller || Object.getPrototypeOf(mounted) === controller,
+  );
+}
+
 describe("PanelModule.forRoot", () => {
   it("registers the assets controller under the configured path", () => {
     const module = PanelModule.forRoot({ path: "/admin", assets: assets() });
 
-    expect(module.controllers).toContain(PanelAssetsController);
-    expect(module.controllers).toContain(PanelStateController);
+    // By descent rather than by identity: every controller is subclassed so the
+    // panel's own guard can be put on it without leaving it on the class for
+    // the next `forRoot`. The subclass keeps the name and the prototype, which
+    // is what says it is the controller asked for rather than one like it.
+    expect(mounts(module, PanelAssetsController)).toBe(true);
+    expect(mounts(module, PanelStateController)).toBe(true);
     expect(routedPaths(module)).toEqual(["admin"]);
   });
 

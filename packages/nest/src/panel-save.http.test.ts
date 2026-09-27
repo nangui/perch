@@ -413,3 +413,26 @@ describe("the routes it sits beside", () => {
     ).toBe(200);
   });
 });
+
+describe("a form on another page", () => {
+  it("writes nothing, whatever the reader is signed in as", async () => {
+    // Measured before the guard that stops it: this created a row. A browser
+    // sends the reader's cookies with a cross-site form post, so the host's
+    // guards let it through, and Express parses a form body into the same
+    // nested object JSON would have produced. The route could not tell them
+    // apart, and nothing else was looking.
+    const url = await serve();
+
+    const response = await fetch(`${url}/admin/api/posts`, {
+      method: "POST",
+      headers: {
+        "x-user": "ada",
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: "state[title]=owned",
+    });
+
+    expect(response.status).toBe(404);
+    expect(writes).toEqual([]);
+  });
+});

@@ -1094,3 +1094,18 @@ describe("an action whose subject is a row a read leaves out", () => {
     expect(deleted).toEqual([]);
   });
 });
+
+describe("a form on another page", () => {
+  it("presses nothing, including the destructive ones", async () => {
+    // Measured before the guard that stops it: this answered
+    // `{"processed":1,"refused":0}` and the row was gone.
+    const response = await fetch(`${url}/admin/api/posts/actions/DeleteAction`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "id=1",
+    });
+
+    expect(response.status).toBe(404);
+    expect(deleted).toEqual([]);
+  });
+});

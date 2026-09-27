@@ -530,7 +530,12 @@ describe("a file for a field the manager declares", () => {
     const form = new FormData();
     for (const [name, value] of Object.entries(fields)) form.set(name, value);
     form.set("file", new File(["a"], "a.png", { type: "image/png" }));
-    const response = await fetch(`${url}${at}`, { method: "POST", body: form });
+    // The header the renderer sets on the one request it cannot send as JSON.
+    const response = await fetch(`${url}${at}`, {
+      method: "POST",
+      headers: { "x-perch-panel": "1" },
+      body: form,
+    });
     return response.status;
   };
 

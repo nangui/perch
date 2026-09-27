@@ -36,6 +36,7 @@ export { PANEL_PATH } from "./panel-path.js";
 export { renderShell } from "./panel-shell.js";
 export type { Authorization, Verdict } from "./authorization.js";
 export { authorize, mayReach } from "./authorization.js";
+export { PANEL_REQUEST_HEADER } from "./cross-site.js";
 export { recordId } from "./record-id.js";
 export type { IncomingUrl } from "./panel-root.js";
 export { rootOf, sameOrigin } from "./panel-root.js";
