@@ -75,6 +75,75 @@ export function ruleFor(
   );
 }
 
+/**
+ * A schema from somebody else's library, read through the one property they all
+ * agree on.
+ *
+ * Declared here rather than depended on. The specification is a shape, not a
+ * package: a schema says it conforms by carrying `~standard`, and a reader of
+ * one needs the property and nothing else. Taking a dependency to describe an
+ * interface would make this the only package in the domain with one, in
+ * exchange for a type it can spell itself.
+ *
+ * Narrower than the specification on purpose. It names what is read and stops:
+ * the validate function, and whether the outcome carries issues. The version,
+ * the vendor and the inferred types belong to whoever builds a schema, not to
+ * whoever asks one a question.
+ */
+export interface StandardSchema {
+  readonly "~standard": {
+    readonly validate: (value: unknown) => StandardOutcome | Promise<StandardOutcome>;
+  };
+}
+
+/**
+ * What a standard schema answers: a value, or the issues it has with one.
+ *
+ * Both halves are spelled because the specification spells both, and a type
+ * that named only the refusal would refuse an accepting schema written inline.
+ * The value is described and never read, which is decision 3 of the record
+ * behind this: what comes back is an answer, not a replacement.
+ */
+export type StandardOutcome =
+  | { readonly value: unknown; readonly issues?: undefined }
+  | { readonly issues: ReadonlyArray<{ readonly message: string }> };
+
+/**
+ * What to say when a schema refuses and does not say why.
+ *
+ * The specification makes the presence of `issues` the refusal, and the message
+ * inside one optional in practice: an empty list is a schema saying no with
+ * nothing to show a reader. Passing it would be worse, since the value the
+ * schema refused would then be saved.
+ */
+export const SCHEMA_REFUSED = "That value was refused.";
+
+/**
+ * A rule, from either of the two things `.rule()` takes.
+ *
+ * A schema becomes a rule with no `kind`, for the same reason a function passed
+ * here has none: whoever wrote it wrote the words, and there is nothing in it
+ * for `validationMessages` to override.
+ *
+ * Only the first issue is shown. A field holds one error at a time here, and
+ * the one a reader acts on first is the first.
+ *
+ * What a schema returns is read as an answer, never as a replacement. A schema
+ * that transforms hands back an output, and that output is dropped: the value
+ * that is saved is the value that arrived. Transforming is what
+ * `formatStateUsing` is for, and a check that quietly rewrote what it checked
+ * would be a rule that edits the row.
+ */
+function asRule(given: ValidationRule | StandardSchema): ValidationRule {
+  if (typeof given === "function") return given;
+  const { validate } = given["~standard"];
+  return async (value: unknown) => {
+    const outcome = await validate(value);
+    if (outcome.issues === undefined) return true;
+    return outcome.issues[0]?.message ?? SCHEMA_REFUSED;
+  };
+}
+
 export type StateTransform = (value: unknown, context: ResolverContext) => unknown;
 
 export interface FieldState extends ComponentState {
@@ -334,8 +403,8 @@ export abstract class Field extends Component {
     return this.with({ validationMessages: { ...messages } });
   }
 
-  rule(rule: ValidationRule): this {
-    return this.with({ rules: [...this.state.rules, rule] });
+  rule(rule: ValidationRule | StandardSchema): this {
+    return this.with({ rules: [...this.state.rules, asRule(rule)] });
   }
 
   /** The label beside the control. Never about how choices are laid out. */
@@ -343,8 +412,8 @@ export abstract class Field extends Component {
     return this.with({ inlineLabel: value });
   }
 
-  rules(rules: readonly ValidationRule[]): this {
-    return this.with({ rules: [...this.state.rules, ...rules] });
+  rules(rules: readonly (ValidationRule | StandardSchema)[]): this {
+    return this.with({ rules: [...this.state.rules, ...rules.map(asRule)] });
   }
 }
 

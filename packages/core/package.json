@@ -53,5 +53,8 @@
     "typecheck": "tsc --build",
     "lint": "eslint src",
     "package:check": "publint && attw --pack ."
+  },
+  "devDependencies": {
+    "zod": "^4.6.5"
   }
 }
