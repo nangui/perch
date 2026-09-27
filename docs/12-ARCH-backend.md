@@ -40,7 +40,7 @@ The core of the product. Each stage is an isolated function, testable on its own
 | 4 | **Build** | build the schema tree for this request | Application |
 | 5 | **Sanitize** | filter incoming state against the tree, in waves | Application |
 | 6 | **Reduce** | state machine: apply → hooks → resolve → prune | Application |
-| 7 | **Validate** | Zod compiled from the tree, visible fields only | Application |
+| 7 | **Validate** | the rules each field carries, over the resolved tree, visible fields only | Application |
 | 8 | **Dehydrate** | produce `{ schema, state, errors }` ([ADR 0010](adr/0010-state-response-shape.md)) | Application |
 | 9 | **Encode** | serialize, headers, status | Adapter in |
 
@@ -79,7 +79,7 @@ interface RequestContext {
 
 | Level | Lifetime | Contents | Forbidden |
 |---|---|---|---|
-| **Bootstrap** | the process's life | the IR (imported, not derived — it is a build output), resource metadata, the navigation tree, component prototypes, base Zod schemas | anything that depends on a user |
+| **Bootstrap** | the process's life | the IR (imported, not derived — it is a build output), resource metadata, the navigation tree, component prototypes | anything that depends on a user, and validation, which is rules on a tree rather than a schema to build |
 | **Request** | one request | relation labels, authorization results, badges | — |
 | **None** | — | — | **never** cache a value derived from user input across requests |
 

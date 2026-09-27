@@ -146,7 +146,7 @@ type Paths<T, D extends number = 3> = D extends 0 ? never
 ## 6. Validation
 
 - **Source of truth**: the declared schema, not a parallel DTO.
-- **Engine**: Zod, generated from the component tree. Chosen over `class-validator` because it composes dynamically at runtime — indispensable when visibility conditions validation.
+- **Engine**: the framework's own, evaluated over the resolved tree rather than compiled from it. A rule is a callable carrying the request's context, so it may read any other path, the record and the operation; only visible nodes are checked, and an error is keyed by node path so one declaration inside a repeater reports per row. Dynamic composition was the requirement — indispensable when visibility conditions validation — and this is how it is met: nothing is compiled, because the tree is already resolved when the rules run. A schema from another library is taken where a rule is taken, through the one property they all carry. See [ADR 0031](adr/0031-what-validates-a-value.md).
 - **v0.1 rules**: `required`, `email`, `url`, `minLength`, `maxLength`, `min`, `max`, `numeric`, `regex`, `unique` (async, with `ignoreRecord`), `confirmed`, `in`.
 - **Custom rules**: `.rule(fn)`, synchronous or async.
 - **Invariant**: an invisible field is **never** validated and **never** persisted.

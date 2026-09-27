@@ -36,6 +36,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0028](adr/0028-where-a-drawing-lives.md) | A named mark and one the panel fits to its own slot live apart, and share no path data |
 | [0029](adr/0029-what-a-decision-may-name.md) | A decision names what a file holds; where it lives belongs to the guard that enforces it |
 | [0030](adr/0030-how-a-closed-vocabulary-arrives.md) | A word leaving a closed vocabulary is refused at once; the set grows additively |
+| [0031](adr/0031-what-validates-a-value.md) | The engine is the one that exists, and a schema from another library is taken where a rule is |
 
 ## Perch — a UI framework for NestJS
 

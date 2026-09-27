@@ -117,9 +117,11 @@ rather than reading past.
 
 NestJS · Prisma · PostgreSQL · React 19 · Tailwind v4 · Radix · strict TypeScript.
 
-PRD 02 and ARCH 12 name Zod as the validation engine, and nothing in the tree depends on it:
-validation was built without it. Do not assume it is there, and do not settle the difference on
-your own initiative — say so and let me decide which of the two is wrong.
+**No validation library.** A rule is a callable carrying the request's context, evaluated over
+the resolved tree; `@perchjs/core` has no dependencies and this is one of the reasons. A schema
+from another library is accepted where a rule is taken, through `~standard`, and nothing is
+installed for it. PRD 02 and ARCH 12 named Zod and never had it; both now say what is there
+(ADR 0031).
 
 Prisma only, PostgreSQL only, Express only in v0.1. The `DataAdapter` interface exists to make
 other adapters possible later — **do not implement one now, and never cross the boundary.**

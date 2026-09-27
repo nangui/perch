@@ -231,3 +231,31 @@ Each has a page of its own, with what it accepts and what it stores.
 [RichEditor](/fields/rich-editor) · [MarkdownEditor](/fields/markdown-editor)
 
 That is all eighteen.
+
+## A schema you already have
+
+`.rule()` also takes a schema, from any library carrying the `~standard` property that Zod,
+Valibot and ArkType all carry. Nothing is installed for it: what is read is the property.
+
+```ts
+import { Schema, TextInput } from "@perchjs/core";
+import { z } from "zod";
+
+export const form = Schema.make([
+  TextInput.make("slug")
+    .required()
+    .rule(z.string().regex(/^[a-z0-9-]+$/, "Lowercase and dashes only.")),
+]);
+```
+
+Zod above because it is the one most people have. Nothing here is about Zod: the type
+`StandardSchema` is what `.rule()` takes, and any library carrying the property satisfies it.
+
+The schema's words are the ones the reader sees, and the first issue is the one shown, a field
+holding one error at a time. A schema that refuses without saying why is still a refusal.
+
+Two things it does not do. It carries no kind, so `validationMessages` has no key for it, which
+is the rule a function passed here already follows: you wrote the check, so you wrote the words.
+And what a schema returns is read as an answer rather than as a replacement, so a schema that
+transforms hands back an output that is dropped. Use `.formatStateUsing()` where you want the
+value itself to change.
