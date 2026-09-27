@@ -21,8 +21,54 @@ so there was nothing to do, and a section saying so would be a section about not
 
 ## 0.2 to 0.3
 
-Two things to change, and both of them the compiler cannot see. One stops the boot, loudly
-and by name, which is how you will find out. The other changes what a page draws.
+Four things, and the compiler sees none of them. Two are versions the panel now asks of its
+host. One stops the boot, loudly and by name, which is how you will find out. The last
+changes what a page draws.
+
+### The panel asks for a platform of its own
+
+`@perchjs/nest` takes `@nestjs/platform-express` at `^11.2.6 || ^12.0.0`, where it used to
+take any 11.
+
+The upper half is new support. NestJS 12 works, and needs nothing said or done: it publishes
+as ESM only, the panel's CommonJS build loads it through Node's own support for doing that,
+and both halves of the range are built and tested in this repository's own CI rather than
+assumed.
+
+The floor inside 11 is the half that asks something of you. The platform pins its multipart
+parser exactly, and the panel's upload route refuses a field name carrying brackets by
+handing that parser a limit. A parser older than the one 11.2.6 pins does not refuse that
+option, it ignores it, so the refusal quietly does nothing and nothing anywhere says so. The
+range is where it says so.
+
+```sh
+pnpm up "@nestjs/platform-express@^11.2.6"
+```
+
+npm refuses an install that leaves a peer range unsatisfied. pnpm warns and carries on,
+so read its warnings once after this upgrade rather than scrolling past them. And if an
+override in your own manifest holds the parser below multer 2.2.0, no range can see it.
+`perch doctor` can, and names the version it found.
+
+### Node 22.12
+
+`@perchjs/nest` and `@perchjs/testing` ask for Node 22.12 or later, where they asked for 22.
+The other five packages still ask for 22.
+
+It follows from the line above. Loading an ES module from CommonJS is what these two do
+on NestJS 12, and Node grew that ability in 22.12. On 22.11 the panel does not load at
+all, with `ERR_REQUIRE_ESM`. On 22.12 it loads and prints an experimental warning every
+time it does. From Node 24 it is silent, which is the quieter place to be.
+
+The floor sits on the package rather than on the combination, so it is asked of an
+application on NestJS 11 too, where the platform is CommonJS and nothing needs it. A
+manifest has no way to say "only when your platform is ESM", and the alternative is a
+floor that is right for most readers and silently wrong for the ones it matters to.
+
+`engines` is a declaration rather than a gate. pnpm installs past one it does not
+satisfy without a word, unless you have set `engine-strict`, and what arrives instead of
+a refusal is a panel that does not load. That is why this page says it rather than
+leaving it to the manifest.
 
 ### A resource that offers `ViewAction` has to say how a record reads
 

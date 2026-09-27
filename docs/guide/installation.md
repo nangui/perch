@@ -10,12 +10,12 @@ choose and reads the Prisma schema you already wrote.
 
 ## What you need
 
-- Node 22 or later
-- A NestJS 11 application, on Express
+- Node 22.12 or later
+- A NestJS application on Express, 11.2.6 or later, or 12
 - Prisma 7 with a PostgreSQL datasource
 
-Those are the versions v0.1 supports, and the `DataAdapter` port exists so that others
-become possible later. Nothing in the framework reaches past it.
+Those are the versions this release supports, and the `DataAdapter` port exists so that
+others become possible later. Nothing in the framework reaches past it.
 
 ## Install
 
