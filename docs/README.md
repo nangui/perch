@@ -24,6 +24,18 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0016](adr/0016-file-storage-port.md) | Uploads go up on selection, through a storage port, and the row is written last |
 | [0017](adr/0017-what-an-action-receives.md) | An action's callback takes one record; a bulk trigger runs it per record in one transaction |
 | [0018](adr/0018-how-a-repeater-addresses-its-rows.md) | A repeater's rows are flat paths under a stable key, and its own path holds their order |
+| [0019](adr/0019-what-an-infolist-resolves-against.md) | An entry resolves against the record, and its value never enters the state map |
+| [0020](adr/0020-what-a-soft-delete-does.md) | `delete` marks a soft-deleting model, `forceDelete` destroys, and reads leave marked rows out |
+| [0021](adr/0021-what-scopes-a-relation-manager.md) | A relation manager is scoped from the address, by a foreign key derived from the IR at boot |
+| [0022](adr/0022-what-a-layout-says-about-what-it-holds.md) | A layout's flags apply to everything it holds, in one pass after resolution |
+| [0023](adr/0023-what-the-panel-is-allowed-to-serve.md) | The asset manifest names the bundle's chunks as well as its entries, and stays the allowlist |
+| [0024](adr/0024-what-a-base-class-may-grow.md) | `Component` may grow, and every method added to it is a breaking change plugins are told about |
+| [0025](adr/0025-what-a-header-may-offer.md) | A header action must be a `CreateAction`, refused at boot rather than narrowed in the type |
+| [0026](adr/0026-how-a-filter-is-named.md) | A filter is made from its own class, and its name is given at construction |
+| [0027](adr/0027-what-an-icon-is.md) | An icon is a name from a small shipped set, and an unknown one stops the boot |
+| [0028](adr/0028-where-a-drawing-lives.md) | A named mark and one the panel fits to its own slot live apart, and share no path data |
+| [0029](adr/0029-what-a-decision-may-name.md) | A decision names what a file holds; where it lives belongs to the guard that enforces it |
+| [0030](adr/0030-how-a-closed-vocabulary-arrives.md) | A word leaving a closed vocabulary is refused at once; the set grows additively |
 
 ## Perch — a UI framework for NestJS
 
@@ -64,4 +76,4 @@ Recommended reading order: **ADR → REF → 00 → 12 → 13 → 01 → 02 → 
 - "Out of scope" is as binding as in scope. It is what stops the drift toward a CMS.
 - A quantified performance budget is a requirement tested in CI, not an intention.
 
-`BRIEF-design.md` is a working note rather than specification — it carries a prompt meant for a design tool — and is still in French.
+`BRIEF-design.md` is a working note rather than specification: it carries a prompt meant for a design tool.

@@ -228,6 +228,35 @@ describe("a list written in prose", () => {
     expect(missing, `CLAUDE.md does not mention: ${missing.join(", ")}`).toEqual([]);
   });
 
+  it("names every decision record, in the index that orders the reading", () => {
+    // The count beside it was right all along and this was not: the index
+    // stopped at the eighteenth record while twelve more sat in the folder, so
+    // a reader following the recommended order read two thirds of the
+    // decisions and had no way to know. A count is checked by counting; a list
+    // is only checked by naming what is in it.
+    const index = read("docs/README.md");
+    const missing = decisions().filter((file) => {
+      const number = file.split("-")[0] ?? "";
+      return !index.includes(`[${number}](adr/${file})`);
+    });
+
+    expect(missing, `docs/README.md does not link: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("links nothing from that index that is not a record", () => {
+    // The other direction, and the one a rename makes wrong: a row left
+    // pointing at a file that moved reads as a decision until somebody clicks.
+    const linked = [...read("docs/README.md").matchAll(/\]\(adr\/([^)]+)\)/g)]
+      .map((found) => found[1] ?? "")
+      .filter((file) => file !== "README.md");
+    const records = new Set(decisions());
+
+    expect(
+      linked.filter((file) => !records.has(file)),
+      "docs/README.md links an adr/ file that is not there",
+    ).toEqual([]);
+  });
+
   it("found the scopes line at all", () => {
     // Without this the rule above passes by matching nothing rather than by
     // finding every package named.
