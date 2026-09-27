@@ -160,6 +160,39 @@ Each chain is queued and runs when it is awaited, in order. Awaiting it twice do
 it twice, because a chain ending in `submit` would write twice. A chain that failed says
 the same thing on every await rather than answering the second one with success.
 
+## A storage adapter of your own
+
+The panel takes bytes through a port, so the disk behind it is yours to write: a bucket, a
+folder, a service nobody else has. What the port asks of one is not obvious from its five
+methods, and the part that is easy to miss is the one that loses files. A staged file is one
+a reader chose and may never save, and it has to be distinguishable from a file that
+belongs, or the first sweep after a save deletes the upload the reader just made.
+
+`checkStorageAdapter` runs the promises against your adapter and hands back what it got
+wrong. An empty list is the contract kept:
+
+```ts
+import type { StorageAdapter } from "@perchjs/core";
+import { checkStorageAdapter } from "@perchjs/testing";
+
+// `disk` is yours: the S3 one, the folder one, whichever you wrote.
+export async function complaints(disk: StorageAdapter): Promise<readonly string[]> {
+  return await checkStorageAdapter(disk);
+}
+```
+
+Wrap that in one assertion of whatever runner you use. It names no runner itself, which is
+why it returns a list rather than asserting.
+
+It writes to the adapter it is given, under the staging prefix and one directory, so point
+it at a disk you are willing to have written to rather than at production.
+
+Two things it cannot check. Whether a committed file really is where `url()` says is a
+question about a bucket or a folder rather than about the interface. And `remove()` has
+nothing to ask afterwards, so what is checked is that calling it twice, and on a key that
+was never there, does not raise: the save's failure path and a deleted row can both reach
+the same key, and neither is in a position to find out first.
+
 ## What it will not do
 
 It will not tell you a panel worked when it did not, and several of its assertions exist

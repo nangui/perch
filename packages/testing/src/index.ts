@@ -14,3 +14,4 @@ export type { RecordLike } from "./table.js";
 export { TableTest } from "./table.js";
 export { ActionTest } from "./action.js";
 export type { Counter } from "./counter.js";
+export { checkStorageAdapter } from "./storage.js";
