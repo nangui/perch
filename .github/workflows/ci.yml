@@ -15,9 +15,22 @@ permissions:
 
 jobs:
   verify:
-    name: verify
+    name: verify (nest ${{ matrix.nest }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # Both halves of what the manifests advertise. A lockfile holds one major and
+    # has to — it is the tree a release is built from — so a peer range naming two
+    # is a claim only a second leg can keep. The first is the major the lockfile
+    # pins and runs everything; the second asks for the other one and runs what a
+    # major of NestJS can change.
+    #
+    # Neither leg cancels the other. A pass on one and a failure on the other is
+    # the answer to which major broke, and cancelling throws exactly that away.
+    strategy:
+      fail-fast: false
+      matrix:
+        nest: [11, 12]
 
     # The adapter's unit tests assert translation against a recorder; they would
     # pass on arguments Prisma rejects. tooling/database.test.ts is what says
@@ -51,7 +64,17 @@ jobs:
           cache: pnpm
 
       - name: Install
+        if: matrix.nest == 11
         run: pnpm install --frozen-lockfile
+
+      # The override this writes is not in the lockfile and must not be. Resolving
+      # it is the whole point of the leg, so this one install is the exception to
+      # the rule the release job states: frozen everywhere it matters.
+      - name: Take NestJS ${{ matrix.nest }}
+        if: matrix.nest != 11
+        run: |
+          node scripts/nest-next.mjs ${{ matrix.nest }}
+          pnpm install --no-frozen-lockfile
 
       # Build comes first on purpose: @perchjs/* resolves through its exports
       # map into dist, so boundaries and tests both need it to exist.
@@ -61,12 +84,16 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # The three below read this repository rather than what it resolved, so a
+      # second leg would prove the same thing twice.
       - name: Lint
+        if: matrix.nest == 11
         run: pnpm lint
 
       # The domain stays pure and no adapter reaches another.
       # Blocking from the first commit, before the code it protects exists.
       - name: Architecture boundaries
+        if: matrix.nest == 11
         run: pnpm boundaries
 
       # After the build: the Perch generator runs from dist, and `db push` needs
@@ -83,9 +110,11 @@ jobs:
       # What a consumer receives: publint validates the manifest, attw resolves
       # the package the four ways TypeScript can.
       - name: Published package contract
+        if: matrix.nest == 11
         run: pnpm package:check
 
       - name: Formatting
+        if: matrix.nest == 11
         run: pnpm format:check
 
   # ---------------------------------------------------------------- release
