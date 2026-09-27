@@ -59,6 +59,21 @@ function majors(range: string): number[] {
   return [...range.matchAll(/\^(\d+)\./g)].map((m) => Number(m[1]));
 }
 
+/**
+ * The first @nestjs/platform-express pinning a parser that reads the limit the
+ * upload route sets. Below this the option is unknown and silently dropped.
+ */
+const READS_THE_UPLOAD_LIMIT = [11, 1, 28];
+
+/** Negative, zero or positive, reading a version left to right. */
+function compare(a: readonly number[], b: readonly number[]): number {
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const step = (a[i] ?? 0) - (b[i] ?? 0);
+    if (step !== 0) return step;
+  }
+  return 0;
+}
+
 function manifest(pkg: string): Manifest {
   return JSON.parse(
     readFileSync(new URL(`../packages/${pkg}/package.json`, import.meta.url), "utf8"),
@@ -128,6 +143,29 @@ describe("the peer contract each adapter declares", () => {
       "@nestjs/core",
       "@nestjs/platform-express",
     ]);
+  });
+
+  it("asks for a platform whose parser reads the upload guard", () => {
+    // The upload route refuses a field name carrying brackets by handing the
+    // parser a limit, and a parser that predates the limit ignores it rather
+    // than refusing it: the guard becomes a no-op and nothing anywhere says
+    // so. @nestjs/platform-express pins its parser exactly, and the first
+    // version pinning one that reads the limit is the floor below. The range
+    // sits above it on purpose; what is asserted is the line under which the
+    // panel's own refusal stops being real.
+    const range = (manifest("nest").peerDependencies ?? {})["@nestjs/platform-express"];
+    const floors = [...(range ?? "").matchAll(/\^(\d+)\.(\d+)\.(\d+)/g)].map((m) => [
+      Number(m[1]),
+      Number(m[2]),
+      Number(m[3]),
+    ]);
+    expect(floors, `unreadable range: ${String(range)}`).not.toEqual([]);
+    for (const floor of floors) {
+      expect(
+        compare(floor, READS_THE_UPLOAD_LIMIT) >= 0,
+        `peer admits @nestjs/platform-express ${floor.join(".")}, whose parser ignores the limit`,
+      ).toBe(true);
+    }
   });
 
   it("has @perchjs/prisma own the generated client as a peer", () => {
