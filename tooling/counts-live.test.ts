@@ -49,6 +49,52 @@ function decisions(): string[] {
     .sort();
 }
 
+/**
+ * Every concrete component of one family, found by what it extends.
+ *
+ * Read from the source rather than from the pages that document them: a field
+ * shipped without a page would leave a page count sitting still and the
+ * sentence true by the guard's definition and false in fact. The two agree
+ * today, which is how this number was checked when it was written.
+ *
+ * Transitive, because a family has intermediate rungs — a checkbox column
+ * extends the writable one, which extends the column — and those rungs are
+ * abstract, so they are named here and left out of the count. Tests and
+ * fixtures are left out too: each carries a component of its own, invented to
+ * prove something about the family rather than offered to anybody.
+ */
+function concrete(base: string): string[] {
+  const ABSTRACT = new Set(["WritableColumn", "OptionsInput", "ReferentialAction"]);
+  const children = new Map<string, string[]>();
+  const walk = (directory: string): void => {
+    for (const entry of readdirSync(join(ROOT, directory), { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== "__fixtures__") walk(path);
+        continue;
+      }
+      if (!entry.name.endsWith(".ts") || entry.name.includes(".test.")) continue;
+      for (const [, name, parent] of read(path).matchAll(
+        /class\s+([A-Za-z]+)\s+extends\s+([A-Za-z]+)/g,
+      )) {
+        children.set(parent ?? "", [...(children.get(parent ?? "") ?? []), name ?? ""]);
+      }
+    }
+  };
+  walk(join("packages", "core", "src"));
+
+  const found = new Set<string>();
+  const pending = [base];
+  while (pending.length > 0) {
+    for (const name of children.get(pending.pop() ?? "") ?? []) {
+      if (found.has(name)) continue;
+      found.add(name);
+      pending.push(name);
+    }
+  }
+  return [...found].filter((name) => !ABSTRACT.has(name)).sort();
+}
+
 const UNITS = [
   "zero",
   "one",
@@ -115,7 +161,7 @@ const CLAIMS: readonly Claim[] = [
   {
     page: "README.md",
     counts: "packages that ship",
-    sentence: /v0\.2 in progress — ([a-z0-9-]+) packages building/,
+    sentence: /v0\.3 in progress — ([a-z0-9-]+) packages released together/,
     truth: () => publishable().length,
   },
   {
@@ -123,6 +169,18 @@ const CLAIMS: readonly Claim[] = [
     counts: "decision records",
     sentence: /([a-z0-9-]+) records in \[`docs\/adr\/`\]/,
     truth: () => decisions().length,
+  },
+  {
+    page: "README.md",
+    counts: "field types",
+    sentence: /It draws ([a-z0-9-]+) field types/,
+    truth: () => concrete("Field").length,
+  },
+  {
+    page: "README.md",
+    counts: "table columns",
+    sentence: /field types, ([a-z0-9-]+) table columns/,
+    truth: () => concrete("Column").length,
   },
   {
     page: "CONTRIBUTING.md",

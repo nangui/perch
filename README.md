@@ -9,24 +9,38 @@ An open-source UI framework for **NestJS**. Define a resource in TypeScript, get
 |---|---|
 | Stack | NestJS · Prisma · PostgreSQL · React |
 | License | MIT (core) |
-| Status | v0.1 complete · v0.2 in progress — seven packages building |
-| npm scope | `@perchjs/*` — organization reserved, nothing published yet |
+| Status | v0.2 published · v0.3 in progress — seven packages released together |
+| npm scope | `@perchjs/*` — published, every package at one version |
 | Milestones | **A1** dependent select, zero user JavaScript · **A2** relation column, filter, bulk action · **A3** nested repeater in one transaction · **A4** a third-party module extending a form it does not own |
 | Decisions | 30 records in [`docs/adr/`](docs/adr/README.md), each with the rule that would reopen it |
 
 ## Where it is
 
-**v0.1 is complete.** A1, A3 and A4 each have a test that carries the milestone's
-name and passes; A2's parts — relation columns, filters, bulk actions — are
-covered piece by piece rather than by one test standing for the whole. The
-latency budget on `/state` is enforced by the build, not by intention.
+**v0.1 and v0.2 are closed and published.** All seven packages are on npm,
+carrying one version number and released together — through npm's trusted
+publishing rather than a token. The four acceptance milestones pass, each held by
+a test that names it: A1 on the state protocol and A2 on the query layer, both
+inside the p95 the build enforces, A3 on a repeater written in one transaction,
+A4 on a module extending a form it does not own.
 
-**v0.2 is under way.** Seventeen field types, eight table columns, layouts, prime
-content, relation managers, uploads with a staging lifecycle, soft delete, a
-custom-field escape hatch, and inline editing from the table — a write that goes
-through the form's own schema, boundary and policies rather than around them.
-Still to come in the tier: a markdown editor, two range filters, and a filter
-that carries a schema of its own.
+**What is in it.** It draws eighteen field types, eleven table columns, layouts,
+prime content, infolists, relation managers, actions and bulk actions, a filter
+bar with ranges and a filter carrying a schema of its own, uploads with a staging
+lifecycle, soft delete, a custom-field escape hatch, and inline editing from the
+table — a write that goes through the form's own schema, boundary and policies
+rather than around them.
+
+**v0.3 is in progress, and three of its changes are breaking.** A resource
+offering `ViewAction` as a link has to declare an `infolist()`; an entry with no
+label of its own now takes the path it reads; and the panel asks for a NestJS
+platform whose multipart parser honours the limits the upload route sets, an
+older one having ignored them in silence.
+
+**One thing is left from the tooling tier: where the demo runs.** Its code and
+its Dockerfile are written, under [`examples/demo`](examples/demo) — four
+resources over a bird-sightings schema, seeded at boot and put back on the hour
+unless told otherwise. Where it is deployed is not a decision this tree can
+take.
 
 Everything the framework can draw is drawn somewhere in
 [`examples/basic`](examples/basic), which is the honest way to see it: run it and
