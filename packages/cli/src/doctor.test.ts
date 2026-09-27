@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { Project } from "./doctor.js";
-import { diagnose } from "./doctor.js";
+import { diagnose, PARSER_READS_UPLOAD_LIMIT } from "./doctor.js";
 
 const SCHEMA = `
 generator client {
@@ -37,6 +37,7 @@ const healthy: Required<Project> = {
   inProject: true,
   dependencies: { prisma: "^7.9.1", "@prisma/client": "^7.9.1" },
   prismaVersion: "7.9.1",
+  parserVersion: "2.4.0",
   schema: SCHEMA,
   schemaFingerprint: FINGERPRINT,
   irPresent: true,
@@ -49,9 +50,10 @@ const titles = (project: Partial<Project>): string[] =>
 
 // The same project with one thing it could not read. Absent, not empty: that
 // is the difference between "no schema" and "a schema with nothing in it".
-const { prismaVersion, schema, schemaFingerprint, ...rest } = healthy;
-const noVersion: Project = { ...rest, schema, schemaFingerprint };
-const noSchema: Project = { ...rest, prismaVersion };
+const { prismaVersion, parserVersion, schema, schemaFingerprint, ...rest } = healthy;
+const noVersion: Project = { ...rest, parserVersion, schema, schemaFingerprint };
+const noSchema: Project = { ...rest, parserVersion, prismaVersion };
+const noParser: Project = { ...rest, prismaVersion, schema, schemaFingerprint };
 
 describe("a project with nothing wrong", () => {
   it("reports nothing", () => {
@@ -88,6 +90,45 @@ describe("Prisma itself", () => {
 
   it("says nothing about a version it cannot read", () => {
     expect(diagnose(noVersion)).toEqual([]);
+  });
+});
+
+describe("the parser behind the upload route", () => {
+  it("says nothing about one that reads the limits", () => {
+    expect(titles({ parserVersion: "2.4.0" })).toEqual([]);
+    expect(titles({ parserVersion: PARSER_READS_UPLOAD_LIMIT })).toEqual([]);
+  });
+
+  it("reports one that ignores them, and names the version", () => {
+    // Ignoring is the whole problem: the option is not refused, so the panel
+    // looks exactly as it does when the guard works.
+    expect(titles({ parserVersion: "2.1.1" })).toEqual([
+      "multer 2.1.1 is installed, and it ignores the limits the upload route hands it.",
+    ]);
+  });
+
+  it("reads a version that is not three numbers", () => {
+    // What a platform of the eleventh major's first minors pins, and the one
+    // this is most likely to be found on.
+    expect(titles({ parserVersion: "1.4.5-lts.1" })).toEqual([
+      "multer 1.4.5-lts.1 is installed, and it ignores the limits the upload route hands it.",
+    ]);
+  });
+
+  it("says nothing when it could not be read", () => {
+    // A project with no platform installed yet, or a store that keeps the
+    // parser somewhere this cannot follow. Neither is a finding.
+    expect(diagnose(noParser).map((finding) => finding.title)).toEqual([]);
+  });
+
+  it("says nothing about a version it cannot make sense of", () => {
+    expect(titles({ parserVersion: "next" })).toEqual([]);
+  });
+
+  it("tells whoever reads it what to do about it", () => {
+    const fix = diagnose({ ...healthy, parserVersion: "2.1.1" })[0]?.fix ?? "";
+    expect(fix).toContain("@nestjs/platform-express 11.2.6");
+    expect(fix).toContain("override");
   });
 });
 

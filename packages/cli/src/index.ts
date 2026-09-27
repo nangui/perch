@@ -8,6 +8,7 @@
  * `prisma generate`, and reading it again here would be a second
  * reading that can disagree with the panel's.
  */
+import { createRequire } from "node:module";
 import { parseArgs } from "node:util";
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
@@ -35,7 +36,11 @@ export type { Finding, Level, Project } from "./doctor.js";
 export type { SchemaReading } from "./schema-fingerprint.js";
 export type { ClientBinding, GeneratedFile, PanelOptions, Source } from "./panel.js";
 export { readSchema } from "./schema-fingerprint.js";
-export { diagnose, SUPPORTED_PRISMA_MAJOR } from "./doctor.js";
+export {
+  diagnose,
+  PARSER_READS_UPLOAD_LIMIT,
+  SUPPORTED_PRISMA_MAJOR,
+} from "./doctor.js";
 export {
   ADMIN_MODULE,
   findClient,
@@ -336,10 +341,17 @@ async function inspect(
     await maybeJson<{ version?: string }>("./node_modules/prisma/package.json")
   )?.version;
 
+  const parserPath = parserManifest();
+  const parserVersion =
+    parserPath === undefined
+      ? undefined
+      : (await maybeJson<{ version?: string }>(parserPath))?.version;
+
   return {
     inProject: manifest !== undefined,
     dependencies: { ...manifest?.dependencies, ...manifest?.devDependencies },
     ...(prismaVersion === undefined ? {} : { prismaVersion }),
+    ...(parserVersion === undefined ? {} : { parserVersion }),
     ...(schema === undefined
       ? {}
       : { schema: schema.text, schemaFingerprint: schema.fingerprint }),
@@ -365,6 +377,28 @@ async function maybeSchema(path: string): Promise<SchemaReading | undefined> {
 async function maybeText(path: string): Promise<string | undefined> {
   const where = resolve(path);
   return existsSync(where) ? await readFile(where, "utf8") : undefined;
+}
+
+/**
+ * The multipart parser, found the way the platform finds it.
+ *
+ * Not `./node_modules/multer`: it is nobody's direct dependency, so a store that
+ * does not hoist keeps it nowhere near the root, and looking there would report
+ * it missing on the package manager this project is built with. Resolved from
+ * the platform's entry point rather than from its manifest, because a package
+ * whose exports map does not name `package.json` cannot be asked for it, and the
+ * platform's stopped naming it.
+ */
+function parserManifest(): string | undefined {
+  try {
+    const project = createRequire(resolve("./package.json"));
+    return createRequire(project.resolve("@nestjs/platform-express")).resolve(
+      "multer/package.json",
+    );
+  } catch {
+    // Not installed here, or not reachable from there. Either way, unread.
+    return undefined;
+  }
 }
 
 async function maybeJson<T>(path: string): Promise<T | undefined> {

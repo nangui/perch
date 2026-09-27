@@ -52,6 +52,8 @@ function doctor(cwd: string): Promise<Run> {
 }
 
 interface Options {
+  /** The multer version the platform installed here resolves to. */
+  readonly parser?: string;
   readonly schema?: string;
   readonly hash?: string;
   readonly ir?: boolean;
@@ -92,6 +94,30 @@ async function project(options: Options = {}): Promise<string> {
     );
   }
 
+  // A platform with its own parser beside it, which is where a store that does
+  // not hoist puts one, and the arrangement the reading has to follow to find a
+  // version at all.
+  if (options.parser !== undefined) {
+    const platform = join(dir, "node_modules", "@nestjs", "platform-express");
+    const parser = join(platform, "node_modules", "multer");
+    mkdirSync(parser, { recursive: true });
+    writeFileSync(
+      join(platform, "package.json"),
+      JSON.stringify({
+        name: "@nestjs/platform-express",
+        version: "11.0.0",
+        main: "index.js",
+      }),
+      "utf8",
+    );
+    writeFileSync(join(platform, "index.js"), "", "utf8");
+    writeFileSync(
+      join(parser, "package.json"),
+      JSON.stringify({ name: "multer", version: options.parser, main: "index.js" }),
+      "utf8",
+    );
+  }
+
   // Nested on purpose: the walk has to recurse, which a flat src would not say.
   mkdirSync(join(dir, "src", "admin"), { recursive: true });
   writeFileSync(
@@ -101,6 +127,32 @@ async function project(options: Options = {}): Promise<string> {
   );
   return dir;
 }
+
+describe("the parser the platform resolves", () => {
+  it("is found where a store that does not hoist puts it", async () => {
+    // The whole point of this seam: the decision is covered elsewhere, and
+    // nothing there proves a version is ever read off a real directory.
+    const { out, code } = await doctor(await project({ parser: "1.4.5-lts.1" }));
+
+    expect(out).toContain("multer 1.4.5-lts.1 is installed");
+    expect(out).toContain("@nestjs/platform-express 11.2.6");
+    expect(code).toBe(1);
+  });
+
+  it("says nothing about one that reads the limits", async () => {
+    const { out, code } = await doctor(await project({ parser: "2.4.0" }));
+
+    expect(out).not.toContain("multer");
+    expect(code).toBe(0);
+  });
+
+  it("says nothing where there is no platform to resolve it from", async () => {
+    const { out, code } = await doctor(await project());
+
+    expect(out).not.toContain("multer");
+    expect(code).toBe(0);
+  });
+});
 
 describe("a project with nothing wrong", () => {
   it("says so and exits 0", async () => {

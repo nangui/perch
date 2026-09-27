@@ -23,6 +23,8 @@ export interface Project {
   readonly dependencies: Readonly<Record<string, string>>;
   /** The installed Prisma version, as `node_modules` reports it. */
   readonly prismaVersion?: string;
+  /** The multipart parser the platform resolves, as `node_modules` reports it. */
+  readonly parserVersion?: string;
   /** Every schema file, concatenated. */
   readonly schema?: string;
   /** That same schema fingerprinted, by the rule the generator writes with. */
@@ -36,6 +38,21 @@ export interface Project {
 
 /** The versions of Prisma this generator has been checked against. */
 export const SUPPORTED_PRISMA_MAJOR = 7;
+
+/**
+ * The first multer that reads the limit the upload route hands it.
+ *
+ * That route refuses a field name carrying brackets, because one such name can
+ * claim an array of any length and a second on the same base walks it — a
+ * hundred seconds of held event loop, measured, before the route sees anything.
+ * A parser older than this does not refuse the option that stops it: it ignores
+ * it. So the guard is a no-op, the panel looks exactly as it does when it works,
+ * and nothing anywhere says otherwise.
+ *
+ * The peer range refuses those installations. This is for the one that got in
+ * anyway, which is what an override is for.
+ */
+export const PARSER_READS_UPLOAD_LIMIT = "2.2.0";
 
 export function diagnose(project: Project): readonly Finding[] {
   // Every other check reads a path relative to here, so all of them would
@@ -54,6 +71,7 @@ export function diagnose(project: Project): readonly Finding[] {
     ...prisma(project),
     ...schema(project),
     ...ir(project),
+    ...parser(project),
     ...wiring(project),
     ...collisions(project),
   ];
@@ -85,6 +103,42 @@ function prisma(project: Project): readonly Finding[] {
     ];
   }
   return [];
+}
+
+function parser(project: Project): readonly Finding[] {
+  // Absent means the platform is not installed here, or its parser is not where
+  // the platform keeps it. Neither is a reading to make a claim from.
+  if (project.parserVersion === undefined) return [];
+  if (!before(project.parserVersion, PARSER_READS_UPLOAD_LIMIT)) return [];
+  return [
+    {
+      level: "error",
+      title:
+        `multer ${project.parserVersion} is installed, and it ignores the limits ` +
+        `the upload route hands it.`,
+      fix:
+        `Install @nestjs/platform-express 11.2.6 or later, which pins a parser that ` +
+        `reads them, and drop any override holding multer below ` +
+        `${PARSER_READS_UPLOAD_LIMIT}.`,
+    },
+  ];
+}
+
+/**
+ * Whether `version` comes before `floor`, read left to right. An unreadable
+ * version comes before nothing: a reading that cannot be made is not a finding.
+ */
+function before(version: string, floor: string): boolean {
+  const parts = (text: string): number[] =>
+    (/^(\d+)\.(\d+)\.(\d+)/.exec(text)?.slice(1) ?? []).map(Number);
+  const read = parts(version);
+  if (read.length === 0) return false;
+  const against = parts(floor);
+  for (let index = 0; index < against.length; index += 1) {
+    const step = (read[index] ?? 0) - (against[index] ?? 0);
+    if (step !== 0) return step < 0;
+  }
+  return false;
 }
 
 function schema(project: Project): readonly Finding[] {
