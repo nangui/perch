@@ -21,9 +21,33 @@ so there was nothing to do, and a section saying so would be a section about not
 
 ## 0.2 to 0.3
 
-Four things, and the compiler sees none of them. Two are versions the panel now asks of its
+Five things, and the compiler sees none of them. Two are versions the panel now asks of its
 host. One stops the boot, loudly and by name, which is how you will find out. The last
 changes what a page draws.
+
+### A request that changes something has to say it came from the panel
+
+No action if you use the panel through its own screens. This is for anybody with a client of
+their own.
+
+A page on another site can make a reader's browser post to your panel, and the browser sends
+their cookies with it. The panel used to accept such a request: a plain HTML form posting
+`application/x-www-form-urlencoded` created a row, and one posting `id=1` to a delete action
+deleted it. Express parses a form body into the same nested object JSON would have produced,
+so the route could not tell the two apart.
+
+A request that changes something now has to be `application/json`, or carry the header
+`x-perch-panel`. Neither is available to a form on another page. If you post JSON, which the
+panel's own client does everywhere except when it sends a file, nothing changes. If you post
+a file from a client of your own, add the header:
+
+```sh
+curl -X POST https://example.com/admin/api/posts/upload \
+  -H 'x-perch-panel: 1' -F path=cover -F state='{}' -F file=@cover.png
+```
+
+A refused request answers 404, which is what every other refusal here answers, and reading
+routes are untouched.
 
 ### The panel asks for a platform of its own
 

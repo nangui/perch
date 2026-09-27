@@ -154,3 +154,36 @@ wrote.
 So a policy comparing a field the principal does not carry does not fail. It denies, on
 every row, for ever, and [a refusal is a 404](./users). Write one policy test before you
 write ten policies.
+
+## Cross-site requests
+
+A page on another site can make your reader's browser post to your panel, and the browser
+attaches their cookies. Every recipe above authenticates with a cookie, so that request
+arrives signed in: your guard lets it through, and the panel sees a reader doing something
+they are allowed to do.
+
+The panel refuses it before the route runs. What a form on another page can send is limited
+to three content types and no header of its own, so a request that changes something has to
+be JSON, or carry `x-perch-panel`, which is what the panel's own client sends on the one
+request it makes that cannot be JSON. Anything able to do either is a script, and a script
+from another origin is asked for permission first.
+
+The refusal is a 404, like every other refusal here. There is nothing to configure and
+nothing to store, and your own client keeps working as long as it posts JSON.
+
+Two things this does not cover.
+
+It says nothing about `GET`. A route that reads changes nothing, which is the assumption
+behind leaving it alone, and it holds for the panel's own routes.
+
+And it is one layer. On NestJS 12.1 or later your application can check the origin of every
+request before Nest sees it, middleware and all, which is earlier and wider than anything a
+panel can do from inside: call `app.enableCsrfProtection({ trustedOrigins: [...] })` on
+the
+application object, after `NestFactory.create()` and before `listen`. It is not shown
+here as
+an example because it does not exist on NestJS 11, which this package still supports, so a
+block of it would compile against one of the two majors and not the other.
+
+Setting `SameSite` on your session cookie is the other half, and belongs to whoever issues
+it.
