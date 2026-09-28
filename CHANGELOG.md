@@ -3,6 +3,12 @@
 All notable changes to Perch. The seven `@perchjs/*` packages share this file and
 this version number — they are released together ([ADR 0008](docs/adr/0008-versioning-policy.md)).
 
+## 0.3.2 — 2026-09-28
+
+### Fixed
+
+- **testing** — Add `checkDataAdapter`, which runs the row port's promises against an adapter and hands back what it got wrong. `@perchjs/prisma` is one implementation of that port and a reader's own is another, and what the port asks is mostly written in its comments rather than in its signatures — which is exactly what a plausible adapter misses. The one that costs most is paging: the order has to end on something unique even where the sort does not, or two pages hand back the same row and never mention another, and the reader never learns which. Six faults are caught by name, each written as an adapter bent in one place: an order that varies between queries, a `restore` counting what it was asked for rather than what it lifted, a read giving back deleted rows because nothing said not to, a `delete` destroying on a model that marks, a transaction keeping what it wrote before it threw, and a `findOne` answering for a key that was never there. Relations, search and clauses are not checked and the guide says so: they are about what a query means rather than about what the port promises. Run against the adapter this repository's own example ships, seven hundred lines of it, which conforms.
+
 ## 0.3.1 — 2026-09-28
 
 ### Fixed
