@@ -29,6 +29,9 @@ describe("the example's memory adapter", () => {
       // What a clause and a search mean, not only that they are accepted.
       filterOn: { path: "firstName", value: "Ada", absent: "Nobodyatall" },
       searchOn: { term: "Ada", reaching: "firstName", notReaching: "country" },
+      // The join table belongs to neither model, so joining is not a write
+      // with a value in it.
+      relation: { name: "projects", target: "Project", back: "people", id: 1 },
     });
 
     expect(said).toEqual([]);

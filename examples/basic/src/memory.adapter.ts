@@ -627,8 +627,29 @@ export class MemoryAdapter implements DataAdapter {
 
 /** Whatever the include asked for, attached to the row it belongs to. */
 function join(row: Row, include: IncludePlan | undefined): Row {
-  if (include?.["team"] === undefined) return row;
-  return { ...row, team: TEAMS.find((team) => team["id"] === row["teamId"]) ?? null };
+  if (include === undefined) return row;
+  const team =
+    include["team"] === undefined
+      ? {}
+      : { team: TEAMS.find((one) => one["id"] === row["teamId"]) ?? null };
+  // The many-to-many, which an include may name as readily as the to-one above
+  // it: this is the branch a relation column contributes rather than a query
+  // per row. Nothing the panel draws asks for it yet — `projects` is reached
+  // through a manager, which narrows by the join instead — so an include that
+  // was accepted and ignored drew nothing and said nothing.
+  const projects =
+    include["projects"] === undefined
+      ? {}
+      : {
+          projects: PROJECTS.filter((project) =>
+            MEMBERSHIPS.some(
+              (link) =>
+                link.personId === Number(row["id"]) &&
+                link.projectId === Number(project["id"]),
+            ),
+          ),
+        };
+  return { ...row, ...team, ...projects };
 }
 
 /** Whether a row is one this read asked for. `without` where nothing says so. */

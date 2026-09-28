@@ -50,7 +50,14 @@ const META = {
 /** An adapter that keeps the contract, and the base the broken ones bend. */
 class Memory implements DataAdapter {
   protected held: Held[] = [];
+  /** The other end of the relation, and the join table that belongs to neither. */
+  protected readonly targets: Row[] = [{ id: 101 }, { id: 102 }];
+  protected links = new Set<string>();
   #next = 1;
+
+  protected link(id: Id, target: Id): string {
+    return `${String(id)}:${String(target)}`;
+  }
 
   ir(): Ir {
     throw new Error("not reached by the contract");
@@ -132,6 +139,19 @@ class Memory implements DataAdapter {
   }
 
   findMany(query: Query): Promise<Page> {
+    if (query.model === "Project") {
+      const narrowing = query.joinedTo;
+      const rows =
+        narrowing === undefined
+          ? this.targets
+          : this.targets.filter((row) => {
+              const joined = this.links.has(
+                this.link(narrowing.value, row["id"] as Id),
+              );
+              return narrowing.holding === "apart" ? !joined : joined;
+            });
+      return Promise.resolve({ rows, total: rows.length });
+    }
     const all = this.narrowed(query);
     const from = query.skip ?? 0;
     const rows = all.slice(from, from + (query.take ?? all.length));
@@ -143,7 +163,14 @@ class Memory implements DataAdapter {
     const found = this.live(which === undefined ? {} : { deleted: which }).find(
       (row) => String(row.id) === String(id),
     );
-    return Promise.resolve((found ?? null) as Row | null);
+    if (found === undefined) return Promise.resolve(null);
+    if (options?.include?.["projects"] === undefined) {
+      return Promise.resolve(found as unknown as Row);
+    }
+    const joined = this.targets.filter((row) =>
+      this.links.has(this.link(id, row["id"] as Id)),
+    );
+    return Promise.resolve({ ...(found as unknown as Row), projects: joined });
   }
 
   create(_model: string, data: WriteTree): Promise<Row> {
@@ -192,12 +219,24 @@ class Memory implements DataAdapter {
     return Promise.resolve(lifted);
   }
 
-  attach(): Promise<void> {
-    throw new Error("not reached by the contract");
+  attach(
+    _model: string,
+    id: Id,
+    _relation: string,
+    targets: readonly Id[],
+  ): Promise<void> {
+    for (const target of targets) this.links.add(this.link(id, target));
+    return Promise.resolve();
   }
 
-  detach(): Promise<void> {
-    throw new Error("not reached by the contract");
+  detach(
+    _model: string,
+    id: Id,
+    _relation: string,
+    targets: readonly Id[],
+  ): Promise<void> {
+    for (const target of targets) this.links.delete(this.link(id, target));
+    return Promise.resolve();
   }
 
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
@@ -222,6 +261,7 @@ const CHECK = {
   tiedOn: "team",
   filterOn: { path: "name", value: "Ada", absent: "Nobody" },
   searchOn: { term: "Ada", reaching: "name", notReaching: "team" },
+  relation: { name: "projects", target: "Project", back: "people", id: 101 },
 } as const;
 
 const complaints = async (adapter: DataAdapter): Promise<readonly string[]> =>
@@ -350,6 +390,84 @@ describe("an adapter that does not", () => {
 
     expect((await complaints(new Miscounting())).join(" ")).toContain(
       "which is the table's rather than the query's",
+    );
+  });
+
+  it("is caught joining the same row twice", async () => {
+    // A join table that takes a row rather than a pair: pressing the button
+    // again is what a reader does, and the manager then lists it twice.
+    class Doubling extends Memory {
+      override async findMany(query: Query): Promise<Page> {
+        const page = await super.findMany(query);
+        if (query.model !== "Project" || query.joinedTo?.holding === "apart")
+          return page;
+        return { rows: [...page.rows, ...page.rows], total: page.total };
+      }
+    }
+
+    expect((await complaints(new Doubling())).join(" ")).toContain(
+      "joined the same row 2 times",
+    );
+  });
+
+  it("is caught raising on a detach of what is not joined", async () => {
+    class Brittle extends Memory {
+      override detach(
+        model: string,
+        id: Id,
+        relation: string,
+        targets: readonly Id[],
+      ): Promise<void> {
+        for (const target of targets) {
+          if (!this.links.has(this.link(id, target))) throw new Error("nothing joined");
+        }
+        return super.detach(model, id, relation, targets);
+      }
+    }
+
+    expect((await complaints(new Brittle())).join(" ")).toContain(
+      "detach() twice raised",
+    );
+  });
+
+  it("is caught reading the two sides of a narrowing as one", async () => {
+    class OneSided extends Memory {
+      override async findMany(query: Query): Promise<Page> {
+        const narrowing = query.joinedTo;
+        if (narrowing === undefined || narrowing.holding !== "apart") {
+          return await super.findMany(query);
+        }
+        // `apart` answered as `joined`: what could be added to a manager read
+        // as what it already holds.
+        return await super.findMany({
+          ...query,
+          joinedTo: { ...narrowing, holding: "joined" },
+        });
+      }
+    }
+
+    expect((await complaints(new OneSided())).join(" ")).toContain(
+      "among the ones apart",
+    );
+  });
+
+  it("is caught accepting an include and ignoring it", async () => {
+    // The shape that makes a relation column draw nothing: the branch is asked
+    // for, taken, and never loaded.
+    class Deaf extends Memory {
+      override findOne(
+        model: string,
+        id: Id,
+        options?: ReadOptions,
+      ): Promise<Row | null> {
+        const withoutInclude = options === undefined ? undefined : { ...options };
+        if (withoutInclude !== undefined) delete withoutInclude.include;
+        return super.findOne(model, id, withoutInclude);
+      }
+    }
+
+    expect((await complaints(new Deaf())).join(" ")).toContain(
+      "did not bring projects back",
     );
   });
 

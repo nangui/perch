@@ -234,8 +234,15 @@ That last one is not tidiness. Which columns a search touches is an authorizatio
 and an adapter that reads them all answers questions about columns nobody was shown, one
 letter at a time.
 
-Relations are still not checked: `attach` and `detach` want a join table this has no way to
-name, and an include wants a second model. That wants a contract of its own.
+Give it `relation` and it asks about the two verbs that are not writes: joining a row is not
+an update with a value in it, both are asked to be idempotent because pressing twice is what
+a reader does, and the two sides of a narrowing are two sides. One is what a manager holds
+and the other is what could be added to it, which is the same question asked the other way
+round rather than the same answer. It asks for an include too, that being the branch a
+relation column contributes rather than a query per row.
+
+The four comparisons are the only thing left out. They want an ordered value rather than the
+text the rest of this is written in.
 
 ## What it will not do
 

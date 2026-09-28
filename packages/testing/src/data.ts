@@ -18,10 +18,16 @@
  * no others. The last is an authorization question rather than a correctness
  * one, which is why it is here rather than left to a reader to think of.
  *
- * What it does not check, and says so rather than implying otherwise. Relations
- * are untouched: `attach` and `detach` want a join table this has no way to
- * name, and an include wants a second model. So are the four comparisons, which
- * want an ordered value rather than the text everything here is written in.
+ * Given `relation` it asks about the two verbs that are not writes. Joining a
+ * row is not an update with a value in it, both verbs are asked to be
+ * idempotent because pressing twice is what a reader does, and the two sides of
+ * a narrowing are two sides: what a manager holds, and what could be added to
+ * it. An include is asked for as well, that being the branch a relation column
+ * contributes rather than a query per row.
+ *
+ * What it does not check, and says so rather than implying otherwise: the four
+ * comparisons, which want an ordered value rather than the text everything here
+ * is written in.
  */
 import type { Clause, DataAdapter, Id, Page, Row, WriteTree } from "@perchjs/core";
 
@@ -67,6 +73,25 @@ export interface DataAdapterCheck {
     readonly reaching: string;
     /** A path on the same model that does not hold it. */
     readonly notReaching: string;
+  };
+  /**
+   * A relation whose join table belongs to neither model, and a row to join.
+   *
+   * Given, this checks the two verbs that are not writes: joining a row is not
+   * an update with a value in it, and both verbs are asked to be idempotent
+   * because pressing twice is what a reader does. It also checks that the two
+   * sides of the narrowing are two sides — what a manager holds, and what could
+   * be added to it — and that an include brings the relation back with the row.
+   */
+  readonly relation?: {
+    /** The to-many on `model`. */
+    readonly name: string;
+    /** The model at the other end of it. */
+    readonly target: string;
+    /** The relation on `target` that points back at `model`. */
+    readonly back: string;
+    /** A row of `target` this may join and unjoin. */
+    readonly id: Id;
   };
 }
 
@@ -267,6 +292,73 @@ export async function checkDataAdapter(
     ) {
       say(
         `findMany() searched beyond the paths it was given: a term in ${reaching} came back from a search of ${notReaching}.`,
+      );
+    }
+  }
+
+  if (check.relation !== undefined) {
+    const { name, target, back, id } = check.relation;
+    const mine = keys[0] as Id;
+    const narrowed = async (holding: "joined" | "apart"): Promise<Page | undefined> =>
+      await attempt(`findMany() narrowed to what is ${holding}`, () =>
+        adapter.findMany({
+          model: target,
+          joinedTo: { relation: back, key, value: mine, holding },
+        }),
+      );
+    const carries = (page: Page | undefined): boolean =>
+      page?.rows.some((row) => String(row[key]) === String(id)) ?? false;
+    const howMany = (page: Page | undefined): number =>
+      page?.rows.filter((row) => String(row[key]) === String(id)).length ?? 0;
+
+    await attempt("attach()", () => adapter.attach(model, mine, name, [id]));
+    // Twice, because that is what a reader does to a button that did not seem
+    // to answer. Neither an error nor a second join.
+    await attempt("attach() twice", () => adapter.attach(model, mine, name, [id]));
+
+    const joined = await narrowed("joined");
+    if (!carries(joined)) say(`attach() joined nothing that ${back} then listed.`);
+    if (howMany(joined) > 1) {
+      say(
+        `attach() joined the same row ${String(howMany(joined))} times, being asked twice.`,
+      );
+    }
+
+    const apart = await narrowed("apart");
+    if (carries(apart)) {
+      say(
+        "findMany() listed a joined row among the ones apart from it, which are the other side.",
+      );
+    }
+
+    const withRelation = await attempt("findOne() with an include", () =>
+      adapter.findOne(model, mine, { include: { [name]: true } }),
+    );
+    if (withRelation !== undefined && withRelation !== null) {
+      const held = withRelation[name];
+      if (!Array.isArray(held)) {
+        say(`findOne() with an include did not bring ${name} back with the row.`);
+      } else if (
+        !held.some((one) => {
+          const carried = (one as Row)[key];
+          return typeof carried === "string" || typeof carried === "number"
+            ? String(carried) === String(id)
+            : false;
+        })
+      ) {
+        say(
+          `findOne() with an include brought ${name} back without the row joined to it.`,
+        );
+      }
+    }
+
+    await attempt("detach()", () => adapter.detach(model, mine, name, [id]));
+    await attempt("detach() twice", () => adapter.detach(model, mine, name, [id]));
+
+    if (carries(await narrowed("joined"))) say("detach() left the row joined.");
+    if (!carries(await narrowed("apart"))) {
+      say(
+        "detach() left the row out of the ones apart from it, where nothing joins it now.",
       );
     }
   }
