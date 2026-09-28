@@ -133,7 +133,7 @@ jobs:
   # tree about to be sent. Re-running it here cost seven minutes and then
   # failed, because the suite wants a PostgreSQL this job never starts and the
   # database test refuses to skip itself in CI. The build stays: publishing
-  # without it would send six tarballs with no `dist` in them.
+  # without it would send seven tarballs with no `dist` in them.
   release:
     name: release
     needs: verify
@@ -144,7 +144,7 @@ jobs:
     # Its own group, and never cancelled. The workflow above cancels a
     # superseded run because a superseded check has nothing left to prove; a
     # superseded publish has already sent packages to a registry that does not
-    # take them back, and stopping halfway is what leaves the five at different
+    # take them back, and stopping halfway is what leaves the seven at different
     # versions.
     concurrency:
       group: release
@@ -179,7 +179,7 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      # No npm token anywhere. Each of the six packages names this workflow in
+      # No npm token anywhere. Each of the seven packages names this workflow in
       # this repository as a trusted publisher, and `id-token: write` above is
       # what lets GitHub prove a run is that workflow. The credential is minted
       # per run and expires with it: nothing sits in the repository settings
@@ -228,6 +228,20 @@ jobs:
       # evidence with the cache defeated:
       #   curl -H 'Cache-Control: no-cache' \
       #     "https://registry.npmjs.org/@perchjs%2fcore?b=$(date +%s)"
+      #
+      # And a defeated cache is not enough, because the read can be wrong rather
+      # than missing. On 0.3.0 the adapter read as the version before it for
+      # three minutes after it had gone out: `dist-tags` agreed, and the
+      # packument's own `modified` still pointed at the older release. On 0.3.1
+      # two packages did the same while five had already moved. Nothing about
+      # those answers looks stale, which is what makes them worse than a 404 —
+      # a missing package reads as a question, a previous version reads as an
+      # answer, and it was nearly taken for a half-published release a third
+      # time.
+      #
+      # So a disagreement between this log and the registry is settled in favour
+      # of the log. The tags below are the other half of the evidence: they are
+      # pushed only once a publish has returned, so seven of them is a release.
       - uses: changesets/action/publish@v2
         if: steps.select.outputs.mode == 'publish'
         with:

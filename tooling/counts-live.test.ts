@@ -195,6 +195,24 @@ const CLAIMS: readonly Claim[] = [
     truth: () => publishable().length,
   },
   {
+    page: ".github/workflows/ci.yml",
+    counts: "tarballs a release sends",
+    sentence: /would send ([a-z0-9-]+) tarballs/,
+    truth: () => publishable().length,
+  },
+  {
+    page: ".github/workflows/ci.yml",
+    counts: "packages a halted publish leaves adrift",
+    sentence: /is what leaves the ([a-z0-9-]+) at different/,
+    truth: () => publishable().length,
+  },
+  {
+    page: ".github/workflows/ci.yml",
+    counts: "packages naming the workflow as a trusted publisher",
+    sentence: /Each of the ([a-z0-9-]+) packages names this workflow/,
+    truth: () => publishable().length,
+  },
+  {
     page: "CONTRIBUTING.md",
     counts: "decision records",
     sentence: /— ([a-z0-9-]+) records, every one accepted\./,
