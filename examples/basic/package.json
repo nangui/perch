@@ -16,5 +16,8 @@
     "@nestjs/platform-express": "^11.2.6",
     "@perchjs/core": "workspace:*",
     "@perchjs/nest": "workspace:*"
+  },
+  "devDependencies": {
+    "@perchjs/testing": "workspace:*"
   }
 }

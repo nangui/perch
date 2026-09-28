@@ -13,5 +13,9 @@
     "erasableSyntaxOnly": false
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../../packages/core" }, { "path": "../../packages/nest" }]
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/nest" },
+    { "path": "../../packages/testing" }
+  ]
 }

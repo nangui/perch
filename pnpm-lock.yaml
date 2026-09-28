@@ -80,6 +80,10 @@ importers:
       '@perchjs/nest':
         specifier: workspace:*
         version: link:../../packages/nest
+    devDependencies:
+      '@perchjs/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
 
   examples/demo:
     dependencies:

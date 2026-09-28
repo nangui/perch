@@ -2,7 +2,14 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["packages/*/src/**/*.test.{ts,tsx}", "tooling/**/*.test.ts"],
+    // `examples` is here because it was not, and the example's own storage
+    // adapter had therefore never been run by anything: the panel's suites bring
+    // disks of their own, so nothing reached the one a reader copies from.
+    include: [
+      "packages/*/src/**/*.test.{ts,tsx}",
+      "tooling/**/*.test.ts",
+      "examples/*/src/**/*.test.ts",
+    ],
     // Built once, before the first worker: four proofs read what the packages
     // publish, and four of them checking and building for themselves is a race
     // on a cold tree rather than four careful tests.
