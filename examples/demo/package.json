@@ -10,7 +10,7 @@
     "lint": "prisma generate && eslint src",
     "generate": "prisma generate",
     "db:push": "prisma db push",
-    "start": "node dist/main.js"
+    "start": "node --env-file-if-exists=.env dist/main.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.6",

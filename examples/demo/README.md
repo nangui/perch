@@ -38,6 +38,17 @@ pnpm --filter @perchjs/example-demo start
 
 Then open <http://localhost:3000/admin>.
 
+`start` reads an `.env` beside this file if there is one, so the connection string can
+live there instead of in your shell:
+
+```
+DATABASE_URL=postgresql://user:password@localhost:5432/demo
+```
+
+It is read only by `start`, and only if it is there: without it node says so on stderr and
+carries on with whatever the environment already holds. Nothing reads it in the container,
+where the variable arrives through `-e`.
+
 `prisma generate` writes two things: the Prisma client into `src/generated/client`,
 which is ignored, and the Perch representation into `src/generated/ir.ts`, which
 is checked in. That is why this package typechecks and builds with no database.
