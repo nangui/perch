@@ -1,6 +1,6 @@
 {
   "name": "@perchjs/core",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Perch domain layer: schema engine, state resolution, validation. Depends on nothing.",
   "homepage": "https://github.com/nangui/perch/tree/main/packages/core#readme",
   "keywords": [
