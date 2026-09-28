@@ -1,5 +1,0 @@
----
-"@perchjs/testing": patch
----
-
-Add `checkStorageAdapter`, which runs the storage port's promises against an adapter and hands back what it got wrong. The port for bytes had nothing standing over it: every suite in this repository brings a disk of its own and the example ships another, so an adapter was only ever as right as its author's reading of the interface. The promise easiest to miss is the one that loses files, and it is not visible in a signature: a staged file has to be distinguishable from a committed one, or the first sweep after a save deletes the upload a reader just made. An adapter that keeps both in one place passes every other check there is. Eight faults are caught by name, each one a way an adapter can be written wrong by somebody reading the interface reasonably, and a ninth case holds the suite itself to reporting rather than raising: a wrong adapter is exactly the one whose next call throws, and a stack trace out of somebody's disk would be least useful where it is most needed. It returns a list rather than asserting, this package naming no test runner.
