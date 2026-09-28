@@ -193,6 +193,42 @@ nothing to ask afterwards, so what is checked is that calling it twice, and on a
 was never there, does not raise: the save's failure path and a deleted row can both reach
 the same key, and neither is in a position to find out first.
 
+## A data adapter of your own
+
+The same, for rows. `@perchjs/prisma` is one implementation of that port and yours can be
+another, and what the port asks is mostly written in its comments rather than in its
+signatures. The one that costs a reader most is paging: a page has to end on something
+unique even when the sort does not, or two pages hand back the same row and never mention
+another, and nothing says so.
+
+```ts
+import type { DataAdapter } from "@perchjs/core";
+import { checkDataAdapter } from "@perchjs/testing";
+
+export async function complaints(adapter: DataAdapter): Promise<readonly string[]> {
+  return await checkDataAdapter(adapter, {
+    model: "Person",
+    // Tied on one path, so the order between them is the adapter's to settle.
+    rows: [
+      { set: { firstName: "Ada", country: "uk" } },
+      { set: { firstName: "Grace", country: "uk" } },
+      { set: { firstName: "Mei", country: "uk" } },
+    ],
+    tiedOn: "country",
+  });
+}
+```
+
+It writes three rows to the model you name and leaves them there, so point it at a database
+you are willing to have written to. Beyond paging it checks that a read which says nothing
+about deleted rows does not get them, that `restore` answers how many rows it lifted rather
+than how many were asked for, that a model which marks is marked rather than emptied, and
+that a transaction which throws keeps nothing.
+
+Relations are not checked, nor search, nor the clauses a filter produces. Those are about
+what a query means rather than about what the port promises, and they want a contract of
+their own.
+
 ## What it will not do
 
 It will not tell you a panel worked when it did not, and several of its assertions exist
