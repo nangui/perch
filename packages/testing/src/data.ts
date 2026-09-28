@@ -413,9 +413,13 @@ export async function checkDataAdapter(
     }
   }
 
-  const missing = await attempt("findOne()", () =>
-    adapter.findOne(model, "a-key-that-was-never-there"),
-  );
+  // Shaped like the keys this model really has. A string handed to a model
+  // keyed on an integer is refused by the database before the adapter can
+  // answer, so a contract that hardcoded one would report every strict adapter
+  // as raising and every lenient one as fine — which is what it did.
+  const never: Id =
+    typeof keys[0] === "number" ? 2_147_483_647 : "a-key-that-was-never-there";
+  const missing = await attempt("findOne()", () => adapter.findOne(model, never));
   if (missing !== undefined && missing !== null) {
     say("findOne() answered a row for a key that was never there.");
   }
