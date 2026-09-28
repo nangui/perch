@@ -1355,3 +1355,26 @@ describe("a group on a row the actions inside it do not suit", () => {
     expect(container.querySelector(".perch-table__action-group")).toBeNull();
   });
 });
+
+describe("the menu a row's actions live in", () => {
+  it("closes when the pointer goes down somewhere else", () => {
+    // Reported from the demo: opened, thought better of, clicked away, and
+    // still standing over the rows below. A `details` does not close itself,
+    // and this is the wiring that makes it, rather than the rule, which has its
+    // own file.
+    const runAction = vi.fn().mockResolvedValue(ANSWER);
+    render(
+      <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
+    );
+    const menu = document.querySelector<HTMLDetailsElement>(
+      "details.perch-row-actions",
+    );
+    expect(menu, "no row menu was drawn").not.toBeNull();
+    menu!.open = true;
+
+    // The page itself, which is as far outside the menu as a reader gets.
+    fireEvent.pointerDown(document.body);
+
+    expect(menu!.open).toBe(false);
+  });
+});

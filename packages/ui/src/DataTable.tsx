@@ -18,6 +18,7 @@ import type {
   Row,
   SortDirection,
 } from "@perchjs/core";
+import { useDismiss } from "./dismiss.js";
 import { EllipsisMark } from "./marks.js";
 import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
@@ -456,7 +457,9 @@ function RowActions({
   readonly busy: boolean;
 }): ReactNode {
   const open = useRef<HTMLElement | null>(null);
+  const shell = useRef<HTMLDetailsElement | null>(null);
   const [at, setAt] = useState<{ top: number; right: number } | null>(null);
+  useDismiss(shell);
 
   const drawn = actions
     .map((action) => rowAction(action, row, href, onAction, busy))
@@ -466,6 +469,7 @@ function RowActions({
   return (
     <details
       className="perch-row-actions"
+      ref={shell}
       onToggle={(event) => {
         // Placed when it opens, against the viewport. The table scrolls
         // sideways for a wide one, and a scrolling box clips in both

@@ -7,13 +7,16 @@
  * plainly is one its author meant, and offering to remove it would make every
  * table's shape a suggestion.
  *
- * Drawn as a `details` rather than a menu built by hand: it opens on a click,
- * closes on Escape, and is announced as a disclosure without a line of
- * JavaScript. What is inside is checkboxes, because that is what choosing
- * several of a set is, and a reader who knows checkboxes knows this.
+ * Drawn as a `details` rather than a menu built by hand: it opens on a click and
+ * is announced as a disclosure without a line of JavaScript. Closing it is the
+ * one thing the element does not do on its own, and `useDismiss` is that. What
+ * is inside is checkboxes, because that is what choosing several of a set is,
+ * and a reader who knows checkboxes knows this.
  */
 import type { ReactNode } from "react";
+import { useRef } from "react";
 import type { ColumnNode } from "@perchjs/core";
+import { useDismiss } from "./dismiss.js";
 
 export interface ColumnMenuProps {
   readonly columns: readonly ColumnNode[];
@@ -23,13 +26,18 @@ export interface ColumnMenuProps {
 }
 
 export function ColumnMenu({ columns, hidden, onToggle }: ColumnMenuProps): ReactNode {
+  const shell = useRef<HTMLDetailsElement | null>(null);
+  // Before the return below: a hook after one is a hook the next render may
+  // skip, and this component returns early on a table that offers nothing.
+  useDismiss(shell);
+
   const offered = columns.filter((one) => one.toggleable === true);
   // No control where nothing may be taken off. A menu that opens on an empty
   // list is a promise the table did not make.
   if (offered.length === 0) return null;
 
   return (
-    <details className="perch-columns">
+    <details className="perch-columns" ref={shell}>
       <summary className="perch-columns__button">Columns</summary>
       <div className="perch-columns__panel" role="group" aria-label="Columns shown">
         {offered.map((column) => {
