@@ -3,6 +3,12 @@
 All notable changes to Perch. The seven `@perchjs/*` packages share this file and
 this version number — they are released together ([ADR 0008](docs/adr/0008-versioning-policy.md)).
 
+## 0.3.3 — 2026-09-28
+
+### Fixed
+
+- **testing** — Let `checkDataAdapter` check what a query means, not only what the port promises. Two options join it, both optional, so an adapter already passing keeps passing. `filterOn` names a path and a value, and the contract then asks for the seven operators a string can answer — `equals`, `not`, `in`, `notIn`, `contains`, `startsWith`, `endsWith` — and checks both halves of the two that exclude: that they keep a row holding none of what they exclude, and that they drop the row they were told to. Without the second an adapter ignoring the operator answers with the table and passes, which is what the first draft of this did. It also checks that a total counts what matched rather than what the table holds, a page saying "1 of 40" under a filter that matched one row being a pager offering pages that are not there. `searchOn` names a term, a path that holds it and a path that does not, and the second is the point: which columns a search reaches is an authorization decision, so an adapter that searches everything and ignores the paths it was handed answers questions about columns nobody was shown, one letter at a time. Reading is bounded to twenty-five pages, this being a query per page and a reader's table being their own size. Run against the adapter this repository's example ships, it found two of the eleven operators doing the opposite of what they say: `not` and `notIn` fell through to an equality, so each kept the one row it was meant to exclude and excluded every row it was meant to keep. Nothing the panel draws sends them yet, which is why a screen had never shown it.
+
 ## 0.3.2 — 2026-09-28
 
 ### Fixed
