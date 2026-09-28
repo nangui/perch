@@ -664,10 +664,23 @@ function matches(row: Row, clauses: readonly Clause[] | undefined): boolean {
       const right = ordinal(clause.value);
       return left === undefined || right === undefined ? false : ordered(left, right);
     }
-    return ordinal(value) === undefined
-      ? value === clause.value
-      : ordinal(value) === ordinal(clause.value);
+    // The two that say the opposite of what the fall-through below does. They
+    // used to reach it, so `not` excluded everything it was meant to keep and
+    // kept the one row it was meant to exclude. Found by the port's own
+    // contract rather than by a screen: nothing the panel draws sends them yet.
+    if (clause.operator === "notIn") {
+      return !(Array.isArray(clause.value) && clause.value.includes(value));
+    }
+    if (clause.operator === "not") return !equal(value, clause.value);
+    return equal(value, clause.value);
   });
+}
+
+/** Equality, with dates and numbers compared by what they are worth. */
+function equal(value: unknown, against: unknown): boolean {
+  return ordinal(value) === undefined
+    ? value === against
+    : ordinal(value) === ordinal(against);
 }
 
 const MATCHES: Partial<Record<Clause["operator"], (a: string, b: string) => boolean>> =

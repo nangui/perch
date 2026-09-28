@@ -26,6 +26,9 @@ describe("the example's memory adapter", () => {
         { set: { firstName: "Mei", lastName: "Harada", country: "uk" } },
       ],
       tiedOn: "country",
+      // What a clause and a search mean, not only that they are accepted.
+      filterOn: { path: "firstName", value: "Ada", absent: "Nobodyatall" },
+      searchOn: { term: "Ada", reaching: "firstName", notReaching: "country" },
     });
 
     expect(said).toEqual([]);

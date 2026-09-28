@@ -220,14 +220,22 @@ export async function complaints(adapter: DataAdapter): Promise<readonly string[
 ```
 
 It writes three rows to the model you name and leaves them there, so point it at a database
-you are willing to have written to. Beyond paging it checks that a read which says nothing
+you are willing to have written to. Reading is bounded: it takes up to twenty-five pages of
+one row, which crosses plenty of boundaries without being a query per row of a large
+table. Beyond paging it checks that a read which says nothing
 about deleted rows does not get them, that `restore` answers how many rows it lifted rather
 than how many were asked for, that a model which marks is marked rather than emptied, and
 that a transaction which throws keeps nothing.
 
-Relations are not checked, nor search, nor the clauses a filter produces. Those are about
-what a query means rather than about what the port promises, and they want a contract of
-their own.
+Give it `filterOn` and `searchOn` and it checks what a query means as well as what the port
+promises: the seven operators a string can answer, that a total counts what matched rather
+than what the table holds, and that a search reaches the paths it was handed and no others.
+That last one is not tidiness. Which columns a search touches is an authorization decision,
+and an adapter that reads them all answers questions about columns nobody was shown, one
+letter at a time.
+
+Relations are still not checked: `attach` and `detach` want a join table this has no way to
+name, and an include wants a second model. That wants a contract of its own.
 
 ## What it will not do
 

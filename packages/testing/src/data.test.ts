@@ -12,6 +12,7 @@
  * adapter looks like.
  */
 import type {
+  Clause,
   DataAdapter,
   Id,
   Ir,
@@ -90,8 +91,48 @@ class Memory implements DataAdapter {
     });
   }
 
+  /** What a clause means, for the operators a string can answer. */
+  protected matches(row: Held, clause: Clause): boolean {
+    const held = text((row as unknown as Row)[clause.path]);
+    const against = clause.value;
+    switch (clause.operator) {
+      case "equals":
+        return held === against;
+      case "not":
+        return held !== against;
+      case "in":
+        return Array.isArray(against) && against.some((one) => one === held);
+      case "notIn":
+        return Array.isArray(against) && !against.some((one) => one === held);
+      case "contains":
+        return held.includes(text(against));
+      case "startsWith":
+        return held.startsWith(text(against));
+      case "endsWith":
+        return held.endsWith(text(against));
+      default:
+        return true;
+    }
+  }
+
+  /** The paths are the caller's, so nothing else is looked at. */
+  protected searched(row: Held, search: NonNullable<Query["search"]>): boolean {
+    return search.paths.some((path) =>
+      text((row as unknown as Row)[path]).includes(search.term),
+    );
+  }
+
+  protected narrowed(query: Query): Held[] {
+    let rows = this.ordered(query);
+    for (const clause of query.clauses ?? [])
+      rows = rows.filter((row) => this.matches(row, clause));
+    const search = query.search;
+    if (search !== undefined) rows = rows.filter((row) => this.searched(row, search));
+    return rows;
+  }
+
   findMany(query: Query): Promise<Page> {
-    const all = this.ordered(query);
+    const all = this.narrowed(query);
     const from = query.skip ?? 0;
     const rows = all.slice(from, from + (query.take ?? all.length));
     return Promise.resolve({ rows: rows as unknown as Row[], total: all.length });
@@ -179,6 +220,8 @@ const CHECK = {
     { set: { name: "Mei", team: "swifts" } },
   ],
   tiedOn: "team",
+  filterOn: { path: "name", value: "Ada", absent: "Nobody" },
+  searchOn: { term: "Ada", reaching: "name", notReaching: "team" },
 } as const;
 
 const complaints = async (adapter: DataAdapter): Promise<readonly string[]> =>
@@ -258,6 +301,55 @@ describe("an adapter that does not", () => {
 
     expect((await complaints(new Hopeful())).join(" ")).toContain(
       "kept a write from a transaction",
+    );
+  });
+
+  it("is caught treating an exclusion as no clause at all", async () => {
+    // The fault the first draft of this contract could not see: it asked only
+    // that the row survive an exclusion of something else, which an adapter
+    // ignoring the operator answers by handing back the table.
+    class Ignores extends Memory {
+      protected override matches(row: Held, clause: Clause): boolean {
+        if (clause.operator === "not" || clause.operator === "notIn") return true;
+        return super.matches(row, clause);
+      }
+    }
+    const said = (await complaints(new Ignores())).join(" ");
+
+    expect(said).toContain("not kept the row it was told to exclude");
+    expect(said).toContain("notIn kept the row it was told to exclude");
+  });
+
+  it("is caught searching beyond the paths it was handed", async () => {
+    // The authorization one: which columns a search reaches is the panel's
+    // decision, and an adapter that reads them all answers questions about
+    // columns nobody was shown, one letter at a time.
+    class Everywhere extends Memory {
+      protected override searched(
+        row: Held,
+        search: NonNullable<Query["search"]>,
+      ): boolean {
+        return [row.name, row.team].some((held) => held.includes(search.term));
+      }
+    }
+
+    expect((await complaints(new Everywhere())).join(" ")).toContain(
+      "beyond the paths",
+    );
+  });
+
+  it("is caught counting the table where the query narrowed it", async () => {
+    // A page that says "1 of 40" under a filter that matched one row is a
+    // pager offering pages that are not there.
+    class Miscounting extends Memory {
+      override async findMany(query: Query): Promise<Page> {
+        const page = await super.findMany(query);
+        return { rows: page.rows, total: this.held.length };
+      }
+    }
+
+    expect((await complaints(new Miscounting())).join(" ")).toContain(
+      "which is the table's rather than the query's",
     );
   });
 
