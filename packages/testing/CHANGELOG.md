@@ -1,5 +1,10 @@
 # @perchjs/testing
 
+## 0.3.3
+
+The `@perchjs/*` packages are released together and share one changelog.
+What changed is in the [root CHANGELOG](../../CHANGELOG.md).
+
 ## 0.3.2
 
 The `@perchjs/*` packages are released together and share one changelog.
