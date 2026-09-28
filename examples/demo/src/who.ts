@@ -21,7 +21,11 @@ export interface Visitor {
 export class QueryUserResolver implements UserResolver {
   resolve(request: unknown): unknown {
     const url = (request as { url?: string }).url ?? "";
-    const asked = /[?&]as=([a-z]+)/.exec(url)?.[1];
+    // Anchored to the end of the value, which it was not: `?as=warden2` read as
+    // `warden`, because letters were taken and the rest left where it stood. It
+    // grants nothing here that asking plainly would not, and an example that
+    // reads a parameter loosely is one somebody copies.
+    const asked = /[?&]as=([a-z]+)(?=&|$)/.exec(url)?.[1];
     return { role: asked ?? "visitor" } satisfies Visitor;
   }
 }
