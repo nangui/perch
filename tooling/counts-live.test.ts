@@ -183,6 +183,18 @@ const CLAIMS: readonly Claim[] = [
     truth: () => concrete("Column").length,
   },
   {
+    page: "CHANGELOG.md",
+    counts: "packages sharing the file",
+    sentence: /The ([a-z0-9-]+) `@perchjs\/\*` packages share this file/,
+    truth: () => publishable().length,
+  },
+  {
+    page: "scripts/changelog.mjs",
+    counts: "packages sharing the file, in the header it writes",
+    sentence: /The ([a-z0-9-]+) \\`@perchjs\/\*\\` packages share this file/,
+    truth: () => publishable().length,
+  },
+  {
     page: "CONTRIBUTING.md",
     counts: "decision records",
     sentence: /— ([a-z0-9-]+) records, every one accepted\./,
