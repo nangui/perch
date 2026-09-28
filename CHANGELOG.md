@@ -3,6 +3,12 @@
 All notable changes to Perch. The seven `@perchjs/*` packages share this file and
 this version number — they are released together ([ADR 0008](docs/adr/0008-versioning-policy.md)).
 
+## 0.3.4 — 2026-09-28
+
+### Fixed
+
+- **testing** — Let `checkDataAdapter` ask about relations. `relation` names a to-many whose join table belongs to neither model, the model at the other end, the relation pointing back, and a row to join — and the contract then asks the things the port promises about joining rather than writing. Both verbs are asked to be idempotent, because attaching what is already attached and detaching what is not are the two things a reader does by pressing twice and neither is an error. The two sides of a narrowing are asked to be two sides: what a manager holds, and what could be added to it, which is the same question the other way round rather than the same answer. And an include is asked to bring the relation back with the row, that being the branch a relation column contributes instead of a query per row. Four faults are caught by name: a join table that takes a row rather than a pair and lists it twice, a detach that raises on what is not joined, a narrowing that answers `apart` as `joined`, and an include accepted and ignored. Run against the adapter this repository's example ships, the last of those is what it found: `projects` could be asked for and was never loaded, so a relation column over it would have drawn nothing and said nothing. Only the four comparisons are left out now, wanting an ordered value rather than text.
+
 ## 0.3.3 — 2026-09-28
 
 ### Fixed
