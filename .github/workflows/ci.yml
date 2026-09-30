@@ -19,6 +19,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # Not on the version pull request. Its tree is generated, and it is
+    # force-pushed on every update, which leaves the run started on the previous
+    # head to end without having started a job: nine of those since September,
+    # red on the Actions page and about nothing. A red nobody can act on is a red
+    # nobody reads, which is how a real one goes unnoticed.
+    #
+    # Nothing is lost by standing aside here. Merging that pull request starts a
+    # run on `main` whose own verify covers exactly the tree about to be
+    # published, which is the argument the release job below already makes for
+    # not verifying twice.
+    #
+    # On a push `head_ref` is empty, so this only ever stands aside on a pull
+    # request from that branch. Filtering the trigger itself would not do it:
+    # `pull_request.branches` reads the branch being merged into, and this one
+    # targets `main` like every other.
+    if: ${{ !startsWith(github.head_ref, 'changeset-release/') }}
+
     # Both halves of what the manifests advertise. A lockfile holds one major and
     # has to — it is the tree a release is built from — so a peer range naming two
     # is a claim only a second leg can keep. The first is the major the lockfile
