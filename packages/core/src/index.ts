@@ -125,7 +125,7 @@ export { Notification } from "./notification.js";
 // Tables, and the column layer.
 export type { IconName } from "./icon.js";
 export { ICON_NAMES, isIconName } from "./icon.js";
-export type { BadgedValue, ColumnState, PresentContext } from "./column.js";
+export type { BadgedValue, ColumnState, PresentContext, SummaryOf } from "./column.js";
 export {
   AvatarColumn,
   BadgeColumn,
@@ -319,6 +319,15 @@ export {
 
 // What an aggregation may ask of a column. Read once, at boot.
 export { auditAggregations } from "./aggregate.js";
+
+// What a table says about a column under all of it.
+export type { Summary } from "./summary.js";
+export {
+  auditSummaries,
+  summariesFrom,
+  summaryAggregations,
+  summarised,
+} from "./summary.js";
 
 // Stage 5, the trust boundary.
 export type { RejectedPath, RejectionReason, SanitizeResult } from "./sanitize.js";

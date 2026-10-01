@@ -17,6 +17,14 @@ import type { Field } from "./field.js";
 import type { Row } from "./data-adapter.js";
 import { normaliseOptions } from "./option.js";
 
+/**
+ * What a table can say about a column under all of it. PRD 07's four words.
+ *
+ * Closed, and it grows by adding rather than by widening: a word nothing here
+ * knows is refused where it is written rather than ignored at the far end.
+ */
+export type SummaryOf = "count" | "sum" | "avg" | "range";
+
 export interface ColumnState {
   /** The path into the row: `title`, or `author.name`. */
   readonly path: string;
@@ -127,6 +135,16 @@ export interface ColumnState {
   /** The quieter second line under it: an address, a handle, a team. */
   readonly description?: string;
   /**
+   * What the table says about this column under all of it, in the order the
+   * footer draws them.
+   *
+   * A list rather than one, because a column of amounts wants a total and an
+   * average and they are two lines of one footer. Declared rather than
+   * inferred: a total under a column of identifiers is arithmetic nobody
+   * wanted, and the schema cannot tell that column from a column of amounts.
+   */
+  readonly summarise?: readonly SummaryOf[];
+  /**
    * The ends of the scale a value is drawn against.
    *
    * Both, because a proportion needs them: 4 means nothing until something says
@@ -195,6 +213,24 @@ export abstract class Column {
    */
   searchable(on = true): this {
     return this.with({ ...this.state, searchable: on });
+  }
+
+  /**
+   * What the footer says about this column, over the rows a filter left.
+   *
+   * Worked out by the database over the whole narrowed set, not over the page:
+   * a total of the twenty-five rows on screen is a number that changes when
+   * somebody turns a page, which is not what a total means.
+   *
+   * `count` names this column, counting the rows it holds a value in. The
+   * count of rows is already on the response, so a second copy of it under a
+   * column would be one number arriving twice.
+   *
+   * Refused at boot where the column cannot bear it: a sum of a date, or of a
+   * column reached through a relation. The complaint names the column.
+   */
+  summarise(...of: readonly SummaryOf[]): this {
+    return this.with({ ...this.state, summarise: of });
   }
 
   /**
