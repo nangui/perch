@@ -325,7 +325,7 @@ export {
 export { auditAggregations } from "./aggregate.js";
 
 // What a column can gather rows by. Read once, at boot.
-export { auditGrouping, auditGroupKey } from "./grouping.js";
+export { auditGrouping, auditGroupKey, groupReads } from "./grouping.js";
 
 // What a table says about a column under all of it.
 export type { Summary } from "./summary.js";

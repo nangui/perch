@@ -10,11 +10,14 @@ import { NotFoundException } from "@nestjs/common";
 import type {
   Clause,
   ColumnTree,
+  GroupCount,
+  GroupKey,
   Summary,
   Component,
   Option,
   DataAdapter,
   Id,
+  Narrowing,
   Query,
   Row,
   Sort,
@@ -25,6 +28,7 @@ import {
   Field,
   findModel,
   isResolver,
+  groupReads,
   narrowingOf,
   normaliseOptions,
   computedRows,
@@ -107,6 +111,22 @@ export interface RecordsResponse {
    * column somebody may not see is a total that was never worked out.
    */
   readonly summaries?: Readonly<Record<string, readonly Summary[]>>;
+  /**
+   * How many rows sit under each value of the grouped column.
+   *
+   * Which column that is comes with the table's shape, as `columns.groupBy`,
+   * being a fact about the table rather than about this page. These are the
+   * sizes, and each is the whole group's rather than the part of it on the
+   * page: a number that grew as somebody paged through one group would not be
+   * a size.
+   *
+   * Only the groups this page's rows fall into. A header is drawn where the
+   * rows cross a boundary, so those are the only ones it can draw, and asking
+   * about the rest would be a read that grows with the table.
+   *
+   * Absent where the table gathers nothing, and where a page held no rows.
+   */
+  readonly groups?: readonly GroupCount[];
   /**
    * What the model calls its primary key, and where its pages live. Together
    * they are how a row action addresses one row: `${resourcePath}/${row[recordKey]}`.
@@ -254,8 +274,22 @@ export async function listOf(options: {
   // asked for, so it is read off the aggregations rather than worked out by
   // walking the columns a second time on every list.
   const asked = table === undefined ? {} : summaryAggregations(table);
+  // Gathered ahead of the reader's own order. A group whose rows are scattered
+  // down a page is not a group, and a header appearing three times has stopped
+  // meaning anything; what the reader asked for orders within the group.
+  //
+  // Only the read is ordered this way. What comes back as `sort` is still the
+  // reader's, or a client would draw its indicator on a column nobody chose.
+  const gathering = table?.state.groupBy;
+  const ordered: Query =
+    gathering === undefined
+      ? query
+      : {
+          ...query,
+          sort: [{ path: gathering, direction: "asc" }, ...(query.sort ?? [])],
+        };
   const [found, worked] = await Promise.all([
-    data.findMany(query),
+    data.findMany(ordered),
     Object.keys(asked).length === 0
       ? undefined
       : data.aggregate({ ...narrowingOf(query), aggregations: asked }),
@@ -264,6 +298,15 @@ export async function listOf(options: {
     table === undefined || worked === undefined
       ? undefined
       : summariesFrom(table, worked);
+
+  // After the page rather than beside it, because what bounds this is the page:
+  // the keys its own rows hold. That is the cost of the bound, and it is the
+  // right way round, an unbounded grouped read being one that grows with the
+  // table.
+  const groups =
+    gathering === undefined
+      ? undefined
+      : await gathered(data, narrowingOf(ordered), gathering, found.rows);
   const applied = query.sort?.[0];
   const perPage = query.take ?? DEFAULT_PER_PAGE;
 
@@ -301,6 +344,7 @@ export async function listOf(options: {
           ),
     recordKey: key,
     ...(summaries === undefined ? {} : { summaries }),
+    ...(groups === undefined || groups.length === 0 ? {} : { groups }),
     ...(marked.length === 0 ? {} : { deleted: marked }),
     ...(options.resourcePath === undefined
       ? {}
@@ -406,6 +450,44 @@ function hints(field: Field | undefined): {
  * redirect after a create already uses, and this is the same hole one route to
  * the left.
  */
+/**
+ * The groups this page's rows fall into, with each group's whole size.
+ *
+ * One read, or two where a page holds rows with nothing in that column, or
+ * none at all: which it is comes from the schema and from the keys, and the
+ * reasoning is in `groupReads` rather than here.
+ *
+ * The keys are read off the rows this page already has, so nothing is capped
+ * and nothing needs to be: a page cannot hold more groups than it holds rows.
+ */
+async function gathered(
+  data: DataAdapter,
+  narrowing: Narrowing,
+  by: string,
+  rows: readonly Row[],
+): Promise<readonly GroupCount[]> {
+  const seen = new Map<string, GroupKey>();
+  for (const row of rows) {
+    const held = row[by];
+    const key = (held === undefined ? null : held) as GroupKey;
+    // Keyed by type as well as by value, so a row holding the word "null" and
+    // a row holding nothing are two keys rather than one.
+    seen.set(`${typeof key}:${String(key)}`, key);
+  }
+
+  const reads = groupReads(data.meta(narrowing.model), by, [...seen.values()]);
+  const answered = await Promise.all(
+    reads.map(async (clauses) =>
+      data.groupBy({
+        ...narrowing,
+        by,
+        clauses: [...(narrowing.clauses ?? []), ...clauses],
+      }),
+    ),
+  );
+  return answered.flat();
+}
+
 export function resourcePath(root: string, slug: string): string | undefined {
   return sameOrigin(`${root}/${slug}`);
 }

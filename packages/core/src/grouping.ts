@@ -8,6 +8,7 @@
  * all.
  */
 import type { Complaint } from "./audit.js";
+import type { Clause, GroupKey } from "./data-adapter.js";
 import { findField, findRelation } from "./ir.js";
 import type { ModelMeta, ScalarType } from "./ir.js";
 import type { Table } from "./table.js";
@@ -87,4 +88,46 @@ function fault(model: ModelMeta, path: string): string | undefined {
   }
 
   return undefined;
+}
+
+/**
+ * What a page restricts its grouped reads with, given the keys its rows hold.
+ *
+ * One clause list per read, so the answer says how many reads there are as
+ * well as what they ask. Three cases, and each is a measured limitation rather
+ * than a preference.
+ *
+ * A column whose values the schema already counts needs no restriction: a
+ * boolean has two groups and a null, an enum has as many as it names, and
+ * asking about the whole set costs nothing a bound would save. This is also
+ * the case that cannot be restricted, Prisma's boolean filter offering
+ * `equals` and `not` and no `in`.
+ *
+ * Any other column is restricted to the keys the page holds, which is at most
+ * as many groups as it has rows.
+ *
+ * A null among them takes a read of its own. `in` over a list holding null
+ * matches no row, in SQL and in Prisma both, so the group those rows are in
+ * would come back missing: the page would show them and nothing would say how
+ * many there are. There is no single clause for "one of these, or nothing",
+ * because clauses are joined with and.
+ */
+export function groupReads(
+  model: ModelMeta,
+  path: string,
+  keys: readonly GroupKey[],
+): readonly (readonly Clause[])[] {
+  if (keys.length === 0) return [];
+
+  const field = findField(model, path);
+  if (field === undefined) return [];
+  if (field.type === "Boolean" || field.enumValues !== undefined) return [[]];
+
+  const present = keys.filter((key) => key !== null);
+  const reads: (readonly Clause[])[] = [];
+  if (present.length > 0) reads.push([{ path, operator: "in", value: present }]);
+  if (present.length !== keys.length) {
+    reads.push([{ path, operator: "equals", value: null }]);
+  }
+  return reads;
 }

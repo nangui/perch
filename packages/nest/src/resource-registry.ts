@@ -19,6 +19,7 @@ import { relationScope } from "./relation-scope.js";
 import type { DataAdapter, Schema, Table } from "@perchjs/core";
 import {
   auditInfolist,
+  auditGrouping,
   auditSchema,
   auditSummaries,
   auditTable,
@@ -259,6 +260,9 @@ export class ResourceRegistry implements OnModuleInit {
         ...(table === undefined
           ? []
           : this.#unsummarisableColumns(metadata.model, table)),
+        ...(table === undefined
+          ? []
+          : this.#ungatherableColumn(metadata.model, table)),
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
         ...(table === undefined ? [] : this.#unaskableFilters(metadata.model, table)),
         ...(table === undefined
@@ -280,6 +284,11 @@ export class ResourceRegistry implements OnModuleInit {
         ...managers.flatMap((manager) => auditTable(manager.state.table)),
         ...managers.flatMap((manager) =>
           this.#unsummarisableManager(metadata.model, manager),
+        ),
+        ...managers.flatMap((manager) =>
+          this.#onChild(metadata.model, manager, (model, table) =>
+            this.#ungatherableColumn(model, table),
+          ),
         ),
         ...managers.flatMap((manager) =>
           manager.state.form === undefined ? [] : auditSchema(manager.state.form),
@@ -704,15 +713,17 @@ export class ResourceRegistry implements OnModuleInit {
   }
 
   /**
-   * The same reading for a manager's footer, against the child's own model.
+   * A reading of a manager's table, against the child's own model.
    *
-   * A manager lists through the same function a resource does, so it works out
-   * a footer the same way and has to be refused the same way. The model is the
-   * one at the other end of the relation, not the one the resource is about.
+   * A manager lists through the same function a resource does, so whatever is
+   * asked of a resource's table has to be asked of a manager's, and asked
+   * about the model at the other end of the relation rather than the one the
+   * resource is about.
    */
-  #unsummarisableManager(
+  #onChild(
     parent: string,
     manager: RelationManager,
+    ask: (model: string, table: Table) => readonly { field: string; problem: string }[],
   ): readonly { field: string; problem: string }[] {
     if (this.#data === null) return [];
     const holder = findModel(this.#data.ir(), parent);
@@ -723,7 +734,33 @@ export class ResourceRegistry implements OnModuleInit {
     // A relation the model does not have is already its own complaint.
     return relation === undefined
       ? []
-      : this.#unsummarisableColumns(relation.targetModel, manager.state.table);
+      : ask(relation.targetModel, manager.state.table);
+  }
+
+  #unsummarisableManager(
+    parent: string,
+    manager: RelationManager,
+  ): readonly { field: string; problem: string }[] {
+    return this.#onChild(parent, manager, (model, table) =>
+      this.#unsummarisableColumns(model, table),
+    );
+  }
+
+  /**
+   * A table gathering its rows by a column that gathers nothing.
+   *
+   * A timestamp, which without a bucket puts every row in a group of its own,
+   * or one of the two types a database will not group at all. Refused here
+   * rather than at the moment somebody opens the list and meets a header above
+   * every row.
+   */
+  #ungatherableColumn(
+    model: string,
+    table: Table,
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const found = findModel(this.#data.ir(), model);
+    return found === undefined ? [] : auditGrouping(found, table);
   }
 
   /**

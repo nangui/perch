@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TextColumn } from "./column.js";
-import { auditGrouping } from "./grouping.js";
+import { auditGrouping, groupReads } from "./grouping.js";
 import type { FieldMeta, ModelMeta } from "./ir.js";
 import { serialiseTable, Table } from "./table.js";
 
@@ -120,5 +120,50 @@ describe("what the client is told about a grouping", () => {
 
     expect(serialiseTable(table).groupBy).toBe("status");
     expect(auditGrouping(ORDER, table)).toEqual([]);
+  });
+});
+
+describe("how many grouped reads a page asks for", () => {
+  const keys = (list: readonly (string | number | boolean | null)[]) =>
+    groupReads(ORDER, "status", list);
+
+  it("asks for none where the page held no rows", () => {
+    expect(keys([])).toEqual([]);
+  });
+
+  it("asks once and without a restriction where the schema counts the values", () => {
+    // A boolean has two groups and a null; an enum has as many as it names.
+    // A bound would save nothing, and a boolean cannot be restricted anyway:
+    // Prisma's filter for one offers `equals` and `not` and no `in`.
+    expect(groupReads(ORDER, "paid", [true, false])).toEqual([[]]);
+    expect(keys(["draft", "sent"])).toEqual([[]]);
+  });
+
+  it("restricts an open column to the keys the page held", () => {
+    expect(groupReads(ORDER, "quantity", [2, 5])).toEqual([
+      [{ path: "quantity", operator: "in", value: [2, 5] }],
+    ]);
+  });
+
+  it("takes a second read for the rows holding nothing", () => {
+    // `in` over a list holding null matches no row, so the group those rows
+    // are in would come back missing: the page would show them and nothing
+    // would say how many there are.
+    expect(groupReads(ORDER, "quantity", [2, null])).toEqual([
+      [{ path: "quantity", operator: "in", value: [2] }],
+      [{ path: "quantity", operator: "equals", value: null }],
+    ]);
+  });
+
+  it("asks only about nothing where that is all the page held", () => {
+    expect(groupReads(ORDER, "quantity", [null])).toEqual([
+      [{ path: "quantity", operator: "equals", value: null }],
+    ]);
+  });
+
+  it("asks for none about a column the model does not have", () => {
+    // Already its own complaint at boot. Asking anyway would be a read the
+    // database refuses, under a reader, for a mistake somebody else made.
+    expect(groupReads(ORDER, "nowhere", ["x"])).toEqual([]);
   });
 });
