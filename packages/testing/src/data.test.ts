@@ -14,6 +14,9 @@
 import type {
   AggregateQuery,
   AggregateResult,
+  GroupCount,
+  GroupKey,
+  GroupQuery,
   AggregateValue,
   Aggregation,
   Clause,
@@ -28,6 +31,7 @@ import type {
   WriteTree,
 } from "@perchjs/core";
 import { describe, expect, it } from "vitest";
+import { auditGroupKey } from "@perchjs/core";
 import { checkDataAdapter } from "./data.js";
 
 /** These rows hold text where they hold anything, which a double may say. */
@@ -44,7 +48,14 @@ const META = {
   name: "Person",
   dbName: "Person",
   primaryKey: { name: "id" },
-  fields: [],
+  // Named rather than left empty: the contract reads these to decide what it
+  // can ask, and a model claiming no columns is a model it can ask nothing of.
+  fields: [
+    { name: "id", kind: "scalar", type: "Int", isRequired: true, isId: true },
+    { name: "name", kind: "scalar", type: "String", isRequired: true },
+    { name: "team", kind: "scalar", type: "String", isRequired: true },
+    { name: "deletedAt", kind: "scalar", type: "DateTime", isRequired: false },
+  ],
   relations: [],
   uniqueConstraints: [],
   hasSoftDelete: true,
@@ -272,9 +283,23 @@ class Memory implements DataAdapter {
     return Promise.resolve(answer);
   }
 
-  // Required by the port; nothing here asks a double to group.
-  groupBy(): never {
-    throw new Error("not needed here");
+  /** Narrowed by what `findMany` narrows by, which is the promise being kept. */
+  groupBy(query: GroupQuery): Promise<readonly GroupCount[]> {
+    const complaints = auditGroupKey(META, query.by);
+    if (complaints.length > 0) {
+      return Promise.reject(new Error(complaints[0]?.problem ?? "refused"));
+    }
+
+    const totals = new Map<string, GroupCount>();
+    for (const row of this.narrowed(query) as unknown as Row[]) {
+      const held = row[query.by];
+      const key = (held === undefined ? null : held) as GroupKey;
+      // Filed by type as well as by value, so a row holding the word "null"
+      // and a row holding nothing are two groups.
+      const under = `${typeof key}:${String(key)}`;
+      totals.set(under, { key, total: (totals.get(under)?.total ?? 0) + 1 });
+    }
+    return Promise.resolve([...totals.values()]);
   }
 
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
@@ -573,5 +598,57 @@ describe("an adapter that does not", () => {
     }
 
     expect((await complaints(new OffByOne())).join(" ")).toContain("as the total of id");
+  });
+
+  it("is caught sizing a group by the rows a caller already holds", async () => {
+    // The fault every other check here lets through. A header saying two above
+    // a group of nine is a reader told the group is two.
+    class Partial extends Memory {
+      override async groupBy(query: GroupQuery): Promise<readonly GroupCount[]> {
+        return (await super.groupBy(query)).map((one) => ({ ...one, total: 1 }));
+      }
+    }
+
+    expect((await complaints(new Partial())).join(" ")).toContain(
+      "across its groups where the model holds",
+    );
+  });
+
+  it("is caught making a group per row out of rows that are one group", async () => {
+    class Scattered extends Memory {
+      override groupBy(query: GroupQuery): Promise<readonly GroupCount[]> {
+        // Gathered by the key rather than by the column asked for, which is
+        // every row in a group of its own.
+        return super.groupBy({ ...query, by: "id" });
+      }
+    }
+
+    expect((await complaints(new Scattered())).join(" ")).toContain(
+      "groups of rows that all hold the same team",
+    );
+  });
+
+  it("is caught gathering the table where the query narrowed it", async () => {
+    class Unnarrowed extends Memory {
+      override groupBy(query: GroupQuery): Promise<readonly GroupCount[]> {
+        return super.groupBy({ model: query.model, by: query.by });
+      }
+    }
+
+    expect((await complaints(new Unnarrowed())).join(" ")).toContain(
+      "groups where no row matched",
+    );
+  });
+
+  it("is caught gathering a marked row the page above it hides", async () => {
+    class Tombstones extends Memory {
+      override groupBy(query: GroupQuery): Promise<readonly GroupCount[]> {
+        return super.groupBy({ ...query, deleted: "with" });
+      }
+    }
+
+    expect((await complaints(new Tombstones())).join(" ")).toContain(
+      "with one of them marked",
+    );
   });
 });

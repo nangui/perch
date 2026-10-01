@@ -25,6 +25,12 @@
  * it. An include is asked for as well, that being the branch a relation column
  * contributes rather than a query per row.
  *
+ * It asks what a grouped read means as well, and the question with teeth is an
+ * identity: every group's size added together is the number of rows there are.
+ * An adapter counting only the rows a caller already holds fails it, and so
+ * does one that drops the group of rows holding nothing, which would be a list
+ * quietly shorter than it says it is.
+ *
  * It asks what an aggregate means too, and needs nothing declared for it: the
  * columns come from `meta`. The one that matters is that a count of rows
  * answers what a page answers as its total, because a footer and its table are
@@ -36,9 +42,15 @@
  * comparisons, which want an ordered value rather than the text everything here
  * is written in. Nor the arithmetic over a `Decimal` or a `BigInt`, which is
  * where an adapter rounding quietly would show and where this has no column to
- * ask with.
+ * ask with. Nor, unless the model happens to carry a nullable column a database
+ * will group, that the rows holding nothing in one are a group: there has to be
+ * such a column to ask about, and a contract cannot add one. And where the
+ * model is tied on a column a grouped read refuses, a timestamp for instance,
+ * the grouped checks that need a key skip rather than report every conforming
+ * adapter as raising.
  */
 import type { Clause, DataAdapter, Id, Page, Row, WriteTree } from "@perchjs/core";
+import { auditGroupKey } from "@perchjs/core";
 
 export interface DataAdapterCheck {
   /** The model written to and read back. */
@@ -514,6 +526,139 @@ export async function checkDataAdapter(
     }
   }
 
+  // Asked of the one rule rather than of a list restated here: `tiedOn` is a
+  // path the rows share and nothing promised it gathers anything. A model tied
+  // on a timestamp would otherwise have every conforming adapter reported as
+  // raising, which is what this did.
+  const gathers = auditGroupKey(meta, tiedOn).length === 0;
+
+  // Every group's size added together is the number of rows there are. The one
+  // identity worth holding: an adapter counting only the rows a caller already
+  // holds satisfies every other check here and fails this one, and so does one
+  // that drops the group of rows holding nothing.
+  const gathered = !gathers
+    ? undefined
+    : await attempt("groupBy()", () => adapter.groupBy({ model, by: tiedOn }));
+  if (held !== undefined && gathered !== undefined) {
+    const summed = gathered.reduce((into, one) => into + one.total, 0);
+    if (summed !== held.total) {
+      say(
+        `groupBy() gathered ${String(summed)} rows across its groups where the model holds ${String(held.total)}. A group's size is the whole group's, and every row is in one.`,
+      );
+    }
+    if (gathered.some((one) => one.total < 1)) {
+      say("groupBy() answered a group holding no rows, which is not a group.");
+    }
+  }
+
+  // Rows sharing a value are one group, which the identity above cannot say:
+  // one group per row adds up to the row count just as correctly.
+  //
+  // Narrowed to the value rather than counting every group there is. The rows
+  // written here all hold it, and the model may hold others that do not: a
+  // suite assuming it owns the table measures its neighbours, which is what
+  // this did, against a table five runs deep.
+  const tie = found === undefined || found === null ? undefined : found[tiedOn];
+  if (gathers && tie !== undefined && tie !== null) {
+    const together = await attempt("groupBy() over rows that are one group", () =>
+      adapter.groupBy({
+        model,
+        by: tiedOn,
+        clauses: [{ path: tiedOn, operator: "equals", value: tie }],
+      }),
+    );
+    if (together !== undefined && together.length !== 1) {
+      say(
+        `groupBy() made ${String(together.length)} groups of rows that all hold the same ${tiedOn}.`,
+      );
+    }
+    if (together?.[0] !== undefined && together[0].total < rows.length) {
+      say(
+        `groupBy() sized that group at ${String(together[0].total)} where ${String(rows.length)} rows were written into it.`,
+      );
+    }
+  }
+
+  if (gathers && check.filterOn !== undefined) {
+    const { path, value, absent } = check.filterOn;
+
+    // The narrowing reaches it, and the size follows the narrowing. A total
+    // worked out over the whole table would be right about the table and wrong
+    // about what the caller asked.
+    const narrowed = await attempt("groupBy() with a clause", () =>
+      adapter.groupBy({
+        model,
+        by: tiedOn,
+        clauses: [{ path, operator: "equals", value }],
+      }),
+    );
+    const matching = await attempt("findMany() to group against", () =>
+      adapter.findMany({ model, clauses: [{ path, operator: "equals", value }], take: 1 }),
+    );
+    if (narrowed !== undefined && matching !== undefined) {
+      const summed = narrowed.reduce((into, one) => into + one.total, 0);
+      if (summed !== matching.total) {
+        say(
+          `groupBy() gathered ${String(summed)} rows under a clause findMany() answered ${String(matching.total)} for.`,
+        );
+      }
+    }
+
+    const none = await attempt("groupBy() over nothing", () =>
+      adapter.groupBy({
+        model,
+        by: tiedOn,
+        clauses: [{ path, operator: "equals", value: absent }],
+      }),
+    );
+    if (none !== undefined && none.length > 0) {
+      say(
+        `groupBy() made ${String(none.length)} groups where no row matched. No rows is no groups.`,
+      );
+    }
+  }
+
+  // The group of rows holding nothing, where the model has a column to ask it
+  // of. Those rows are in the table and a caller draws them, so a grouping
+  // that left them out would be a list shorter than it says it is.
+  const empty = meta.fields.find(
+    (one) =>
+      !one.isRequired &&
+      !one.isId &&
+      !one.isList &&
+      (one.type === "String" || one.type === "Int"),
+  );
+  if (empty !== undefined) {
+    const byEmpty = await attempt("groupBy() on a nullable column", () =>
+      adapter.groupBy({ model, by: empty.name }),
+    );
+    if (held !== undefined && byEmpty !== undefined) {
+      const summed = byEmpty.reduce((into, one) => into + one.total, 0);
+      if (summed !== held.total) {
+        say(
+          `groupBy() gathered ${String(summed)} rows by ${empty.name} where the model holds ${String(held.total)}; the rows holding nothing in it are a group too.`,
+        );
+      }
+    }
+  }
+
+  // A column that gathers nothing. Refused rather than answered with a group
+  // per row, which no database reports as a failure and no reader can tell
+  // from a table with nothing worth grouping.
+  const ungatherable = meta.fields.find(
+    (one) => one.type === "DateTime" || one.type === "Json",
+  );
+  if (ungatherable !== undefined) {
+    try {
+      await adapter.groupBy({ model, by: ungatherable.name });
+      say(
+        `groupBy() accepted ${ungatherable.name} as a key, which is a ${ungatherable.type}.`,
+      );
+    } catch {
+      // Refused, which is the whole of this check.
+    }
+  }
+
   const first = keys[0] as Id;
   const dropped = await attempt("delete()", () => adapter.delete(model, [first]));
   if (dropped !== undefined && dropped !== 1) {
@@ -546,6 +691,19 @@ export async function checkDataAdapter(
     const listed = await attempt("findMany() after a delete", () =>
       adapter.findMany({ model, take: 1 }),
     );
+    const since = !gathers
+      ? undefined
+      : await attempt("groupBy() after a delete", () =>
+          adapter.groupBy({ model, by: tiedOn }),
+        );
+    if (listed !== undefined && since !== undefined) {
+      const summed = since.reduce((into, one) => into + one.total, 0);
+      if (summed !== listed.total) {
+        say(
+          `groupBy() gathered ${String(summed)} rows with one of them marked, where findMany() answered a total of ${String(listed.total)}.`,
+        );
+      }
+    }
     const live = await attempt("aggregate() after a delete", () =>
       adapter.aggregate({ model, aggregations: { rows: { fn: "count" } } }),
     );
