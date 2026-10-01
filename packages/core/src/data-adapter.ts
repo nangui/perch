@@ -178,6 +178,30 @@ export interface AggregateQuery extends Narrowing {
 export type AggregateResult = Readonly<Record<string, AggregateValue>>;
 
 /**
+ * A query's narrowing, without how much of it to read.
+ *
+ * Here rather than at the call site, because this is where the split was
+ * declared. A `take` reaching an aggregate would be an aggregate over a page,
+ * and a total that changes when somebody turns a page is not a total; a
+ * narrowing field left behind would be a total over rows the page never
+ * listed. Both are lies a reader has no way to catch, so neither is left to a
+ * caller to get right.
+ *
+ * Written out field by field rather than by copying what is not paging: this
+ * way nothing travels that was not named, and what has to stay named is held
+ * by a test, the type having no way to hold it.
+ */
+export function narrowingOf(query: Narrowing): Narrowing {
+  return {
+    model: query.model,
+    ...(query.clauses === undefined ? {} : { clauses: query.clauses }),
+    ...(query.deleted === undefined ? {} : { deleted: query.deleted }),
+    ...(query.search === undefined ? {} : { search: query.search }),
+    ...(query.joinedTo === undefined ? {} : { joinedTo: query.joinedTo }),
+  };
+}
+
+/**
  * Which rows a read is asking for.
  *
  * `without` is the default everywhere, and it is named rather than assumed:

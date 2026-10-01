@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TextColumn } from "./column.js";
 import type { FieldMeta, ModelMeta } from "./ir.js";
-import {
-  auditSummaries,
-  summariesFrom,
-  summarised,
-  summaryAggregations,
-} from "./summary.js";
+import { auditSummaries, summariesFrom, summaryAggregations } from "./summary.js";
 import { Table } from "./table.js";
 
 function field(name: string, over: Partial<FieldMeta> = {}): FieldMeta {
@@ -94,13 +89,6 @@ describe("what a footer asks the database", () => {
     const table = Table.make().columns([TextColumn.make("reference")]);
 
     expect(summaryAggregations(table)).toEqual({});
-    expect(summarised(table)).toBe(false);
-  });
-
-  it("knows when there is a footer to draw", () => {
-    expect(summarised(Table.make().columns([TextColumn.make("total").summarise("sum")]))).toBe(
-      true,
-    );
   });
 });
 

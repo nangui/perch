@@ -7,7 +7,7 @@
  * narrowing is shared rather than rebuilt — a total over rows nobody listed is
  * worse than no total, because it reads like one.
  *
- * Four words, which are PRD 07's four. A `count` names its column rather than
+ * Four words, and no fifth. A `count` names its column rather than
  * counting rows: the row count is already on the response as `total`, and
  * sending it again under a column would be one number arriving twice with
  * nothing to say which was which.
@@ -100,18 +100,14 @@ export function summariesFrom(
   return found;
 }
 
-/** Whether anything in this table asks for a footer at all. */
-export function summarised(table: Table): boolean {
-  return table.state.columns.some((one) => (one.state.summarise ?? []).length > 0);
-}
-
 /**
  * What a column cannot be asked, read from the schema at boot.
  *
- * The caller ADR 0032 said would arrive with the first declaration. It arrives
- * here: a sum of a date, or of a column on another model reached through a
- * relation, is a table written wrong, and a reader finding that out from a
- * footer that will not draw is a reader told by the wrong messenger.
+ * A sum of a date, or of a column on another model reached through a relation,
+ * is a table written wrong. Asked here, where the schema is in hand and
+ * nobody is waiting, rather than when a reader opens the list and meets a
+ * footer that will not draw: that reader is the one person who cannot fix
+ * it.
  */
 export function auditSummaries(
   model: ModelMeta,

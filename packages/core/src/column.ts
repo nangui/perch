@@ -18,7 +18,7 @@ import type { Row } from "./data-adapter.js";
 import { normaliseOptions } from "./option.js";
 
 /**
- * What a table can say about a column under all of it. PRD 07's four words.
+ * What a table can say about a column under all of it: four words, no more.
  *
  * Closed, and it grows by adding rather than by widening: a word nothing here
  * knows is refused where it is written rather than ignored at the far end.

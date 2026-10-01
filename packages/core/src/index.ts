@@ -44,6 +44,7 @@ export type {
   SortDirection,
   WriteTree,
 } from "./data-adapter.js";
+export { narrowingOf } from "./data-adapter.js";
 
 // Relation paths: validation, include plans, safe reads.
 export type { PathErrorReason, ResolvedPath } from "./path.js";
@@ -322,12 +323,7 @@ export { auditAggregations } from "./aggregate.js";
 
 // What a table says about a column under all of it.
 export type { Summary } from "./summary.js";
-export {
-  auditSummaries,
-  summariesFrom,
-  summaryAggregations,
-  summarised,
-} from "./summary.js";
+export { auditSummaries, summariesFrom, summaryAggregations } from "./summary.js";
 
 // Stage 5, the trust boundary.
 export type { RejectedPath, RejectionReason, SanitizeResult } from "./sanitize.js";

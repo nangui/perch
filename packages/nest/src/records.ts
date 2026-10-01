@@ -10,6 +10,7 @@ import { NotFoundException } from "@nestjs/common";
 import type {
   Clause,
   ColumnTree,
+  Summary,
   Component,
   Option,
   DataAdapter,
@@ -24,8 +25,11 @@ import {
   Field,
   findModel,
   isResolver,
+  narrowingOf,
   normaliseOptions,
   computedRows,
+  summariesFrom,
+  summaryAggregations,
   presentRows,
   serialiseTable,
   shownColumns,
@@ -90,6 +94,19 @@ export interface RecordsResponse {
    * the server ignored.
    */
   readonly filters?: Readonly<Record<string, string>>;
+  /**
+   * What the footer says, by column path, for the columns that asked.
+   *
+   * Beside the rows rather than in them, like `deleted`: a summary is about
+   * all of them and a row has no place to carry it. Worked out over the whole
+   * narrowed set and not over the page, so the number does not move when
+   * somebody turns one.
+   *
+   * Absent where no column asked, and a column this reader does not get is
+   * absent too: it is dropped before the question is asked, so a total of a
+   * column somebody may not see is a total that was never worked out.
+   */
+  readonly summaries?: Readonly<Record<string, readonly Summary[]>>;
   /**
    * What the model calls its primary key, and where its pages live. Together
    * they are how a row action addresses one row: `${resourcePath}/${row[recordKey]}`.
@@ -226,7 +243,27 @@ export async function listOf(options: {
     options.joinedTo === undefined
       ? narrowed
       : { ...narrowed, joinedTo: options.joinedTo };
-  const found = await data.findMany(query);
+  // Asked beside the page rather than after it: two reads over one set of
+  // rows, and a footer that waited for the page would add its own latency to
+  // every list that has one.
+  //
+  // Narrowed through `narrowingOf`, so the paging half cannot reach it. A
+  // total of the twenty-five rows on screen is a number that moves when
+  // somebody turns a page, which is not what a total means.
+  // Whether there is a footer is the same question as whether anything was
+  // asked for, so it is read off the aggregations rather than worked out by
+  // walking the columns a second time on every list.
+  const asked = table === undefined ? {} : summaryAggregations(table);
+  const [found, worked] = await Promise.all([
+    data.findMany(query),
+    Object.keys(asked).length === 0
+      ? undefined
+      : data.aggregate({ ...narrowingOf(query), aggregations: asked }),
+  ]);
+  const summaries =
+    table === undefined || worked === undefined
+      ? undefined
+      : summariesFrom(table, worked);
   const applied = query.sort?.[0];
   const perPage = query.take ?? DEFAULT_PER_PAGE;
 
@@ -263,6 +300,7 @@ export async function listOf(options: {
             read.forms,
           ),
     recordKey: key,
+    ...(summaries === undefined ? {} : { summaries }),
     ...(marked.length === 0 ? {} : { deleted: marked }),
     ...(options.resourcePath === undefined
       ? {}

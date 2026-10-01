@@ -20,6 +20,7 @@ import type { DataAdapter, Schema, Table } from "@perchjs/core";
 import {
   auditInfolist,
   auditSchema,
+  auditSummaries,
   auditTable,
   columnPaths,
   declaredActions,
@@ -34,6 +35,7 @@ import {
   describeComplaints,
   Field,
   findModel,
+  findRelation,
   FileUpload,
   DetachAction,
   Repeater,
@@ -254,6 +256,9 @@ export class ResourceRegistry implements OnModuleInit {
         // pair of forms that are both right.
         ...createOptionForms(form).flatMap((one) => auditSchema(one)),
         ...(table === undefined ? [] : this.#unreachableColumns(metadata.model, table)),
+        ...(table === undefined
+          ? []
+          : this.#unsummarisableColumns(metadata.model, table)),
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
         ...(table === undefined ? [] : this.#unaskableFilters(metadata.model, table)),
         ...(table === undefined
@@ -273,6 +278,9 @@ export class ResourceRegistry implements OnModuleInit {
             : this.#unknownDisks(manager.state.form),
         ),
         ...managers.flatMap((manager) => auditTable(manager.state.table)),
+        ...managers.flatMap((manager) =>
+          this.#unsummarisableManager(metadata.model, manager),
+        ),
         ...managers.flatMap((manager) =>
           manager.state.form === undefined ? [] : auditSchema(manager.state.form),
         ),
@@ -675,6 +683,47 @@ export class ResourceRegistry implements OnModuleInit {
     table: Table,
   ): readonly { field: string; problem: string }[] {
     return this.#unreadablePaths(model, columnPaths(table), "column");
+  }
+
+  /**
+   * A footer asking a column for something the column cannot give.
+   *
+   * A total of a date, or of a column on another model reached through a
+   * relation, is refused here rather than at the moment somebody opens the
+   * list and finds a footer that will not draw. The complaint names the
+   * column, so the fix is where the declaration is.
+   */
+  #unsummarisableColumns(
+    model: string,
+    table: Table,
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const found = findModel(this.#data.ir(), model);
+    // An unknown model is already its own complaint, from `#unknownModel`.
+    return found === undefined ? [] : auditSummaries(found, table);
+  }
+
+  /**
+   * The same reading for a manager's footer, against the child's own model.
+   *
+   * A manager lists through the same function a resource does, so it works out
+   * a footer the same way and has to be refused the same way. The model is the
+   * one at the other end of the relation, not the one the resource is about.
+   */
+  #unsummarisableManager(
+    parent: string,
+    manager: RelationManager,
+  ): readonly { field: string; problem: string }[] {
+    if (this.#data === null) return [];
+    const holder = findModel(this.#data.ir(), parent);
+    const relation =
+      holder === undefined
+        ? undefined
+        : findRelation(holder, manager.state.relation);
+    // A relation the model does not have is already its own complaint.
+    return relation === undefined
+      ? []
+      : this.#unsummarisableColumns(relation.targetModel, manager.state.table);
   }
 
   /**

@@ -94,7 +94,13 @@ function fault(model: ModelMeta, aggregation: Aggregation): string | undefined {
 
   const admits = ADMITS[fn];
   if (admits !== "any" && !admits.includes(field.type)) {
-    return `is a ${field.type} column, and a ${fn} is worked out over ${listed(admits)}`;
+    // "an avg" rather than "a avg": the one word in this vocabulary that
+    // starts with a vowel, and a complaint that reads wrong reads as careless.
+    const article = fn === "avg" ? "an" : "a";
+    return (
+      `is a ${field.type} column, and ${article} ${fn} is worked out over ` +
+      listed(admits)
+    );
   }
 
   return undefined;
