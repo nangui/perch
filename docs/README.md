@@ -39,6 +39,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0031](adr/0031-what-validates-a-value.md) | The engine is the one that exists, and a schema from another library is taken where a rule is |
 | [0032](adr/0032-what-an-aggregate-asks-for.md) | One aggregate call carries several named functions over the rows a narrowing keeps |
 | [0033](adr/0033-what-a-group-is.md) | A group answers a key and a size, asked only about the keys the page holds |
+| [0034](adr/0034-the-budget-moved-after-all.md) | A page's cost is written as a shape rather than as a number |
 
 ## Perch — a UI framework for NestJS
 

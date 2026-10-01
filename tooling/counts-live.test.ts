@@ -42,6 +42,19 @@ function publishable(): string[] {
     .sort();
 }
 
+/**
+ * The records the index does not call accepted.
+ *
+ * Read from the index rather than from the records: a record is never edited,
+ * so the one that was superseded still carries the status it was written with,
+ * and the index is where its status now lives.
+ */
+function superseded(): string[] {
+  return [...read("docs/adr/README.md").matchAll(/^\| \[(\d{4})\][^|]*\|[^|]*\| ([^|]+) \|$/gm)]
+    .filter((row) => (row[2] ?? "").trim() !== "accepted")
+    .map((row) => row[1] ?? "");
+}
+
 /** Every decision record. `README.md` is the index, not a record. */
 function decisions(): string[] {
   return readdirSync(join(ROOT, "docs/adr"))
@@ -215,8 +228,18 @@ const CLAIMS: readonly Claim[] = [
   {
     page: "CONTRIBUTING.md",
     counts: "decision records",
-    sentence: /— ([a-z0-9-]+) records, every one accepted\./,
+    sentence: /— ([a-z0-9-]+) records, /,
     truth: () => decisions().length,
+  },
+  {
+    page: "CONTRIBUTING.md",
+    counts: "records the index no longer calls accepted",
+    // The claim beside the count, which was wrong for longer than the count
+    // ever was: it read "every one accepted" while the index had already
+    // marked one superseded. A count nobody holds is a count that drifts; a
+    // claim nobody holds is worse, because it reads as a fact.
+    sentence: /records, ([a-z0-9-]+) of them superseded/,
+    truth: () => superseded().length,
   },
 ];
 

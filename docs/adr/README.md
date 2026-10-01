@@ -42,8 +42,10 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0028](0028-where-a-drawing-lives.md) | A named mark is uniform and a fitted one is drawn to its slot; the same path data is never written twice | accepted |
 | [0029](0029-what-a-decision-may-name.md) | A decision names what a file holds; the guard names where it is — correcting ADR 0028's address | accepted |
 | [0030](0030-how-a-closed-vocabulary-arrives.md) | A word leaving a closed vocabulary is refused at once, with no deprecation window | accepted |
+| [0031](0031-what-validates-a-value.md) | The engine is the one that exists, and a schema from another library is taken where a rule is | accepted |
 | [0032](0032-what-an-aggregate-asks-for.md) | One aggregate call carries several named functions over the rows a narrowing keeps; the path is the declaration's | accepted |
 | [0033](0033-what-a-group-is.md) | A group answers a key and a size, asked only about the keys the page holds; a date is refused for want of a bucket | accepted |
+| [0034](0034-the-budget-moved-after-all.md) | A page's cost is a shape and not a number, correcting ADR 0033's deferral | accepted |
 
 ## Format
 
