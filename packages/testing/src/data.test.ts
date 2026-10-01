@@ -12,6 +12,10 @@
  * adapter looks like.
  */
 import type {
+  AggregateQuery,
+  AggregateResult,
+  AggregateValue,
+  Aggregation,
   Clause,
   DataAdapter,
   Id,
@@ -46,6 +50,25 @@ const META = {
   hasSoftDelete: true,
   labelField: "name",
 } as unknown as ModelMeta;
+
+/** One aggregation over rows already narrowed, which is all a double owes. */
+function reduce(rows: readonly Row[], aggregation: Aggregation): AggregateValue {
+  const { fn, path } = aggregation;
+  if (path === undefined) return rows.length;
+
+  const present = rows
+    .map((row) => row[path])
+    .filter((value) => value !== null && value !== undefined);
+
+  if (fn === "count") return present.length;
+  if (present.length === 0) return null;
+  if (fn === "sum" || fn === "avg") {
+    const sum = present.reduce((into: number, one) => into + Number(one), 0);
+    return fn === "sum" ? sum : sum / present.length;
+  }
+  const numbers = present.map(Number);
+  return fn === "min" ? Math.min(...numbers) : Math.max(...numbers);
+}
 
 /** An adapter that keeps the contract, and the base the broken ones bend. */
 class Memory implements DataAdapter {
@@ -239,9 +262,14 @@ class Memory implements DataAdapter {
     return Promise.resolve();
   }
 
-  // Required by the port; nothing here asks a double to aggregate.
-  aggregate(): never {
-    throw new Error("not needed here");
+  /** Narrowed by what `findMany` narrows by, which is the promise being kept. */
+  aggregate(query: AggregateQuery): Promise<AggregateResult> {
+    const rows = this.narrowed(query) as unknown as Row[];
+    const answer: Record<string, AggregateValue> = {};
+    for (const [named, one] of Object.entries(query.aggregations)) {
+      answer[named] = reduce(rows, one);
+    }
+    return Promise.resolve(answer);
   }
 
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
@@ -484,5 +512,61 @@ describe("an adapter that does not", () => {
     }
 
     expect((await complaints(new Inventive())).join(" ")).toContain("never there");
+  });
+
+  it("is caught aggregating the table where the query narrowed it", async () => {
+    // The fault a footer shows: a total for rows the table above it did not
+    // list. Dropping the narrowing is the smallest shape of it.
+    class Unnarrowed extends Memory {
+      override aggregate(query: AggregateQuery): Promise<AggregateResult> {
+        return super.aggregate({ model: query.model, aggregations: query.aggregations });
+      }
+    }
+
+    expect((await complaints(new Unnarrowed())).join(" ")).toContain(
+      "rows where none matched",
+    );
+  });
+
+  it("is caught answering zero where there was nothing to work over", async () => {
+    class Zeroing extends Memory {
+      override async aggregate(query: AggregateQuery): Promise<AggregateResult> {
+        const answer = await super.aggregate(query);
+        return Object.fromEntries(
+          Object.entries(answer).map(([named, value]) => [
+            named,
+            value === null ? 0 : value,
+          ]),
+        );
+      }
+    }
+
+    expect((await complaints(new Zeroing())).join(" ")).toContain(
+      "null is what no rows works out to",
+    );
+  });
+
+  it("is caught counting a marked row the page above it hides", async () => {
+    class Tombstones extends Memory {
+      override aggregate(query: AggregateQuery): Promise<AggregateResult> {
+        return super.aggregate({ ...query, deleted: "with" });
+      }
+    }
+
+    expect((await complaints(new Tombstones())).join(" ")).toContain(
+      "with one of them marked",
+    );
+  });
+
+  it("is caught getting the arithmetic wrong over rows it narrowed right", async () => {
+    class OffByOne extends Memory {
+      override async aggregate(query: AggregateQuery): Promise<AggregateResult> {
+        const answer = await super.aggregate(query);
+        const total = answer["total"];
+        return typeof total === "number" ? { ...answer, total: total + 1 } : answer;
+      }
+    }
+
+    expect((await complaints(new OffByOne())).join(" ")).toContain("as the total of id");
   });
 });

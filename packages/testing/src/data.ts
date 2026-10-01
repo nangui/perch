@@ -25,9 +25,18 @@
  * it. An include is asked for as well, that being the branch a relation column
  * contributes rather than a query per row.
  *
+ * It asks what an aggregate means too, and needs nothing declared for it: the
+ * columns come from `meta`. The one that matters is that a count of rows
+ * answers what a page answers as its total, because a footer and its table are
+ * one question asked twice and an adapter that narrows them differently is an
+ * adapter that reports a total for rows nobody listed. Then that an empty set
+ * answers null rather than zero, a zero being a total somebody could print.
+ *
  * What it does not check, and says so rather than implying otherwise: the four
  * comparisons, which want an ordered value rather than the text everything here
- * is written in.
+ * is written in. Nor the arithmetic over a `Decimal` or a `BigInt`, which is
+ * where an adapter rounding quietly would show and where this has no column to
+ * ask with.
  */
 import type { Clause, DataAdapter, Id, Page, Row, WriteTree } from "@perchjs/core";
 
@@ -363,6 +372,148 @@ export async function checkDataAdapter(
     }
   }
 
+  // One narrowing, one set of rows. A footer and the table above it are the
+  // same question asked twice, so an adapter narrowing them differently
+  // reports a total for rows nobody listed.
+  //
+  // Read again here rather than leaning on the total two hundred lines up:
+  // nothing writes between the two today, and a `create` put between them
+  // would make this complain about the adapter instead of about itself.
+  // One row asked for, because only the total is wanted: a contract pointed
+  // at a hundred thousand rows should not read them to learn how many there
+  // are.
+  const held = await attempt("findMany() to aggregate against", () =>
+    adapter.findMany({ model, take: 1 }),
+  );
+  const counted = await attempt("aggregate()", () =>
+    adapter.aggregate({ model, aggregations: { rows: { fn: "count" } } }),
+  );
+  if (held !== undefined && counted !== undefined && counted["rows"] !== held.total) {
+    say(
+      `aggregate() counted ${String(counted["rows"])} rows where findMany() answered a total of ${String(held.total)}.`,
+    );
+  }
+
+  // The key, which is never null, so counting it has to answer what counting
+  // rows answered. An adapter differing here has read "count this column" as
+  // "count the rows", or the other way round.
+  const keyed = await attempt("aggregate() over a column", () =>
+    adapter.aggregate({ model, aggregations: { filled: { fn: "count", path: key } } }),
+  );
+  if (held !== undefined && keyed !== undefined && keyed["filled"] !== held.total) {
+    say(
+      `aggregate() counted ${String(keyed["filled"])} rows holding a ${key} where the model holds ${String(held.total)}; a key is never null.`,
+    );
+  }
+
+  if (check.filterOn !== undefined) {
+    const { path, value, absent } = check.filterOn;
+    const kept = { path, operator: "equals" as const, value };
+
+    // Nothing matched, so there is nothing to have worked out. A zero here is
+    // a total a footer would print and nobody computed.
+    const empty = await attempt("aggregate() over nothing", () =>
+      adapter.aggregate({
+        model,
+        clauses: [{ path, operator: "equals", value: absent }],
+        aggregations: {
+          rows: { fn: "count" },
+          held: { fn: "count", path: key },
+          total: { fn: "sum", path: key },
+          typical: { fn: "avg", path: key },
+          lowest: { fn: "min", path: key },
+        },
+      }),
+    );
+    if (empty !== undefined) {
+      if (empty["rows"] !== 0) {
+        say(`aggregate() counted ${String(empty["rows"])} rows where none matched.`);
+      }
+      if (empty["held"] !== 0) {
+        say(
+          `aggregate() counted ${String(empty["held"])} values of ${key} where no row matched.`,
+        );
+      }
+      for (const named of ["total", "typical", "lowest"]) {
+        if (empty[named] !== null) {
+          say(
+            `aggregate() answered ${String(empty[named])} for a ${named} over no rows; null is what no rows works out to, zero being a total somebody could print.`,
+          );
+        }
+      }
+    }
+
+    // The arithmetic, against the rows themselves. Only where the key is a
+    // number: a model keyed on text has no column here to add up, and a
+    // contract that invented one would be asking about a schema it was not
+    // given.
+    if (typeof keys[0] === "number") {
+      // Bounded, and the arithmetic below runs only where the bound held the
+      // whole of what the clause kept — `page.rows.length === page.total`.
+      // Comparing an aggregate over everything against a sum of the first five
+      // hundred would report a conforming adapter as wrong.
+      const page = await attempt("findMany() to check an aggregate against", () =>
+        adapter.findMany({ model, clauses: [kept], take: 500 }),
+      );
+      const worked = await attempt("aggregate() over the rows a clause kept", () =>
+        adapter.aggregate({
+          model,
+          clauses: [kept],
+          aggregations: {
+            rows: { fn: "count" },
+            total: { fn: "sum", path: key },
+            typical: { fn: "avg", path: key },
+            lowest: { fn: "min", path: key },
+            highest: { fn: "max", path: key },
+          },
+        }),
+      );
+
+      if (page !== undefined && worked !== undefined && page.rows.length === page.total) {
+        const numbers = page.rows.map((row) => Number(row[key]));
+        const sum = numbers.reduce((into, one) => into + one, 0);
+        const expected: Record<string, number> = {
+          rows: numbers.length,
+          total: sum,
+          typical: sum / numbers.length,
+          lowest: Math.min(...numbers),
+          highest: Math.max(...numbers),
+        };
+        for (const [named, want] of Object.entries(expected)) {
+          const got = Number(worked[named]);
+          // A loose comparison on purpose: an average is a division and the
+          // last bit of one is not what this is asking about.
+          if (!Number.isFinite(got) || Math.abs(got - want) > 1e-6) {
+            say(
+              `aggregate() answered ${String(worked[named])} as the ${named} of ${key} over ${String(numbers.length)} rows holding ${numbers.join(", ")}, where it works out to ${String(want)}.`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // A function the column cannot bear. Refused rather than sent on, whether by
+  // the adapter or by the database it would have reached — a sum of a boolean
+  // comes back as whatever a driver says about a function that does not exist,
+  // and that is not an answer a footer can draw.
+  const unsummable = meta.fields.find(
+    (one) => one.type === "Boolean" || one.type === "Json",
+  );
+  if (unsummable !== undefined) {
+    try {
+      await adapter.aggregate({
+        model,
+        aggregations: { nonsense: { fn: "sum", path: unsummable.name } },
+      });
+      say(
+        `aggregate() accepted a sum of ${unsummable.name}, which is a ${unsummable.type}.`,
+      );
+    } catch {
+      // Refused, which is the whole of this check.
+    }
+  }
+
   const first = keys[0] as Id;
   const dropped = await attempt("delete()", () => adapter.delete(model, [first]));
   if (dropped !== undefined && dropped !== 1) {
@@ -387,6 +538,31 @@ export async function checkDataAdapter(
       say(
         "delete() destroyed a row on a model that marks, where the mark was asked for.",
       );
+    }
+
+    // The footer half of what a page already does. A row is marked right now,
+    // so an aggregate still counting it is counting a tombstone the table
+    // above it hides.
+    const listed = await attempt("findMany() after a delete", () =>
+      adapter.findMany({ model, take: 1 }),
+    );
+    const live = await attempt("aggregate() after a delete", () =>
+      adapter.aggregate({ model, aggregations: { rows: { fn: "count" } } }),
+    );
+    if (listed !== undefined && live !== undefined && live["rows"] !== listed.total) {
+      say(
+        `aggregate() counted ${String(live["rows"])} rows with one of them marked, where findMany() answered a total of ${String(listed.total)}.`,
+      );
+    }
+    const only = await attempt("aggregate() asking for the marked ones", () =>
+      adapter.aggregate({
+        model,
+        deleted: "only",
+        aggregations: { rows: { fn: "count" } },
+      }),
+    );
+    if (only !== undefined && Number(only["rows"]) < 1) {
+      say("aggregate() found no marked rows where one had just been marked.");
     }
 
     // Answers what it lifted, not what it was asked for: the second was never

@@ -36,6 +36,7 @@ import type {
   Row,
   WriteTree,
 } from "@perchjs/core";
+import { auditAggregations } from "@perchjs/core";
 
 const scalar = (name: string, type: FieldMeta["type"]): FieldMeta => ({
   name,
@@ -451,6 +452,18 @@ export class MemoryAdapter implements DataAdapter {
    * is what a database would have done.
    */
   aggregate(query: AggregateQuery): Promise<AggregateResult> {
+    // The contract caught this missing: a sum of `active` was accepted and
+    // worked out to a count of the true ones, because Number(true) is 1. A
+    // database would have refused it, and an adapter that does not is an
+    // adapter whose answers depend on which one it is talking to.
+    const complaints = auditAggregations(this.meta(query.model), query.aggregations);
+    if (complaints.length > 0) {
+      throw new Error(
+        `${query.model} cannot be aggregated as asked: ` +
+          complaints.map(({ field, problem }) => `${field} ${problem}`).join("; "),
+      );
+    }
+
     const rows = this.#narrowed(query);
     const answer: Record<string, AggregateValue> = {};
     for (const [key, one] of Object.entries(query.aggregations)) {
