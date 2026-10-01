@@ -178,6 +178,47 @@ export interface AggregateQuery extends Narrowing {
 export type AggregateResult = Readonly<Record<string, AggregateValue>>;
 
 /**
+ * What a group is gathered under.
+ *
+ * Its own type rather than an aggregate's, because an aggregate never answers
+ * a boolean and a grouping by one answers two groups. `null` is among them on
+ * purpose: rows holding nothing in that column are a group, not rows left out
+ * of the table.
+ *
+ * A `Decimal` and a `BigInt` arrive as strings, for the reason an aggregate's
+ * do: neither survives a double, and a key that lost its last digits would
+ * gather two groups into one.
+ *
+ * No date among them, because a timestamp is refused as a key: without a
+ * bucket it is one group per row. A bucket would put one back here along with
+ * the code that produced it.
+ */
+export type GroupKey = string | number | boolean | null;
+
+export interface GroupQuery extends Narrowing {
+  /**
+   * The one column the rows are gathered by.
+   *
+   * One, not several. Groups within groups give a reader a tree to operate
+   * where they asked for a list to read, and nothing in this project asks for
+   * them.
+   */
+  readonly by: string;
+}
+
+/** One group: what gathers it, and how many rows are in the whole of it. */
+export interface GroupCount {
+  readonly key: GroupKey;
+  /**
+   * Every row of the group the narrowing kept, not the part of it on a page.
+   *
+   * A number that grew as somebody paged through one group would not be a
+   * size, which is why this cannot be counted from the rows in hand.
+   */
+  readonly total: number;
+}
+
+/**
  * A query's narrowing, without how much of it to read.
  *
  * Here rather than at the call site, because this is where the split was
@@ -271,6 +312,18 @@ export interface DataAdapter {
    * says about a function that does not exist.
    */
   aggregate(query: AggregateQuery): Promise<AggregateResult>;
+  /**
+   * How many rows sit under each value of one column.
+   *
+   * Narrowed like any read, so the groups are of the rows a filter left. What
+   * bounds it is the caller's: a page asks only about the keys its own rows
+   * hold, which is at most as many groups as it has rows, so there is no limit
+   * here for anybody to pick or to get wrong.
+   *
+   * Rows holding nothing in that column come back as a group keyed `null`
+   * rather than as no group at all.
+   */
+  groupBy(query: GroupQuery): Promise<readonly GroupCount[]>;
   findOne(model: string, id: Id, options?: ReadOptions): Promise<Row | null>;
   create(model: string, data: WriteTree): Promise<Row>;
   update(model: string, id: Id, data: WriteTree): Promise<Row>;

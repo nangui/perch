@@ -12,6 +12,7 @@ import type {
   AggregateResult,
   AggregateValue,
   Aggregation,
+  Complaint,
   DataAdapter,
   Clause,
   DeletedRows,
@@ -19,6 +20,9 @@ import type {
   IncludePlan,
   Ir,
   ModelMeta,
+  GroupCount,
+  GroupKey,
+  GroupQuery,
   Narrowing,
   Page,
   Query,
@@ -30,13 +34,20 @@ import type {
   Sort,
   WriteTree,
 } from "@perchjs/core";
-import { auditAggregations, findModel, findRelation, SOFT_DELETE_FIELD } from "@perchjs/core";
+import {
+  auditAggregations,
+  auditGroupKey,
+  findModel,
+  findRelation,
+  SOFT_DELETE_FIELD,
+} from "@perchjs/core";
 
 export interface PrismaDelegate {
   findMany: (args: Record<string, unknown>) => Promise<unknown[]>;
   findUnique: (args: Record<string, unknown>) => Promise<unknown>;
   count: (args: Record<string, unknown>) => Promise<number>;
   aggregate: (args: Record<string, unknown>) => Promise<unknown>;
+  groupBy: (args: Record<string, unknown>) => Promise<unknown>;
   create: (args: Record<string, unknown>) => Promise<unknown>;
   update: (args: Record<string, unknown>) => Promise<unknown>;
   updateMany: (args: Record<string, unknown>) => Promise<{ count: number }>;
@@ -119,17 +130,10 @@ export class PrismaDataAdapter implements DataAdapter {
    * to fold them into one.
    */
   async aggregate(query: AggregateQuery): Promise<AggregateResult> {
-    const complaints = auditAggregations(this.meta(query.model), query.aggregations);
-    if (complaints.length > 0) {
-      // Not `describeComplaints`: it says "declares a form that cannot work",
-      // which is true of every caller it has and of none of these.
-      throw new Error(
-        `${query.model} cannot be aggregated as asked:\n` +
-          complaints
-            .map(({ field, problem }) => `  - \`${field}\` ${problem}`)
-            .join("\n"),
-      );
-    }
+    refuse(
+      `${query.model} cannot be aggregated as asked`,
+      auditAggregations(this.meta(query.model), query.aggregations),
+    );
 
     const delegate = this.#delegate(query.model);
     const where = both(whereOf(query), this.#liveness(query.model, query.deleted));
@@ -152,6 +156,35 @@ export class PrismaDataAdapter implements DataAdapter {
         one.path === undefined ? (counted ?? 0) : worked(computed, one, one.path);
     }
     return answer;
+  }
+
+  /**
+   * How many rows sit under each value of one column, in one statement.
+   *
+   * What bounds it is the caller's: a page asks about the keys its own rows
+   * hold, which it does with a clause like any other. Nothing is capped here,
+   * because a cap here would be a number picked rather than derived.
+   */
+  async groupBy(query: GroupQuery): Promise<readonly GroupCount[]> {
+    refuse(
+      `${query.model} cannot be grouped as asked`,
+      auditGroupKey(this.meta(query.model), query.by),
+    );
+
+    const where = both(whereOf(query), this.#liveness(query.model, query.deleted));
+    const grouped = (await this.#delegate(query.model).groupBy({
+      by: [query.by],
+      ...(Object.keys(where).length === 0 ? {} : { where }),
+      // The rows of each group, rather than the rows some column of it is not
+      // null on: a group keyed null is a group, and counting a column would
+      // answer zero for it.
+      _count: true,
+    })) as readonly Record<string, unknown>[];
+
+    return grouped.map((one) => ({
+      key: gathered(one[query.by]),
+      total: Number(one["_count"] ?? 0),
+    }));
   }
 
   async findOne(model: string, id: Id, options?: ReadOptions): Promise<Row | null> {
@@ -477,6 +510,38 @@ function whereOf(query: Narrowing): Record<string, unknown> {
   if (clauses.length === 0) return {};
   if (clauses.length === 1) return clauses[0] as Record<string, unknown>;
   return { AND: clauses };
+}
+
+/**
+ * A refusal in the one shape both reads use.
+ *
+ * Not `describeComplaints`: it says the subject declares a form that cannot
+ * work, which is true of every caller it has and of neither of these.
+ */
+function refuse(subject: string, complaints: readonly Complaint[]): void {
+  if (complaints.length === 0) return;
+  throw new Error(
+    `${subject}:\n` +
+      complaints.map(({ field, problem }) => `  - \`${field}\` ${problem}`).join("\n"),
+  );
+}
+
+/**
+ * A group's key, out of whatever the driver handed back.
+ *
+ * A bigint and a Decimal leave as strings for the reason an aggregate's do:
+ * neither survives a double, and a key that lost its last digits would gather
+ * two groups into one.
+ */
+function gathered(raw: unknown): GroupKey {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === "number" || typeof raw === "string" || typeof raw === "boolean") {
+    return raw;
+  }
+  if (typeof raw === "bigint") return raw.toString();
+  // No date: a timestamp is refused as a key, so one arriving here would mean
+  // the audit above let through what it is there to stop.
+  return typeof raw === "object" ? printed(raw) : null;
 }
 
 /** Prisma names each function by underscoring it. */

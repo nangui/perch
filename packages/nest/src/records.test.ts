@@ -30,6 +30,7 @@ const adapter: DataAdapter = {
   detach: () => Promise.reject(new Error("not needed")),
   // Required by the port; nothing here asks a double to aggregate.
   aggregate: () => Promise.reject(new Error("not needed here")),
+  groupBy: () => Promise.reject(new Error("not needed here")),
   transaction: <T>(fn: (tx: DataAdapter) => Promise<T>) => fn(adapter),
 };
 

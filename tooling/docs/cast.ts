@@ -67,6 +67,7 @@ export declare class AppDataAdapter implements DataAdapter {
   attach: DataAdapter["attach"];
   detach: DataAdapter["detach"];
   aggregate: DataAdapter["aggregate"];
+  groupBy: DataAdapter["groupBy"];
   transaction: DataAdapter["transaction"];
 }
 export declare class PrismaService implements PrismaClientLike {

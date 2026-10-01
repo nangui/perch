@@ -112,6 +112,11 @@ class MemoryAdapter implements DataAdapter {
     asked.push(query);
     return Promise.resolve(answers);
   }
+
+  // Required by the port; nothing here asks a double to group.
+  groupBy(): never {
+    throw new Error("not needed here");
+  }
   findOne(_model: string, id: Id): Promise<Row | null> {
     return Promise.resolve(ROWS.find((row) => row["id"] === id) ?? null);
   }

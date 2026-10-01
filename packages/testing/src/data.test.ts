@@ -272,6 +272,11 @@ class Memory implements DataAdapter {
     return Promise.resolve(answer);
   }
 
+  // Required by the port; nothing here asks a double to group.
+  groupBy(): never {
+    throw new Error("not needed here");
+  }
+
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     const snapshot = this.held.map((row) => ({ ...row }));
     try {

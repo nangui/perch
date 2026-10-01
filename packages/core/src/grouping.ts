@@ -35,8 +35,17 @@ const GATHERS: readonly ScalarType[] = [
 /** Every complaint a table's grouping earns. Empty means it can be served. */
 export function auditGrouping(model: ModelMeta, table: Table): readonly Complaint[] {
   const path = table.state.groupBy;
-  if (path === undefined) return [];
+  return path === undefined ? [] : auditGroupKey(model, path);
+}
 
+/**
+ * The same question asked of a path rather than of a table.
+ *
+ * What an adapter has in hand: it is given a path and never a declaration, so
+ * the check it can run is this one. The boot runs it through the table above,
+ * which is where the complaint can still name a line somebody wrote.
+ */
+export function auditGroupKey(model: ModelMeta, path: string): readonly Complaint[] {
   const problem = fault(model, path);
   return problem === undefined ? [] : [{ field: path, problem }];
 }

@@ -136,6 +136,10 @@ class MemoryAdapter implements DataAdapter {
     throw new Error("not needed here");
   }
 
+  groupBy(): never {
+    throw new Error("not needed here");
+  }
+
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     const before = { posts: [...posts], sections: [...sections], next: nextSection };
     try {

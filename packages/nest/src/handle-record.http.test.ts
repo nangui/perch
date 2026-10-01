@@ -130,6 +130,10 @@ class MemoryAdapter implements DataAdapter {
     throw new Error("not needed here");
   }
 
+  groupBy(): never {
+    throw new Error("not needed here");
+  }
+
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     const answer = await fn(this);
     if (failCommit) throw new Error("rolled back");

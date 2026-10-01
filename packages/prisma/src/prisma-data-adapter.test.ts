@@ -18,12 +18,18 @@ interface Recorder {
   readonly client: PrismaClientLike;
 }
 
-function recorder(rows: unknown[] = [], total = 0, worked: unknown = {}): Recorder {
+function recorder(
+  rows: unknown[] = [],
+  total = 0,
+  worked: unknown = {},
+  grouped: unknown[] = [],
+): Recorder {
   const calls = {
     findMany: vi.fn(() => Promise.resolve(rows)),
     findUnique: vi.fn(() => Promise.resolve(rows[0] ?? null)),
     count: vi.fn(() => Promise.resolve(total)),
     aggregate: vi.fn(() => Promise.resolve(worked)),
+    groupBy: vi.fn(() => Promise.resolve(grouped)),
     create: vi.fn((args: { data: unknown }) => Promise.resolve(args.data)),
     update: vi.fn((args: { data: unknown }) => Promise.resolve(args.data)),
     updateMany: vi.fn(() => Promise.resolve({ count: 0 })),
@@ -797,5 +803,77 @@ describe("what an aggregate sends, and what it makes of the answer", () => {
         },
       }),
     ).rejects.toThrow(/deletedAt[\s\S]*nowhere/);
+  });
+});
+
+describe("what a grouped read sends, and what it makes of the answer", () => {
+  it("groups by the one column, with the rows of each group", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.groupBy({ model: "Post", by: "title" });
+
+    expect(argsOf(calls.groupBy)).toEqual({ by: ["title"], _count: true });
+  });
+
+  it("narrows like any read, liveness included", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.groupBy({
+      model: "Note",
+      by: "body",
+      // What a page restricts itself with: the keys its own rows hold. A
+      // clause like any other, which is why nothing is capped in the adapter.
+      clauses: [{ path: "body", operator: "in", value: ["one", "two"] }],
+    });
+
+    expect(argsOf(calls.groupBy)).toEqual({
+      by: ["body"],
+      where: { AND: [{ body: { in: ["one", "two"] } }, { deletedAt: null }] },
+      _count: true,
+    });
+  });
+
+  it("answers a key and a size per group", async () => {
+    const { adapter } = recorder([], 0, {}, [
+      { title: "Ada", _count: 3 },
+      { title: "Grace", _count: 1 },
+    ]);
+
+    expect(await adapter.groupBy({ model: "Post", by: "title" })).toEqual([
+      { key: "Ada", total: 3 },
+      { key: "Grace", total: 1 },
+    ]);
+  });
+
+  it("keeps a group of rows holding nothing, rather than dropping it", async () => {
+    // A grouping that lost these would hide rows from a list that says it is
+    // showing them.
+    const { adapter } = recorder([], 0, {}, [{ title: null, _count: 2 }]);
+
+    expect(await adapter.groupBy({ model: "Post", by: "title" })).toEqual([
+      { key: null, total: 2 },
+    ]);
+  });
+
+  it("keeps a boolean key a boolean, and widens what a double would round", async () => {
+    const decimal = { toString: () => "1234.56789012345678" };
+    const { adapter } = recorder([], 0, {}, [
+      { title: true, _count: 1 },
+      { title: 9_007_199_254_740_993n, _count: 1 },
+      { title: decimal, _count: 1 },
+    ]);
+
+    expect(await adapter.groupBy({ model: "Post", by: "title" })).toEqual([
+      { key: true, total: 1 },
+      { key: "9007199254740993", total: 1 },
+      { key: "1234.56789012345678", total: 1 },
+    ]);
+  });
+
+  it("refuses a column that gathers nothing, before touching the client", async () => {
+    const { adapter, calls } = recorder();
+    await expect(
+      adapter.groupBy({ model: "Note", by: "deletedAt" }),
+    ).rejects.toThrow(/deletedAt.*timestamp/s);
+
+    expect(calls.groupBy).not.toHaveBeenCalled();
   });
 });

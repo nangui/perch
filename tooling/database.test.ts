@@ -238,6 +238,95 @@ withDatabase("reading, against a real database", () => {
     await adapter.restore("Comment", [comments.rows[0]?.["id"] as Id]);
   });
 
+  it("gathers the rows by a column, in one statement, with each group's size", async () => {
+    // What no recorder can say: that PostgreSQL accepts these arguments.
+    const [groups, sent] = await count(() =>
+      adapter.groupBy({ model: "Post", by: "published" }),
+    );
+
+    expect(sent).toBe(1);
+    // Four posts, published alternating, so two of each.
+    expect([...groups].sort((a, b) => Number(a.key) - Number(b.key))).toEqual([
+      { key: false, total: 2 },
+      { key: true, total: 2 },
+    ]);
+  });
+
+  it("is bounded by the caller's clause and not by anything in the adapter", async () => {
+    // How a page keeps this cheap: it asks about the keys its own rows hold,
+    // which is a clause like any other. Two keys asked for, two groups back,
+    // out of the four the table holds.
+    const only = await adapter.groupBy({
+      model: "Post",
+      by: "title",
+      clauses: [{ path: "title", operator: "in", value: ["Post 0", "Post 2"] }],
+    });
+
+    expect([...only].sort((a, b) => String(a.key).localeCompare(String(b.key)))).toEqual(
+      [
+        { key: "Post 0", total: 1 },
+        { key: "Post 2", total: 1 },
+      ],
+    );
+  });
+
+  it("has no `in` to be bounded by on a boolean, and needs none", async () => {
+    // Found here rather than guessed at: Prisma's boolean filter offers
+    // `equals` and `not` and no `in`, so a page cannot restrict a grouped read
+    // by a list of boolean keys. It does not have to. A boolean's groups are
+    // two and a null, which is a bound the column already has, and the same
+    // holds for an enum whose values the schema names.
+    await expect(
+      adapter.groupBy({
+        model: "Post",
+        by: "published",
+        clauses: [{ path: "published", operator: "in", value: [true] }],
+      }),
+    ).rejects.toThrow(/Unknown argument/);
+
+    const both = await adapter.groupBy({ model: "Post", by: "published" });
+    expect(both).toHaveLength(2);
+  });
+
+  it("keeps the rows holding nothing as a group of their own", async () => {
+    // `body` is nullable and no post was given one, so every row is in it. A
+    // grouping that dropped these would hide rows from a list that says it is
+    // showing them.
+    //
+    // Relative to what the table holds rather than a number written here: a
+    // suite that assumes it owns the table measures its neighbours, and one
+    // below this seeds thirty more rows.
+    const whole = await adapter.findMany({ model: "Post", take: 1 });
+
+    expect(await adapter.groupBy({ model: "Post", by: "body" })).toEqual([
+      { key: null, total: whole.total },
+    ]);
+  });
+
+  it("leaves a marked row out of a group, as it leaves it out of a page", async () => {
+    const comments = await adapter.findMany({ model: "Comment", take: 100 });
+    const first = comments.rows[0]?.["id"] as Id;
+    await adapter.delete("Comment", [first]);
+
+    const live = await adapter.groupBy({ model: "Comment", by: "body" });
+    const marked = await adapter.groupBy({
+      model: "Comment",
+      by: "body",
+      deleted: "only",
+    });
+
+    expect(live.reduce((into, one) => into + one.total, 0)).toBe(comments.total - 1);
+    expect(marked.reduce((into, one) => into + one.total, 0)).toBe(1);
+
+    await adapter.restore("Comment", [first]);
+  });
+
+  it("refuses to gather by a timestamp, which would be a group per row", async () => {
+    await expect(
+      adapter.groupBy({ model: "Comment", by: "deletedAt" }),
+    ).rejects.toThrow(/timestamp/);
+  });
+
   it("pages without losing the total", async () => {
     const page = await adapter.findMany({ model: "Post", skip: 2, take: 2 });
 

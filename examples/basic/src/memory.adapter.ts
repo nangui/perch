@@ -23,6 +23,9 @@ import type {
   Aggregation,
   Clause,
   DataAdapter,
+  GroupCount,
+  GroupKey,
+  GroupQuery,
   FieldMeta,
   DeletedRows,
   Id,
@@ -36,7 +39,7 @@ import type {
   Row,
   WriteTree,
 } from "@perchjs/core";
-import { auditAggregations } from "@perchjs/core";
+import { auditAggregations, auditGroupKey } from "@perchjs/core";
 
 const scalar = (name: string, type: FieldMeta["type"]): FieldMeta => ({
   name,
@@ -451,7 +454,7 @@ export class MemoryAdapter implements DataAdapter {
    * only interesting thing about an in-memory aggregate; the arithmetic below
    * is what a database would have done.
    */
-  aggregate(query: AggregateQuery): Promise<AggregateResult> {
+  async aggregate(query: AggregateQuery): Promise<AggregateResult> {
     // The contract caught this missing: a sum of `active` was accepted and
     // worked out to a count of the true ones, because Number(true) is 1. A
     // database would have refused it, and an adapter that does not is an
@@ -470,6 +473,35 @@ export class MemoryAdapter implements DataAdapter {
       answer[key] = reduced(rows, one);
     }
     return Promise.resolve(answer);
+  }
+
+  /**
+   * How many rows sit under each value of one column.
+   *
+   * The same `#narrowed` the page and the footer read, so a header's size is
+   * about the rows the table is about. Nothing is capped: what bounds this is
+   * the clause the caller sends, which for a page is the keys its own rows
+   * hold.
+   */
+  async groupBy(query: GroupQuery): Promise<readonly GroupCount[]> {
+    const complaints = auditGroupKey(this.meta(query.model), query.by);
+    if (complaints.length > 0) {
+      throw new Error(
+        `${query.model} cannot be grouped as asked: ` +
+          complaints.map(({ field, problem }) => `${field} ${problem}`).join("; "),
+      );
+    }
+
+    // Keyed by type as well as by value, so a row holding the word "null" and
+    // a row holding nothing are two groups rather than one.
+    const totals = new Map<string, GroupCount>();
+    for (const row of this.#narrowed(query)) {
+      const held = row[query.by];
+      const key = (held === undefined ? null : held) as GroupKey;
+      const under = `${typeof key}:${String(key)}`;
+      totals.set(under, { key, total: (totals.get(under)?.total ?? 0) + 1 });
+    }
+    return Promise.resolve([...totals.values()]);
   }
 
   /** Which rows a read is about, before anything is done with them. */

@@ -30,6 +30,9 @@ export type {
   ClauseOperator,
   DataAdapter,
   DeletedRows,
+  GroupCount,
+  GroupKey,
+  GroupQuery,
   Id,
   IncludePlan,
   Page,
@@ -322,7 +325,7 @@ export {
 export { auditAggregations } from "./aggregate.js";
 
 // What a column can gather rows by. Read once, at boot.
-export { auditGrouping } from "./grouping.js";
+export { auditGrouping, auditGroupKey } from "./grouping.js";
 
 // What a table says about a column under all of it.
 export type { Summary } from "./summary.js";

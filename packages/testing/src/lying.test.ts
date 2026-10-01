@@ -94,6 +94,10 @@ class Exploding implements DataAdapter {
     throw new Error("not needed here");
   }
 
+  groupBy(): never {
+    throw new Error("not needed here");
+  }
+
   transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     return fn(this);
   }
