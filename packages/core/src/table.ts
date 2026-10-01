@@ -30,6 +30,14 @@ export interface TableState {
   /** What a ticked selection may be put through. */
   readonly bulkActions: readonly (Action | ActionGroup)[];
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
+  /**
+   * The column whose value gathers the rows into groups.
+   *
+   * A path rather than a column: a table groups by a value, and whether that
+   * value is drawn in a column of its own is a separate decision. A table
+   * grouped by a status it does not show is a reasonable table.
+   */
+  readonly groupBy?: string;
   readonly empty?: EmptyState;
 }
 
@@ -219,6 +227,15 @@ export interface ColumnTree {
   /** What it offers for a ticked selection. */
   readonly bulkActions: readonly ActionNode[];
   readonly defaultSort?: { readonly path: string; readonly direction: SortDirection };
+  /**
+   * The path the rows are gathered by, where they are.
+   *
+   * Sent with the shape rather than with the counts, being a fact about the
+   * table rather than about this page of it. The renderer needs it to know
+   * where one group stops: it walks the rows it already has and opens a header
+   * where the value changes, which is the whole of what the client works out.
+   */
+  readonly groupBy?: string;
   readonly empty?: EmptyState;
 }
 
@@ -275,6 +292,31 @@ export class Table {
    */
   defaultSort(path: string, direction: SortDirection = "asc"): Table {
     return new Table({ ...this.state, defaultSort: { path, direction } });
+  }
+
+  /**
+   * Gathers the rows by what they hold in one column, each group's size above
+   * it.
+   *
+   * The size is the group's and not the part of it on this page: a number that
+   * grew as somebody paged through one group would not be a size. It is worked
+   * out by the database over every row a filter left.
+   *
+   * This orders the page ahead of anything the reader asked for. A group whose
+   * rows are scattered down a page is not a group, and a header appearing
+   * three times has stopped meaning anything; what the reader asked for orders
+   * within the group.
+   *
+   * Rows holding nothing in that column are a group of their own rather than
+   * rows left out. A list that hides rows while saying it shows them is the
+   * worst thing a table can do quietly.
+   *
+   * Refused at boot where the column cannot gather anything: a timestamp,
+   * which without a bucket is one group per row, and the two types a database
+   * will not group at all.
+   */
+  groupBy(path: string): Table {
+    return new Table({ ...this.state, groupBy: path });
   }
 
   /**
@@ -489,6 +531,7 @@ export function serialiseTable(table: Table): ColumnTree {
     ...(table.state.defaultSort === undefined
       ? {}
       : { defaultSort: table.state.defaultSort }),
+    ...(table.state.groupBy === undefined ? {} : { groupBy: table.state.groupBy }),
   };
 }
 
