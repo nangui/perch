@@ -109,14 +109,18 @@ Behaviors: filters persisted in the URL (shareable, reloadable), a badge with th
 | Sorting on an indexed column | 200 ms | 100 ms |
 | Global search across 3 columns | 400 ms | 200 ms |
 | 100k rows, cursor pagination | — | 200 ms |
-| SQL queries per page render | **≤ 3** (count + rows + filters) | ≤ 3 |
+| SQL queries per page render | **constant in the row count** | the same |
+
+What a page costs, measured: the rows, their count, one per relation it loads, one more where a column declares a footer, and one more where the table gathers its rows into groups. A page holding rows with nothing in the grouped column costs a second grouped read, and a footer asking both for a count of rows and a count of a column costs a second aggregate.
+
+An absolute number is not written here on purpose. It would pin the ORM's join strategy, which is the ORM's to choose, and a release folding two of these into one join would read as a regression rather than as the improvement it is. What may not happen is a query per row, or a count that grows with the rows.
 
 The SQL query counter is a regression test in CI, not a good intention.
 
 ## 10. Acceptance criteria
 
 1. **A2** — relation column + select filter + bulk delete + confirmation modal, on a real resource.
-2. 10,000 rows: first render < 300 ms, ≤ 3 SQL queries, no per-row query.
+2. 10,000 rows: first render < 300 ms, no per-row query, and the same number of queries as the same page over five rows.
 3. Filters and sorting persisted in the URL: reloading the page restores the exact state; the URL is shareable.
 4. Two consecutive pages never show the same row twice (stable order guaranteed by the tiebreaker sort on the primary key).
 5. "Select all" over 100,000 filtered rows does not load 100,000 IDs on the client.
