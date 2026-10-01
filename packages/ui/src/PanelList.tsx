@@ -21,6 +21,7 @@ import type {
   FormState,
   Row,
   SchemaPayload,
+  Summary,
 } from "@perchjs/core";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 import { PanelForm } from "./PanelForm.js";
@@ -42,6 +43,8 @@ export interface RecordsPage {
   readonly page: number;
   readonly perPage: number;
   readonly columns: ColumnTree;
+  /** What the footer says, by column path. Absent where no column asked. */
+  readonly summaries?: Readonly<Record<string, readonly Summary[]>>;
   /** The order the server applied, which may not be the one that was asked. */
   readonly sort?: DataTableSort;
   /** The term the server searched for, which may not be the one that was asked. */
@@ -677,6 +680,7 @@ export function PanelList({
             columns: page.columns.columns.filter((one) => !hidden.has(one.path)),
           }}
           rows={page.rows}
+          {...(page.summaries === undefined ? {} : { summaries: page.summaries })}
           caption={title}
           {...(page.columns.empty === undefined
             ? {}

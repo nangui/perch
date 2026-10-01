@@ -13,12 +13,15 @@ import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import type {
   ActionNode,
+  AggregateValue,
   ColumnNode,
   ColumnTree,
   Row,
   SortDirection,
+  Summary,
 } from "@perchjs/core";
 import { useDismiss } from "./dismiss.js";
+import { formatValue } from "./format.js";
 import { EllipsisMark } from "./marks.js";
 import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
@@ -47,9 +50,56 @@ function shape(column: ColumnNode, base: string): string {
     .join(" ");
 }
 
+/** What a reader calls each of the four, in a footer. */
+const CALLED: Readonly<Record<Summary["of"], string>> = {
+  count: "Count",
+  sum: "Total",
+  avg: "Average",
+  range: "Range",
+};
+
+/**
+ * No value, for a reader.
+ *
+ * Not a zero. A sum of a column holding nothing but nulls is not nought, and
+ * a footer is the one place that difference cannot be taken back, because
+ * somebody is reading the number rather than passing it on.
+ */
+const NOTHING = "\u2013";
+
+/**
+ * One line of the footer, as words.
+ *
+ * A count is a number of rows and takes none of the column's formatting: run
+ * through a money rule it would read as an amount and mean a tally. The other
+ * three are the column's own kind of value, so they take the column's rule,
+ * which is the same call a cell makes and therefore the same answer.
+ */
+function worded(summary: Summary, column: ColumnNode): string {
+  if (summary.of === "count") {
+    return summary.value === null ? NOTHING : String(summary.value);
+  }
+  // Null only: a range's far end is normalised below, and the other three
+  // cannot be absent without the server having left a key out of its own type.
+  const said = (value: AggregateValue): string =>
+    value === null ? NOTHING : (formatValue(value, column) ?? String(value));
+
+  return summary.of === "range"
+    ? `${said(summary.value)} to ${said(summary.to ?? null)}`
+    : said(summary.value);
+}
+
 export interface DataTableProps {
   readonly columns: ColumnTree;
   readonly rows: readonly Row[];
+  /**
+   * What the footer says, by column path.
+   *
+   * Worked out on the server over every row a filter left, not over the page,
+   * so the number does not change when somebody turns one. Absent means the
+   * table has no footer, and a column absent from it has none of its own.
+   */
+  readonly summaries?: Readonly<Record<string, readonly Summary[]>>;
   /** Which column is ordering the page, if the server was asked for one. */
   readonly sort?: DataTableSort;
   /** Absent means the table cannot be reordered from here. */
@@ -110,6 +160,7 @@ const READS_TEXT = new Set(["TextColumn", "TextInputColumn"]);
 export function DataTable({
   columns,
   rows,
+  summaries,
   sort,
   onSort,
   caption,
@@ -174,6 +225,17 @@ export function DataTable({
     column,
     render: lookupColumn(column.type),
   }));
+
+  // How tall the footer is: the most lines any one column asked for. Counted
+  // over the columns being drawn rather than over everything the server sent,
+  // so a column the reader took off takes its footer with it.
+  //
+  // The zero is first because `Math.max` of nothing is negative infinity, and
+  // a table with no footer is the common case.
+  const lines = Math.max(
+    0,
+    ...rendered.map(({ column }) => (summaries?.[column.path] ?? []).length),
+  );
 
   // Read once for the header rather than per row, and only over the rows this
   // page actually holds: "all" means all of what is on screen.
@@ -333,6 +395,46 @@ export function DataTable({
           </tr>
         ))}
       </tbody>
+      {lines === 0 ? null : (
+        <tfoot className="perch-table__foot">
+          {/* One row per line a column asked for, so a column wanting a total
+              and an average lines up under itself rather than beside the next
+              column's. The height is the deepest column's, and a column with
+              nothing to say at that depth draws an empty cell. */}
+          {Array.from({ length: lines }, (_, depth) => (
+            <tr key={depth}>
+              {selection === undefined ? null : (
+                <td className="perch-table__cell perch-table__pick" />
+              )}
+              {rendered.map(({ column }) => {
+                const summary = (summaries?.[column.path] ?? [])[depth];
+                return (
+                  <td
+                    key={column.path}
+                    className={shape(column, "perch-table__cell")}
+                  >
+                    {summary === undefined ? null : (
+                      <>
+                        {/* Named in every cell rather than once at the end of
+                            the row: a row read out loud has to say what each
+                            number is, and there is no spare cell at the start
+                            of a table that has no checkboxes. */}
+                        <span className="perch-table__summary-name">
+                          {CALLED[summary.of]}
+                        </span>
+                        <span className="perch-table__summary-value">
+                          {worded(summary, column)}
+                        </span>
+                      </>
+                    )}
+                  </td>
+                );
+              })}
+              {anyActions ? <td className="perch-table__cell" /> : null}
+            </tr>
+          ))}
+        </tfoot>
+      )}
     </table>
   );
 }
