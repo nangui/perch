@@ -19,6 +19,81 @@ are collected at the boundary rather than dripped through patches.
 This page starts at `0.2`. Going from `0.1` to `0.2` added things and took nothing away,
 so there was nothing to do, and a section saying so would be a section about nothing.
 
+## 0.3 to 0.4
+
+One thing, and unlike every change at the last boundary the compiler sees this one. If you
+have never written a `DataAdapter` of your own, there is nothing on this page for you.
+
+### An adapter of your own has to be able to aggregate
+
+`DataAdapter` gained a method. `aggregate` takes the same narrowing a `findMany` takes, plus
+a set of functions keyed by whatever you are drawing, and answers one value per key:
+
+```ts
+import type { Aggregation, AggregateQuery, AggregateResult } from "@perchjs/core";
+import type { ModelMeta, Row } from "@perchjs/core";
+import { auditAggregations } from "@perchjs/core";
+
+declare const meta: (model: string) => ModelMeta;
+/** The rows a page would have listed for this narrowing, and no others. */
+declare const narrowed: (query: AggregateQuery) => readonly Row[];
+/** Your arithmetic. The rules around it are what this release asks of you. */
+declare const worked: (fn: Aggregation["fn"], values: readonly unknown[]) => number;
+
+async function aggregate(query: AggregateQuery): Promise<AggregateResult> {
+  // What a column admits is read from the schema rather than left to the
+  // database. Some databases will happily sum a boolean, and an adapter that
+  // lets them makes the same panel answer differently underneath.
+  const complaints = auditAggregations(meta(query.model), query.aggregations);
+  if (complaints.length > 0) throw new Error(complaints.map((one) => one.problem).join("; "));
+
+  const rows = narrowed(query);
+  const answer: Record<string, number | null> = {};
+
+  for (const [key, one] of Object.entries(query.aggregations)) {
+    const path = one.path;
+    if (path === undefined) {
+      answer[key] = rows.length;
+      continue;
+    }
+    const held = rows
+      .map((row) => row[path])
+      .filter((value) => value !== null && value !== undefined);
+
+    // Null, not zero, where there was nothing to work over. A zero is a total
+    // a reader can see and nobody worked out. A count is the one exception.
+    answer[key] = one.fn === "count" ? held.length : held.length === 0 ? null : worked(one.fn, held);
+  }
+  return answer;
+}
+```
+
+Required rather than optional, so your adapter stops compiling rather than failing the first
+time a page asks it for a total. That is the trade this release makes on purpose.
+
+Two notes that ask nothing of you. The half of a `Query` that decides which rows is now
+called `Narrowing`, and `Query` extends it, so anything you wrote that builds or takes a
+`Query` is unchanged. And `aggregate` is handed to the callback of `transaction` along with
+everything else, because that callback is handed a `DataAdapter`.
+
+If you use the adapter `@perchjs/prisma` ships, you have nothing to do. It implements the
+method, in up to two statements per call: a count of rows goes through the route a page
+total already used, and everything naming a column goes in one object.
+
+### The contract for adapters asks more than it did
+
+`checkDataAdapter` from `@perchjs/testing` now asks about aggregates as well, and needs
+nothing declared for it. A suite of yours that was green may go red, which is the point of
+owning a contract.
+
+What it asks: that a count of rows answers what a page answers as its total, that an empty
+set answers null rather than zero, that the arithmetic agrees with the rows themselves, that
+a marked row is out of an aggregate while it is out of the page, and that a function the
+column cannot bear is refused rather than passed along.
+
+What it still does not ask, so that you know where you are on your own: the arithmetic over
+a `Decimal` or a `BigInt`, which is where an adapter that rounds quietly would show.
+
 ## 0.2 to 0.3
 
 Five things, and the compiler sees none of them. Two are versions the panel now asks of its
