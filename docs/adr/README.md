@@ -43,6 +43,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0029](0029-what-a-decision-may-name.md) | A decision names what a file holds; the guard names where it is — correcting ADR 0028's address | accepted |
 | [0030](0030-how-a-closed-vocabulary-arrives.md) | A word leaving a closed vocabulary is refused at once, with no deprecation window | accepted |
 | [0032](0032-what-an-aggregate-asks-for.md) | One aggregate call carries several named functions over the rows a narrowing keeps; the path is the declaration's | accepted |
+| [0033](0033-what-a-group-is.md) | A group answers a key and a size, asked only about the keys the page holds; a date is refused for want of a bucket | accepted |
 
 ## Format
 
