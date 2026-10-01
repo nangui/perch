@@ -166,6 +166,71 @@ narrow one salary down, so a column `.visible()` turns away for somebody has no 
 worked out for them at all, rather than one that is worked out and then not drawn. A
 column the reader takes off the table takes its footer with it too.
 
+## Gathering the rows into groups
+
+```ts
+import { Schema, Table, TextColumn, TextInput } from "@perchjs/core";
+import { PanelResource } from "@perchjs/nest";
+
+@PanelResource({ model: "Order" })
+export class OrdersResource implements PanelResource {
+  form() {
+    return Schema.make([TextInput.make("reference")]);
+  }
+
+  table() {
+    return Table.make()
+      .columns([TextColumn.make("reference"), TextColumn.make("total").money("EUR")])
+      .groupBy("status");
+  }
+}
+```
+
+A path, not a column. A table gathers by a value, and whether that value is also drawn
+in a column of its own is a separate decision, so a table grouped by a status it does not
+show is a reasonable table.
+
+This orders the page by that column ahead of anything the reader asked for, and what the
+reader asked for then orders within a group. A group whose rows are scattered down a page
+is not a group, and a header appearing three times has stopped meaning anything. The sort
+indicator still points at the reader's own column, because that is the one they chose.
+
+**The size on a header is the whole group's, not the part of it on the page.** Nine orders
+in a group of which this page shows two reads as nine. A number counted from the rows in
+front of it would say two, and it would change as somebody paged through a group they had
+not left, which is not what a size means.
+
+Only the groups this page draws are asked about. A header opens where the rows cross a
+boundary, so those are the only ones there is anywhere to draw, and asking about the rest
+would be a read that grows with the table. The keys come off the rows already in hand, so
+nothing is capped: a page cannot hold more groups than it holds rows.
+
+Rows holding nothing in that column are a group of their own, not rows left out. A list
+that hides rows while saying it shows them is the worst thing a table can do quietly. A
+page holding one of those costs a second read, because `in` over a list holding nothing
+matches no row and there is no single clause for "one of these, or nothing".
+
+Collapsing a group hides rows the browser already has. It saves no read, and a header
+that fetched would be a query per group, which is the thing a table is built not to do.
+
+### What a column has to be to gather anything
+
+A string, a number, a boolean, or an enum. The boot refuses the rest, naming the column:
+
+- **A timestamp.** This is the grouping you will want first, and it is the one that is not
+  here. Grouped as it stands, every distinct instant is its own group, which is a header
+  above every row. Grouping by the day or the month needs the database to truncate the
+  value, which is a hand written statement behind a port that exists not to have one.
+- **Json and bytes**, which a database will not group rows by at all.
+- **A list**, because a row holding several values belongs to several groups.
+- **A path through a relation.** Grouping by an author would need a join the grouped read
+  cannot express, and the header would read as a foreign key rather than as a name even
+  once it could.
+
+A float and a decimal are allowed and will usually be a mistake, every distinct amount
+being its own group. Which of your columns are continuous is something only your schema
+knows.
+
 ## Filters
 
 ```ts

@@ -21,8 +21,9 @@ so there was nothing to do, and a section saying so would be a section about not
 
 ## 0.3 to 0.4
 
-One thing, and unlike every change at the last boundary the compiler sees this one. If you
-have never written a `DataAdapter` of your own, there is nothing on this page for you.
+Two things, both on the same port, and unlike every change at the last boundary the
+compiler sees them. If you have never written a `DataAdapter` of your own, there is
+nothing on this page for you.
 
 ### An adapter of your own has to be able to aggregate
 
@@ -79,6 +80,47 @@ everything else, because that callback is handed a `DataAdapter`.
 If you use the adapter `@perchjs/prisma` ships, you have nothing to do. It implements the
 method, in up to two statements per call: a count of rows goes through the route a page
 total already used, and everything naming a column goes in one object.
+
+### And it has to be able to group
+
+`DataAdapter` gained a second method, for the same reason and in the same shape.
+`groupBy` takes a narrowing and one column, and answers a key and a size per group:
+
+```ts
+import type { GroupCount, GroupQuery, GroupKey, ModelMeta, Row } from "@perchjs/core";
+import { auditGroupKey } from "@perchjs/core";
+
+declare const meta: (model: string) => ModelMeta;
+/** The rows a page would have listed for this narrowing, and no others. */
+declare const narrowed: (query: GroupQuery) => readonly Row[];
+
+async function groupBy(query: GroupQuery): Promise<readonly GroupCount[]> {
+  const complaints = auditGroupKey(meta(query.model), query.by);
+  if (complaints.length > 0) throw new Error(complaints.map((one) => one.problem).join("; "));
+
+  const totals = new Map<string, GroupCount>();
+  for (const row of narrowed(query)) {
+    const held = row[query.by];
+    const key = (held === undefined ? null : held) as GroupKey;
+    // Filed by type as well as by value, so a row holding the word "null" and
+    // a row holding nothing are two groups rather than one.
+    const under = `${typeof key}:${String(key)}`;
+    totals.set(under, { key, total: (totals.get(under)?.total ?? 0) + 1 });
+  }
+  return [...totals.values()];
+}
+```
+
+Three things it owes, and each is a thing an implementation gets wrong on its own.
+
+The size is every row of the group the narrowing kept, not the part of it the caller is
+about to draw. Nothing is capped: what bounds a grouped read is the clause the caller
+sends, which for a page is the keys its own rows hold, so a cap here would be a number
+picked rather than derived. And rows holding nothing in that column are a group keyed
+`null`, not rows left out, because a caller that drew them with no group to put them in
+would be showing rows nothing accounts for.
+
+If you use the adapter `@perchjs/prisma` ships, you have nothing to do.
 
 ### The contract for adapters asks more than it did
 
