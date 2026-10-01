@@ -109,6 +109,63 @@ asked for. Not in the address, which would hand somebody else's arrangement to w
 opened the link, and not on the server, which would follow a person between machines and
 needs a store this framework does not have.
 
+## What the footer says
+
+```ts
+import { Schema, Table, TextColumn, TextInput } from "@perchjs/core";
+import { PanelResource } from "@perchjs/nest";
+
+@PanelResource({ model: "Order" })
+export class OrdersResource implements PanelResource {
+  form() {
+    return Schema.make([TextInput.make("reference")]);
+  }
+
+  table() {
+    return Table.make().columns([
+      TextColumn.make("reference").summarise("count"),
+      TextColumn.make("total").money("EUR").summarise("sum", "avg"),
+      TextColumn.make("placedAt").dateTime().summarise("range"),
+    ]);
+  }
+}
+```
+
+Four words, and no fifth: `count`, `sum`, `avg`, `range`. A column may ask for several,
+and they draw as lines under it in the order it named them.
+
+The numbers are worked out by the database over **every row a filter left**, not over the
+page. A total of the twenty-five rows on screen is a number that moves when somebody turns
+a page, which is not what a total means. Narrow the list with a filter or a search and the
+footer narrows with it, because the footer and the table above it are one question asked
+twice and there is one declaration of which rows.
+
+Every footer in a table costs **one query**, however many columns asked. That is what the
+aggregate on the data port takes several named functions for.
+
+`count` names its column and counts the rows that hold a value in it. The count of rows is
+already on the response as its total, so a second copy of it under a column would be one
+number arriving twice with nothing to say which was which.
+
+A total of a money column reads as money, through the same formatting a cell uses, so an
+amount cannot read one way in a row and another underneath it. A count of that same column
+does not: a count is a number of rows, and run through a money rule it would read as an
+amount and mean a tally.
+
+**No value reads as no value, never as nought.** A sum over rows that hold nothing in that
+column has no total, and printing 0 would state one nobody worked out. The footer shows a
+dash. It is the one place that difference cannot be taken back, because the person looking
+at a footer is reading the number rather than passing it on.
+
+What a column cannot bear is refused at boot, naming the column: a total of a date, or of
+a column on another model reached through a relation. The second is a different feature,
+an aggregate per row over that row's related rows, and it is not in this release.
+
+A column a reader may not have is never asked about. Four readings of a filtered total
+narrow one salary down, so a column `.visible()` turns away for somebody has no footer
+worked out for them at all, rather than one that is worked out and then not drawn. A
+column the reader takes off the table takes its footer with it too.
+
 ## Filters
 
 ```ts
