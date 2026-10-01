@@ -18,11 +18,12 @@ interface Recorder {
   readonly client: PrismaClientLike;
 }
 
-function recorder(rows: unknown[] = [], total = 0): Recorder {
+function recorder(rows: unknown[] = [], total = 0, worked: unknown = {}): Recorder {
   const calls = {
     findMany: vi.fn(() => Promise.resolve(rows)),
     findUnique: vi.fn(() => Promise.resolve(rows[0] ?? null)),
     count: vi.fn(() => Promise.resolve(total)),
+    aggregate: vi.fn(() => Promise.resolve(worked)),
     create: vi.fn((args: { data: unknown }) => Promise.resolve(args.data)),
     update: vi.fn((args: { data: unknown }) => Promise.resolve(args.data)),
     updateMany: vi.fn(() => Promise.resolve({ count: 0 })),
@@ -653,5 +654,148 @@ describe("narrowing to the other side of a join", () => {
       where: { posts: { none: { id: 4 } } },
       orderBy: [{ id: "asc" }],
     });
+  });
+});
+
+describe("what an aggregate sends, and what it makes of the answer", () => {
+  it("folds every function naming a column into one call", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.aggregate({
+      model: "Post",
+      aggregations: {
+        filled: { fn: "count", path: "title" },
+        total: { fn: "sum", path: "authorId" },
+        typical: { fn: "avg", path: "authorId" },
+        lowest: { fn: "min", path: "authorId" },
+        highest: { fn: "max", path: "authorId" },
+      },
+    });
+
+    expect(calls.aggregate).toHaveBeenCalledTimes(1);
+    expect(argsOf(calls.aggregate)).toEqual({
+      _count: { title: true },
+      _sum: { authorId: true },
+      _avg: { authorId: true },
+      _min: { authorId: true },
+      _max: { authorId: true },
+    });
+  });
+
+  it("asks the same column twice under one key, not twice", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.aggregate({
+      model: "Post",
+      aggregations: {
+        lowest: { fn: "min", path: "authorId" },
+        earliest: { fn: "min", path: "id" },
+      },
+    });
+
+    expect(argsOf(calls.aggregate)).toEqual({ _min: { authorId: true, id: true } });
+  });
+
+  it("counts rows through `count`, which a database has already accepted", async () => {
+    // Not an argument shape invented here to fold a row count into the
+    // aggregate call: this is the one the page total was already using.
+    const { adapter, calls } = recorder([], 7);
+    const answer = await adapter.aggregate({
+      model: "Post",
+      aggregations: { rows: { fn: "count" } },
+    });
+
+    expect(answer).toEqual({ rows: 7 });
+    expect(calls.count).toHaveBeenCalledTimes(1);
+    expect(calls.aggregate).not.toHaveBeenCalled();
+  });
+
+  it("takes two statements for a row count and a column count, and says so", async () => {
+    const { adapter, calls } = recorder([], 7, { _count: { title: 4 } });
+    expect(
+      await adapter.aggregate({
+        model: "Post",
+        aggregations: { rows: { fn: "count" }, titled: { fn: "count", path: "title" } },
+      }),
+    ).toEqual({ rows: 7, titled: 4 });
+    expect(calls.count).toHaveBeenCalledTimes(1);
+    expect(calls.aggregate).toHaveBeenCalledTimes(1);
+  });
+
+  it("narrows by the same clauses a page would, and by the same liveness", async () => {
+    const { adapter, calls } = recorder();
+    await adapter.aggregate({
+      model: "Note",
+      clauses: [{ path: "body", operator: "contains", value: "hop" }],
+      aggregations: { rows: { fn: "count" } },
+    });
+
+    // The tombstone clause and the declared one, both kept: a footer that
+    // counted deleted rows the page above it hides is the same bug one level
+    // down.
+    expect(argsOf(calls.count)).toEqual({
+      where: { AND: [{ body: { contains: "hop" } }, { deletedAt: null }] },
+    });
+  });
+
+  it("answers null where there was no row, rather than zero", async () => {
+    const { adapter } = recorder([], 0, { _sum: { authorId: null } });
+    expect(
+      await adapter.aggregate({
+        model: "Post",
+        aggregations: { total: { fn: "sum", path: "authorId" } },
+      }),
+    ).toEqual({ total: null });
+  });
+
+  it("keeps a date a date, and widens what a double would round", async () => {
+    // A bigint and Prisma's Decimal both print themselves exactly. Neither
+    // survives a double, so both leave as strings.
+    const when = new Date("2026-03-04T05:06:07.000Z");
+    const decimal = { toFixed: () => "1.25", toString: () => "1234.56789012345678" };
+    const { adapter } = recorder([], 0, {
+      _min: { deletedAt: when },
+      _max: { id: 9_007_199_254_740_993n },
+      _sum: { id: decimal },
+    });
+
+    expect(
+      await adapter.aggregate({
+        model: "Note",
+        aggregations: {
+          first: { fn: "min", path: "deletedAt" },
+          biggest: { fn: "max", path: "id" },
+          exact: { fn: "sum", path: "id" },
+        },
+      }),
+    ).toEqual({
+      first: when,
+      biggest: "9007199254740993",
+      exact: "1234.56789012345678",
+    });
+  });
+
+  it("refuses an aggregation the model cannot bear, before touching the client", async () => {
+    const { adapter, calls } = recorder();
+    await expect(
+      adapter.aggregate({
+        model: "Note",
+        aggregations: { when: { fn: "sum", path: "deletedAt" } },
+      }),
+    ).rejects.toThrow(/deletedAt.*DateTime column/s);
+
+    expect(calls.aggregate).not.toHaveBeenCalled();
+    expect(calls.count).not.toHaveBeenCalled();
+  });
+
+  it("names every complaint it has, not only the first", async () => {
+    const { adapter } = recorder();
+    await expect(
+      adapter.aggregate({
+        model: "Note",
+        aggregations: {
+          a: { fn: "sum", path: "deletedAt" },
+          b: { fn: "avg", path: "nowhere" },
+        },
+      }),
+    ).rejects.toThrow(/deletedAt[\s\S]*nowhere/);
   });
 });

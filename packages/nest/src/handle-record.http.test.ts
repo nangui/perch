@@ -125,6 +125,11 @@ class MemoryAdapter implements DataAdapter {
   detach(): Promise<void> {
     return Promise.resolve();
   }
+  // Required by the port; nothing here asks a double to aggregate.
+  aggregate(): never {
+    throw new Error("not needed here");
+  }
+
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     const answer = await fn(this);
     if (failCommit) throw new Error("rolled back");

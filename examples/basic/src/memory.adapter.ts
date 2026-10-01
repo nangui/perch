@@ -17,6 +17,10 @@
  */
 import { Injectable } from "@nestjs/common";
 import type {
+  AggregateQuery,
+  AggregateResult,
+  AggregateValue,
+  Aggregation,
   Clause,
   DataAdapter,
   FieldMeta,
@@ -25,6 +29,7 @@ import type {
   IncludePlan,
   Ir,
   ModelMeta,
+  Narrowing,
   Page,
   Query,
   ReadOptions,
@@ -437,6 +442,46 @@ export class MemoryAdapter implements DataAdapter {
     });
   }
 
+  /**
+   * The same rows a page would list, reduced to one value each.
+   *
+   * It narrows through `#narrowed`, which is what `findMany` filters with, so
+   * a footer here cannot total rows the table above it left out. That is the
+   * only interesting thing about an in-memory aggregate; the arithmetic below
+   * is what a database would have done.
+   */
+  aggregate(query: AggregateQuery): Promise<AggregateResult> {
+    const rows = this.#narrowed(query);
+    const answer: Record<string, AggregateValue> = {};
+    for (const [key, one] of Object.entries(query.aggregations)) {
+      answer[key] = reduced(rows, one);
+    }
+    return Promise.resolve(answer);
+  }
+
+  /** Which rows a read is about, before anything is done with them. */
+  #narrowed(query: Narrowing): Row[] {
+    const all =
+      query.model === "Team"
+        ? TEAMS
+        : query.model === "Project"
+          ? PROJECTS
+          : query.model === "Task"
+            ? this.#tasks
+            : this.#rows;
+
+    const rows = all
+      .filter((row) => wanted(row, query.deleted))
+      .filter((row) => matches(row, query.clauses));
+
+    const term = query.search?.term.toLowerCase();
+    if (term === undefined || term === "") return rows;
+    const paths = query.search?.paths ?? [];
+    return rows.filter((row) =>
+      paths.some((path) => text(row[path]).toLowerCase().includes(term)),
+    );
+  }
+
   /** The children come with the row: they are the only ones an update reaches. */
   findOne(model: string, id: Id, options?: ReadOptions): Promise<Row | null> {
     if (model === "Team") {
@@ -653,6 +698,47 @@ function join(row: Row, include: IncludePlan | undefined): Row {
 }
 
 /** Whether a row is one this read asked for. `without` where nothing says so. */
+/**
+ * One aggregation over rows already narrowed.
+ *
+ * Nothing checks here which column takes which function: `auditAggregations`
+ * in the core settled that before the call, and a second opinion that
+ * disagreed would be the more interesting bug.
+ */
+function reduced(rows: readonly Row[], aggregation: Aggregation): AggregateValue {
+  const { fn, path } = aggregation;
+  if (path === undefined) return rows.length;
+
+  // A null is a row the column has nothing in, which a count counts out and
+  // the other four work around rather than treating as a zero.
+  const present = rows
+    .map((row) => row[path])
+    .filter((value) => value !== null && value !== undefined);
+
+  if (fn === "count") return present.length;
+  if (present.length === 0) return null;
+
+  if (fn === "sum" || fn === "avg") {
+    const total = present.reduce((into: number, value) => into + Number(value), 0);
+    return fn === "sum" ? total : total / present.length;
+  }
+
+  const ordered = [...present].sort(ascending);
+  const edge = fn === "min" ? ordered[0] : ordered[ordered.length - 1];
+  return edge instanceof Date || typeof edge === "number" || typeof edge === "string"
+    ? edge
+    : null;
+}
+
+/** Numbers by size, dates by instant, anything else by how it reads. */
+function ascending(left: unknown, right: unknown): number {
+  if (typeof left === "number" && typeof right === "number") return left - right;
+  if (left instanceof Date && right instanceof Date) {
+    return left.getTime() - right.getTime();
+  }
+  return text(left).localeCompare(text(right));
+}
+
 function wanted(row: Row, deleted: DeletedRows | undefined): boolean {
   if (deleted === "with") return true;
   const marked = row["deletedAt"] != null;

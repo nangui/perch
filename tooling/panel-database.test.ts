@@ -77,6 +77,7 @@ class AppAdapter implements DataAdapter {
     adapter.attach(model, id, relation, targets);
   detach: DataAdapter["detach"] = (model, id, relation, targets) =>
     adapter.detach(model, id, relation, targets);
+  aggregate: DataAdapter["aggregate"] = (query) => adapter.aggregate(query);
   transaction: DataAdapter["transaction"] = (fn) => adapter.transaction(fn);
 }
 

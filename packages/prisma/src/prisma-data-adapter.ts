@@ -7,6 +7,11 @@
  * is the delegate methods this adapter calls, and `$transaction`.
  */
 import type {
+  AggregateFunction,
+  AggregateQuery,
+  AggregateResult,
+  AggregateValue,
+  Aggregation,
   DataAdapter,
   Clause,
   DeletedRows,
@@ -14,6 +19,7 @@ import type {
   IncludePlan,
   Ir,
   ModelMeta,
+  Narrowing,
   Page,
   Query,
   ReadOptions,
@@ -24,12 +30,13 @@ import type {
   Sort,
   WriteTree,
 } from "@perchjs/core";
-import { findModel, findRelation, SOFT_DELETE_FIELD } from "@perchjs/core";
+import { auditAggregations, findModel, findRelation, SOFT_DELETE_FIELD } from "@perchjs/core";
 
 export interface PrismaDelegate {
   findMany: (args: Record<string, unknown>) => Promise<unknown[]>;
   findUnique: (args: Record<string, unknown>) => Promise<unknown>;
   count: (args: Record<string, unknown>) => Promise<number>;
+  aggregate: (args: Record<string, unknown>) => Promise<unknown>;
   create: (args: Record<string, unknown>) => Promise<unknown>;
   update: (args: Record<string, unknown>) => Promise<unknown>;
   updateMany: (args: Record<string, unknown>) => Promise<{ count: number }>;
@@ -99,6 +106,52 @@ export class PrismaDataAdapter implements DataAdapter {
     ]);
 
     return { rows: rows as Row[], total };
+  }
+
+  /**
+   * One call over one set of rows, and up to two statements.
+   *
+   * A count of rows goes to `count`, which this adapter was already calling
+   * for a page's total and which a real database has therefore already
+   * accepted. Everything else goes to `aggregate` in one object. A caller
+   * wanting both a count of rows and a count of the rows some column is not
+   * null on gets two statements rather than an argument shape invented here
+   * to fold them into one.
+   */
+  async aggregate(query: AggregateQuery): Promise<AggregateResult> {
+    const complaints = auditAggregations(this.meta(query.model), query.aggregations);
+    if (complaints.length > 0) {
+      // Not `describeComplaints`: it says "declares a form that cannot work",
+      // which is true of every caller it has and of none of these.
+      throw new Error(
+        `${query.model} cannot be aggregated as asked:\n` +
+          complaints
+            .map(({ field, problem }) => `  - \`${field}\` ${problem}`)
+            .join("\n"),
+      );
+    }
+
+    const delegate = this.#delegate(query.model);
+    const where = both(whereOf(query), this.#liveness(query.model, query.deleted));
+    const filter = Object.keys(where).length === 0 ? {} : { where };
+
+    const asked = Object.entries(query.aggregations);
+    const rows = asked.some(([, one]) => one.path === undefined);
+    const selection = selectionOf(asked);
+
+    const [counted, computed] = await Promise.all([
+      rows ? delegate.count(filter) : undefined,
+      selection === undefined
+        ? undefined
+        : delegate.aggregate({ ...filter, ...selection }),
+    ]);
+
+    const answer: Record<string, AggregateValue> = {};
+    for (const [key, one] of asked) {
+      answer[key] =
+        one.path === undefined ? (counted ?? 0) : worked(computed, one, one.path);
+    }
+    return answer;
   }
 
   async findOne(model: string, id: Id, options?: ReadOptions): Promise<Row | null> {
@@ -404,7 +457,7 @@ function both(
   return { AND: [left, right] };
 }
 
-function whereOf(query: Query): Record<string, unknown> {
+function whereOf(query: Narrowing): Record<string, unknown> {
   const clauses = (query.clauses ?? []).map(clauseOf);
   const search = searchOf(query.search);
   if (search !== undefined) clauses.push(search);
@@ -424,6 +477,76 @@ function whereOf(query: Query): Record<string, unknown> {
   if (clauses.length === 0) return {};
   if (clauses.length === 1) return clauses[0] as Record<string, unknown>;
   return { AND: clauses };
+}
+
+/** Prisma names each function by underscoring it. */
+const UNDER: Readonly<Record<AggregateFunction, string>> = {
+  count: "_count",
+  sum: "_sum",
+  avg: "_avg",
+  min: "_min",
+  max: "_max",
+};
+
+/**
+ * The functions that name a column, folded into one argument per function.
+ *
+ * `undefined` where every aggregation counts rows, so that nothing asks the
+ * database to work out an empty object.
+ */
+function selectionOf(
+  asked: readonly [string, Aggregation][],
+): Record<string, Record<string, true>> | undefined {
+  const selection: Record<string, Record<string, true>> = {};
+  for (const [, one] of asked) {
+    if (one.path === undefined) continue;
+    const under = UNDER[one.fn];
+    selection[under] = { ...selection[under], [one.path]: true };
+  }
+  return Object.keys(selection).length === 0 ? undefined : selection;
+}
+
+/**
+ * One answer, out of the shape Prisma nests it in and into the port's.
+ *
+ * A bigint and a Decimal both print themselves exactly and neither survives a
+ * double, so both are widened to a string rather than quietly rounded. A sum
+ * of an `Int` column stays a number, and a total past the safe integer is
+ * Prisma's to raise on — the column said it fitted in an integer and the sum
+ * of a column is not the column.
+ */
+function worked(
+  computed: unknown,
+  aggregation: Aggregation,
+  path: string,
+): AggregateValue {
+  const under = (computed as Record<string, unknown> | undefined)?.[
+    UNDER[aggregation.fn]
+  ];
+  const raw = (under as Record<string, unknown> | undefined)?.[path];
+
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === "number" || typeof raw === "string") return raw;
+  if (raw instanceof Date) return raw;
+  if (typeof raw === "bigint") return raw.toString();
+  // A Decimal, which prints itself exactly and has no other way out of here
+  // that keeps the fraction.
+  return typeof raw === "object" ? printed(raw) : null;
+}
+
+/**
+ * What a value says about itself, where it says anything.
+ *
+ * Asked by calling the method rather than by interpolating the value, because
+ * an object that never replaced `toString` answers `[object Object]` — which
+ * is a sentence, not a total, and the one thing this must not hand back as if
+ * it were a number.
+ */
+function printed(raw: object): string | null {
+  const own: unknown = (raw as { toString?: unknown }).toString;
+  if (typeof own !== "function" || own === Object.prototype.toString) return null;
+  const said: unknown = (own as () => unknown).call(raw);
+  return typeof said === "string" ? said : null;
 }
 
 function clauseOf(clause: Clause): Record<string, unknown> {

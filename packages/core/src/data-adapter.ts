@@ -232,6 +232,21 @@ export interface DataAdapter {
    * because it is the adapter that knows what the database guarantees.
    */
   findMany(query: Query): Promise<Page>;
+  /**
+   * The values one set of rows works out to, keyed as the caller asked for
+   * them.
+   *
+   * One call rather than one per function, so that a footer's count, total,
+   * average and range are four answers over the same rows instead of four
+   * reads that can disagree. How few statements that becomes is the
+   * adapter's; what it may not do is answer from more than one set of rows.
+   *
+   * An aggregation the model cannot bear is refused rather than sent on. The
+   * boot is where a declaration is caught, and this is the second door: a
+   * `sum` of a date reaching the database comes back as whatever the driver
+   * says about a function that does not exist.
+   */
+  aggregate(query: AggregateQuery): Promise<AggregateResult>;
   findOne(model: string, id: Id, options?: ReadOptions): Promise<Row | null>;
   create(model: string, data: WriteTree): Promise<Row>;
   update(model: string, id: Id, data: WriteTree): Promise<Row>;

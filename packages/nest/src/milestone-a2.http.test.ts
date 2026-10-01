@@ -168,6 +168,11 @@ class MemoryAdapter implements DataAdapter {
   }
 
   /** A copy taken, and put back when the body throws. */
+  // Required by the port; nothing here asks a double to aggregate.
+  aggregate(): never {
+    throw new Error("not needed here");
+  }
+
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     transactions += 1;
     const before = store.map((row) => ({ ...row }));

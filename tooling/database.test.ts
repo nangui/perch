@@ -150,6 +150,94 @@ withDatabase("reading, against a real database", () => {
     expect(page.rows[0]?.["comments"]).toHaveLength(2);
   });
 
+  it("works out five functions over one set of rows, in one statement", async () => {
+    // What no recorder can say: that PostgreSQL accepts these arguments. The
+    // statement count is the other half — the port promises one call and the
+    // adapter is what decides how few queries that is.
+    const [answer, sent] = await count(() =>
+      adapter.aggregate({
+        model: "Post",
+        aggregations: {
+          titled: { fn: "count", path: "title" },
+          bodied: { fn: "count", path: "body" },
+          total: { fn: "sum", path: "authorId" },
+          typical: { fn: "avg", path: "authorId" },
+          first: { fn: "min", path: "title" },
+          last: { fn: "max", path: "title" },
+        },
+      }),
+    );
+
+    expect(sent).toBe(1);
+    expect(answer).toMatchObject({
+      titled: 4,
+      // Every post was created without one, which is the whole difference
+      // between counting rows and counting a column.
+      bodied: 0,
+      typical: author["id"],
+      first: "Post 0",
+      last: "Post 3",
+    });
+    expect(answer["total"]).toBe(Number(author["id"]) * 4);
+  });
+
+  it("counts rows through the route a page total already used", async () => {
+    const [answer, sent] = await count(() =>
+      adapter.aggregate({ model: "Post", aggregations: { rows: { fn: "count" } } }),
+    );
+
+    expect(answer).toEqual({ rows: 4 });
+    expect(sent).toBe(1);
+  });
+
+  it("answers null over no rows, and zero only where it counted", async () => {
+    // The one a footer gets wrong: a filter nothing matched has no total, and
+    // printing 0 would state one nobody worked out.
+    expect(
+      await adapter.aggregate({
+        model: "Post",
+        clauses: [{ path: "title", operator: "equals", value: "nothing by this name" }],
+        aggregations: {
+          rows: { fn: "count" },
+          titled: { fn: "count", path: "title" },
+          total: { fn: "sum", path: "authorId" },
+          typical: { fn: "avg", path: "authorId" },
+          first: { fn: "min", path: "title" },
+        },
+      }),
+    ).toEqual({ rows: 0, titled: 0, total: null, typical: null, first: null });
+  });
+
+  it("aggregates the rows a clause kept, and no others", async () => {
+    expect(
+      await adapter.aggregate({
+        model: "Post",
+        clauses: [{ path: "published", operator: "equals", value: true }],
+        aggregations: { rows: { fn: "count" } },
+      }),
+    ).toEqual({ rows: 2 });
+  });
+
+  it("leaves a marked row out of an aggregate, as it leaves it out of a page", async () => {
+    const comments = await adapter.findMany({ model: "Comment", take: 100 });
+    expect(comments.total).toBe(8);
+    await adapter.delete("Comment", [comments.rows[0]?.["id"] as Id]);
+
+    // Soft-deleting, so this is the footer half of what a page already does.
+    expect(
+      await adapter.aggregate({ model: "Comment", aggregations: { rows: { fn: "count" } } }),
+    ).toEqual({ rows: 7 });
+    expect(
+      await adapter.aggregate({
+        model: "Comment",
+        deleted: "only",
+        aggregations: { rows: { fn: "count" } },
+      }),
+    ).toEqual({ rows: 1 });
+
+    await adapter.restore("Comment", [comments.rows[0]?.["id"] as Id]);
+  });
+
   it("pages without losing the total", async () => {
     const page = await adapter.findMany({ model: "Post", skip: 2, take: 2 });
 

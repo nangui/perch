@@ -131,6 +131,11 @@ class MemoryAdapter implements DataAdapter {
     return Promise.resolve();
   }
 
+  // Required by the port; nothing here asks a double to aggregate.
+  aggregate(): never {
+    throw new Error("not needed here");
+  }
+
   async transaction<T>(fn: (tx: DataAdapter) => Promise<T>): Promise<T> {
     const before = { posts: [...posts], sections: [...sections], next: nextSection };
     try {
