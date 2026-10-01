@@ -64,13 +64,18 @@ export interface Search {
   readonly paths: readonly string[];
 }
 
-export interface Query {
+/**
+ * Which rows a read is about.
+ *
+ * Declared once and extended rather than restated, because a page and a
+ * summary of that page are two questions over one set of rows. Two
+ * declarations of the set would let a footer total rows the table above it
+ * never listed, and they would disagree by however far the copies had
+ * drifted apart.
+ */
+export interface Narrowing {
   readonly model: string;
   readonly clauses?: readonly Clause[];
-  readonly sort?: readonly Sort[];
-  readonly skip?: number;
-  readonly take?: number;
-  readonly include?: IncludePlan;
   /** Which rows to read. `without` where nothing says otherwise. */
   readonly deleted?: DeletedRows;
   /**
@@ -97,6 +102,13 @@ export interface Query {
   readonly joinedTo?: JoinNarrowing;
 }
 
+export interface Query extends Narrowing {
+  readonly sort?: readonly Sort[];
+  readonly skip?: number;
+  readonly take?: number;
+  readonly include?: IncludePlan;
+}
+
 export interface JoinNarrowing {
   /** The relation on the model being read that points back at the other row. */
   readonly relation: string;
@@ -113,6 +125,57 @@ export interface JoinNarrowing {
    */
   readonly holding?: "joined" | "apart";
 }
+
+/** What an aggregation asks the database to work out. */
+export type AggregateFunction = "count" | "sum" | "avg" | "min" | "max";
+
+/**
+ * One value a caller wants worked out, and over which column.
+ *
+ * The function and the path belong to the declaration. Only the narrowing's
+ * values ever come from outside, which is `Clause`'s rule for `Clause`'s
+ * reason: a request able to name the column would report a salary one filter
+ * at a time, and no check on a value could tell that it was happening.
+ */
+export interface Aggregation {
+  readonly fn: AggregateFunction;
+  /**
+   * Absent counts rows. Present on a `count` counts the rows the column is not
+   * null on, which is a different question and worth being able to ask.
+   */
+  readonly path?: string;
+}
+
+/**
+ * What one aggregation answers.
+ *
+ * `null` where there was no row to work over, which is not a zero: a footer
+ * printing 0 for a filter nothing matched states a total nobody worked out.
+ * `count` is the one function that never answers null, and the contract holds
+ * that rather than the type — a result whose shape followed its own `fn` is a
+ * mapped type every caller would carry, for a null none of them has to handle.
+ *
+ * A string where a number would lie. A `Decimal` adds up exactly and a double
+ * does not, and a `BigInt` total past `Number.MAX_SAFE_INTEGER` raises instead
+ * of rounding. Both are columns a panel adds up, being money and being keys,
+ * so the answer is widened rather than quietly rounded.
+ */
+export type AggregateValue = number | string | Date | null;
+
+export interface AggregateQuery extends Narrowing {
+  /**
+   * Keyed by whatever the caller is drawing, because the port has no idea what
+   * that is.
+   *
+   * One call carries all of them. A footer wanting a count, a total, an
+   * average and a range asks once, so four answers that disagree with each
+   * other are impossible rather than unlikely. Nothing bounds how many it may
+   * carry: they come from a resource's own columns, never from a request.
+   */
+  readonly aggregations: Readonly<Record<string, Aggregation>>;
+}
+
+export type AggregateResult = Readonly<Record<string, AggregateValue>>;
 
 /**
  * Which rows a read is asking for.

@@ -21,6 +21,11 @@ export { findField, findModel, findRelation } from "./ir.js";
 
 // The outbound port an adapter fills.
 export type {
+  AggregateFunction,
+  AggregateQuery,
+  AggregateResult,
+  AggregateValue,
+  Aggregation,
   Clause,
   ClauseOperator,
   DataAdapter,
@@ -29,6 +34,7 @@ export type {
   IncludePlan,
   Page,
   JoinNarrowing,
+  Narrowing,
   Query,
   ReadOptions,
   RelationWrite,
@@ -310,6 +316,9 @@ export {
   describeComplaints,
   refuseIcon,
 } from "./audit.js";
+
+// What an aggregation may ask of a column. Read once, at boot.
+export { auditAggregations } from "./aggregate.js";
 
 // Stage 5, the trust boundary.
 export type { RejectedPath, RejectionReason, SanitizeResult } from "./sanitize.js";
