@@ -10,12 +10,14 @@
  * cost Filament a rewrite, and it would look like an improvement.
  */
 import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import type {
   ActionNode,
   AggregateValue,
   ColumnNode,
   ColumnTree,
+  GroupCount,
+  GroupKey,
   Row,
   SortDirection,
   Summary,
@@ -48,6 +50,33 @@ function shape(column: ColumnNode, base: string): string {
   ]
     .filter((one) => one !== "")
     .join(" ");
+}
+
+/** How many rows a group holds, in words, because a header is read aloud too. */
+function said(total: number): string {
+  return total === 1 ? "1 row" : `${String(total)} rows`;
+}
+
+/** How a group is filed, apart from how it reads. */
+function under(key: GroupKey): string {
+  return `${typeof key}:${String(key)}`;
+}
+
+/**
+ * What a group's key says it is.
+ *
+ * Not put through the grouped column's formatting, and that is a decision: the
+ * column a table gathers by need not be drawn at all, so a key that read as
+ * money on one table and as a bare number on another would be this renderer
+ * guessing rather than a rule anybody wrote.
+ *
+ * Nothing reads as words rather than as a blank. A header with an empty line
+ * above a group of rows looks like a header that failed to load.
+ */
+function reads(key: GroupKey): string {
+  if (key === null) return "No value";
+  if (typeof key === "boolean") return key ? "Yes" : "No";
+  return String(key);
 }
 
 /** What a reader calls each of the four, in a footer. */
@@ -100,6 +129,18 @@ export interface DataTableProps {
    * table has no footer, and a column absent from it has none of its own.
    */
   readonly summaries?: Readonly<Record<string, readonly Summary[]>>;
+  /**
+   * The size of each group the rows fall into, where the table gathers them.
+   *
+   * Which column gathers them comes with the shape, as `columns.groupBy`. The
+   * sizes are whole groups' and worked out on the server, so a header says how
+   * many rows are in the group rather than how many of them this page holds.
+   *
+   * Collapsing one hides rows the client already has. It saves no read, and a
+   * header that fetched would be the N+1 this table exists not to be, one
+   * level up.
+   */
+  readonly groups?: readonly GroupCount[];
   /** Which column is ordering the page, if the server was asked for one. */
   readonly sort?: DataTableSort;
   /** Absent means the table cannot be reordered from here. */
@@ -161,6 +202,7 @@ export function DataTable({
   columns,
   rows,
   summaries,
+  groups,
   sort,
   onSort,
   caption,
@@ -236,6 +278,37 @@ export function DataTable({
     0,
     ...rendered.map(({ column }) => (summaries?.[column.path] ?? []).length),
   );
+
+  // Which groups are shut. Held here and nowhere else: collapsing hides rows
+  // the browser already has, so it is the browser's business and the server is
+  // not told about it.
+  const [shut, setShut] = useState<ReadonlySet<string>>(() => new Set());
+  const gathering = columns.groupBy;
+  const sizes = new Map((groups ?? []).map((one) => [under(one.key), one.total]));
+  const gatheredBy = (row: Row): GroupKey => {
+    const held = gathering === undefined ? null : readPath(row, gathering);
+    // Anything but these four joins the group holding nothing, which is
+    // unreachable: the server refuses a key a database cannot group, and the
+    // types it admits arrive as one of these. Stringifying it instead would
+    // put the words `object Object` above a group of rows.
+    return typeof held === "string" || typeof held === "number" || typeof held === "boolean"
+      ? held
+      : null;
+  };
+  // A header opens where the value changes, which is why the server orders the
+  // page by it: the client reads boundaries off the rows and works out nothing
+  // else.
+  const opens = (index: number): boolean => {
+    if (gathering === undefined) return false;
+    const row = rows[index];
+    const before = rows[index - 1];
+    if (row === undefined) return false;
+    return before === undefined || under(gatheredBy(before)) !== under(gatheredBy(row));
+  };
+  // One more cell than the columns where a tick column or an actions column is
+  // there, so a header spans the row rather than stopping short of it.
+  const across =
+    rendered.length + (selection === undefined ? 0 : 1) + (anyActions ? 1 : 0);
 
   // Read once for the header rather than per row, and only over the rows this
   // page actually holds: "all" means all of what is on screen.
@@ -321,8 +394,43 @@ export function DataTable({
         </tr>
       </thead>
       <tbody>
-        {rows.map((row, index) => (
-          <tr key={rowKey(row, index)} data-picked={isPicked(row)}>
+        {rows.map((row, index) => {
+          const key = gatheredBy(row);
+          const filed = under(key);
+          const closed = shut.has(filed);
+          return (
+            <Fragment key={rowKey(row, index)}>
+              {!opens(index) ? null : (
+                <tr className="perch-table__group">
+                  <th scope="colgroup" colSpan={across} className="perch-table__group-head">
+                    <button
+                      type="button"
+                      className="perch-table__group-toggle"
+                      aria-expanded={!closed}
+                      onClick={() => {
+                        setShut((was) => {
+                          const next = new Set(was);
+                          if (!next.delete(filed)) next.add(filed);
+                          return next;
+                        });
+                      }}
+                    >
+                      <span aria-hidden="true" className="perch-table__group-mark">
+                        {closed ? "\u25b8" : "\u25be"}
+                      </span>
+                      <span className="perch-table__group-key">{reads(key)}</span>
+                      {/* The whole group's size, which is why it is sent
+                          rather than counted here: the page holds a part of
+                          it. */}
+                      <span className="perch-table__group-size">
+                        {sizes.has(filed) ? said(sizes.get(filed) ?? 0) : ""}
+                      </span>
+                    </button>
+                  </th>
+                </tr>
+              )}
+              {closed ? null : (
+          <tr data-picked={isPicked(row)}>
             {selection === undefined ? null : (
               <td className="perch-table__cell perch-table__pick">
                 <span className="perch-checkbox">
@@ -393,7 +501,10 @@ export function DataTable({
               </td>
             ) : null}
           </tr>
-        ))}
+              )}
+            </Fragment>
+          );
+        })}
       </tbody>
       {lines === 0 ? null : (
         <tfoot className="perch-table__foot">

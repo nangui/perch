@@ -19,6 +19,7 @@ import type {
   ColumnNode,
   ColumnTree,
   FormState,
+  GroupCount,
   Row,
   SchemaPayload,
   Summary,
@@ -45,6 +46,8 @@ export interface RecordsPage {
   readonly columns: ColumnTree;
   /** What the footer says, by column path. Absent where no column asked. */
   readonly summaries?: Readonly<Record<string, readonly Summary[]>>;
+  /** The size of each group this page's rows fall into, where it gathers them. */
+  readonly groups?: readonly GroupCount[];
   /** The order the server applied, which may not be the one that was asked. */
   readonly sort?: DataTableSort;
   /** The term the server searched for, which may not be the one that was asked. */
@@ -681,6 +684,7 @@ export function PanelList({
           }}
           rows={page.rows}
           {...(page.summaries === undefined ? {} : { summaries: page.summaries })}
+          {...(page.groups === undefined ? {} : { groups: page.groups })}
           caption={title}
           {...(page.columns.empty === undefined
             ? {}

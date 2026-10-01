@@ -4941,6 +4941,47 @@ button.perch-table__action:disabled {
    Logical properties, not left and right: a panel read right to left puts the
    start of a line on the other side, and a column of numbers pinned to the
    left there is pinned to the wrong end of the row. */
+/* A group's header. Set apart above its rows, and the whole row is one cell
+   so the name is not pushed into a column's width. */
+.perch-table__group-head {
+  padding: 0;
+  text-align: start;
+  font-weight: 500;
+  background-color: var(--perch-surface-sunken);
+  border-bottom: 1px solid var(--perch-border);
+}
+
+/* The control is the cell: a header a reader can only reach by clicking a
+   triangle is a header a keyboard cannot reach at all. */
+.perch-table__group-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+  width: 100%;
+  padding: var(--perch-space-3) var(--perch-space-5);
+  border: 0;
+  background: none;
+  color: var(--perch-content);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.perch-table__group-toggle:hover {
+  background-color: var(--perch-surface-muted);
+}
+
+.perch-table__group-mark {
+  color: var(--perch-content-muted);
+  font-size: var(--perch-text-xs);
+}
+
+.perch-table__group-size {
+  color: var(--perch-content-muted);
+  font-size: var(--perch-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
 /* The footer, which is about every row a filter left rather than about the
    twenty-five on screen. Set apart by a rule above it and a quieter ground,
    because a reader scanning down the rows should be able to tell where the
