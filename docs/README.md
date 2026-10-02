@@ -40,6 +40,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0032](adr/0032-what-an-aggregate-asks-for.md) | One aggregate call carries several named functions over the rows a narrowing keeps |
 | [0033](adr/0033-what-a-group-is.md) | A group answers a key and a size, asked only about the keys the page holds |
 | [0034](adr/0034-the-budget-moved-after-all.md) | A page's cost is written as a shape rather than as a number |
+| [0035](adr/0035-what-a-row-may-hold.md) | A row leaves the adapter with no bigint in it, which is what took the page down |
 
 ## Perch — a UI framework for NestJS
 

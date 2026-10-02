@@ -46,6 +46,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0032](0032-what-an-aggregate-asks-for.md) | One aggregate call carries several named functions over the rows a narrowing keeps; the path is the declaration's | accepted |
 | [0033](0033-what-a-group-is.md) | A group answers a key and a size, asked only about the keys the page holds; a date is refused for want of a bucket | accepted |
 | [0034](0034-the-budget-moved-after-all.md) | A page's cost is a shape and not a number, correcting ADR 0033's deferral | accepted |
+| [0035](0035-what-a-row-may-hold.md) | A row leaves the adapter with no bigint in it, named from the IR rather than sniffed | accepted |
 
 ## Format
 
