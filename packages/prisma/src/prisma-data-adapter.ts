@@ -100,6 +100,71 @@ export class PrismaDataAdapter implements DataAdapter {
     return found;
   }
 
+  /**
+   * Whether this model, or anything the include plan reaches, carries a column
+   * the schema calls `BigInt`.
+   *
+   * Asked before any row is touched, so the common case costs a walk of the
+   * schema and no allocation at all. Almost no model carries one.
+   */
+  #carriesBig(model: string, include: IncludePlan | undefined): boolean {
+    const meta = findModel(this.#ir, model);
+    if (meta === undefined) return false;
+    if (meta.fields.some((one) => one.type === "BigInt")) return true;
+
+    return Object.entries(include ?? {}).some(([name, nested]) => {
+      const relation = findRelation(meta, name);
+      return (
+        relation !== undefined &&
+        this.#carriesBig(relation.targetModel, nested === true ? undefined : nested)
+      );
+    });
+  }
+
+  /**
+   * The rows again, with every `BigInt` column in them as a string.
+   *
+   * `JSON.stringify` refuses a `bigint` and the panel puts a row through it on
+   * every route that shows one, so a column the schema admits would take the
+   * page down. A string is what survives, and it is what the sum of the same
+   * column already answers.
+   *
+   * Named from the schema rather than found by looking at values: a walk that
+   * recursed into anything object-shaped would turn a `Date` into an empty
+   * object and a Decimal into its internals, and fix a crash by breaking two
+   * things that worked.
+   */
+  #widened(
+    model: string,
+    rows: readonly Row[],
+    include: IncludePlan | undefined,
+  ): readonly Row[] {
+    if (!this.#carriesBig(model, include)) return rows;
+
+    const meta = this.meta(model);
+    const big = meta.fields.filter((one) => one.type === "BigInt").map((one) => one.name);
+    const branches = Object.entries(include ?? {}).flatMap(([name, nested]) => {
+      const relation = findRelation(meta, name);
+      return relation === undefined
+        ? []
+        : [[name, relation.targetModel, nested === true ? undefined : nested] as const];
+    });
+
+    return rows.map((row) => {
+      const out: Record<string, unknown> = { ...row };
+      for (const name of big) out[name] = said(row[name]);
+      for (const [name, target, nested] of branches) {
+        const held = row[name];
+        if (Array.isArray(held)) {
+          out[name] = this.#widened(target, held as readonly Row[], nested);
+        } else if (held !== null && typeof held === "object") {
+          out[name] = this.#widened(target, [held as Row], nested)[0];
+        }
+      }
+      return out;
+    });
+  }
+
   async findMany(query: Query): Promise<Page> {
     const delegate = this.#delegate(query.model);
     const where = both(whereOf(query), this.#liveness(query.model, query.deleted));
@@ -116,7 +181,10 @@ export class PrismaDataAdapter implements DataAdapter {
       delegate.count(Object.keys(where).length === 0 ? {} : { where }),
     ]);
 
-    return { rows: rows as Row[], total };
+    return {
+      rows: this.#widened(query.model, rows as Row[], query.include),
+      total,
+    };
   }
 
   /**
@@ -197,20 +265,23 @@ export class PrismaDataAdapter implements DataAdapter {
     // unique field, so the liveness clause cannot go in it. One row is already
     // in hand, so this costs nothing.
     if (row === null) return null;
-    return this.#wanted(model, row, options?.deleted) ? row : null;
+    if (!this.#wanted(model, row, options?.deleted)) return null;
+    return this.#widened(model, [row], options?.include)[0] ?? null;
   }
 
   async create(model: string, data: WriteTree): Promise<Row> {
-    return (await this.#delegate(model).create({
+    const row = (await this.#delegate(model).create({
       data: this.#dataOf(model, data),
     })) as Row;
+    return this.#widened(model, [row], undefined)[0] ?? row;
   }
 
   async update(model: string, id: Id, data: WriteTree): Promise<Row> {
-    return (await this.#delegate(model).update({
+    const row = (await this.#delegate(model).update({
       where: { [this.meta(model).primaryKey.name]: id },
       data: this.#dataOf(model, data),
     })) as Row;
+    return this.#widened(model, [row], undefined)[0] ?? row;
   }
 
   /**
@@ -524,6 +595,19 @@ function refuse(subject: string, complaints: readonly Complaint[]): void {
     `${subject}:\n` +
       complaints.map(({ field, problem }) => `  - \`${field}\` ${problem}`).join("\n"),
   );
+}
+
+/**
+ * One `BigInt` column's value, as something that crosses.
+ *
+ * Only a `bigint` is touched. A column the schema calls `BigInt` and a driver
+ * hands back as something else is handed on as it came: this exists to stop a
+ * crash, not to decide what a driver should have said.
+ */
+function said(raw: unknown): unknown {
+  if (typeof raw === "bigint") return raw.toString();
+  if (Array.isArray(raw)) return raw.map(said);
+  return raw;
 }
 
 /**

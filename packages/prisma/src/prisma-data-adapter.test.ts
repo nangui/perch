@@ -7,7 +7,7 @@
  * PostgreSQL and is what caught the to-one relation shape below.
  */
 import { describe, expect, it, vi } from "vitest";
-import type { Ir } from "@perchjs/core";
+import type { Ir, Row } from "@perchjs/core";
 import type { PrismaClientLike, PrismaDelegate } from "./prisma-data-adapter.js";
 import { delegateName, PrismaDataAdapter } from "./prisma-data-adapter.js";
 import { FIXTURE_IR } from "./__fixtures__/ir.js";
@@ -875,5 +875,112 @@ describe("what a grouped read sends, and what it makes of the answer", () => {
     ).rejects.toThrow(/deletedAt.*timestamp/s);
 
     expect(calls.groupBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("what a row may hold by the time anybody serialises it", () => {
+  /** What the panel does to every row it sends, and what a bigint does to it. */
+  const crosses = (value: unknown): boolean => {
+    try {
+      JSON.stringify(value);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  it("widens a bigint column to a string, so a row can be sent at all", async () => {
+    const { adapter } = recorder([
+      { id: 1, body: "one", tally: 9_007_199_254_740_993n },
+    ]);
+    const page = await adapter.findMany({ model: "Note" });
+
+    expect(crosses(page.rows)).toBe(true);
+    expect(page.rows[0]?.["tally"]).toBe("9007199254740993");
+  });
+
+  it("keeps every digit, which is the reason it is not a number", async () => {
+    // Past the safe integer, so a number would come back as a different value
+    // and a key would address a different row.
+    const { adapter } = recorder([{ id: 1, tally: 9_007_199_254_740_993n }]);
+    const [row] = (await adapter.findMany({ model: "Note" })).rows;
+
+    // Compared as text, because the comparison cannot be written as a number:
+    // the literal 9_007_199_254_740_993 is itself rounded in JavaScript, so a
+    // test asserting against it would be asserting against the loss.
+    expect(row?.["tally"]).toBe("9007199254740993");
+    expect(String(Number(row?.["tally"]))).toBe("9007199254740992");
+  });
+
+  it("leaves a date and a decimal exactly as they came", async () => {
+    // The two a value-walking conversion would have destroyed: a `Date` into
+    // an empty object, a Decimal into its internals.
+    const when = new Date("2026-03-04T05:06:07.000Z");
+    const decimal = { toJSON: () => "1.25", toString: () => "1.25" };
+    const { adapter } = recorder([
+      { id: 1, tally: 1n, deletedAt: when, body: decimal },
+    ]);
+    const [row] = (await adapter.findMany({ model: "Note" })).rows;
+
+    expect(row?.["deletedAt"]).toBe(when);
+    expect(row?.["body"]).toBe(decimal);
+  });
+
+  it("reaches the rows of a relation the include plan loaded", async () => {
+    // A nested row goes through `JSON.stringify` with its parent, so a bigint
+    // one branch down takes the page down just as surely.
+    const { adapter } = recorder([
+      { id: 1, name: "Ada", notes: [{ id: 2, body: "one", tally: 10n }] },
+    ]);
+    const page = await adapter.findMany({ model: "User", include: { notes: true } });
+    const notes = page.rows[0]?.["notes"] as readonly Row[] | undefined;
+
+    expect(crosses(page.rows)).toBe(true);
+    expect(notes?.[0]?.["tally"]).toBe("10");
+  });
+
+  it("reaches a to-one relation as well as a list of them", async () => {
+    // The parent carries no `BigInt` and the row at the end of the to-one
+    // does, which is the only shape where crossing that side changes
+    // anything. Written the other way round, with a target carrying none, a
+    // conversion that skipped the to-one entirely passed this test.
+    const { adapter } = recorder([
+      { id: 1, title: "about", note: { id: 2, body: "one", tally: 11n } },
+    ]);
+    const page = await adapter.findMany({ model: "Post", include: { note: true } });
+    const note = page.rows[0]?.["note"] as Row | undefined;
+
+    expect(crosses(page.rows)).toBe(true);
+    expect(note?.["tally"]).toBe("11");
+  });
+
+  it("reaches a list of them, for a column holding several", async () => {
+    // A `BigInt[]`, which the schema admits and which arrives as an array of
+    // bigints. One of them is enough to take the page down.
+    const { adapter } = recorder([{ id: 1, tallies: [1n, 2n] }]);
+    const page = await adapter.findMany({ model: "Note" });
+
+    expect(crosses(page.rows)).toBe(true);
+    expect(page.rows[0]?.["tallies"]).toEqual(["1", "2"]);
+  });
+
+  it("hands back the same rows where no column could hold one", async () => {
+    // The common case, and it allocates nothing: almost no model carries a
+    // `BigInt`, and a conversion that rebuilt every row of every page anyway
+    // would be a cost paid by everybody for nobody.
+    const rows = [{ id: 1, title: "Ada" }];
+    const { adapter } = recorder(rows);
+    const page = await adapter.findMany({ model: "Post" });
+
+    expect(page.rows).toBe(rows);
+  });
+
+  it("widens what create and update answer, and what findOne does", async () => {
+    const { adapter } = recorder([{ id: 1, body: "one", tally: 7n }]);
+
+    expect((await adapter.findOne("Note", 1))?.["tally"]).toBe("7");
+    expect(
+      (await adapter.create("Note", { set: { tally: 7n } }))["tally"],
+    ).not.toBe(7n);
   });
 });

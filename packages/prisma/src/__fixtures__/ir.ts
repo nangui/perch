@@ -96,6 +96,11 @@ export const FIXTURE_IR: Ir = {
       relations: [
         toOne("Post", "author", "User", "authorId"),
         toMany("Post", "comments", "Comment"),
+        // A to-one whose target carries the `BigInt`, which is the only shape
+        // where crossing that side of a relation changes anything: with a
+        // target carrying none, a conversion that skipped the to-one entirely
+        // looks correct.
+        toOne("Post", "note", "Note", "noteId"),
       ],
       labelField: "title",
     }),
@@ -107,7 +112,18 @@ export const FIXTURE_IR: Ir = {
     // A soft-deleting model, so the adapter can be asked what it does with one.
     model({
       name: "Note",
-      fields: [id(), field("body"), field("deletedAt", { type: "DateTime" })],
+      fields: [
+        id(),
+        field("body"),
+        field("deletedAt", { type: "DateTime" }),
+        // The one type `JSON.stringify` refuses, so the one the adapter has to
+        // widen on its way out of a row.
+        field("tally", { type: "BigInt" }),
+        field("tallies", { type: "BigInt", isList: true }),
+      ],
+      // A to-one back to its parent, so the widening can be asked to cross
+      // that side of a relation and not only a list.
+      relations: [toOne("Note", "user", "User", "userId")],
       hasSoftDelete: true,
       labelField: "body",
     }),
