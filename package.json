@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Declarative admin panel framework for NestJS \u2014 monorepo root",
+  "description": "Declarative admin panel framework for NestJS. The monorepo root, never published.",
   "license": "MIT",
   "author": "Adonai Nangui <adonainangui03@gmail.com>",
   "homepage": "https://github.com/nangui/perch#readme",

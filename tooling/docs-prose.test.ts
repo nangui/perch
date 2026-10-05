@@ -12,8 +12,13 @@
  * dashes freely, and those are written for whoever is building the framework
  * rather than for whoever is using it. The line is between the two audiences,
  * not between good and bad punctuation.
+ *
+ * A package description is held to the guide's rule rather than to the
+ * repository's, because it is read where neither is: in a registry listing, in
+ * a search result, in an editor's tooltip. The audience there is whoever is
+ * deciding whether to install this at all.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -30,6 +35,39 @@ function pages(directory: string): string[] {
   }
   return out;
 }
+
+const MANIFESTS = [
+  "package.json",
+  ...readdirSync(join(ROOT, "packages")).map((one) => join("packages", one, "package.json")),
+  ...readdirSync(join(ROOT, "examples")).map((one) => join("examples", one, "package.json")),
+  "tooling/package.json",
+  "docs/package.json",
+].filter((one) => existsSync(join(ROOT, one)));
+
+describe("a package description", () => {
+  it("is found at all, so this is not passing by reading nothing", () => {
+    // The guard below is a loop, and a loop over nothing is green.
+    expect(MANIFESTS.length).toBeGreaterThan(8);
+  });
+
+  it("holds no em dash, read as the value and not as the file", () => {
+    // Read decoded on purpose. The one this found was stored as the escape
+    // `\u2014`, so a grep over the file text said there were none while the
+    // registry would have shown one.
+    const offending = MANIFESTS.flatMap((one) => {
+      const manifest = JSON.parse(readFileSync(join(ROOT, one), "utf8")) as {
+        description?: string;
+      };
+      return (manifest.description ?? "").includes("\u2014") ? [one] : [];
+    });
+
+    expect(
+      offending,
+      `an em dash in a package description: ${offending.join(", ")}. It is read ` +
+        "in a registry listing and a tooltip, where a colon or a full stop reads better.",
+    ).toEqual([]);
+  });
+});
 
 describe("the guide", () => {
   it("says it with a colon, a comma or a full stop", () => {
