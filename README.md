@@ -12,7 +12,7 @@ An open-source UI framework for **NestJS**. Define a resource in TypeScript, get
 | Status | v0.2 published · v0.3 in progress — seven packages released together |
 | npm scope | `@perchjs/*` — published, every package at one version |
 | Milestones | **A1** dependent select, zero user JavaScript · **A2** relation column, filter, bulk action · **A3** nested repeater in one transaction · **A4** a third-party module extending a form it does not own |
-| Decisions | 35 records in [`docs/adr/`](docs/adr/README.md), each with the rule that would reopen it |
+| Decisions | 36 records in [`docs/adr/`](docs/adr/README.md), each with the rule that would reopen it |
 
 ## Where it is
 

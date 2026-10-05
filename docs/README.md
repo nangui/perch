@@ -41,6 +41,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0033](adr/0033-what-a-group-is.md) | A group answers a key and a size, asked only about the keys the page holds |
 | [0034](adr/0034-the-budget-moved-after-all.md) | A page's cost is written as a shape rather than as a number |
 | [0035](adr/0035-what-a-row-may-hold.md) | A row leaves the adapter with no bigint in it, which is what took the page down |
+| [0036](adr/0036-when-a-widget-gets-its-numbers.md) | A widget's numbers arrive on their own request, after the shell has drawn |
 
 ## Perch — a UI framework for NestJS
 
