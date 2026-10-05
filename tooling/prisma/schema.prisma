@@ -26,10 +26,20 @@ datasource db {
 
 // `deletedAt` makes this a soft-deleting model by convention, which is what
 // lets the tests ask what `delete()` does with one (ADR 0014).
+//
+// It also carries the two column types a value cannot survive as a number.
+// `tally` is the one `JSON.stringify` refuses outright, so a row holding one
+// is a 500 on every page that draws it unless the adapter widens it. `amount`
+// is exact in the database and not in a double, so an adapter that answers a
+// sum of it as a number has rounded somebody's money. Both are nullable:
+// every row written here names its columns, and a required one with no
+// default would refuse each of those writes.
 model Country {
   id        Int       @id @default(autoincrement())
   name      String    @unique @db.VarChar(80)
   deletedAt DateTime?
+  tally     BigInt?
+  amount    Decimal?  @db.Decimal(14, 2)
 
   authors Author[]
 }
