@@ -55,6 +55,7 @@ const META = {
     { name: "name", kind: "scalar", type: "String", isRequired: true },
     { name: "team", kind: "scalar", type: "String", isRequired: true },
     { name: "deletedAt", kind: "scalar", type: "DateTime", isRequired: false },
+    { name: "tally", kind: "scalar", type: "BigInt", isRequired: false },
   ],
   relations: [],
   uniqueConstraints: [],
@@ -649,6 +650,42 @@ describe("an adapter that does not", () => {
 
     expect((await complaints(new Tombstones())).join(" ")).toContain(
       "with one of them marked",
+    );
+  });
+
+  it("is caught answering a bigint, which no row holding one can be sent with", async () => {
+    // The 500 this check exists for: a panel serialises every row it draws,
+    // and `JSON.stringify` refuses a bigint. An adapter handing back a
+    // `BigInt` column as the driver gave it takes down every page that draws
+    // it, with a stack trace about JSON and nothing naming the declaration.
+    class Raw extends Memory {
+      override async findMany(query: Query): Promise<Page> {
+        const page = await super.findMany(query);
+        return {
+          ...page,
+          rows: page.rows.map((row) => ({ ...row, tally: 9_007_199_254_740_993n })),
+        };
+      }
+    }
+    const said = (await complaints(new Raw())).join(" ");
+
+    // Named by the operation, because the two checks that catch this share a
+    // phrase: the column check says a row holding one cannot be sent, and
+    // asserting on that alone let the page check go untested.
+    expect(said).toContain("findMany() answered a row that cannot be sent");
+    expect(said).toContain("answered tally as a bigint");
+  });
+
+  it("is caught answering one from create, where no page would show it", async () => {
+    class RawOnWrite extends Memory {
+      override async create(model: string, write: WriteTree): Promise<Row> {
+        const row = await super.create(model, write);
+        return { ...row, tally: 1n };
+      }
+    }
+
+    expect((await complaints(new RawOnWrite())).join(" ")).toContain(
+      "create() answered a row that cannot be sent",
     );
   });
 });

@@ -25,6 +25,13 @@
  * it. An include is asked for as well, that being the branch a relation column
  * contributes rather than a query per row.
  *
+ * It asks whether a row can be sent at all, which is a question with one
+ * answer and a long history: `JSON.stringify` refuses a `bigint`, and a panel
+ * puts a row through it on every route that shows one. An adapter handing back
+ * a `BigInt` column as the driver gave it takes down every page that draws
+ * that column, with a stack trace about JSON and nothing to say which
+ * declaration caused it.
+ *
  * It asks what a grouped read means as well, and the question with teeth is an
  * identity: every group's size added together is the number of rows there are.
  * An adapter counting only the rows a caller already holds fails it, and so
@@ -656,6 +663,46 @@ export async function checkDataAdapter(
       );
     } catch {
       // Refused, which is the whole of this check.
+    }
+  }
+
+  // Whether a row can be sent at all. The panel puts one through
+  // `JSON.stringify` on every route that shows one, so a value that throws
+  // there is a 500 on a declaration nobody could have known to avoid.
+  const crosses = (what: string, rows: readonly Row[]): void => {
+    for (const row of rows) {
+      try {
+        JSON.stringify(row);
+      } catch (error) {
+        say(
+          `${what} answered a row that cannot be sent: ${
+            error instanceof Error ? error.message : String(error)
+          }. A panel serialises every row it draws.`,
+        );
+        return;
+      }
+    }
+  };
+
+  crosses("create()", made);
+  if (found !== undefined && found !== null) crosses("findOne()", [found]);
+
+  const sampled = await attempt("findMany() to read a row from", () =>
+    adapter.findMany({ model, take: 5 }),
+  );
+  if (sampled !== undefined) crosses("findMany()", sampled.rows);
+
+  // And the column that cannot be sent as it comes, named rather than left to
+  // the general check above: an adapter may hold no row with one in it yet,
+  // and the promise is about the column rather than about today's rows.
+  const wide = meta.fields.find((one) => one.type === "BigInt");
+  if (wide !== undefined && sampled !== undefined) {
+    const holding = sampled.rows.find((row) => row[wide.name] !== null);
+    const held = holding?.[wide.name];
+    if (held !== undefined && typeof held === "bigint") {
+      say(
+        `findMany() answered ${wide.name} as a bigint. It is the one value \`JSON.stringify\` refuses, so a row holding one cannot be sent; a string keeps every digit a number would lose.`,
+      );
     }
   }
 
