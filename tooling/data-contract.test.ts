@@ -72,9 +72,12 @@ describe.skipIf(DATABASE_URL === undefined)("the adapter that ships", () => {
         // Three names, because the column is unique and three rows cannot share
         // one. Tied on the tombstone instead, which all three leave empty.
         rows: [
-          { set: { name: `${run}-alpha` } },
-          { set: { name: `${run}-beta` } },
-          { set: { name: `${run}-gamma` } },
+          // Amounts whose total a double gets wrong, so the contract's
+          // decimal check is asking something rather than agreeing with
+          // whatever arithmetic the adapter happened to do.
+          { set: { name: `${run}-alpha`, amount: "10.01" } },
+          { set: { name: `${run}-beta`, amount: "20.02" } },
+          { set: { name: `${run}-gamma`, amount: "0.07" } },
         ],
         tiedOn: "deletedAt",
         filterOn: { path: "name", value: `${run}-alpha`, absent: `${run}-nowhere` },

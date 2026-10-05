@@ -45,12 +45,19 @@
  * adapter that reports a total for rows nobody listed. Then that an empty set
  * answers null rather than zero, a zero being a total somebody could print.
  *
+ * Where the model carries a `Decimal` column, it asks what a total of money
+ * owes: a string rather than a number, because a double cannot hold the value
+ * the database computed, and a figure that matches the rows to the last unit
+ * of the column's own scale. An adapter rounding quietly is the one failure
+ * nobody notices until an invoice is wrong.
+ *
  * What it does not check, and says so rather than implying otherwise: the four
  * comparisons, which want an ordered value rather than the text everything here
  * is written in. Nor the arithmetic over a `Decimal` or a `BigInt`, which is
  * where an adapter rounding quietly would show and where this has no column to
- * ask with. Nor, unless the model happens to carry a nullable column a database
- * will group, that the rows holding nothing in one are a group: there has to be
+ * ask with, unless the model carries such a column and the rows written into it
+ * hold values there. Nor, unless the model happens to carry a nullable column a
+ * database will group, that the rows holding nothing in one are a group: there has to be
  * such a column to ask about, and a contract cannot add one. And where the
  * model is tied on a column a grouped read refuses, a timestamp for instance,
  * the grouped checks that need a key skip rather than report every conforming
@@ -703,6 +710,52 @@ export async function checkDataAdapter(
       say(
         `findMany() answered ${wide.name} as a bigint. It is the one value \`JSON.stringify\` refuses, so a row holding one cannot be sent; a string keeps every digit a number would lose.`,
       );
+    }
+  }
+
+  // What a total of money owes. Only where the model carries such a column and
+  // the rows written here put values in it: a contract cannot add either.
+  const exact = meta.fields.find((one) => one.type === "Decimal");
+  if (exact !== undefined && exact.scale !== undefined) {
+    // Narrowed to the rows this contract wrote, by key. Over the whole table it
+    // would be summing whatever earlier runs left behind, and a suite that
+    // assumes it owns the table measures its neighbours.
+    const mine: Clause = { path: key, operator: "in", value: keys };
+    const page = await attempt("findMany() to total against", () =>
+      adapter.findMany({ model, clauses: [mine], take: rows.length }),
+    );
+    const worked = await attempt("aggregate() over a decimal column", () =>
+      adapter.aggregate({
+        model,
+        clauses: [mine],
+        aggregations: { total: { fn: "sum", path: exact.name } },
+      }),
+    );
+
+    const total = worked?.["total"];
+    const held = (page?.rows ?? [])
+      .map((row) => row[exact.name])
+      .filter((one) => one !== null && one !== undefined);
+
+    if (total !== undefined && total !== null && held.length > 0) {
+      if (typeof total !== "string") {
+        say(
+          `aggregate() answered the sum of ${exact.name} as a ${typeof total}. It is a decimal column, exact in the database and not in a double, so a number here has rounded it.`,
+        );
+      }
+
+      // Compared in the column's own smallest unit, which is exact arithmetic
+      // on integers rather than a second rounding to argue about. The scale
+      // comes from the schema, so this is the column's precision and not a
+      // guess at it.
+      const unit = 10 ** exact.scale;
+      const units = (one: unknown): number => Math.round(Number(one) * unit);
+      const wanted = held.reduce((into: number, one) => into + units(one), 0);
+      if (units(total) !== wanted) {
+        say(
+          `aggregate() totalled ${exact.name} at ${String(total)} where the rows hold ${(wanted / unit).toFixed(exact.scale)}.`,
+        );
+      }
     }
   }
 
