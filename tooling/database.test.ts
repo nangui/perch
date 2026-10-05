@@ -409,6 +409,77 @@ withDatabase("reading, against a real database", () => {
   });
 });
 
+withDatabase("the two column types a number cannot hold", () => {
+  const mark = (): string => `widen-${String(Date.now())}-${String(Math.random()).slice(2, 7)}`;
+
+  it("hands back a bigint column as a string, because a row holding one is sent", async () => {
+    const name = mark();
+    await adapter.create("Country", {
+      // A string on the way in, which this column takes as readily as a
+      // bigint, so the widening on the way out is a conversion rather than a
+      // one-way door.
+      set: { name, tally: "9007199254740993" },
+    });
+
+    // The hazard, measured here rather than asserted in a comment: the driver
+    // itself answers a bigint, and `JSON.stringify` refuses one. Every route
+    // that draws this column puts the row through it.
+    const raw = (await (
+      client as unknown as {
+        country: { findFirst: (a: unknown) => Promise<{ tally: unknown } | null> };
+      }
+    ).country.findFirst({ where: { name } }))?.tally;
+    expect(typeof raw).toBe("bigint");
+    expect(() => JSON.stringify({ raw })).toThrow(/BigInt/);
+
+    const page = await adapter.findMany({
+      model: "Country",
+      clauses: [{ path: "name", operator: "equals", value: name }],
+    });
+
+    expect(() => JSON.stringify(page.rows)).not.toThrow();
+    // Every digit, which is the reason it is not a number: this value is past
+    // the safe integer, so a double would answer a different one.
+    expect(page.rows[0]?.["tally"]).toBe("9007199254740993");
+  });
+
+  it("sums a decimal column exactly, which a double does not", async () => {
+    // A tenth and a fifth, chosen because they are the arithmetic everybody
+    // knows a double gets wrong.
+    const run = mark();
+    await adapter.create("Country", { set: { name: `${run}-a`, amount: "0.10" } });
+    await adapter.create("Country", { set: { name: `${run}-b`, amount: "0.20" } });
+
+    const worked = await adapter.aggregate({
+      model: "Country",
+      clauses: [{ path: "name", operator: "contains", value: run }],
+      aggregations: { total: { fn: "sum", path: "amount" } },
+    });
+    const total = worked["total"];
+
+    // A string, because that is the only shape that keeps it. An adapter
+    // answering a number here has rounded somebody's money.
+    expect(typeof total).toBe("string");
+    expect(Number(total)).toBe(0.3);
+    expect(0.1 + 0.2).not.toBe(Number(total));
+  });
+
+  it("sends a decimal in a row, which needs no widening", async () => {
+    // Left alone on purpose: a Decimal carries its own `toJSON` and arrives as
+    // an exact string, so a conversion reaching into it would be the one that
+    // broke something that worked.
+    const name = mark();
+    await adapter.create("Country", { set: { name, amount: "1234.56" } });
+    const page = await adapter.findMany({
+      model: "Country",
+      clauses: [{ path: "name", operator: "equals", value: name }],
+    });
+
+    expect(() => JSON.stringify(page.rows)).not.toThrow();
+    expect(JSON.stringify(page.rows[0]?.["amount"])).toBe('"1234.56"');
+  });
+});
+
 withDatabase("writing, against a real database", () => {
   it("creates, updates and deletes a row", async () => {
     const created = await adapter.create("Country", { set: { name: "Portugal" } });
