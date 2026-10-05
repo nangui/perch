@@ -495,7 +495,11 @@ export async function checkDataAdapter(
         }),
       );
 
-      if (page !== undefined && worked !== undefined && page.rows.length === page.total) {
+      if (
+        page !== undefined &&
+        worked !== undefined &&
+        page.rows.length === page.total
+      ) {
         const numbers = page.rows.map((row) => Number(row[key]));
         const sum = numbers.reduce((into, one) => into + one, 0);
         const expected: Record<string, number> = {
@@ -607,7 +611,11 @@ export async function checkDataAdapter(
       }),
     );
     const matching = await attempt("findMany() to group against", () =>
-      adapter.findMany({ model, clauses: [{ path, operator: "equals", value }], take: 1 }),
+      adapter.findMany({
+        model,
+        clauses: [{ path, operator: "equals", value }],
+        take: 1,
+      }),
     );
     if (narrowed !== undefined && matching !== undefined) {
       const summed = narrowed.reduce((into, one) => into + one.total, 0);

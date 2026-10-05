@@ -82,7 +82,9 @@ beforeAll(async () => {
   };
   const { IR } = (await import("./.generated/ir.ts")) as { IR: Ir };
 
-  client = new PrismaClient({ adapter: new PrismaPg(pool, { schema: SCHEMAS.queries }) });
+  client = new PrismaClient({
+    adapter: new PrismaPg(pool, { schema: SCHEMAS.queries }),
+  });
   adapter = new PrismaDataAdapter({ client: client as never, ir: IR });
 
   // `forceDelete`, because this means destroy: `delete` marks a soft-deleting
@@ -226,7 +228,10 @@ withDatabase("reading, against a real database", () => {
 
     // Soft-deleting, so this is the footer half of what a page already does.
     expect(
-      await adapter.aggregate({ model: "Comment", aggregations: { rows: { fn: "count" } } }),
+      await adapter.aggregate({
+        model: "Comment",
+        aggregations: { rows: { fn: "count" } },
+      }),
     ).toEqual({ rows: 7 });
     expect(
       await adapter.aggregate({
@@ -263,12 +268,12 @@ withDatabase("reading, against a real database", () => {
       clauses: [{ path: "title", operator: "in", value: ["Post 0", "Post 2"] }],
     });
 
-    expect([...only].sort((a, b) => String(a.key).localeCompare(String(b.key)))).toEqual(
-      [
-        { key: "Post 0", total: 1 },
-        { key: "Post 2", total: 1 },
-      ],
-    );
+    expect(
+      [...only].sort((a, b) => String(a.key).localeCompare(String(b.key))),
+    ).toEqual([
+      { key: "Post 0", total: 1 },
+      { key: "Post 2", total: 1 },
+    ]);
   });
 
   it("has no `in` to be bounded by on a boolean, and needs none", async () => {
@@ -411,7 +416,8 @@ withDatabase("reading, against a real database", () => {
 });
 
 withDatabase("the two column types a number cannot hold", () => {
-  const mark = (): string => `widen-${String(Date.now())}-${String(Math.random()).slice(2, 7)}`;
+  const mark = (): string =>
+    `widen-${String(Date.now())}-${String(Math.random()).slice(2, 7)}`;
 
   it("hands back a bigint column as a string, because a row holding one is sent", async () => {
     const name = mark();
@@ -425,11 +431,13 @@ withDatabase("the two column types a number cannot hold", () => {
     // The hazard, measured here rather than asserted in a comment: the driver
     // itself answers a bigint, and `JSON.stringify` refuses one. Every route
     // that draws this column puts the row through it.
-    const raw = (await (
-      client as unknown as {
-        country: { findFirst: (a: unknown) => Promise<{ tally: unknown } | null> };
-      }
-    ).country.findFirst({ where: { name } }))?.tally;
+    const raw = (
+      await (
+        client as unknown as {
+          country: { findFirst: (a: unknown) => Promise<{ tally: unknown } | null> };
+        }
+      ).country.findFirst({ where: { name } })
+    )?.tally;
     expect(typeof raw).toBe("bigint");
     expect(() => JSON.stringify({ raw })).toThrow(/BigInt/);
 

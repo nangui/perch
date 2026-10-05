@@ -291,7 +291,9 @@ export function DataTable({
     // unreachable: the server refuses a key a database cannot group, and the
     // types it admits arrive as one of these. Stringifying it instead would
     // put the words `object Object` above a group of rows.
-    return typeof held === "string" || typeof held === "number" || typeof held === "boolean"
+    return typeof held === "string" ||
+      typeof held === "number" ||
+      typeof held === "boolean"
       ? held
       : null;
   };
@@ -402,7 +404,11 @@ export function DataTable({
             <Fragment key={rowKey(row, index)}>
               {!opens(index) ? null : (
                 <tr className="perch-table__group">
-                  <th scope="colgroup" colSpan={across} className="perch-table__group-head">
+                  <th
+                    scope="colgroup"
+                    colSpan={across}
+                    className="perch-table__group-head"
+                  >
                     <button
                       type="button"
                       className="perch-table__group-toggle"
@@ -430,77 +436,77 @@ export function DataTable({
                 </tr>
               )}
               {closed ? null : (
-          <tr data-picked={isPicked(row)}>
-            {selection === undefined ? null : (
-              <td className="perch-table__cell perch-table__pick">
-                <span className="perch-checkbox">
-                  <input
-                    type="checkbox"
-                    className="perch-checkbox__input"
-                    aria-label={`Select row ${String(index + 1)}`}
-                    checked={isPicked(row)}
-                    disabled={selection.keyOf(row) === undefined}
-                    onChange={(event) => {
-                      const key = selection.keyOf(row);
-                      if (key !== undefined)
-                        selection.onPick(String(key), event.target.checked);
-                    }}
-                  />
-                  <span className="perch-checkbox__box" aria-hidden="true">
-                    {isPicked(row) ? "✓" : ""}
-                  </span>
-                </span>
-              </td>
-            )}
-            {rendered.map(({ column, render }) => (
-              <td
-                key={column.path}
-                {...(column.extraAttributes ?? {})}
-                // After the author's own, never before: what a cell says about
-                // itself is not theirs to overwrite, and `data-label` below is
-                // the only thing naming this column once a row is a stack. The
-                // boot refuses these by name too, so this is the second of two
-                // answers rather than the only one.
-                className={shape(column, "perch-table__cell")}
-                // Carried on every cell, read by the stylesheet only where the
-                // window is too narrow for a row to be a row. A heading above
-                // eight columns is no use when they are stacked, so each cell
-                // says what it is — and it says it in the markup rather than in
-                // a second render pass, because a cell is drawn by one
-                // memoised function per column type and that stays true.
-                data-label={column.label ?? column.path}
-              >
-                {render === undefined
-                  ? unknownColumn(column)
-                  : render(readPath(row, column.path), row, column, {
-                      // Offered only where the server said this reader may and
-                      // the host said it would carry one out. Either missing is
-                      // a control that does nothing.
-                      ...(column.editable === true && onCellWrite !== undefined
-                        ? {
-                            write: (value: unknown) => {
-                              onCellWrite(row, column, value);
-                            },
-                          }
-                        : {}),
-                      pending: cellPending?.(row, column) === true,
-                      ...asked(row, column),
-                      ...named(row),
-                    })}
-              </td>
-            ))}
-            {anyActions ? (
-              <td className="perch-table__cell perch-table__actions">
-                <RowActions
-                  actions={rowActions === undefined ? actions : rowActions(row)}
-                  row={row}
-                  {...(rowHref === undefined ? {} : { href: rowHref })}
-                  {...(onAction === undefined ? {} : { onAction })}
-                  busy={actionsBusy}
-                />
-              </td>
-            ) : null}
-          </tr>
+                <tr data-picked={isPicked(row)}>
+                  {selection === undefined ? null : (
+                    <td className="perch-table__cell perch-table__pick">
+                      <span className="perch-checkbox">
+                        <input
+                          type="checkbox"
+                          className="perch-checkbox__input"
+                          aria-label={`Select row ${String(index + 1)}`}
+                          checked={isPicked(row)}
+                          disabled={selection.keyOf(row) === undefined}
+                          onChange={(event) => {
+                            const key = selection.keyOf(row);
+                            if (key !== undefined)
+                              selection.onPick(String(key), event.target.checked);
+                          }}
+                        />
+                        <span className="perch-checkbox__box" aria-hidden="true">
+                          {isPicked(row) ? "✓" : ""}
+                        </span>
+                      </span>
+                    </td>
+                  )}
+                  {rendered.map(({ column, render }) => (
+                    <td
+                      key={column.path}
+                      {...(column.extraAttributes ?? {})}
+                      // After the author's own, never before: what a cell says about
+                      // itself is not theirs to overwrite, and `data-label` below is
+                      // the only thing naming this column once a row is a stack. The
+                      // boot refuses these by name too, so this is the second of two
+                      // answers rather than the only one.
+                      className={shape(column, "perch-table__cell")}
+                      // Carried on every cell, read by the stylesheet only where the
+                      // window is too narrow for a row to be a row. A heading above
+                      // eight columns is no use when they are stacked, so each cell
+                      // says what it is — and it says it in the markup rather than in
+                      // a second render pass, because a cell is drawn by one
+                      // memoised function per column type and that stays true.
+                      data-label={column.label ?? column.path}
+                    >
+                      {render === undefined
+                        ? unknownColumn(column)
+                        : render(readPath(row, column.path), row, column, {
+                            // Offered only where the server said this reader may and
+                            // the host said it would carry one out. Either missing is
+                            // a control that does nothing.
+                            ...(column.editable === true && onCellWrite !== undefined
+                              ? {
+                                  write: (value: unknown) => {
+                                    onCellWrite(row, column, value);
+                                  },
+                                }
+                              : {}),
+                            pending: cellPending?.(row, column) === true,
+                            ...asked(row, column),
+                            ...named(row),
+                          })}
+                    </td>
+                  ))}
+                  {anyActions ? (
+                    <td className="perch-table__cell perch-table__actions">
+                      <RowActions
+                        actions={rowActions === undefined ? actions : rowActions(row)}
+                        row={row}
+                        {...(rowHref === undefined ? {} : { href: rowHref })}
+                        {...(onAction === undefined ? {} : { onAction })}
+                        busy={actionsBusy}
+                      />
+                    </td>
+                  ) : null}
+                </tr>
               )}
             </Fragment>
           );
@@ -520,10 +526,7 @@ export function DataTable({
               {rendered.map(({ column }) => {
                 const summary = (summaries?.[column.path] ?? [])[depth];
                 return (
-                  <td
-                    key={column.path}
-                    className={shape(column, "perch-table__cell")}
-                  >
+                  <td key={column.path} className={shape(column, "perch-table__cell")}>
                     {summary === undefined ? null : (
                       <>
                         {/* Named in every cell rather than once at the end of

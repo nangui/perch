@@ -51,7 +51,9 @@ const ORDER: ModelMeta = {
 };
 
 const grouped = (path: string): Table =>
-  Table.make().columns([TextColumn.make("status")]).groupBy(path);
+  Table.make()
+    .columns([TextColumn.make("status")])
+    .groupBy(path);
 
 const said = (path: string): string =>
   auditGrouping(ORDER, grouped(path))
@@ -79,7 +81,9 @@ describe("what a table may gather its rows by", () => {
   });
 
   it("refuses what a database will not group at all", () => {
-    expect(said("meta")).toBe("meta is a Json column, which a database will not group rows by");
+    expect(said("meta")).toBe(
+      "meta is a Json column, which a database will not group rows by",
+    );
   });
 
   it("refuses a list, a row holding several belonging to several groups", () => {
@@ -116,7 +120,9 @@ describe("what the client is told about a grouping", () => {
   it("does not need the grouped column to be on the table", () => {
     // A table grouped by a status it does not show is a reasonable table, so
     // the path travels whether or not a column draws it.
-    const table = Table.make().columns([TextColumn.make("quantity")]).groupBy("status");
+    const table = Table.make()
+      .columns([TextColumn.make("quantity")])
+      .groupBy("status");
 
     expect(serialiseTable(table).groupBy).toBe("status");
     expect(auditGrouping(ORDER, table)).toEqual([]);

@@ -282,9 +282,11 @@ describe("the footer a list comes back with", () => {
     // route uses. Without that, a footer appears a moment after the rows and
     // the table moves under whoever is reading it.
     const url = await serve();
-    const html = await (await fetch(`${url}/admin/people`, {
-      headers: { "x-role": "admin" },
-    })).text();
+    const html = await (
+      await fetch(`${url}/admin/people`, {
+        headers: { "x-role": "admin" },
+      })
+    ).text();
     const raw = /data-payload="([^"]*)"/.exec(html)?.[1] ?? "";
     const payload = JSON.parse(
       raw
@@ -351,7 +353,10 @@ describe("a footer on a column this reader may not have", () => {
 });
 
 /** One resource, declared on the spot, so the boot is what is being asked. */
-async function boot(table: Table, managers: readonly RelationManager[] = []): Promise<void> {
+async function boot(
+  table: Table,
+  managers: readonly RelationManager[] = [],
+): Promise<void> {
   @PanelResource({ model: "Person", slug: "booted" })
   class BootResource {
     form(): Schema {

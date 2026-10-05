@@ -13,11 +13,7 @@
  * nothing to say which was which.
  */
 import type { Complaint } from "./audit.js";
-import type {
-  AggregateResult,
-  AggregateValue,
-  Aggregation,
-} from "./data-adapter.js";
+import type { AggregateResult, AggregateValue, Aggregation } from "./data-adapter.js";
 import { auditAggregations } from "./aggregate.js";
 import type { SummaryOf } from "./column.js";
 import type { ModelMeta } from "./ir.js";
@@ -109,9 +105,6 @@ export function summariesFrom(
  * footer that will not draw: that reader is the one person who cannot fix
  * it.
  */
-export function auditSummaries(
-  model: ModelMeta,
-  table: Table,
-): readonly Complaint[] {
+export function auditSummaries(model: ModelMeta, table: Table): readonly Complaint[] {
   return auditAggregations(model, summaryAggregations(table));
 }

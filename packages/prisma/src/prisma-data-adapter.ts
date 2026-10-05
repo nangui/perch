@@ -142,7 +142,9 @@ export class PrismaDataAdapter implements DataAdapter {
     if (!this.#carriesBig(model, include)) return rows;
 
     const meta = this.meta(model);
-    const big = meta.fields.filter((one) => one.type === "BigInt").map((one) => one.name);
+    const big = meta.fields
+      .filter((one) => one.type === "BigInt")
+      .map((one) => one.name);
     const branches = Object.entries(include ?? {}).flatMap(([name, nested]) => {
       const relation = findRelation(meta, name);
       return relation === undefined

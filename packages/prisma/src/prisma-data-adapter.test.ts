@@ -870,9 +870,9 @@ describe("what a grouped read sends, and what it makes of the answer", () => {
 
   it("refuses a column that gathers nothing, before touching the client", async () => {
     const { adapter, calls } = recorder();
-    await expect(
-      adapter.groupBy({ model: "Note", by: "deletedAt" }),
-    ).rejects.toThrow(/deletedAt.*timestamp/s);
+    await expect(adapter.groupBy({ model: "Note", by: "deletedAt" })).rejects.toThrow(
+      /deletedAt.*timestamp/s,
+    );
 
     expect(calls.groupBy).not.toHaveBeenCalled();
   });
@@ -979,8 +979,8 @@ describe("what a row may hold by the time anybody serialises it", () => {
     const { adapter } = recorder([{ id: 1, body: "one", tally: 7n }]);
 
     expect((await adapter.findOne("Note", 1))?.["tally"]).toBe("7");
-    expect(
-      (await adapter.create("Note", { set: { tally: 7n } }))["tally"],
-    ).not.toBe(7n);
+    expect((await adapter.create("Note", { set: { tally: 7n } }))["tally"]).not.toBe(
+      7n,
+    );
   });
 });

@@ -260,9 +260,7 @@ export class ResourceRegistry implements OnModuleInit {
         ...(table === undefined
           ? []
           : this.#unsummarisableColumns(metadata.model, table)),
-        ...(table === undefined
-          ? []
-          : this.#ungatherableColumn(metadata.model, table)),
+        ...(table === undefined ? [] : this.#ungatherableColumn(metadata.model, table)),
         ...(table === undefined ? [] : this.#unmarkableTable(metadata.model, table)),
         ...(table === undefined ? [] : this.#unaskableFilters(metadata.model, table)),
         ...(table === undefined
@@ -728,13 +726,9 @@ export class ResourceRegistry implements OnModuleInit {
     if (this.#data === null) return [];
     const holder = findModel(this.#data.ir(), parent);
     const relation =
-      holder === undefined
-        ? undefined
-        : findRelation(holder, manager.state.relation);
+      holder === undefined ? undefined : findRelation(holder, manager.state.relation);
     // A relation the model does not have is already its own complaint.
-    return relation === undefined
-      ? []
-      : ask(relation.targetModel, manager.state.table);
+    return relation === undefined ? [] : ask(relation.targetModel, manager.state.table);
   }
 
   #unsummarisableManager(

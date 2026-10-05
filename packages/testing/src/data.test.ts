@@ -550,7 +550,10 @@ describe("an adapter that does not", () => {
     // list. Dropping the narrowing is the smallest shape of it.
     class Unnarrowed extends Memory {
       override aggregate(query: AggregateQuery): Promise<AggregateResult> {
-        return super.aggregate({ model: query.model, aggregations: query.aggregations });
+        return super.aggregate({
+          model: query.model,
+          aggregations: query.aggregations,
+        });
       }
     }
 
@@ -598,7 +601,9 @@ describe("an adapter that does not", () => {
       }
     }
 
-    expect((await complaints(new OffByOne())).join(" ")).toContain("as the total of id");
+    expect((await complaints(new OffByOne())).join(" ")).toContain(
+      "as the total of id",
+    );
   });
 
   it("is caught sizing a group by the rows a caller already holds", async () => {

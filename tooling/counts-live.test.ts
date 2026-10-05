@@ -50,7 +50,11 @@ function publishable(): string[] {
  * and the index is where its status now lives.
  */
 function superseded(): string[] {
-  return [...read("docs/adr/README.md").matchAll(/^\| \[(\d{4})\][^|]*\|[^|]*\| ([^|]+) \|$/gm)]
+  return [
+    ...read("docs/adr/README.md").matchAll(
+      /^\| \[(\d{4})\][^|]*\|[^|]*\| ([^|]+) \|$/gm,
+    ),
+  ]
     .filter((row) => (row[2] ?? "").trim() !== "accepted")
     .map((row) => row[1] ?? "");
 }

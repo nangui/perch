@@ -38,8 +38,12 @@ function pages(directory: string): string[] {
 
 const MANIFESTS = [
   "package.json",
-  ...readdirSync(join(ROOT, "packages")).map((one) => join("packages", one, "package.json")),
-  ...readdirSync(join(ROOT, "examples")).map((one) => join("examples", one, "package.json")),
+  ...readdirSync(join(ROOT, "packages")).map((one) =>
+    join("packages", one, "package.json"),
+  ),
+  ...readdirSync(join(ROOT, "examples")).map((one) =>
+    join("examples", one, "package.json"),
+  ),
   "tooling/package.json",
   "docs/package.json",
 ].filter((one) => existsSync(join(ROOT, one)));

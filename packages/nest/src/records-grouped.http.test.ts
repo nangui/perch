@@ -172,22 +172,24 @@ class PeopleResource {
     return Schema.make([TextInput.make("name")]);
   }
   table(): Table {
-    return Table.make()
-      .columns([
-        TextColumn.make("name").sortable().searchable(),
-        TextColumn.make("seat").sortable(),
-      ])
-      // A choice rather than a text box, because the clause it makes compares
-      // for equality. That is the shape a double comparing clauses without
-      // reading their path gets wrong, and a `contains` falls through such a
-      // double harmlessly.
-      .filters([
-        SelectFilter.make("seat").options([
-          { value: "2", label: "Two" },
-          { value: "5", label: "Five" },
-        ]),
-      ])
-      .groupBy("team");
+    return (
+      Table.make()
+        .columns([
+          TextColumn.make("name").sortable().searchable(),
+          TextColumn.make("seat").sortable(),
+        ])
+        // A choice rather than a text box, because the clause it makes compares
+        // for equality. That is the shape a double comparing clauses without
+        // reading their path gets wrong, and a `contains` falls through such a
+        // double harmlessly.
+        .filters([
+          SelectFilter.make("seat").options([
+            { value: "2", label: "Two" },
+            { value: "5", label: "Five" },
+          ]),
+        ])
+        .groupBy("team")
+    );
   }
 }
 
@@ -359,7 +361,9 @@ describe("a column that gathers nothing", () => {
         return Schema.make([TextInput.make("name")]);
       }
       table(): Table {
-        return Table.make().columns([TextColumn.make("name")]).groupBy("joinedAt");
+        return Table.make()
+          .columns([TextColumn.make("name")])
+          .groupBy("joinedAt");
       }
     }
 

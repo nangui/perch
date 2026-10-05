@@ -51,12 +51,19 @@ const GROUPS: readonly GroupCount[] = [
 
 function draw(over: Partial<Parameters<typeof DataTable>[0]> = {}): void {
   render(
-    <DataTable columns={COLUMNS} rows={ROWS} caption="People" groups={GROUPS} {...over} />,
+    <DataTable
+      columns={COLUMNS}
+      rows={ROWS}
+      caption="People"
+      groups={GROUPS}
+      {...over}
+    />,
   );
 }
 
-const headers = (): HTMLElement[] =>
-  [...document.querySelectorAll<HTMLElement>(".perch-table__group")];
+const headers = (): HTMLElement[] => [
+  ...document.querySelectorAll<HTMLElement>(".perch-table__group"),
+];
 
 const bodyRows = (): HTMLElement[] =>
   [...document.querySelectorAll<HTMLElement>("tbody tr")].filter(
@@ -88,7 +95,9 @@ describe("where a header opens", () => {
     const first = headers()[0];
 
     expect(within(first as HTMLElement).getByText("swifts")).toBeTruthy();
-    expect(headers().filter((one) => one.textContent.includes("swifts"))).toHaveLength(1);
+    expect(headers().filter((one) => one.textContent.includes("swifts"))).toHaveLength(
+      1,
+    );
   });
 
   it("spans the whole row, so the name is not squeezed into a column", () => {

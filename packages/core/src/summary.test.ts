@@ -66,7 +66,9 @@ describe("what a footer asks the database", () => {
   });
 
   it("asks a range as the two halves it is", () => {
-    const table = Table.make().columns([TextColumn.make("placedAt").summarise("range")]);
+    const table = Table.make().columns([
+      TextColumn.make("placedAt").summarise("range"),
+    ]);
 
     expect(summaryAggregations(table)).toEqual({
       "placedAt:min": { fn: "min", path: "placedAt" },
@@ -99,9 +101,7 @@ describe("what a footer makes of the answer", () => {
       TextColumn.make("reference"),
     ]);
 
-    expect(
-      summariesFrom(table, { "total:avg": 12.5, "total:sum": 50 }),
-    ).toEqual({
+    expect(summariesFrom(table, { "total:avg": 12.5, "total:sum": 50 })).toEqual({
       total: [
         { of: "avg", value: 12.5 },
         { of: "sum", value: 50 },
@@ -110,11 +110,13 @@ describe("what a footer makes of the answer", () => {
   });
 
   it("gives a range both of its ends", () => {
-    const table = Table.make().columns([TextColumn.make("quantity").summarise("range")]);
+    const table = Table.make().columns([
+      TextColumn.make("quantity").summarise("range"),
+    ]);
 
-    expect(
-      summariesFrom(table, { "quantity:min": 1, "quantity:max": 9 }),
-    ).toEqual({ quantity: [{ of: "range", value: 1, to: 9 }] });
+    expect(summariesFrom(table, { "quantity:min": 1, "quantity:max": 9 })).toEqual({
+      quantity: [{ of: "range", value: 1, to: 9 }],
+    });
   });
 
   it("carries a null through rather than turning it into a zero", () => {
@@ -169,7 +171,9 @@ describe("what the boot refuses", () => {
   });
 
   it("ranges a date, which is what a range is for", () => {
-    const table = Table.make().columns([TextColumn.make("placedAt").summarise("range")]);
+    const table = Table.make().columns([
+      TextColumn.make("placedAt").summarise("range"),
+    ]);
 
     expect(auditSummaries(ORDER, table)).toEqual([]);
   });
@@ -185,8 +189,8 @@ describe("what the boot refuses", () => {
   });
 
   it("says nothing about a table with no footer", () => {
-    expect(auditSummaries(ORDER, Table.make().columns([TextColumn.make("total")]))).toEqual(
-      [],
-    );
+    expect(
+      auditSummaries(ORDER, Table.make().columns([TextColumn.make("total")])),
+    ).toEqual([]);
   });
 });
