@@ -115,11 +115,16 @@ jobs:
 
       # After the build: the Perch generator runs from dist, and `db push` needs
       # no destructive flag because the service starts empty.
+      #
+      # One schema per suite that writes, which is why this is a script rather
+      # than a command: the names live in `tooling/schemas.ts` and the suites
+      # read the same file, so a name cannot drift into a suite whose tables
+      # were never created.
       - name: Prepare the integration database
         working-directory: tooling
         run: |
           ./node_modules/.bin/prisma generate
-          ./node_modules/.bin/prisma db push
+          node prepare-database.ts
 
       - name: Test
         run: pnpm test

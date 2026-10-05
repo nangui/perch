@@ -16,6 +16,7 @@
  */
 import pg from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { SCHEMAS } from "./schemas.ts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DataAdapter, Id, Ir, Row } from "@perchjs/core";
 import { PrismaDataAdapter } from "@perchjs/prisma";
@@ -81,7 +82,7 @@ beforeAll(async () => {
   };
   const { IR } = (await import("./.generated/ir.ts")) as { IR: Ir };
 
-  client = new PrismaClient({ adapter: new PrismaPg(pool) });
+  client = new PrismaClient({ adapter: new PrismaPg(pool, { schema: SCHEMAS.queries }) });
   adapter = new PrismaDataAdapter({ client: client as never, ir: IR });
 
   // `forceDelete`, because this means destroy: `delete` marks a soft-deleting

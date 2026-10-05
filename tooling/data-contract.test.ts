@@ -23,6 +23,7 @@
  */
 import pg from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { SCHEMAS } from "./schemas.ts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { DataAdapter, Ir } from "@perchjs/core";
 import { PrismaDataAdapter } from "@perchjs/prisma";
@@ -46,7 +47,7 @@ beforeAll(async () => {
   };
   const { IR } = (await import("./.generated/ir.ts")) as { IR: Ir };
 
-  client = new PrismaClient({ adapter: new PrismaPg(pool) });
+  client = new PrismaClient({ adapter: new PrismaPg(pool, { schema: SCHEMAS.contract }) });
   adapter = new PrismaDataAdapter({ client: client as never, ir: IR });
 }, 120_000);
 

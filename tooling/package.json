@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "generate": "prisma generate",
+    "prepare-db": "node prepare-database.ts",
     "typecheck": "prisma generate && tsc",
     "lint": "prisma generate && eslint ."
   },

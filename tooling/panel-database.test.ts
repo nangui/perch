@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import pg from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { SCHEMAS } from "./schemas.ts";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -144,7 +145,7 @@ beforeAll(async () => {
   };
   const { IR } = (await import("./.generated/ir.ts")) as { IR: Ir };
 
-  client = new PrismaClient({ adapter: new PrismaPg(pool) });
+  client = new PrismaClient({ adapter: new PrismaPg(pool, { schema: SCHEMAS.panel }) });
   adapter = new PrismaDataAdapter({ client: client as never, ir: IR });
 
   const moduleRef = await Test.createTestingModule({
@@ -199,9 +200,18 @@ async function clear(): Promise<void> {
     const page = await adapter.findMany({
       model,
       clauses: [{ path, operator: "equals", value }],
+      // Marked ones included, or a row this already marked is a row it cannot
+      // see and cannot destroy.
+      deleted: "with",
     });
     // Posts go with their author: the schema cascades that one.
-    await adapter.delete(
+    //
+    // `forceDelete`, because this means destroy. `delete` marks a
+    // soft-deleting model, and `Country` is one, so a wipe using it left the
+    // row behind to collide with its own unique name on the next run. That
+    // went unseen for as long as these suites shared a schema with the one
+    // that destroys everything in its own setup.
+    await adapter.forceDelete(
       model,
       page.rows.map((row) => row["id"] as never),
     );
