@@ -53,6 +53,24 @@ const WIRE: Readonly<Record<string, string>> = {
   "serialise.ts": "the node a schema is sent as",
   "resolve.ts": "the node the cycle resolved",
   "table.ts": "the action node a table is sent as",
+  "stat.ts": "the node a card is sent as",
+};
+
+/**
+ * Options no component carries, and the file that refuses each one.
+ *
+ * `MARK_OPTIONS` is what the component walk reads, and that walk reaches only
+ * what a resource declared at boot. A stat is built inside a widget's own
+ * method, from numbers that did not exist until somebody asked, so there is no
+ * declaration sitting still for the walk to find: it is refused when it is
+ * answered instead.
+ *
+ * Named with the file that does the refusing, and the test below opens that
+ * file. Otherwise this would be the escape hatch that turns the whole guard
+ * into a list somebody edits to make a failure go away.
+ */
+const REFUSED_WHEN_ANSWERED: Readonly<Record<string, string>> = {
+  descriptionIcon: "stat-audit.ts",
 };
 
 /** Every declared option whose name says it holds a mark, and how it is typed. */
@@ -86,6 +104,7 @@ describe("an option that names a mark", () => {
   it("is one the boot already reads", () => {
     const loose = declared()
       .filter((one) => !(MARK_OPTIONS as readonly string[]).includes(one.option))
+      .filter((one) => REFUSED_WHEN_ANSWERED[one.option] === undefined)
       .map((one) => `${one.where}: ${one.option}`);
 
     // If this fails, the new option is declared and nothing refuses it. Add it
@@ -105,6 +124,22 @@ describe("an option that names a mark", () => {
       .map((one) => `${one.where}: ${one.option}`);
 
     expect(loose).toEqual([]);
+  });
+
+  it("has the file that each option escapes to actually refusing it", () => {
+    // What keeps the list above from being a way to silence this. Every option
+    // named there has to appear in the file named with it, beside a call that
+    // refuses a mark.
+    const unproven = Object.entries(REFUSED_WHEN_ANSWERED).filter(([option, where]) => {
+      // The call with that argument, not the two words anywhere in the
+      // file. Asked loosely, this passed with the call deleted: the option's
+      // name survived in a destructuring above it and `refuseIcon` survived
+      // in the line beside it.
+      const found = sources().find((one) => one.name === where);
+      return found === undefined || !found.text.includes(`refuseIcon(${option}`);
+    });
+
+    expect(unproven.map(([option]) => option)).toEqual([]);
   });
 
   it("has every name in the list actually declared somewhere", () => {

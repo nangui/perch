@@ -324,6 +324,11 @@ export {
 // What an aggregation may ask of a column. Read once, at boot.
 export { auditAggregations } from "./aggregate.js";
 
+// One number on a card, and what a card cannot be drawn with.
+export type { StatNode, StatState } from "./stat.js";
+export { serialiseStats, Stat } from "./stat.js";
+export { auditStats } from "./stat-audit.js";
+
 // What a column can gather rows by. Read once, at boot.
 export { auditGrouping, auditGroupKey, groupReads } from "./grouping.js";
 
