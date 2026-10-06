@@ -105,6 +105,29 @@ describe("the panel bundle", () => {
     ).toBe(true);
   });
 
+  it("keeps the calendar out of the bundle every page loads", () => {
+    // The same split as the editor's and for the same arithmetic: a date grid
+    // is a state machine, and most pages have no date on them. Held the same
+    // way too, because a dynamic import is all that separates the two and one
+    // static import anywhere turns it back into weight everybody carries.
+    const entry = readFileSync(join(DIST, manifest.entries["panel.js"]!), "utf8");
+
+    expect(
+      entry.includes("date-picker"),
+      "panel.js carries the date grid, so it is no longer in a chunk of its own",
+    ).toBe(false);
+
+    // And somewhere, so that a split which dropped it outright does not pass
+    // the line above with every calendar on the panel left empty.
+    const chunks = manifest.chunks.map((file) =>
+      readFileSync(join(DIST, file), "utf8"),
+    );
+    expect(
+      chunks.some((chunk) => chunk.includes("date-picker")),
+      "no chunk carries the date grid at all",
+    ).toBe(true);
+  });
+
   it("keeps the library entry free of the panel's weight", () => {
     // The two outputs exist so that neither pays for the other. If React ever
     // leaks into the library build, this is what says so.

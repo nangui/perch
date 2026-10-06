@@ -33,6 +33,7 @@ const NOT_YET_CONNECTED: Readonly<Record<string, string>> = {
  * wore it is gone — which is the moment to ask whether it should be here at all.
  */
 const WORN_BY_ANOTHER: Readonly<Record<string, string>> = {
+  CalendarSurface: "the month grid a date field fetches in its own chunk",
   ChoiceGroup: "the radios under a radio group and a set of toggle buttons",
   RichEditorSurface: "the editor a rich editor field fetches in its own chunk",
 };

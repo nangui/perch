@@ -119,8 +119,11 @@ describe("2.5.8 Target Size — 24 × 24 CSS px minimum", () => {
     // targets at once without touching the day's own rule.
     const panel = declaredBox([".perch-calendar"]).width;
     expect(panel, "the calendar panel declares no width").not.toBeNull();
+    // Seven, not six: the gap is a margin each day carries rather than a gap
+    // between grid columns, so every column spends one step and the two outer
+    // ones are inside the panel's padding.
     const day =
-      (panel! - token("--perch-space-6") * 2 - token("--perch-space-1") * 6) / 7;
+      (panel! - token("--perch-space-6") * 2 - token("--perch-space-1") * 7) / 7;
     expect(
       day,
       `a day is ${day.toFixed(1)} px wide in a ${String(panel)} px panel`,

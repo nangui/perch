@@ -48,6 +48,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0034](0034-the-budget-moved-after-all.md) | A page's cost is a shape and not a number, correcting ADR 0033's deferral | accepted |
 | [0035](0035-what-a-row-may-hold.md) | A row leaves the adapter with no bigint in it, named from the IR rather than sniffed | accepted |
 | [0036](0036-when-a-widget-gets-its-numbers.md) | A widget's numbers arrive on their own request after the shell, so a slow one is slow alone | accepted |
+| [0037](0037-who-draws-a-date-grid.md) | Ark UI draws the date grid, on a chunk of its own, because the hand-written one was reachable and not navigable | accepted |
 
 ## Format
 

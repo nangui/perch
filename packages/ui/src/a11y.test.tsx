@@ -12,7 +12,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { REST } from "./field-state.js";
 import { FieldShell } from "./FieldShell.js";
 import { Toggle } from "./fields/Toggle.js";
-import { Calendar, DateTimePicker } from "./fields/DateTimePicker.js";
+import { CalendarSurface } from "./fields/CalendarSurface.js";
+import { DateTimePicker } from "./fields/DateTimePicker.js";
 import { Repeater } from "./fields/Repeater.js";
 import { TextInput } from "./fields/TextInput.js";
 
@@ -109,7 +110,7 @@ describe("4.1.2 Name, Role, Value — every control is named", () => {
   });
 
   it("names the calendar's month navigation", () => {
-    render(<Calendar selected="2026-09-12" onSelect={() => undefined} />);
+    render(<CalendarSurface selected="2026-09-12" onSelect={() => undefined} />);
     expect(screen.getByRole("button", { name: /previous month/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /next month/i })).toBeDefined();
   });
@@ -117,9 +118,9 @@ describe("4.1.2 Name, Role, Value — every control is named", () => {
   it("names a calendar day in words, weekday included", () => {
     // Matched loosely: ICU punctuates "Saturday, 12 September" differently across
     // versions, and pinning it would fail on a different Node, not a regression.
-    render(<Calendar selected="2026-09-12" onSelect={() => undefined} />);
+    render(<CalendarSurface selected="2026-09-12" onSelect={() => undefined} />);
     expect(
-      screen.getByRole("button", { name: /^Saturday\b.*12 September 2026$/ }),
+      screen.getByRole("button", { name: /Saturday\b.*12 September 2026/ }),
     ).toBeDefined();
     expect(
       screen.queryByRole("button", { name: "2026-09-12" }),
@@ -128,9 +129,10 @@ describe("4.1.2 Name, Role, Value — every control is named", () => {
   });
 
   it("does not claim a grid role without grid children", () => {
-    // Vacuous today — the calendar declares `group` — and its job is to fire the
-    // day someone reintroduces the role without the structure.
-    render(<Calendar selected="2026-09-12" onSelect={() => undefined} />);
+    // No longer vacuous: the calendar declares `grid` now, so this walks a real
+    // one. It passed for years over an empty list, which is worth remembering
+    // about any assertion written as a loop.
+    render(<CalendarSurface selected="2026-09-12" onSelect={() => undefined} />);
     for (const grid of screen.queryAllByRole("grid")) {
       expect(
         grid.querySelectorAll('[role="row"], [role="gridcell"]').length,
@@ -140,9 +142,20 @@ describe("4.1.2 Name, Role, Value — every control is named", () => {
   });
 
   it("hides the weekday strip, which means nothing read aloud", () => {
-    render(<Calendar selected="2026-09-12" onSelect={() => undefined} />);
-    const strip = document.querySelector(".perch-calendar__weekday")?.parentElement;
+    // Unchanged in intent, and no longer ours to hold: the grid hides the row
+    // itself, having reached the decision this project had already written
+    // down — "M T W T F S S" read on the way past a month is noise, and each
+    // day carries its own written-out date. What moved is the element the
+    // attribute sits on, from the row to the head above it.
+    render(<CalendarSurface selected="2026-09-12" onSelect={() => undefined} />);
+
+    const strip = document.querySelector(".perch-calendar__weekday")?.closest("thead");
+    expect(strip, "no weekday strip at all").not.toBeNull();
     expect(strip?.getAttribute("aria-hidden")).toBe("true");
+    expect(
+      [...(strip?.querySelectorAll("th") ?? [])].map((one) => one.textContent),
+      "the letters are what a looking reader gets, and they stay",
+    ).toEqual(["M", "T", "W", "T", "F", "S", "S"]);
   });
 });
 

@@ -9,7 +9,7 @@ a case left uncovered, a missing technical pre-condition.
 
 ## Before opening an issue or a pull request
 
-1. Read the [structural decisions](docs/adr/) — thirty-six records, one of them superseded and the index says which.
+1. Read the [structural decisions](docs/adr/) — thirty-seven records, one of them superseded and the index says which.
 2. Read the document concerned. [`docs/README.md`](docs/README.md) gives the reading order.
 3. Check that what you are proposing is not listed as **out of scope** in the relevant PRD. Out
    of scope is as binding as in scope: it is what stops the drift toward a CMS.
