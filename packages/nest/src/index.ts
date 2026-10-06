@@ -61,6 +61,10 @@ export {
 export type { ResourcePageAnswer } from "./resource-page.controller.js";
 export type { PageMetadata, PanelPageOptions } from "./custom-page.js";
 export { PANEL_PAGE, PanelPage, pageMetadata } from "./custom-page.js";
+export type { PanelWidgetOptions, StatsWidget, WidgetMetadata } from "./widget.js";
+export { PANEL_WIDGET, PanelWidget, widgetMetadata } from "./widget.js";
+export type { RegisteredWidget, WidgetClass } from "./widget-registry.js";
+export { PANEL_WIDGET_TYPES, WidgetRegistry } from "./widget-registry.js";
 export type { PageClass, RegisteredPage } from "./custom-page-registry.js";
 export { CustomPageRegistry, PANEL_PAGE_TYPES } from "./custom-page-registry.js";
 export type { PageSaveAnswer } from "./custom-page.controller.js";

@@ -41,6 +41,8 @@ import { PANEL_PATH } from "./panel-path.js";
 import { CustomPageController } from "./custom-page.controller.js";
 import { ResourcePageController } from "./resource-page.controller.js";
 import { CustomPageRegistry, PANEL_PAGE_TYPES } from "./custom-page-registry.js";
+import { PANEL_WIDGET_TYPES, WidgetRegistry } from "./widget-registry.js";
+import type { WidgetClass } from "./widget-registry.js";
 import type { PageClass } from "./custom-page-registry.js";
 import type { UserMenu } from "./user-menu.js";
 import type { ResourceClass } from "./resource-registry.js";
@@ -73,6 +75,15 @@ export interface PanelModuleOptions {
    * predictable, and tree-shakable.
    */
   readonly pages?: readonly PageClass[];
+  /**
+   * Cards a dashboard draws, listed for the reason the resources and the pages
+   * are: explicit, predictable, and tree-shakable.
+   *
+   * Their numbers do not travel with the page. Each is asked for on its own
+   * request once the chrome has drawn, so a slow one is slow alone and a
+   * failed one fails alone.
+   */
+  readonly widgets?: readonly WidgetClass[];
   /**
    * The disks a `FileUpload` may name, by the names it names them by.
    *
@@ -194,6 +205,7 @@ export class PanelModule {
           useValue: normalise(options.path) === "" ? "" : `/${normalise(options.path)}`,
         },
         { provide: PANEL_PAGE_TYPES, useValue: options.pages ?? [] },
+        { provide: PANEL_WIDGET_TYPES, useValue: options.widgets ?? [] },
         // A record's own pages, read off the resources rather than listed
         // again: the container has to be told about them before it builds
         // anything, and a list kept in two places is one that stops matching.
@@ -201,6 +213,7 @@ export class PanelModule {
           (type) => resourceMetadata(type)?.pages ?? [],
         ),
         CustomPageRegistry,
+        WidgetRegistry,
         ...(options.pages ?? []),
         { provide: PANEL_RESOURCE_TYPES, useValue: options.resources ?? [] },
         {
