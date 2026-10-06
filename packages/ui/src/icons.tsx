@@ -186,6 +186,22 @@ const DRAWINGS: Readonly<Record<IconName, ReactNode>> = {
       <circle cx="8" cy="8" r="2.1" />
     </>
   ),
+  // A line that rises, and the corner that says which way it went. Two paths
+  // rather than one, for the reason `copy` is two: a stroke that doubled back
+  // on itself to draw the head would thicken at the turn, and the head has to
+  // read at sixteen pixels.
+  "trending-up": (
+    <>
+      <path d="M2.5 11.5l4-4 2 2 5-5" />
+      <path d="M9.5 4.5h4v4" />
+    </>
+  ),
+  "trending-down": (
+    <>
+      <path d="M2.5 4.5l4 4 2-2 5 5" />
+      <path d="M9.5 11.5h4v-4" />
+    </>
+  ),
 };
 
 /** What a name draws, if anything. */

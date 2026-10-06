@@ -49,6 +49,11 @@ export const ICON_NAMES = [
   "info",
   // What a page that is not a table asks for.
   "cog",
+  // What a card says about a number beside it. Two, because a trend has two
+  // directions and a panel that drew only the good one would be a panel with
+  // an opinion.
+  "trending-up",
+  "trending-down",
 ] as const;
 
 /** Whether a string is a name the panel can draw. */
