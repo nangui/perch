@@ -17,6 +17,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { StatNode } from "@perchjs/core";
+import { stat } from "./styled-system/recipes/index.js";
 import { IconMark } from "./icons.js";
 
 /** One card's place and address, as the shell sent it. */
@@ -107,21 +108,21 @@ function Widget({
       {...(asked.kind === "asking" ? { "aria-busy": true } : {})}
     >
       {asked.kind === "asking" ? (
-        <div className="perch-stat perch-stat--waiting">
+        <div className={stat({ state: "waiting" }).root}>
           <span className="perch-visually-hidden">Loading</span>
         </div>
       ) : asked.kind === "failed" ? (
         // In its own box, which is the point: the others are still filling in
         // while this one says so.
-        <div className="perch-stat perch-stat--failed" role="alert">
+        <div className={stat({ state: "failed" }).root} role="alert">
           <span>That did not load.</span>
           <button type="button" className="perch-button" onClick={ask}>
             Try again
           </button>
         </div>
       ) : (
-        asked.stats.map((stat, at) => (
-          <StatCard key={`${stat.label}-${String(at)}`} stat={stat} />
+        asked.stats.map((one, at) => (
+          <StatCard key={`${one.label}-${String(at)}`} card={one} />
         ))
       )}
     </section>
@@ -144,29 +145,40 @@ function spanStyle(card: WidgetCard): Record<string, string> | undefined {
   return { "--perch-widget-span": String(card.columnSpan) };
 }
 
-/** The tones a card may carry, which are the ones an entry may. */
-const TONES = new Set(["neutral", "success", "warning", "danger"]);
+/**
+ * The tones a card may carry, which are the ones an entry may.
+ *
+ * A tuple rather than a set, so that finding a name in it narrows to the name:
+ * the recipe's own type takes the four and refuses a string, which is the
+ * closed vocabulary being held by the compiler instead of by a rule that
+ * matches an attribute or quietly does not.
+ */
+const TONES = ["neutral", "success", "warning", "danger"] as const;
 
-function StatCard({ stat }: { readonly stat: StatNode }): ReactNode {
-  const tone = stat.tone !== undefined && TONES.has(stat.tone) ? stat.tone : undefined;
+function StatCard({ card }: { readonly card: StatNode }): ReactNode {
+  // A variant now rather than an attribute a rule has to match. A name
+  // outside the four is dropped and the card draws without one, which is what
+  // the panel did before and is now also what it is able to do.
+  const tone = TONES.find((one) => one === card.tone);
+  const classes = stat(tone === undefined ? {} : { tone });
 
   return (
-    <div className="perch-stat" {...(tone === undefined ? {} : { "data-tone": tone })}>
-      <div className="perch-stat__head">
-        <span className="perch-stat__label">{stat.label}</span>
-        {stat.icon === undefined ? null : (
-          <IconMark name={stat.icon} className="perch-stat__icon" />
+    <div className={classes.root}>
+      <div className={classes.head}>
+        <span className={classes.label}>{card.label}</span>
+        {card.icon === undefined ? null : (
+          <IconMark name={card.icon} className={classes.icon} />
         )}
       </div>
 
-      <strong className="perch-stat__value">{reads(stat)}</strong>
+      <strong className={classes.value}>{reads(card)}</strong>
 
-      {stat.description === undefined ? null : (
-        <div className="perch-stat__description">
-          {stat.descriptionIcon === undefined ? null : (
-            <IconMark name={stat.descriptionIcon} className="perch-stat__trend" />
+      {card.description === undefined ? null : (
+        <div className={classes.description}>
+          {card.descriptionIcon === undefined ? null : (
+            <IconMark name={card.descriptionIcon} className={classes.trend} />
           )}
-          <span>{stat.description}</span>
+          <span>{card.description}</span>
         </div>
       )}
     </div>

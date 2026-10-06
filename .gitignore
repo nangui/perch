@@ -41,3 +41,9 @@ examples/demo/src/generated/client/
 # The built documentation site.
 docs/.vitepress/dist
 docs/.vitepress/cache
+
+# Written by `panda codegen` and `panda cssgen`. Generated code, like the
+# Prisma client in the demo: the build writes it, and a checkout that has not
+# built has nothing to read.
+packages/ui/src/styled-system
+packages/ui/src/panda.css

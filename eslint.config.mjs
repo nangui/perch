@@ -16,6 +16,7 @@ export default defineConfig(
       "**/.generated/**",
       "**/.vitepress/cache/**",
       "**/generated/client/**",
+      "**/styled-system/**",
     ],
   },
   ...tseslint.configs.strictTypeChecked,

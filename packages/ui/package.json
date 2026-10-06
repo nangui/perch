@@ -46,10 +46,11 @@
     "access": "public"
   },
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsdown",
-    "typecheck": "tsc --build",
-    "lint": "eslint src",
-    "package:check": "publint && attw --pack . --profile esm-only --exclude-entrypoints ./styles.css"
+    "build": "pnpm run generate && node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsdown",
+    "typecheck": "pnpm run generate && tsc --build",
+    "lint": "pnpm run generate && eslint src",
+    "package:check": "publint && attw --pack . --profile esm-only --exclude-entrypoints ./styles.css",
+    "generate": "panda codegen && panda cssgen --outfile src/panda.css"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -65,6 +66,9 @@
     "@tiptap/starter-kit": "^3.30.2"
   },
   "devDependencies": {
+    "@pandacss/dev": "^2.1.1",
+    "@pandacss/preset-base": "^2.1.1",
+    "@pandacss/preset-panda": "^2.1.1",
     "@perchjs/core": "workspace:*",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.0",

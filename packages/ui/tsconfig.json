@@ -5,6 +5,8 @@
     "rootDir": "src",
     "outDir": ".tsbuild",
     "tsBuildInfoFile": ".tsbuild/.tsbuildinfo",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx"
   },

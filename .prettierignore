@@ -12,3 +12,7 @@ docs/
 # Written by `prisma generate`. Formatting it is undone on the next run, and
 # the diff it leaves is noise in the one file that is meant to be read as a diff.
 examples/demo/src/generated/
+
+# Written by Panda. Formatting it is undone on the next run.
+packages/ui/src/styled-system/
+packages/ui/src/panda.css

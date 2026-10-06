@@ -210,7 +210,16 @@ const configuration = {
     // target* so `no-src-to-dist` can fire, while never being traversed as
     // source. Excluding it outright made that rule unreachable — a dead rule
     // reads like a guard and protects nothing.
-    doNotFollow: { path: "(^|/)(node_modules|dist|\\.tsbuild)(/|$)" },
+    //
+    // `styled-system` is on the list for the same reason and a second one: the
+    // styling system writes it, and its files import each other without file
+    // extensions. This cruise resolves modules the way the base config does,
+    // which is the way Node does, so following them reports a dozen
+    // unresolvable imports about code nobody wrote and nobody ships
+    // unbundled.
+    doNotFollow: {
+      path: "(^|/)(node_modules|dist|\\.tsbuild|styled-system)(/|$)",
+    },
     // `.contract/` is what the contract test generates. It imports
     // @perchjs/prisma, which resolves for a consumer and not here — the
     // generator does not depend on the adapter, and must not start to.

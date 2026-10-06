@@ -24,6 +24,7 @@
     "eslint.config.mjs",
     ".dependency-cruiser.cjs",
     "**/tsdown.config.ts",
-    "**/prisma.config.ts"
+    "**/prisma.config.ts",
+    "**/panda.config.ts"
   ]
 }

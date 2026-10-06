@@ -218,8 +218,11 @@ describe("what a card says", () => {
       expect(screen.getByText("12% up")).toBeTruthy();
     });
     expect(document.querySelector(".perch-stat__trend")).toBeTruthy();
-    expect(document.querySelector(".perch-stat")?.getAttribute("data-tone")).toBe(
-      "success",
+    // A variant class, where this used to be a `data-tone` attribute a rule
+    // had to match. The tone is part of what the card is now rather than
+    // something hung on it afterwards.
+    expect(document.querySelector(".perch-stat__description")?.className).toContain(
+      "perch-stat__description--tone_success",
     );
   });
 
@@ -240,8 +243,10 @@ describe("what a card says", () => {
     await waitFor(() => {
       expect(screen.getByText("Sales")).toBeTruthy();
     });
-    expect(document.querySelector(".perch-stat")?.hasAttribute("data-tone")).toBe(
-      false,
-    );
+    // Nowhere on the card, which is what the closed vocabulary means: the
+    // card this one draws is the card with no tone at all. Asserted over the
+    // whole of it rather than on one part, since this fixture has no quiet
+    // line for a tone to have coloured.
+    expect(document.body.innerHTML).not.toMatch(/--tone_/);
   });
 });
