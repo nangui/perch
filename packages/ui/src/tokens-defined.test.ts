@@ -22,6 +22,32 @@ function components(): readonly string[] {
     .map((name) => readFileSync(new URL(name, root), "utf8"));
 }
 
+/**
+ * Anything that names a colour rather than reading one.
+ *
+ * Named words are left out on purpose: `currentColor`, `transparent` and
+ * `none` carry no value of their own, so they are re-themable by whatever they
+ * inherit from.
+ *
+ * Twice, and not because one of them would do. A global regexp keeps its
+ * `lastIndex` between calls, so the same pattern used for `test` in a loop
+ * answers yes, no, yes to identical strings — which is a guard that reports
+ * every other offence. The counted form is separate for that reason alone.
+ */
+const COLOUR = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|color-mix|lab|lch)\(/i;
+const EVERY_COLOUR = new RegExp(COLOUR.source, "gi");
+
+/**
+ * The stylesheet with its prose removed.
+ *
+ * This file explains itself at length, and a comment that mentions the hex a
+ * token was lifted from is a comment doing its job rather than a rule breaking
+ * one.
+ */
+function code(css: string): string {
+  return css.replace(/\/\*[\s\S]*?\*\//g, " ");
+}
+
 describe("the token contract", () => {
   it("defines every variable the stylesheet reads without a fallback", () => {
     const tokens = read("tokens.css");
@@ -37,6 +63,46 @@ describe("the token contract", () => {
 
     expect(missing, `undefined in tokens.css: ${missing.join(", ")}`).toEqual([]);
     expect(bare.length).toBeGreaterThan(20);
+  });
+
+  it("hides no colour in a fallback, where no theme could reach it", () => {
+    // The hole the test above leaves open, and it was being used. A fallback is
+    // exempt from the check because `var(--perch-columns, 1)` is a runtime
+    // value a renderer sets, not a token — but the exemption also covered
+    // `var(--perch-shadow-2, 0 8px 24px rgb(0 0 0 / 12%))`, where the token was
+    // declared nowhere, the fallback was therefore always what rendered, and a
+    // raw colour sat in a file whose header says it names none.
+    //
+    // So the rule is about colour rather than about declaration: a runtime
+    // length may have a fallback and a colour may not, because a colour behind
+    // a `var()` is a colour no theme can replace.
+    const found: string[] = [];
+    for (const match of code(read("styles.css")).matchAll(
+      /var\(\s*(--perch-[a-z0-9-]+)\s*,([^;]*)/g,
+    )) {
+      if (COLOUR.test(match[2] ?? "")) found.push(match[1] ?? "");
+    }
+
+    expect(
+      found,
+      `a colour behind a fallback, which a theme cannot replace: ${found.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("names a colour nowhere but in the token layer", () => {
+    // What `styles.css` already claims in its own header: "Not one raw colour
+    // appears below. Every value is a token from tokens.css, which is what
+    // makes the panel re-themable by replacing that one file." It was not quite
+    // true — a modal's backdrop named its own ink — and a promise nothing holds
+    // is worth less than one nobody made.
+    const raw = [...code(read("styles.css")).matchAll(EVERY_COLOUR)].map(
+      (one) => one[0],
+    );
+
+    expect(
+      raw,
+      `raw colour in styles.css, which no theme can replace: ${raw.join(", ")}`,
+    ).toEqual([]);
   });
 });
 

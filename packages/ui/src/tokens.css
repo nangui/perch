@@ -84,6 +84,9 @@
   --perch-shadow-raised: 0 1px 2px rgb(20 24 26 / 0.06);
   --perch-shadow-panel: 0 2px 6px rgb(20 24 26 / 0.08);
   --perch-shadow-overlay: 0 12px 32px rgb(20 24 26 / 0.14);
+  /* What a modal lays over the page. The one colour a component used to name
+     itself, which made it the one colour a theme could not reach. */
+  --perch-overlay-scrim: rgb(20 24 26 / 0.4);
   --perch-shadow-popover: 0 6px 16px rgb(20 24 26 / 0.1);
   --perch-shadow-dragging: 0 8px 18px rgb(20 24 26 / 0.14);
 }
@@ -150,6 +153,9 @@
   --perch-shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4);
   --perch-shadow-panel: 0 2px 8px rgb(0 0 0 / 0.45);
   --perch-shadow-overlay: 0 14px 36px rgb(0 0 0 / 0.6);
+  /* Heavier than the light ramp's: a scrim has to read as a layer over a
+     ground that is already dark. */
+  --perch-overlay-scrim: rgb(0 0 0 / 0.6);
   --perch-shadow-popover: 0 6px 16px rgb(0 0 0 / 0.5);
   --perch-shadow-dragging: 0 8px 18px rgb(0 0 0 / 0.6);
 }

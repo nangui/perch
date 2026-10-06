@@ -394,7 +394,12 @@
   border: 1px solid var(--perch-border);
   border-radius: var(--perch-radius);
   background: var(--perch-surface);
-  box-shadow: var(--perch-shadow-2, 0 8px 24px rgb(0 0 0 / 12%));
+  /* The panel floats over the table, so it takes the shadow every other
+     floating thing takes. It used to read a token called `--perch-shadow-2`
+     that is declared nowhere, so it was always the fallback beside it — the
+     one shadow in this file no theme could change, carrying the one colour
+     this file says it never names. */
+  box-shadow: var(--perch-shadow-popover);
 }
 
 .perch-columns__row {
@@ -1777,8 +1782,8 @@
 
 .perch-markdown__tool {
   /* WCAG's pointer target, the floor every other control here keeps. */
-  min-width: 28px;
-  min-height: 28px;
+  min-width: var(--perch-control-height-sm);
+  min-height: var(--perch-control-height-sm);
   padding: 0 var(--perch-space-2);
   border: 1px solid transparent;
   border-radius: var(--perch-radius-sm);
@@ -2003,8 +2008,8 @@
 
 .perch-rich__tool {
   /* WCAG's pointer target, the floor every other control here keeps. */
-  min-width: 28px;
-  min-height: 28px;
+  min-width: var(--perch-control-height-sm);
+  min-height: var(--perch-control-height-sm);
   padding: 0 var(--perch-space-2);
   border: 1px solid transparent;
   border-radius: var(--perch-radius-sm);
@@ -3031,7 +3036,7 @@
 }
 
 .perch-modal::backdrop {
-  background: rgb(20 24 26 / 0.4);
+  background: var(--perch-overlay-scrim);
 }
 
 .perch-modal__panel {
@@ -3340,7 +3345,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
+  height: var(--perch-control-height-sm);
   margin: calc(var(--perch-space-1) / 2);
   border-radius: var(--perch-radius);
   color: var(--perch-content);
@@ -3381,8 +3386,8 @@
    resize under the reader between the click and the grid. */
 .perch-calendar__waiting {
   height: calc(
-    6 * (28px + var(--perch-space-1)) + var(--perch-text-xs) + var(--perch-space-5) +
-      24px
+    6 * (var(--perch-control-height-sm) + var(--perch-space-1)) + var(--perch-text-xs) +
+      var(--perch-space-5) + 24px
   );
 }
 
@@ -3416,7 +3421,7 @@
   display: flex;
   align-items: center;
   gap: var(--perch-space-4);
-  height: 28px;
+  height: var(--perch-control-height-sm);
   padding: 0 var(--perch-space-5);
   border-bottom: 1px solid var(--perch-border);
   background: var(--perch-surface-muted);
