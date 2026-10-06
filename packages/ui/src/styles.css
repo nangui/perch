@@ -3723,45 +3723,6 @@
   font-size: var(--perch-text-sm);
 }
 
-/* ------------------------------------------------------------------- widgets */
-
-/* Four columns, because `columnSpan` is a count against a grid and a count
-   means nothing without one. A card asks for as many as it wants and gets what
-   there is. */
-.perch-widgets {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--perch-space-6);
-  margin-bottom: var(--perch-space-8);
-}
-
-/* As wide as it asked, and as many columns across inside itself. A widget
-   answering three cards in two columns is three cards laid out two and one,
-   rather than three stacked in a column two wide — which is what a stats
-   widget means by asking for room. */
-.perch-widget {
-  display: grid;
-  grid-template-columns: repeat(var(--perch-widget-span, 1), minmax(0, 1fr));
-  gap: var(--perch-space-6);
-  /* Read from a property rather than set on the element, so the narrow layout
-     below can take the decision back without having to shout over it. */
-  grid-column: span var(--perch-widget-span, 1);
-}
-
-@media (max-width: 720px) {
-  /* One card per row, and the spans stop being read: a span of two in a grid
-     one column wide would make itself a second column that nothing else is in,
-     and the page would scroll sideways. */
-  .perch-widgets {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .perch-widget {
-    grid-column: auto;
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 /* --------------------------------------------------------- reduced motion */
 
 @media (prefers-reduced-motion: reduce) {

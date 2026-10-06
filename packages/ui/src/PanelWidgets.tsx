@@ -17,7 +17,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { StatNode } from "@perchjs/core";
-import { stat } from "./styled-system/recipes/index.js";
+import { stat, widgets } from "./styled-system/recipes/index.js";
 import { IconMark } from "./icons.js";
 
 /** One card's place and address, as the shell sent it. */
@@ -39,15 +39,17 @@ export interface PanelWidgetsProps {
   readonly load: (card: WidgetCard) => Promise<readonly StatNode[]>;
 }
 
-export function PanelWidgets({ widgets, load }: PanelWidgetsProps): ReactNode {
+export function PanelWidgets({ widgets: cards, load }: PanelWidgetsProps): ReactNode {
   // No grid at all rather than an empty one. A page that holds no card, and a
   // page whose every card this reader may not have, are the same page.
-  if (widgets.length === 0) return null;
+  if (cards.length === 0) return null;
+
+  const grid = widgets();
 
   return (
-    <div className="perch-widgets">
-      {widgets.map((card) => (
-        <Widget key={card.name} card={card} load={load} />
+    <div className={grid.root}>
+      {cards.map((card) => (
+        <Widget key={card.name} card={card} load={load} className={grid.item} />
       ))}
     </div>
   );
@@ -61,9 +63,12 @@ type Asked =
 function Widget({
   card,
   load,
+  className,
 }: {
   readonly card: WidgetCard;
   readonly load: PanelWidgetsProps["load"];
+  /** The grid's own class for a cell, handed down so the recipe is read once. */
+  readonly className: string;
 }): ReactNode {
   const [asked, setAsked] = useState<Asked>({ kind: "asking" });
   const live = useRef(true);
@@ -103,7 +108,7 @@ function Widget({
 
   return (
     <section
-      className="perch-widget"
+      className={className}
       style={spanStyle(card)}
       {...(asked.kind === "asking" ? { "aria-busy": true } : {})}
     >

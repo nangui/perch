@@ -198,12 +198,21 @@ export default defineConfig({
    * still drawn by hand has no style call to find, and a recipe written for it
    * ahead of time would emit nothing.
    */
-  staticCss: { recipes: { stat: ["*"] } },
+  staticCss: { recipes: { stat: ["*"], widgets: ["*"] } },
 
   conditions: {
     extend: {
       /** Stamped by a host that wants it, never read off the machine. */
       dark: '[data-perch-theme="dark"] &',
+      /**
+       * Where the panel already folds.
+       *
+       * `40rem`, which is the width five other rules in this panel narrow at.
+       * The widget grid arrived with a `720px` of its own — the only one in the
+       * stylesheet — which is a second breakpoint nobody designed, two
+       * and a half rem from the first.
+       */
+      narrow: "@media (max-width: 40rem)",
     },
   },
 
@@ -269,6 +278,8 @@ export default defineConfig({
         },
         spacing: {
           2: { value: "var(--perch-space-2)" },
+          6: { value: "var(--perch-space-6)" },
+          8: { value: "var(--perch-space-8)" },
           3: { value: "var(--perch-space-3)" },
           4: { value: "var(--perch-space-4)" },
           5: { value: "var(--perch-space-5)" },
@@ -276,6 +287,43 @@ export default defineConfig({
         },
       },
       slotRecipes: {
+        /**
+         * The grid a dashboard lays its widgets on.
+         *
+         * Four columns, because a widget's `columnSpan` is a count against a
+         * grid and a count means nothing without one. A card asks for as many
+         * as it wants and gets what there is.
+         */
+        widgets: {
+          className: "perch-widgets",
+          slots: ["root", "item"],
+          base: {
+            root: {
+              display: "grid",
+              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+              gap: "6",
+              marginBottom: "8",
+              // One per row when there is no room for four.
+              _narrow: { gridTemplateColumns: "minmax(0, 1fr)" },
+            },
+            item: {
+              display: "grid",
+              // As wide as it asked, and as many columns across inside itself:
+              // a widget answering three cards in two columns is three cards
+              // laid out two and one, rather than three stacked in a column
+              // two wide.
+              gridTemplateColumns:
+                "repeat(var(--perch-widget-span, 1), minmax(0, 1fr))",
+              gridColumn: "span var(--perch-widget-span, 1)",
+              gap: "6",
+              // The span stops being read here. A span of two in a grid one
+              // column wide would make itself a second column nothing else is
+              // in, and the page would scroll sideways.
+              _narrow: { gridColumn: "auto", gridTemplateColumns: "minmax(0, 1fr)" },
+            },
+          },
+        },
+
         /**
          * One card with a number on it.
          *

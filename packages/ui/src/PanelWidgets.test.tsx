@@ -24,9 +24,14 @@ const card = (name: string, columnSpan?: number): WidgetCard => ({
   ...(columnSpan === undefined ? {} : { columnSpan }),
 });
 
-/** A card's box, by the name the roster gave it. */
+/**
+ * A card's box.
+ *
+ * Named by the grid's recipe rather than by hand: a slot gives every part a
+ * suffix, so the cell that was `.perch-widget` is `.perch-widgets__item`.
+ */
 const boxes = (): readonly HTMLElement[] => [
-  ...document.querySelectorAll<HTMLElement>(".perch-widget"),
+  ...document.querySelectorAll<HTMLElement>(".perch-widgets__item"),
 ];
 
 describe("a roster the shell sent", () => {
@@ -52,7 +57,7 @@ describe("a roster the shell sent", () => {
     // every card was refused are the same page.
     render(<PanelWidgets widgets={[]} load={() => Promise.resolve([])} />);
 
-    expect(document.querySelector(".perch-widgets")).toBeNull();
+    expect(document.querySelector(".perch-widgets__root")).toBeNull();
   });
 
   it("asks once per card, at the address the roster carried", async () => {
