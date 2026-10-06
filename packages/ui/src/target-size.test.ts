@@ -1,7 +1,7 @@
 /**
  * WCAG 2.2 §2.5.8 — 24 × 24 CSS px per pointer target, read from the stylesheet
  * because jsdom computes no layout and a rendered box would measure zero. Same
- * approach as `contrast.test.ts` against `tokens.css`.
+ * approach as `contrast.test.ts` against the generated sheet.
  *
  * Reading declarations cannot see a target squeezed by its container, so where a
  * container decides the size the container is checked instead.
@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const STYLES = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
-const TOKENS = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
+const TOKENS = readFileSync(new URL("./panda.css", import.meta.url), "utf8");
 
 const MIN_TARGET = 24;
 
@@ -63,7 +63,7 @@ function resolve(value: string): number | null {
 /** A token that has to stay a length, read the same way the rules read it. */
 function token(name: string): number {
   const value = resolve(`var(${name})`);
-  expect(value, `${name} is not a px length in tokens.css`).not.toBeNull();
+  expect(value, `${name} is not a px length in the generated sheet`).not.toBeNull();
   return value!;
 }
 

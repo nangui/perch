@@ -4,12 +4,14 @@
  * Shipped precompiled and served as static assets by the PanelModule: the user
  * of the framework configures no bundler and no CSS pipeline.
  *
- * Not one raw colour appears below. Every value is a token from tokens.css,
- * which is what makes the panel re-themable by replacing that one file.
+ * Not one raw colour appears below. Every value is a token, and the tokens
+ * are declared in `panda.config.ts` and written out by the build — which is
+ * what makes the panel re-themable by redefining the custom properties it
+ * publishes.
  */
-@import "./tokens.css";
-/* Written by `panda cssgen` from `panda.config.ts`: the recipes, and the token
-   layer they read. Imported first so the cascade layers it declares are
+/* Written by `panda cssgen` from `panda.config.ts`, which is where the design
+   now lives: every colour, size, radius and shadow, once, with its dark value
+   beside its light one. Imported first so the cascade layers it declares are
    established before any rule here, and because the rules here sit in no layer
    at all — unlayered beats every layer, so while both ways of writing this
    exist, a leftover rule below would quietly outrank a recipe. */

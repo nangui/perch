@@ -15,7 +15,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const TOKENS = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
+const TOKENS = readFileSync(new URL("./panda.css", import.meta.url), "utf8");
 
 /** The hex values one ramp declares, by token name. */
 function ramp(which: "light" | "dark"): Readonly<Record<string, string>> {

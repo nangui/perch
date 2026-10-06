@@ -1,7 +1,7 @@
 /**
  * A token nobody reads.
  *
- * `tokens.css` is the panel's whole answer to theming: an integrator redefines
+ * The generated sheet is the panel's whole answer to theming: an integrator redefines
  * a custom property and the components follow, because a component style names
  * a token and never a raw colour. That promise only holds one way round. A
  * token the sheet declares and nothing reads is a setting that looks exactly
@@ -22,7 +22,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const HERE = join(import.meta.dirname);
-const SHEET = join(HERE, "tokens.css");
+const SHEET = join(HERE, "panda.css");
 
 /** Every property the token sheet declares, by name. */
 function declared(): readonly string[] {
@@ -73,7 +73,7 @@ describe("the token sheet", () => {
       readdirSync(at, { withFileTypes: true }).flatMap((entry) => {
         const next = join(at, entry.name);
         if (entry.isDirectory()) return walk(next);
-        return entry.name.endsWith(".css") && entry.name !== "tokens.css" ? [next] : [];
+        return entry.name.endsWith(".css") && entry.name !== "panda.css" ? [next] : [];
       });
 
     const invented = walk(HERE).flatMap((file) =>

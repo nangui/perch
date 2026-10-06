@@ -62,6 +62,15 @@ export interface ShellOptions {
    * panel sends a browser that has to be drawn before its values exist.
    */
   readonly widgets?: unknown;
+  /**
+   * Whether this page has anywhere to write.
+   *
+   * Absent means it has, which is every resource route: a form is a form. A
+   * page with no `submit` says `false` here, and the save route refuses one
+   * anyway — so without this the panel drew a button whose only outcome was a
+   * 404, on the one screen it is most often the first thing a reader sees.
+   */
+  readonly saves?: boolean;
   readonly payload: unknown;
   readonly scriptFile: string;
   /**
@@ -77,8 +86,8 @@ export interface ShellOptions {
    *
    * The one way a panel's colours can be changed. The bundle ships compiled and
    * nobody configures a build to alter it, so a theme is a file that redefines
-   * the custom properties `tokens.css` declares — and last one wins, which is
-   * why these come after.
+   * the custom properties the panel's own stylesheet declares — and last one
+   * wins, which is why these come after.
    */
   readonly styles?: readonly string[];
   readonly styleFile: string;
@@ -125,7 +134,7 @@ ${(options.styles ?? [])
     options.widgets === undefined
       ? ""
       : ` data-widgets="${attribute(JSON.stringify(options.widgets))}"`
-  } data-title="${attribute(options.title)}" data-payload="${payload}"></div>
+  }${options.saves === false ? ` data-saves="false"` : ""} data-title="${attribute(options.title)}" data-payload="${payload}"></div>
 <script type="module" src="${attribute(`${options.root}/assets/${options.scriptFile}`)}"></script>
 ${(options.scripts ?? [])
   .map((src) => `<script type="module" src="${attribute(src)}"></script>`)

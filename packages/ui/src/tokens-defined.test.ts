@@ -50,7 +50,7 @@ function code(css: string): string {
 
 describe("the token contract", () => {
   it("defines every variable the stylesheet reads without a fallback", () => {
-    const tokens = read("tokens.css");
+    const tokens = read("panda.css");
     const styles = read("styles.css");
 
     // `var(--x, fallback)` is a deliberate runtime variable — `--perch-columns`
@@ -61,7 +61,9 @@ describe("the token contract", () => {
       .filter((name): name is string => name !== undefined);
     const missing = [...new Set(bare)].filter((name) => !tokens.includes(`${name}:`));
 
-    expect(missing, `undefined in tokens.css: ${missing.join(", ")}`).toEqual([]);
+    expect(missing, `undefined in the generated sheet: ${missing.join(", ")}`).toEqual(
+      [],
+    );
     expect(bare.length).toBeGreaterThan(20);
   });
 
@@ -91,7 +93,7 @@ describe("the token contract", () => {
 
   it("names a colour nowhere but in the token layer", () => {
     // What `styles.css` already claims in its own header: "Not one raw colour
-    // appears below. Every value is a token from tokens.css, which is what
+    // appears below. Every value is a token, which is what
     // makes the panel re-themable by replacing that one file." It was not quite
     // true — a modal's backdrop named its own ink — and a promise nothing holds
     // is worth less than one nobody made.

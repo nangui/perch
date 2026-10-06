@@ -42,6 +42,7 @@ import { CustomPageController } from "./custom-page.controller.js";
 import { ResourcePageController } from "./resource-page.controller.js";
 import { CustomPageRegistry, PANEL_PAGE_TYPES } from "./custom-page-registry.js";
 import { PANEL_WIDGET_TYPES, WidgetRegistry } from "./widget-registry.js";
+import { PanelWidgetController } from "./panel-widget.controller.js";
 import type { WidgetClass } from "./widget-registry.js";
 import type { PageClass } from "./custom-page-registry.js";
 import type { UserMenu } from "./user-menu.js";
@@ -145,8 +146,8 @@ export interface PanelModuleOptions {
   /**
    * Stylesheets served after the panel's own, which is how its colours change.
    *
-   * `tokens.css` declares every colour, size and radius as a custom property,
-   * and the bundle ships compiled: there is no build for a host to configure,
+   * The panel's stylesheet declares every colour, size and radius as a custom
+   * property, and the bundle ships compiled: there is no build to configure,
    * so a theme is a file that redefines the properties it wants and is linked
    * after. A URL this application already serves — nothing here fetches it.
    */
@@ -183,6 +184,7 @@ export class PanelModule {
         // resource's, which are one segment shorter.
         guarded(ResourcePageController, guards),
         guarded(CustomPageController, guards),
+        guarded(PanelWidgetController, guards),
         guarded(PanelPageController, guards),
       ],
       providers: [
@@ -215,6 +217,10 @@ export class PanelModule {
         CustomPageRegistry,
         WidgetRegistry,
         ...(options.pages ?? []),
+        // The classes as well as the list of them. The registry asks the
+        // container for an instance, which it can only answer about a provider
+        // it was told to build.
+        ...(options.widgets ?? []),
         { provide: PANEL_RESOURCE_TYPES, useValue: options.resources ?? [] },
         {
           provide: PANEL_USER_RESOLVER,

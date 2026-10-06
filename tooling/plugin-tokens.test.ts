@@ -21,7 +21,7 @@ const ROOT = new URL("../", import.meta.url).pathname;
 
 const DECLARED = new Set(
   [
-    ...readFileSync(join(ROOT, "packages/ui/src/tokens.css"), "utf8").matchAll(
+    ...readFileSync(join(ROOT, "packages/ui/src/panda.css"), "utf8").matchAll(
       /--perch-([\w-]+):/g,
     ),
   ].map((found) => found[1] ?? ""),
