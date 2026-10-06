@@ -56,6 +56,8 @@ export type { SelectOption, SelectProps } from "./fields/Select.js";
 export { Select } from "./fields/Select.js";
 export type { DateTimePickerProps, DateTimeValue } from "./fields/DateTimePicker.js";
 export { DateTimePicker } from "./fields/DateTimePicker.js";
+export type { PanelWidgetsProps, WidgetCard } from "./PanelWidgets.js";
+export { PanelWidgets } from "./PanelWidgets.js";
 export type { CalendarSurfaceProps } from "./fields/CalendarSurface.js";
 export { CalendarSurface } from "./fields/CalendarSurface.js";
 export type { CodeDiagnostic, CodeEditorProps } from "./fields/CodeEditor.js";

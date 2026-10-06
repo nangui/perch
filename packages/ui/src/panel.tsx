@@ -17,7 +17,7 @@ import type { PanelUserMenu } from "./PanelUser.js";
 import type { ReactNode } from "react";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
-import type { FormState, SchemaPayload } from "@perchjs/core";
+import type { FormState, SchemaPayload, StatNode } from "@perchjs/core";
 import { Breadcrumb } from "./Breadcrumb.js";
 import type { CreatedOption, SearchedOption, UploadedFile } from "./node-props.js";
 import { PanelForm } from "./PanelForm.js";
@@ -29,6 +29,8 @@ import type { ActionAnswer, PageRequest, RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
 import type { ManagedRelation } from "./PanelRelations.js";
 import { PanelRelations } from "./PanelRelations.js";
+import type { WidgetCard } from "./PanelWidgets.js";
+import { PanelWidgets } from "./PanelWidgets.js";
 import { registerBuiltInColumns } from "./columns.js";
 import { registerBuiltInComponents } from "./renderers.js";
 import { registerComponent } from "./registry.js";
@@ -66,6 +68,7 @@ export function mount(element: HTMLElement): void {
   const menu = <PanelNav groups={groupsOf(navigation)} />;
   const who = userMenuOf(element.dataset["userMenu"]);
   const recordPages = recordPagesOf(element.dataset["recordPages"]);
+  const cards = widgetsOf(element.dataset["widgets"]);
 
   if (operation === "list") {
     // Read once, on the way in. Whatever was said on the page that sent the
@@ -121,6 +124,10 @@ export function mount(element: HTMLElement): void {
           <h1 className="perch-page__title">{title}</h1>
           <RecordPages pages={recordPages} />
           <RenderHooks at="page.start" />
+          {/* Above the page's own tree, because a dashboard is cards with
+              whatever the page declared under them — and a page that declared
+              no card draws nothing here at all. */}
+          <PanelWidgets widgets={cards} load={(card) => stats(card.href)} />
           {body}
           <RenderHooks at="page.end" />
         </div>
@@ -759,6 +766,41 @@ function remember(page: RecordsPage): void {
     "",
     `${globalThis.location.pathname}${search === "" ? "" : `?${search}`}`,
   );
+}
+
+/**
+ * One card's numbers.
+ *
+ * The address came from the server with the roster, so nothing is assembled
+ * here: a panel under a global prefix is a panel whose addresses the browser
+ * could not have worked out.
+ */
+async function stats(href: string): Promise<readonly StatNode[]> {
+  const response = await fetch(href, {
+    headers: { accept: "application/json" },
+    credentials: "same-origin",
+  });
+  // Raised rather than resolved as nothing: a card showing no stats and a card
+  // whose request never arrived look identical, and only one of them is worth
+  // offering a reader another go at.
+  if (!response.ok) throw new Error(`${href} answered ${String(response.status)}`);
+  return ((await response.json()) as { stats: readonly StatNode[] }).stats;
+}
+
+/**
+ * The cards the shell named, or none.
+ *
+ * None is the ordinary case: every page but a dashboard is served without the
+ * attribute at all.
+ */
+function widgetsOf(raw: string | undefined): readonly WidgetCard[] {
+  if (raw === undefined) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as readonly WidgetCard[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 /** A menu the shell did not send is no menu, not a broken one. */

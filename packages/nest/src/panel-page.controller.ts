@@ -29,6 +29,8 @@ import type {
 import { buildNavigation, PANEL_NAVIGATION_GROUPS } from "./navigation.js";
 import { buildUserMenu, PANEL_USER_MENU } from "./user-menu.js";
 import { CustomPageRegistry } from "./custom-page-registry.js";
+import { buildRoster } from "./widget-roster.js";
+import { WidgetRegistry } from "./widget-registry.js";
 import { mayReach } from "./authorization.js";
 import { resourcePageMetadata } from "./resource-page.js";
 import type { UserMenu } from "./user-menu.js";
@@ -59,6 +61,7 @@ import { PANEL_USER_RESOLVER } from "./user-resolver.js";
 export class PanelPageController {
   readonly #registry: ResourceRegistry;
   readonly #pages: CustomPageRegistry;
+  readonly #widgets: WidgetRegistry;
   readonly #assets: PanelAssets;
   readonly #scripts: readonly string[];
   readonly #styles: readonly string[];
@@ -72,6 +75,7 @@ export class PanelPageController {
   constructor(
     registry: ResourceRegistry,
     pages: CustomPageRegistry,
+    widgets: WidgetRegistry,
     @Inject(PANEL_ASSETS) assets: PanelAssets,
     @Inject(PANEL_SCRIPTS) scripts: readonly string[],
     @Inject(PANEL_STYLES) styles: readonly string[],
@@ -85,6 +89,7 @@ export class PanelPageController {
     this.#userMenu = userMenu;
     this.#registry = registry;
     this.#pages = pages;
+    this.#widgets = widgets;
     this.#assets = assets;
     this.#scripts = scripts;
     this.#styles = styles;
@@ -479,6 +484,14 @@ export class PanelPageController {
     if (!(await mayReach(page.instance.can, user))) throw new NotFoundException();
 
     const root = rootOf(request, path);
+    // Before the schema resolves, because this is what the reader sees first:
+    // the cards are drawn from it and then fill themselves in.
+    const roster = await buildRoster(
+      this.#widgets,
+      page.metadata.widgets ?? [],
+      root,
+      user,
+    );
     const state = (await page.instance.state?.()) ?? {};
     const resolved = await resolveSchema(page.instance.schema(), state, {
       // The page and its values exist already and submitting changes them,
@@ -495,6 +508,9 @@ export class PanelPageController {
       payload: serialise(resolved),
       navigation: await this.#navigation(request, root, path),
       ...(await this.#user(request)),
+      // Absent rather than empty: a page that holds no card, and a page whose
+      // every card this reader may not have, both draw no grid at all.
+      ...(roster.length === 0 ? {} : { widgets: roster }),
       scriptFile: entry(this.#assets, "panel.js"),
       ...(this.#scripts.length === 0 ? {} : { scripts: this.#scripts }),
       ...(this.#styles.length === 0 ? {} : { styles: this.#styles }),

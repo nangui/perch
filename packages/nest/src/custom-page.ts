@@ -24,6 +24,18 @@ export interface PanelPageOptions {
   readonly navigationGroup?: string;
   readonly navigationSort?: number;
   readonly icon?: IconName;
+  /**
+   * The widgets this page draws, by the names they answer at.
+   *
+   * Declared here rather than returned by a method, so a name no widget
+   * answers to stops the boot instead of the page. A dashboard is a page that
+   * holds cards, and this is the holding.
+   *
+   * The module's `widgets` list and this one are not the same list: that one
+   * registers what exists, so the container can build it; this one places what
+   * this screen shows. The boot checks that the second only names the first.
+   */
+  readonly widgets?: readonly string[];
 }
 
 export interface PageMetadata {
@@ -32,6 +44,7 @@ export interface PageMetadata {
   readonly navigationGroup?: string;
   readonly navigationSort?: number;
   readonly icon?: IconName;
+  readonly widgets?: readonly string[];
 }
 
 export interface PanelPage {
@@ -91,6 +104,7 @@ function withDefaults(options: PanelPageOptions): PageMetadata {
       ? {}
       : { navigationSort: options.navigationSort }),
     ...(options.icon === undefined ? {} : { icon: options.icon }),
+    ...(options.widgets === undefined ? {} : { widgets: options.widgets }),
   };
 }
 

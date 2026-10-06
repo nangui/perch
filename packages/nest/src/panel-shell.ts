@@ -53,6 +53,15 @@ export interface ShellOptions {
    * opened, so a record with six managers costs one page rather than seven.
    */
   readonly relations?: unknown;
+  /**
+   * The cards this page draws, already narrowed to what this reader may have.
+   *
+   * Places and addresses, never numbers: each card asks for its own on its own
+   * request once the chrome is up, so a dashboard of eight heavy aggregates
+   * draws at once and the slow one is slow alone. It is the first thing this
+   * panel sends a browser that has to be drawn before its values exist.
+   */
+  readonly widgets?: unknown;
   readonly payload: unknown;
   readonly scriptFile: string;
   /**
@@ -112,6 +121,10 @@ ${(options.styles ?? [])
     options.relations === undefined
       ? ""
       : ` data-relations="${attribute(JSON.stringify(options.relations))}"`
+  }${
+    options.widgets === undefined
+      ? ""
+      : ` data-widgets="${attribute(JSON.stringify(options.widgets))}"`
   } data-title="${attribute(options.title)}" data-payload="${payload}"></div>
 <script type="module" src="${attribute(`${options.root}/assets/${options.scriptFile}`)}"></script>
 ${(options.scripts ?? [])

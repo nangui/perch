@@ -3710,6 +3710,124 @@
   font-size: var(--perch-text-sm);
 }
 
+/* ------------------------------------------------------------------- widgets */
+
+/* Four columns, because `columnSpan` is a count against a grid and a count
+   means nothing without one. A card asks for as many as it wants and gets what
+   there is. */
+.perch-widgets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--perch-space-6);
+  margin-bottom: var(--perch-space-8);
+}
+
+.perch-widget {
+  display: grid;
+  gap: var(--perch-space-6);
+  /* One unless the card asked for more. Read from a property rather than set
+     on the element, so the narrow layout below can take the decision back. */
+  grid-column: span var(--perch-widget-span, 1);
+}
+
+@media (max-width: 720px) {
+  /* One card per row, and the spans stop being read: a span of two in a grid
+     one column wide would make itself a second column that nothing else is in,
+     and the page would scroll sideways. */
+  .perch-widgets {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .perch-widget {
+    grid-column: auto;
+  }
+}
+
+.perch-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--perch-space-3);
+  padding: var(--perch-space-7);
+  background: var(--perch-surface);
+  border-radius: var(--perch-radius-lg);
+  /* Lifted rather than outlined, as a section is: every rectangle on the page
+     had the same border and none of them read as a card. */
+  box-shadow: var(--perch-shadow-raised);
+}
+
+.perch-stat__head {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-4);
+}
+
+.perch-stat__label {
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-secondary);
+}
+
+.perch-stat__icon {
+  margin-left: auto;
+  color: var(--perch-content-muted);
+}
+
+/* Tabular, so a number that changes under a poll does not shift the ones
+   beside it. The size is the point of the card. */
+.perch-stat__value {
+  font-size: var(--perch-text-2xl);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--perch-content);
+}
+
+.perch-stat__description {
+  display: flex;
+  align-items: center;
+  gap: var(--perch-space-2);
+  font-size: var(--perch-text-sm);
+  color: var(--perch-content-secondary);
+}
+
+/* The tone colours the quiet line and the arrow on it, not the number: a
+   figure printed in red says the figure is wrong rather than down. The same
+   four names an entry uses. */
+.perch-stat[data-tone="success"] .perch-stat__description {
+  color: var(--perch-success-content);
+}
+
+.perch-stat[data-tone="warning"] .perch-stat__description {
+  color: var(--perch-warning-content);
+}
+
+.perch-stat[data-tone="danger"] .perch-stat__description {
+  color: var(--perch-danger-content);
+}
+
+.perch-stat[data-tone="neutral"] .perch-stat__description {
+  color: var(--perch-content-secondary);
+}
+
+/* The shape of a card with a number in it, so the grid does not resize under
+   the reader as the answers land one by one. */
+.perch-stat--waiting {
+  min-height: calc(
+    var(--perch-space-7) * 2 + var(--perch-text-sm) + var(--perch-text-2xl) +
+      var(--perch-space-3)
+  );
+  background: var(--perch-surface-skeleton);
+  box-shadow: none;
+}
+
+.perch-stat--failed {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--perch-space-5);
+  color: var(--perch-danger-content);
+  background: var(--perch-danger-surface);
+  box-shadow: none;
+}
+
 /* --------------------------------------------------------- reduced motion */
 
 @media (prefers-reduced-motion: reduce) {

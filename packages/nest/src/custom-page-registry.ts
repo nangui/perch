@@ -19,6 +19,7 @@ import type { PageMetadata, PanelPage } from "./custom-page.js";
 import { pageMetadata } from "./custom-page.js";
 import { PANEL_RESOURCE_TYPES } from "./resource-registry.js";
 import { resourceMetadata } from "./resource.js";
+import { WidgetRegistry } from "./widget-registry.js";
 
 export const PANEL_PAGE_TYPES = Symbol("PERCH_PANEL_PAGE_TYPES");
 
@@ -42,8 +43,13 @@ export class CustomPageRegistry implements OnModuleInit {
     @Inject(PANEL_RESOURCE_TYPES)
     resources: readonly (new (...args: never[]) => unknown)[],
     moduleRef: ModuleRef,
+    // Asked for its names and nothing else. Injected so the container has
+    // finished building it before this reads them, which is what makes a
+    // misnamed card a boot failure rather than a dashboard with a gap in it.
+    widgets: WidgetRegistry,
   ) {
     this.#moduleRef = moduleRef;
+    const declared = new Set(widgets.names());
 
     const slugs = new Map<string, string>();
     for (const type of resources) {
@@ -88,6 +94,20 @@ export class CustomPageRegistry implements OnModuleInit {
         throw new Error(
           `${type.name} and ${clash.type.name} both claim the path ` +
             `"${metadata.path}". Give one of them another path.`,
+        );
+      }
+
+      for (const name of metadata.widgets ?? []) {
+        if (declared.has(name)) continue;
+        // A name nothing answers to would draw no card and say nothing about
+        // why, which is the failure a dashboard is worst at showing: the page
+        // renders, the grid has a hole in it, and nobody can tell a widget
+        // that was never registered from one that returned no stats.
+        throw new Error(
+          `${type.name} draws a widget called "${name}", which no widget claims. ` +
+            (declared.size === 0
+              ? "No widgets are registered with PanelModule.forRoot."
+              : `The registered names are ${[...declared].sort().join(", ")}.`),
         );
       }
 

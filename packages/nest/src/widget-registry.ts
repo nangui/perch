@@ -94,6 +94,18 @@ export class WidgetRegistry implements OnModuleInit {
     this.all();
   }
 
+  /**
+   * The names, without building anything.
+   *
+   * Read from a constructor, which is why it touches no container: the page
+   * registry checks its own declarations against these before either of them
+   * has an instance, and asking for one at that point depends on the order
+   * providers happen to be built in.
+   */
+  names(): readonly string[] {
+    return [...this.#byName.keys()];
+  }
+
   get(name: string): RegisteredWidget | undefined {
     const registered = this.#byName.get(name);
     return registered === undefined ? undefined : this.#resolve(registered);
