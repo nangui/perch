@@ -115,7 +115,17 @@ rather than reading past.
 
 ## Stack
 
-NestJS · Prisma · PostgreSQL · React 19 · Tailwind v4 · Radix · strict TypeScript.
+NestJS · Prisma · PostgreSQL · React 19 · Panda CSS · Radix · Ark UI · strict TypeScript.
+
+**No utility CSS framework.** This line named Tailwind v4 for a long time and no manifest
+ever had it. The appearance is generated at build time by Panda CSS from
+`packages/ui/panda.config.ts`, which is where every colour, size, radius and shadow is
+declared once with its dark value beside its light one; the panel ships a plain stylesheet
+and no CSS runtime. A utility framework was weighed and refused for a stated reason: it
+dissolves the stable class on every structural element that ARCH 13 §9 promises, and a
+reader can override `.perch-input` where nobody can override `flex h-9 w-full rounded-md
+border` (ADR 0038). Radix draws the behaviour nobody should rewrite, and Ark UI the date
+grid, in a chunk of its own (ADR 0037).
 
 **No validation library.** A rule is a callable carrying the request's context, evaluated over
 the resolved tree; `@perchjs/core` has no dependencies and this is one of the reasons. A schema
