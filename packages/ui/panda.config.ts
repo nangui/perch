@@ -299,6 +299,194 @@ export default defineConfig({
      * and merging is only safe because the pairs declare nothing in common.
      * Checked, property by property, before they were joined.
      */
+
+    /**
+     * The markdown editor: a toolbar, two panels, a writing surface and a
+     * preview that styles the elements the markdown renders to.
+     *
+     * The preview's rules reach bare elements — a heading, a list, a quote — so
+     * they are the lowest specificity in this surface by some distance. That is
+     * safe here and worth saying why: nothing in the panel styles a bare
+     * element, so there is no unlayered rule for these to lose to now that they
+     * sit in a layer.
+     */
+    ".perch-markdown": {
+      display: "flex",
+      flexDirection: "column",
+      minWidth: "0",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "md",
+      background: "surface",
+      overflow: "hidden",
+    },
+
+    ".perch-markdown:focus-within": { borderColor: "accent", boxShadow: "focus-ring" },
+
+    '.perch-markdown[data-disabled="true"]': {
+      borderColor: "border",
+      background: "surface-muted",
+    },
+
+    ".perch-markdown__bar": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "4",
+      padding: "2",
+      borderBottom: "1px solid var(--perch-border)",
+      background: "surface-muted",
+    },
+
+    ".perch-markdown__tools": { display: "flex", flexWrap: "wrap", gap: "1" },
+
+    ".perch-markdown__tool": {
+      // The pointer target every other control here keeps.
+      minWidth: "control-height-sm",
+      minHeight: "control-height-sm",
+      padding: "0 var(--perch-space-2)",
+      border: "1px solid transparent",
+      borderRadius: "sm",
+      background: "none",
+      color: "content-secondary",
+      fontSize: "control",
+      lineHeight: "1",
+      cursor: "pointer",
+    },
+
+    ".perch-markdown__tool:hover:not(:disabled)": {
+      background: "surface-sunken",
+      color: "content",
+    },
+
+    ".perch-markdown__tool:focus-visible": {
+      outline: "none",
+      borderColor: "accent",
+      boxShadow: "focus-ring",
+    },
+
+    ".perch-markdown__tool:disabled": {
+      color: "content-subtle",
+      cursor: "not-allowed",
+    },
+
+    /* Which of the two panels is showing. Named as what they are, so a reader
+       reads the one they are on rather than what pressing it would do. */
+    ".perch-markdown__panels": { display: "flex", flex: "none", gap: "1" },
+
+    ".perch-markdown__panel": {
+      // Twenty-eight pixels, which is also what the small control height is.
+      // Left as the number it was: the tool beside it reads the token and this
+      // does not, and collapsing the two would be deciding that a tab is a
+      // control rather than porting what is here.
+      minHeight: "28px",
+      padding: "0 var(--perch-space-4)",
+      border: "1px solid transparent",
+      borderRadius: "sm",
+      background: "none",
+      color: "content-muted",
+      fontSize: "base",
+      cursor: "pointer",
+    },
+
+    '.perch-markdown__panel[aria-selected="true"]': {
+      borderColor: "accent-border",
+      background: "accent-surface",
+      color: "accent",
+    },
+
+    ".perch-markdown__panel:focus-visible": {
+      outline: "none",
+      borderColor: "accent",
+      boxShadow: "focus-ring",
+    },
+
+    /**
+     * A textarea is twenty columns wide until somebody says otherwise, and this
+     * one sits in a block parent that will not stretch it — so the frame was
+     * the field's and the writing surface was 196px in its corner. Block, too:
+     * an inline-block textarea sits on a baseline and leaves a gap under
+     * itself. The ceiling is the one its rich counterpart has, for the same
+     * reason: a surface that grows without one takes the toolbar off the
+     * screen, and `resize` stays so a reader who wants more can have it.
+     */
+    ".perch-markdown__box": {
+      display: "block",
+      width: "100%",
+      minHeight: "120px",
+      maxHeight: "60vh",
+      padding: "5",
+      border: "0",
+      background: "none",
+      color: "content",
+      fontFamily: "mono",
+      fontSize: "control",
+      lineHeight: "1.6",
+      outline: "none",
+      resize: "vertical",
+    },
+
+    /* Its spacing matches the rich editor's page, so moving between the two
+       fields does not move the text. */
+    ".perch-markdown__footer": {
+      display: "flex",
+      padding: "var(--perch-space-3) var(--perch-space-5)",
+      borderTop: "1px solid var(--perch-border)",
+    },
+
+    ".perch-markdown__count": {
+      marginLeft: "auto",
+      fontFamily: "mono",
+      fontSize: "sm",
+      fontVariantNumeric: "tabular-nums",
+      color: "content-muted",
+    },
+
+    ".perch-markdown__count--error": { color: "danger-content" },
+
+    ".perch-markdown__preview": {
+      minHeight: "120px",
+      padding: "5",
+      color: "content",
+      fontSize: "control",
+      lineHeight: "1.6",
+      overflowWrap: "anywhere",
+    },
+
+    ".perch-markdown__preview > * + *": { marginTop: "5" },
+
+    ".perch-markdown__preview h2": { margin: "0", fontSize: "xl", fontWeight: "600" },
+
+    ".perch-markdown__preview h3": { margin: "0", fontSize: "lg", fontWeight: "600" },
+
+    ".perch-markdown__preview p": { margin: "0" },
+
+    ".perch-markdown__preview ul, .perch-markdown__preview ol": {
+      margin: "0",
+      paddingLeft: "8",
+    },
+
+    ".perch-markdown__preview blockquote": {
+      margin: "0",
+      paddingLeft: "5",
+      borderLeft: "2px solid var(--perch-border)",
+      color: "content-secondary",
+    },
+
+    ".perch-markdown__preview pre": {
+      margin: "0",
+      padding: "4",
+      borderRadius: "sm",
+      background: "surface-sunken",
+      fontFamily: "mono",
+      overflowX: "auto",
+    },
+
+    ".perch-markdown__preview code": { fontFamily: "mono" },
+
+    ".perch-markdown__preview a": { color: "accent" },
+
+    ".perch-markdown__nothing": { margin: "0", color: "content-subtle" },
+
     ".perch-repeater": {
       overflow: "hidden",
       border: "1px solid var(--perch-border)",
@@ -1003,6 +1191,7 @@ export default defineConfig({
           "danger-surface": { value: "var(--perch-danger-surface)" },
           surface: { value: "var(--perch-surface)" },
           "surface-skeleton": { value: "var(--perch-surface-skeleton)" },
+          "surface-sunken": { value: "var(--perch-surface-sunken)" },
           "success-content": { value: "var(--perch-success-content)" },
           "success-surface": { value: "var(--perch-success-surface)" },
           "warning-content": { value: "var(--perch-warning-content)" },
@@ -1038,6 +1227,7 @@ export default defineConfig({
           raised: { value: "var(--perch-shadow-raised)" },
         },
         spacing: {
+          1: { value: "var(--perch-space-1)" },
           2: { value: "var(--perch-space-2)" },
           6: { value: "var(--perch-space-6)" },
           8: { value: "var(--perch-space-8)" },

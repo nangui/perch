@@ -110,6 +110,14 @@ const TARGETS: readonly {
     selectors: [".perch-modal__close"],
   },
   {
+    name: "the markdown toolbar's buttons",
+    // Added when that surface moved into the styling config, which is when it
+    // became clear nothing asserted the floor for them: they are pointer
+    // targets like every other control, and the only reason they met it was
+    // that they happened to read the small-control height.
+    selectors: [".perch-markdown__tool"],
+  },
+  {
     name: "a toggle button",
     selectors: [".perch-toggles__label"],
     // The width is the words in it, which is not this file's to vouch for.

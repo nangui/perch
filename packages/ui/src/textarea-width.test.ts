@@ -17,7 +17,12 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const HERE = new URL("./", import.meta.url);
-const STYLES = readFileSync(new URL("./styles.css", HERE), "utf8");
+// Both sheets, in the order the panel serves them. A writing surface may be
+// declared in either while the stylesheet is being moved a surface at a time.
+const STYLES = [
+  readFileSync(new URL("./panda.css", HERE), "utf8"),
+  readFileSync(new URL("./styles.css", HERE), "utf8"),
+].join("\n");
 
 /** Every class name a `<textarea>` in this package is drawn with. */
 function textareaClasses(): readonly string[] {
