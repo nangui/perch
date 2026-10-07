@@ -44,6 +44,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0036](adr/0036-when-a-widget-gets-its-numbers.md) | A widget's numbers arrive on their own request, after the shell has drawn |
 | [0037](adr/0037-who-draws-a-date-grid.md) | Ark UI draws the date grid, in a chunk of its own; the hand-written one was not navigable |
 | [0038](adr/0038-who-writes-the-stylesheet.md) | Panda CSS writes the stylesheet from `panda.config.ts`, and the published properties do not move |
+| [0039](adr/0039-what-moving-a-surface-costs.md) | What has to be checked each time a surface moves, because three times out of three something was found |
 
 ## Perch — a UI framework for NestJS
 
