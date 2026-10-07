@@ -232,6 +232,35 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `<button class="perch-select-create"></button></div>`,
   },
   {
+    // Both classes on one element, which is how the shell draws a reader who
+    // has no menu to open: the pair rule dresses it and the modifier takes its
+    // cursor back.
+    what: "a user with nothing to open",
+    html:
+      `<div class="perch-user perch-user--plain"><span class="perch-user__who">` +
+      `<span class="perch-user__name"></span>` +
+      `<span class="perch-user__description"></span></span></div>`,
+  },
+  {
+    what: "the user menu",
+    html:
+      `<details class="perch-user"><summary class="perch-user__button">` +
+      `<span class="perch-user__mark"></span></summary>` +
+      `<ul class="perch-user__panel"><li>` +
+      `<a class="perch-user__link"><span class="perch-user__icon"></span></a>` +
+      `</li></ul></details>`,
+  },
+  {
+    what: "the code editor",
+    html:
+      `<div class="perch-code" data-readonly="true"><div class="perch-code__bar">` +
+      `<span class="perch-code__status"></span>` +
+      `<span class="perch-code__diagnostic"></span></div>` +
+      `<div class="perch-code__line" data-error="true">` +
+      `<div class="perch-code__gutter"></div>` +
+      `<div class="perch-code__text"></div></div></div>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +

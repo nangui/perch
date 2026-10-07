@@ -1862,6 +1862,190 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * The code editor's frame, and the user menu in the topbar.
+     *
+     * Two surfaces with nothing to do with each other, moved together because
+     * each is small and neither touches anything else: no media query, no rule
+     * reaching in from outside, and nothing of theirs reaching out.
+     */
+    /* --------------------------------------------------------------- code editor */
+    ".perch-code": {
+      overflow: "hidden",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "md",
+      background: "surface",
+    },
+
+    '.perch-code[data-invalid="true"]': {
+      borderColor: "danger",
+    },
+
+    '.perch-code[data-readonly="true"]': {
+      background: "surface-muted",
+    },
+
+    ".perch-code__bar": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      height: "control-height-sm",
+      padding: "0 var(--perch-space-5)",
+      borderBottom: "1px solid var(--perch-border)",
+      background: "surface-muted",
+      fontFamily: "mono",
+      fontSize: "sm",
+      color: "content-muted",
+    },
+
+    ".perch-code__diagnostic": {
+      marginLeft: "auto",
+      fontFamily: "mono",
+      fontSize: "sm",
+      color: "danger-content",
+    },
+
+    ".perch-code__status": {
+      marginLeft: "auto",
+      fontSize: "sm",
+      fontWeight: "600",
+      letterSpacing: "0.06em",
+      textTransform: "uppercase",
+      color: "content-muted",
+    },
+
+    ".perch-code__line": {
+      display: "grid",
+      gridTemplateColumns: "34px 1fr",
+    },
+
+    '.perch-code__line[data-error="true"]': {
+      background: "danger-surface",
+    },
+
+    ".perch-code__gutter": {
+      paddingRight: "4",
+      background: "surface-muted",
+      color: "content-muted",
+      fontFamily: "mono",
+      fontSize: "base",
+      lineHeight: "22px",
+      textAlign: "right",
+      userSelect: "none",
+    },
+
+    '.perch-code__line[data-error="true"] .perch-code__gutter': {
+      background: "var(--perch-danger-surface-strong)",
+      color: "danger-content",
+    },
+
+    ".perch-code__text": {
+      /* The same reason the other two say it. */
+      width: "100%",
+      paddingLeft: "5",
+      color: "content",
+      fontFamily: "mono",
+      fontSize: "base",
+      lineHeight: "22px",
+      whiteSpace: "pre",
+    },
+
+    '.perch-code__line[data-error="true"] .perch-code__text': {
+      color: "danger-content",
+    },
+
+    ".perch-user": {
+      position: "relative",
+    },
+
+    ".perch-user__button, .perch-user--plain": {
+      display: "flex",
+      alignItems: "center",
+      gap: "2",
+      padding: "var(--perch-space-1) var(--perch-space-2)",
+      borderRadius: "sm",
+      cursor: "pointer",
+      /* The marker a `summary` draws by default: the chevron says the same thing
+         at the weight the rest of the panel is drawn in. */
+      listStyle: "none",
+    },
+
+    ".perch-user__button::-webkit-details-marker": {
+      display: "none",
+    },
+
+    /* After the pair above and not before it: both carry one class, so which
+       cursor applies is settled by which is written second. */
+    ".perch-user--plain": {
+      cursor: "default",
+    },
+
+    ".perch-user__button:hover": {
+      background: "surface-muted",
+    },
+
+    ".perch-user__who": {
+      display: "flex",
+      flexDirection: "column",
+      minWidth: "0",
+    },
+
+    ".perch-user__name": {
+      color: "content",
+      fontWeight: "500",
+      /* A long name shortens rather than pushing the bar wider than the page. */
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
+
+    ".perch-user__description": {
+      color: "content-subtle",
+      fontSize: "sm",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
+
+    ".perch-user__mark": {
+      display: "flex",
+      flex: "none",
+      color: "content-subtle",
+    },
+
+    ".perch-user__panel": {
+      position: "absolute",
+      right: "0",
+      zIndex: "10",
+      minWidth: "12rem",
+      margin: "var(--perch-space-1) 0 0",
+      padding: "1",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "md",
+      background: "surface",
+      boxShadow: "popover",
+      listStyle: "none",
+    },
+
+    ".perch-user__link": {
+      display: "flex",
+      alignItems: "center",
+      gap: "2",
+      padding: "var(--perch-space-2) var(--perch-space-3)",
+      borderRadius: "sm",
+      color: "content",
+      textDecoration: "none",
+    },
+
+    ".perch-user__link:hover": {
+      background: "surface-muted",
+    },
+
+    ".perch-user__icon": {
+      flex: "none",
+      color: "content-subtle",
+    },
+
+    /**
      * A select: the option rows, the chevron, and the button that adds a row.
      *
      * The rows are drawn by three components — the plain select, the multi
