@@ -1862,6 +1862,147 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * The colour picker, and the list of checkboxes.
+     *
+     * The picker is a control: `.perch-control` and `.perch-color` sit on one
+     * element and both declare `gap`. Which applies used to be settled by one
+     * being in a layer and the other not; now that both are, it is settled by
+     * this block standing after the control's. Measured by moving it above —
+     * the row then opens to the control's 8px instead of the picker's 6.
+     *
+     * The list is its own: nothing reaches into it and its input is the
+     * browser's own, visible and unstyled, which is why it is not among the
+     * ones that draw their focus on a sibling. It lays its choices out in as
+     * many columns as the component says through `--perch-choices`, a property
+     * set on the element rather than declared here, hence the fallback of one.
+     */
+    /* ------------------------------------------------------------ colour picker */
+    /*
+     * A swatch and a box, in one frame. The swatch is the browser's own control:
+     * it opens the picker the reader already knows, and the only thing asked of
+     * this file is to make it the size of the text beside it.
+     */
+    ".perch-color": {
+      gap: "3",
+    },
+
+    ".perch-color__well": {
+      position: "relative",
+      display: "flex",
+      flex: "none",
+    },
+
+    /* Struck through, which is what "no colour" looks like anywhere else. Over the
+       control rather than instead of it: clicking still opens the picker. */
+    '.perch-color[data-empty="true"] .perch-color__well::after': {
+      content: '""',
+      position: "absolute",
+      inset: "0",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "sm",
+      background:
+        "linear-gradient( to top right, transparent calc(50% - 1px), var(--perch-border-strong) calc(50% - 1px), var(--perch-border-strong) calc(50% + 1px), transparent calc(50% + 1px) ), var(--perch-surface)",
+      pointerEvents: "none",
+    },
+
+    ".perch-color__swatch": {
+      flex: "none",
+      width: "22px",
+      height: "22px",
+      padding: "0",
+      border: "0",
+      borderRadius: "sm",
+      background: "none",
+      cursor: "pointer",
+    },
+
+    ".perch-color__swatch:disabled": {
+      cursor: "not-allowed",
+    },
+
+    /* The wrapper the browser puts around the colour is padded by default, which
+       leaves the swatch smaller than the square it was given. */
+    ".perch-color__swatch::-webkit-color-swatch-wrapper": {
+      padding: "0",
+    },
+
+    ".perch-color__swatch::-webkit-color-swatch": {
+      border: "1px solid var(--perch-border)",
+      borderRadius: "sm",
+    },
+
+    ".perch-color__swatch::-moz-color-swatch": {
+      border: "1px solid var(--perch-border)",
+      borderRadius: "sm",
+    },
+
+    /* A colour is a code, and a code reads as one in the face the code editor uses. */
+    ".perch-color__text": {
+      fontFamily: "mono",
+    },
+
+    /* ---------------------------------------------------------- checkbox list */
+    /*
+     * A group of choices, any number of them taken. A fieldset, so the browser
+     * announces it as a group and each box keeps its own tab stop — no border of
+     * its own, because the shell around the field already draws one.
+     */
+    ".perch-checkbox-list": {
+      minWidth: "0",
+      margin: "0",
+      padding: "0",
+      border: "0",
+    },
+
+    /*
+     * One column unless the field asked for more. The count arrives as a custom
+     * property so the number is the component's and the grid is this file's.
+     */
+    ".perch-checkbox-list__options": {
+      display: "grid",
+      gridTemplateColumns: "repeat(var(--perch-choices, 1), minmax(0, 1fr))",
+      gap: "var(--perch-space-3) var(--perch-space-6)",
+    },
+
+    ".perch-checkbox-list__option, .perch-checkbox-list__all": {
+      display: "flex",
+      alignItems: "center",
+      gap: "3",
+      minWidth: "0",
+    },
+
+    /* Set apart from the choices it acts on: it is a control over them, not one. */
+    ".perch-checkbox-list__all": {
+      marginBottom: "3",
+      paddingBottom: "3",
+      borderBottom: "1px solid var(--perch-border)",
+      color: "content-secondary",
+      fontSize: "control",
+    },
+
+    ".perch-checkbox-list__label": {
+      minWidth: "0",
+      fontSize: "control",
+      cursor: "pointer",
+    },
+
+    ".perch-checkbox-list__input:disabled + .perch-checkbox-list__label": {
+      cursor: "not-allowed",
+      opacity: "0.6",
+    },
+
+    ".perch-checkbox-list--empty": {
+      display: "flex",
+      alignItems: "center",
+      minHeight: "control-height",
+    },
+
+    ".perch-checkbox-list__empty": {
+      color: "content-muted",
+      fontSize: "control",
+    },
+
+    /**
      * The code editor's frame, and the user menu in the topbar.
      *
      * Two surfaces with nothing to do with each other, moved together because

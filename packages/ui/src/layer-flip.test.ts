@@ -261,6 +261,32 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `<div class="perch-code__text"></div></div></div>`,
   },
   {
+    // The picker and the control share an element, and both declare `gap`, so
+    // which applies rests on the picker being declared second.
+    what: "a colour picker",
+    html:
+      `<div class="perch-control perch-color"><span class="perch-color__well">` +
+      `<input class="perch-color__swatch" /></span>` +
+      `<input class="perch-control__input perch-color__text" /></div>`,
+  },
+  {
+    // Its input is the browser's own, visible and unstyled, which is why it is
+    // not among the ones drawing their focus on a sibling.
+    what: "a list of checkboxes",
+    html:
+      `<div class="perch-checkbox-list"><label class="perch-checkbox-list__all">` +
+      `</label><div class="perch-checkbox-list__options">` +
+      `<div class="perch-checkbox-list__option">` +
+      `<input type="checkbox" class="perch-checkbox-list__input" disabled />` +
+      `<label class="perch-checkbox-list__label"></label></div></div></div>`,
+  },
+  {
+    what: "a list of checkboxes with nothing to choose",
+    html:
+      `<div class="perch-checkbox-list perch-checkbox-list--empty">` +
+      `<span class="perch-checkbox-list__empty"></span></div>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +
