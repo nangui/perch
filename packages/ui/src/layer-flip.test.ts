@@ -102,6 +102,49 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `<td class="perch-table__cell"></td></tr></tbody></table>`,
   },
   {
+    what: "a switch field",
+    html:
+      `<div class="perch-toggle-row" data-disabled="false">` +
+      `<button class="perch-toggle" data-state="checked">` +
+      `<span class="perch-toggle__knob"><i class="perch-toggle__icon"></i></span></button>` +
+      `<div class="perch-toggle-text"><label class="perch-toggle-text__label"></label>` +
+      `<p class="perch-toggle-text__help" data-error="true"></p></div></div>`,
+  },
+  {
+    what: "a locked switch field",
+    html:
+      `<div class="perch-toggle-row" data-disabled="true">` +
+      `<button class="perch-toggle" disabled data-state="checked">` +
+      `<span class="perch-toggle__knob"></span></button>` +
+      `<div class="perch-toggle-text">` +
+      `<label class="perch-toggle-text__label"></label></div></div>`,
+  },
+  {
+    what: "a choice group wearing buttons",
+    html:
+      `<div role="radiogroup" class="perch-toggles" data-grouped="true">` +
+      `<div class="perch-toggles__option">` +
+      `<input type="radio" class="perch-toggles__input" checked />` +
+      `<label class="perch-toggles__label"></label></div></div>`,
+  },
+  {
+    what: "a choice group wearing dots",
+    html:
+      `<div role="radiogroup" class="perch-radio" data-inline="true">` +
+      `<div class="perch-radio__option">` +
+      `<input type="radio" class="perch-radio__input" checked />` +
+      `<span class="perch-radio__dot"></span>` +
+      `<label class="perch-radio__label"></label></div></div>`,
+  },
+  {
+    what: "a locked dot",
+    html:
+      `<div class="perch-radio"><div class="perch-radio__option">` +
+      `<input type="radio" class="perch-radio__input" disabled />` +
+      `<span class="perch-radio__dot"></span>` +
+      `<label class="perch-radio__label"></label></div></div>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +

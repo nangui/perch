@@ -1847,6 +1847,375 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * The switch field, and the choice group that wears buttons.
+     *
+     * Two surfaces rather than one. `.perch-toggle` is a Radix switch with a
+     * knob; `.perch-toggles` is a native radio group drawn as a segmented
+     * control, and `ChoiceGroup` draws it from the same markup it draws
+     * `.perch-radio` from. Nothing reaches into either from outside and no rule
+     * names both looks, so they move without the dot look following.
+     */
+    /* -------------------------------------------------------------------- toggle
+
+       Commits at 0 ms. The knob moves immediately and does not return unless the
+       server refuses; the hairline under the row marks the round trip. */
+    ".perch-toggle-row": {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "6",
+    },
+
+    /* 24 px, not the design's 22: §2.5.8 target size. Centred because the knob used
+       to fill the padding box exactly. */
+    ".perch-toggle": {
+      position: "relative",
+      display: "flex",
+      alignItems: "center",
+      flex: "none",
+      width: "36px",
+      height: "24px",
+      padding: "1",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "12px",
+      background: "surface-skeleton-strong",
+      cursor: "pointer",
+      transition: "background 120ms ease, border-color 120ms ease",
+    },
+
+    ".perch-toggle:focus-visible": {
+      outline: "none",
+      boxShadow: "focus-ring",
+      borderColor: "accent",
+    },
+
+    '.perch-toggle[data-state="checked"]': {
+      background: "accent",
+      borderColor: "accent",
+    },
+
+    '.perch-toggle[data-inflight="true"][data-state="checked"]': {
+      background: "var(--perch-accent-track)",
+      borderColor: "var(--perch-accent-track-border)",
+    },
+
+    ".perch-toggle[data-disabled], .perch-toggle:disabled": {
+      cursor: "not-allowed",
+      background: "surface-skeleton",
+      borderColor: "border",
+    },
+
+    '.perch-toggle[data-disabled][data-state="checked"], .perch-toggle:disabled[data-state="checked"]':
+      {
+        background: "surface-skeleton",
+        borderColor: "border",
+      },
+
+    ".perch-toggle__knob": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "16px",
+      height: "16px",
+      borderRadius: "50%",
+      background: "surface",
+      transition: "transform 140ms ease",
+      willChange: "transform",
+    },
+
+    '.perch-toggle[data-state="checked"] .perch-toggle__knob': {
+      transform: "translateX(14px)",
+    },
+
+    ".perch-toggle:disabled .perch-toggle__knob": {
+      background: "surface-muted",
+    },
+
+    /* One of three signs, never the only one: the role says it and the knob's
+       position shows it, both of which survive a reader who cannot see colour. */
+    '.perch-toggle[data-on-color="success"][data-state="checked"]': {
+      borderColor: "success-content",
+      background: "success-content",
+    },
+
+    '.perch-toggle[data-on-color="danger"][data-state="checked"]': {
+      borderColor: "danger",
+      background: "danger",
+    },
+
+    /* The smallest mark the panel draws: ten pixels inside a sixteen-pixel knob.
+       Nothing here places it — the knob is a centring box now, and a drawing that
+       brought its own would be a box inside a box the same size. */
+    ".perch-toggle__icon": {
+      fontSize: "xs",
+      color: "content-secondary",
+    },
+
+    ".perch-toggle-text": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "1",
+      minWidth: "0",
+    },
+
+    ".perch-toggle-text__label": {
+      display: "flex",
+      alignItems: "baseline",
+      gap: "4",
+      fontSize: "control",
+      fontWeight: "500",
+      color: "content",
+    },
+
+    '.perch-toggle-row[data-disabled="true"] .perch-toggle-text__label': {
+      color: "content-muted",
+    },
+
+    ".perch-toggle-text__help": {
+      fontSize: "base",
+      color: "content-muted",
+      textWrap: "pretty",
+    },
+
+    '.perch-toggle-text__help[data-error="true"]': {
+      color: "danger-content",
+    },
+
+    /* --------------------------------------------------------- toggle buttons */
+    /*
+     * A radio group wearing buttons: the same native inputs, taken out of sight
+     * rather than out of the tab order, with the label beside each one drawn as the
+     * thing the reader presses.
+     */
+    /*
+     * Stacked, one column as wide as the longest choice, so the buttons share a
+     * width without taking the whole field: three widths in a column read as an
+     * accident rather than as a set, and three full-width bars are a lot of weight
+     * for a word each.
+     */
+    ".perch-toggles": {
+      display: "grid",
+      gridTemplateColumns: "max-content",
+      gap: "3",
+      minWidth: "0",
+    },
+
+    /* Sharing an edge means standing in a row, whatever was said about inline. */
+    '.perch-toggles[data-inline="true"], .perch-toggles[data-grouped="true"]': {
+      display: "flex",
+      flexWrap: "wrap",
+      alignItems: "center",
+    },
+
+    '.perch-toggles[data-grouped="true"]': {
+      gap: "0",
+      /* One block or nothing. Wrapped, the joined edges pull the rows sideways and
+         only the first and last are rounded — three overlapping strips where a
+         segmented control was. Too narrow to fit, it scrolls as one. */
+      flexWrap: "nowrap",
+      maxWidth: "100%",
+      overflowX: "auto",
+    },
+
+    ".perch-toggles__option": {
+      display: "flex",
+      minWidth: "0",
+    },
+
+    /* Out of sight, not out of the layout: `display: none` would take the input
+       out of the tab order, and the arrow keys with it. */
+    ".perch-toggles__input": {
+      position: "absolute",
+      width: "1px",
+      height: "1px",
+      margin: "-1px",
+      padding: "0",
+      overflow: "hidden",
+      clipPath: "inset(50%)",
+      whiteSpace: "nowrap",
+    },
+
+    ".perch-toggles__label": {
+      /* Fills the option it stands in: the column's width when they are stacked,
+         and its own words when they are in a row. */
+      flex: "1 1 auto",
+      display: "inline-flex",
+      alignItems: "center",
+      /* Centred, because stacked they are as wide as the field. */
+      justifyContent: "center",
+      height: "control-height",
+      padding: "0 var(--perch-space-5)",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "md",
+      background: "surface",
+      color: "content-secondary",
+      fontSize: "control",
+      whiteSpace: "nowrap",
+      cursor: "pointer",
+      transition: "border-color 120ms ease, background 120ms ease, color 120ms ease",
+    },
+
+    ".perch-toggles__input:not(:disabled) + .perch-toggles__label:hover": {
+      borderColor: "border-hover",
+      background: "surface-raised",
+      color: "content",
+    },
+
+    ".perch-toggles__input:checked + .perch-toggles__label": {
+      borderColor: "accent",
+      background: "accent-surface",
+      color: "accent",
+    },
+
+    /* The ring is on the label, because the input it belongs to cannot be seen. */
+    ".perch-toggles__input:focus-visible + .perch-toggles__label": {
+      borderColor: "accent",
+      boxShadow: "focus-ring",
+    },
+
+    ".perch-toggles__input:disabled + .perch-toggles__label": {
+      borderColor: "border",
+      background: "surface-muted",
+      color: "content-subtle",
+      cursor: "not-allowed",
+    },
+
+    /*
+     * Joined into one block: the edges between two buttons are one line rather than
+     * two, and only the ends of the row are rounded.
+     */
+    '.perch-toggles[data-grouped="true"] .perch-toggles__option': {
+      flex: "none",
+    },
+
+    '.perch-toggles[data-grouped="true"] .perch-toggles__option + .perch-toggles__option':
+      {
+        marginLeft: "-1px",
+      },
+
+    '.perch-toggles[data-grouped="true"] .perch-toggles__label': {
+      borderRadius: "0",
+    },
+
+    '.perch-toggles[data-grouped="true"] .perch-toggles__option:first-child .perch-toggles__label':
+      {
+        borderStartStartRadius: "md",
+        borderEndStartRadius: "var(--perch-radius)",
+      },
+
+    '.perch-toggles[data-grouped="true"] .perch-toggles__option:last-child .perch-toggles__label':
+      {
+        borderStartEndRadius: "var(--perch-radius)",
+        borderEndEndRadius: "md",
+      },
+
+    /* The chosen one draws both of its edges, so its border is not half covered by
+       the neighbour it shares one with. */
+    '.perch-toggles[data-grouped="true"] .perch-toggles__input:checked + .perch-toggles__label':
+      {
+        position: "relative",
+        zIndex: "1",
+      },
+
+    ".perch-toggles__empty": {
+      display: "inline-flex",
+      alignItems: "center",
+      height: "control-height",
+      color: "content-subtle",
+      fontSize: "control",
+    },
+
+    /**
+     * The same choice group, wearing a dot.
+     *
+     * `ChoiceGroup` draws this and `.perch-toggles` from one markup with two
+     * class tables, so the pair above and this are one component seen twice.
+     * What differs is where the reader aims: there the label is the button, and
+     * here it is a dot beside it with the real input laid over it at nil
+     * opacity, which is why focus is drawn on the dot and not on the input.
+     */
+    ".perch-radio": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "3",
+      minHeight: "control-height",
+      justifyContent: "center",
+    },
+
+    '.perch-radio[data-inline="true"]': {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      columnGap: "6",
+      alignItems: "center",
+      /* The block above centres along the main axis to sit a lone column of options
+         against a control-height row. Turned sideways that same rule centres the
+         options across the page, which is where they were found. */
+      justifyContent: "flex-start",
+    },
+
+    ".perch-radio__option": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      position: "relative",
+    },
+
+    ".perch-radio__input": {
+      position: "absolute",
+      width: "18px",
+      height: "18px",
+      margin: "0",
+      opacity: "0",
+      cursor: "pointer",
+    },
+
+    ".perch-radio__input:disabled": {
+      cursor: "not-allowed",
+    },
+
+    ".perch-radio__dot": {
+      display: "inline-flex",
+      width: "18px",
+      height: "18px",
+      flex: "none",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "999px",
+      background: "surface",
+    },
+
+    ".perch-radio__input:checked + .perch-radio__dot": {
+      borderColor: "accent",
+      borderWidth: "5px",
+    },
+
+    /* The ring follows the invisible input, so focus lands where the reader sees the
+       dot rather than nowhere at all. */
+    ".perch-radio__input:focus-visible + .perch-radio__dot": {
+      outline: "2px solid var(--perch-accent)",
+      outlineOffset: "2px",
+    },
+
+    ".perch-radio__input:disabled + .perch-radio__dot": {
+      borderColor: "border",
+      background: "surface-muted",
+    },
+
+    ".perch-radio__label": {
+      color: "content",
+      fontSize: "control",
+      cursor: "pointer",
+    },
+
+    ".perch-radio__input:disabled ~ .perch-radio__label": {
+      color: "content-muted",
+      cursor: "not-allowed",
+    },
+
+    ".perch-radio__empty": {
+      color: "content-subtle",
+      fontSize: "control",
+    },
+
+    /**
      * The table, its cells and everything drawn inside one.
      *
      * The largest surface by some way, and it moves whole. Splitting one is the
