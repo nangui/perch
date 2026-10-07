@@ -93,7 +93,7 @@ Chrome: navigation sidebar, breadcrumbs, topbar, modals, slide-overs, toasts.
 | Choice | Decision | Rationale |
 |---|---|---|
 | Framework | React 19 | what the ecosystem expects, the only reasonable choice |
-| Styling | Tailwind v4 | the same choice as Filament; CSS tokens for theming |
+| Styling | Panda CSS | build-time CSS, custom properties for theming, and recipes that keep a stable class on every structural element ([ADR 0038](adr/0038-who-writes-the-stylesheet.md)) |
 | Accessible primitives | Radix | correct a11y for free; we do not rewrite a combobox |
 | Build | shipped **precompiled** in the package | the user installs no front-end toolchain — that is the product promise |
 | Client state | local only (the field currently being typed in) | the canonical state is on the server |
