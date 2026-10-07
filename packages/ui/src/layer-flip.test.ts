@@ -176,6 +176,25 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `<p class="perch-field__help"></p></div></div>`,
   },
   {
+    // The option row is the select's surface and stays hand-written, so this
+    // shape is the seam: a layered list holding an unlayered row.
+    what: "a searchable select's list",
+    html:
+      `<div class="perch-combobox__list"><li class="perch-option" data-highlighted>` +
+      `<span class="perch-option__meta"></span>` +
+      `<span class="perch-option__check"></span></li></div>`,
+  },
+  {
+    what: "a relation combobox",
+    html:
+      `<div class="perch-combobox"><div class="perch-combobox__search">` +
+      `<span class="perch-combobox__glass"></span>` +
+      `<input class="perch-combobox__search-input" />` +
+      `<span class="perch-combobox__count"></span></div>` +
+      `<div class="perch-combobox__result" data-selected="true">` +
+      `<span class="perch-combobox__avatar"></span></div></div>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +

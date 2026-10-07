@@ -130,6 +130,15 @@ const TARGETS: readonly {
     // The width is the words in it, which is not this file's to vouch for.
     bothAxes: false,
   },
+  {
+    // A row in a relation's combobox: pressed by a pointer, and the keyboard
+    // moves a highlight along these rather than focus, so nothing else vouches
+    // for how big one is.
+    name: "a combobox result",
+    selectors: [".perch-combobox__result"],
+    // The width is the list's.
+    bothAxes: false,
+  },
 ];
 
 describe("2.5.8 Target Size — 24 × 24 CSS px minimum", () => {

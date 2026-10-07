@@ -1862,6 +1862,162 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * The two comboboxes: a searchable select, and the one a relation uses.
+     *
+     * The option rows inside them are not here. `.perch-option` is drawn by the
+     * plain select as well, so it is the select's surface rather than this one's
+     * — and nothing here reaches into it, which is what makes leaving it behind
+     * safe rather than lucky.
+     *
+     * Neither result row takes focus. The keyboard moves a highlight along them
+     * through `data-highlighted`, with focus staying in the search box, which is
+     * why they quiet the outline and draw their state from an attribute.
+     */
+    /* Square with the popover: the input is the top edge of the panel, so it drops
+       its own border and radius rather than drawing a box inside a box. */
+    ".perch-combobox__input": {
+      width: "100%",
+      border: "0",
+      borderBottom: "1px solid var(--perch-border)",
+      borderRadius: "0",
+    },
+
+    ".perch-combobox__list": {
+      maxHeight: "15rem",
+      margin: "0",
+      padding: "0",
+      overflowY: "auto",
+      listStyle: "none",
+    },
+
+    ".perch-combobox__empty, .perch-combobox__status": {
+      display: "block",
+      padding: "var(--perch-space-4) var(--perch-space-5)",
+      color: "content-subtle",
+      fontSize: "control",
+    },
+
+    /* Empty while nothing is in flight, and an empty box with padding is a gap the
+       list appears to float below. */
+    ".perch-combobox__status:empty": {
+      display: "none",
+    },
+
+    /* Relation combobox: a search header, results, and a footer that states the
+       keyboard contract rather than hiding it. */
+    ".perch-combobox": {
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "lg",
+      background: "surface",
+    },
+
+    ".perch-combobox__search": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      height: "36px",
+      padding: "0 var(--perch-space-5)",
+      borderBottom: "1px solid var(--perch-border)",
+      background: "surface-raised",
+    },
+
+    ".perch-combobox__search-input": {
+      flex: "1 1 auto",
+      minWidth: "0",
+      border: "none",
+      background: "none",
+      color: "content",
+      fontFamily: "sans",
+      fontSize: "control",
+      outline: "none",
+    },
+
+    ".perch-combobox__glass": {
+      flex: "none",
+      width: "11px",
+      height: "11px",
+      border: "1.5px solid var(--perch-content-muted)",
+      borderRadius: "50%",
+    },
+
+    ".perch-combobox__count": {
+      marginLeft: "auto",
+      flex: "none",
+      fontFamily: "mono",
+      fontSize: "sm",
+      fontVariantNumeric: "tabular-nums",
+      color: "content-muted",
+    },
+
+    ".perch-combobox__result": {
+      display: "flex",
+      alignItems: "center",
+      gap: "5",
+      minHeight: "38px",
+      padding: "var(--perch-space-3) var(--perch-space-5)",
+      borderBottom: "1px solid var(--perch-border-subtle)",
+      cursor: "pointer",
+      outline: "none",
+    },
+
+    '.perch-combobox__result[data-highlighted="true"], .perch-combobox__result:hover': {
+      background: "surface-muted",
+    },
+
+    '.perch-combobox__result[data-selected="true"]': {
+      background: "accent-surface",
+    },
+
+    ".perch-combobox__avatar": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flex: "none",
+      width: "24px",
+      height: "24px",
+      borderRadius: "md",
+      background: "surface-skeleton-strong",
+      fontSize: "xs",
+      fontWeight: "600",
+      color: "content-muted",
+    },
+
+    ".perch-combobox__lines": {
+      display: "flex",
+      flexDirection: "column",
+      minWidth: "0",
+    },
+
+    ".perch-combobox__name": {
+      overflow: "hidden",
+      fontSize: "control",
+      color: "content",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
+
+    ".perch-combobox__meta": {
+      fontFamily: "mono",
+      fontSize: "sm",
+      color: "content-subtle",
+    },
+
+    ".perch-combobox__footer": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      height: "30px",
+      padding: "0 var(--perch-space-5)",
+      background: "surface-raised",
+      fontFamily: "mono",
+      fontSize: "sm",
+      color: "content-subtle",
+    },
+
+    /**
      * The shell every field lives in.
      *
      * Not a field itself — a label row, a control and a line held under it for
