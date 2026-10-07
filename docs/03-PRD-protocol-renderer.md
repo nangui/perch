@@ -94,7 +94,7 @@ Chrome: navigation sidebar, breadcrumbs, topbar, modals, slide-overs, toasts.
 |---|---|---|
 | Framework | React 19 | what the ecosystem expects, the only reasonable choice |
 | Styling | Panda CSS | build-time CSS, custom properties for theming, and recipes that keep a stable class on every structural element ([ADR 0038](adr/0038-who-writes-the-stylesheet.md)) |
-| Accessible primitives | Radix | correct a11y for free; we do not rewrite a combobox |
+| Accessible primitives | Radix, and Ark UI for the date grid | correct a11y for free; we do not rewrite a combobox, and a month is a grid with one tab stop and the arrows across it ([ADR 0037](adr/0037-who-draws-a-date-grid.md)) |
 | Build | shipped **precompiled** in the package | the user installs no front-end toolchain — that is the product promise |
 | Client state | local only (the field currently being typed in) | the canonical state is on the server |
 | Dark mode | v0.1 | expected by default in 2026 |
