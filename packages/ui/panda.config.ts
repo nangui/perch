@@ -1862,6 +1862,136 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * The date grid's clothes. Ark draws the grid itself.
+     *
+     * So nothing here is behaviour: no roving focus, no arrow keys, no month
+     * arithmetic. What is left is a panel of a stated width, a day that is a
+     * seventh of it, and a height worked out from six rows so the panel does not
+     * change size between a month of five weeks and one of six.
+     *
+     * Classes only, no attribute selectors, and that is not an accident: Ark
+     * writes its state attributes without values — `data-selected=""` — so a
+     * rule keyed on `[data-selected="true"]` would never match anything.
+     */
+    ".perch-calendar": {
+      width: "300px",
+      padding: "6",
+    },
+
+    ".perch-calendar__head": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      marginBottom: "5",
+      fontSize: "control",
+      fontWeight: "600",
+    },
+
+    ".perch-calendar__nav": {
+      display: "flex",
+      gap: "2",
+      marginLeft: "auto",
+    },
+
+    ".perch-calendar__nav-button": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "24px",
+      height: "24px",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "md",
+      background: "none",
+      color: "content-muted",
+      fontSize: "sm",
+      cursor: "pointer",
+    },
+
+    ".perch-calendar__nav-button:hover": {
+      background: "surface-muted",
+      color: "content",
+    },
+
+    /* A real table, because the grid is a real grid now: `role="grid"` obliges
+       `row` and `gridcell` descendants, and the day view renders them. */
+    ".perch-calendar__table": {
+      width: "100%",
+      tableLayout: "fixed",
+      borderCollapse: "collapse",
+    },
+
+    ".perch-calendar__weekday": {
+      fontFamily: "mono",
+      fontSize: "xs",
+      fontWeight: "400",
+      color: "content-subtle",
+      textAlign: "center",
+    },
+
+    ".perch-calendar__cell": {
+      padding: "0",
+    },
+
+    /* The gap between days is this margin, where it used to be a grid gap: the
+       table owns the columns now. Half a step each side, so seven columns still
+       spend one step apiece — which is what the target-size check divides by. */
+    ".perch-calendar__day": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "control-height-sm",
+      margin: "calc(var(--perch-space-1) / 2)",
+      borderRadius: "md",
+      color: "content",
+      fontFamily: "mono",
+      fontSize: "base",
+      cursor: "pointer",
+    },
+
+    /* Valueless, every state below. The grid writes `data-selected=""` for true
+       and leaves the attribute off for false, so a `="true"` test never matches
+       one — which is how these read before the grid changed hands. */
+    ".perch-calendar__day:not([data-disabled]):hover": {
+      background: "surface-skeleton-strong",
+    },
+
+    ".perch-calendar__day:focus-visible": {
+      outline: "none",
+      boxShadow: "focus-ring",
+    },
+
+    ".perch-calendar__day[data-outside-range], .perch-calendar__day[data-disabled]": {
+      color: "content-muted",
+      cursor: "not-allowed",
+    },
+
+    ".perch-calendar__day[data-today]": {
+      boxShadow: "inset 0 0 0 1px var(--perch-accent)",
+    },
+
+    ".perch-calendar__day[data-selected]": {
+      background: "accent",
+      color: "content-inverse",
+    },
+
+    /* What the popover holds while the grid's chunk is in flight: the heading, the
+       weekday row and the six weeks `fixedWeeks` guarantees, so the panel does not
+       resize under the reader between the click and the grid. */
+    ".perch-calendar__waiting": {
+      height:
+        "calc( 6 * (var(--perch-control-height-sm) + var(--perch-space-1)) + var(--perch-text-xs) + var(--perch-space-5) + 24px )",
+    },
+
+    ".perch-calendar__footer": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      marginTop: "5",
+      paddingTop: "5",
+      borderTop: "1px solid var(--perch-border-subtle)",
+    },
+
+    /**
      * The two comboboxes: a searchable select, and the one a relation uses.
      *
      * The option rows inside them are not here. `.perch-option` is drawn by the

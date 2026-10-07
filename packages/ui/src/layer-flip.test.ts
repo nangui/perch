@@ -195,6 +195,21 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `<span class="perch-combobox__avatar"></span></div></div>`,
   },
   {
+    // Ark writes its state attributes without values, so the shape carries
+    // them that way rather than as `="true"`: a rule keyed on a value would
+    // match nothing here and would match nothing in a browser either.
+    what: "a date grid",
+    html:
+      `<div class="perch-calendar"><div class="perch-calendar__head">` +
+      `<div class="perch-calendar__nav">` +
+      `<button class="perch-calendar__nav-button"></button></div></div>` +
+      `<table class="perch-calendar__table"><thead><tr>` +
+      `<th class="perch-calendar__weekday"></th></tr></thead><tbody><tr>` +
+      `<td class="perch-calendar__cell" data-value="2026-10-07">` +
+      `<div class="perch-calendar__day" data-selected></div>` +
+      `</td></tr></tbody></table></div>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +
