@@ -114,10 +114,6 @@
    a popover are drawn against the body and are outside it. Wrapped in `:where`
    so it carries no specificity at all: every rule that wants a border colour
    with its ring still wins, and this only reaches what nothing else claimed. */
-:where([class^="perch-"], [class*=" perch-"]):focus-visible {
-  outline: none;
-  box-shadow: var(--perch-focus-ring);
-}
 
 /* ---------------------------------------------------------------------- icon */
 
@@ -139,145 +135,6 @@
    copy at 13px in a cell — sets that size on its own class and wins, whichever
    order the two rules happen to be written in. The focus ring below is a floor
    for the same reason. */
-:where(.perch-icon) {
-  display: block;
-  flex: none;
-  width: 1em;
-  height: 1em;
-}
-
-.perch-control {
-  display: flex;
-  align-items: center;
-  gap: var(--perch-space-4);
-  min-width: 0;
-  height: var(--perch-control-height);
-  padding: 0 var(--perch-space-5);
-  border: 1px solid var(--perch-border-strong);
-  border-radius: var(--perch-radius);
-  background-color: var(--perch-surface);
-  color: var(--perch-content);
-  font-family: var(--perch-font-sans);
-  font-size: var(--perch-text-control);
-  transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease;
-}
-
-.perch-control:hover:not([data-disabled="true"]):not([data-readonly="true"]) {
-  border-color: var(--perch-border-hover);
-  background-color: var(--perch-surface-raised);
-}
-
-/* :focus-within rather than :focus so the wrapper lights up for the inner
-   input, the combobox trigger and the segmented date control alike. */
-.perch-control:focus-within {
-  border-color: var(--perch-accent);
-  box-shadow: var(--perch-focus-ring);
-  outline: none;
-}
-
-.perch-control[data-state="draft"] {
-  border-color: var(--perch-accent);
-  background-color: var(--perch-accent-surface);
-}
-
-.perch-control[data-invalid="true"] {
-  border-color: var(--perch-danger);
-}
-
-.perch-control[data-disabled="true"],
-.perch-control[data-readonly="true"] {
-  border-color: var(--perch-border);
-  background-color: var(--perch-surface-muted);
-  color: var(--perch-content-muted);
-}
-
-.perch-control[data-empty="true"] {
-  border-style: dashed;
-  background-color: var(--perch-surface-muted);
-  color: var(--perch-content-subtle);
-}
-
-/* The control owns the frame; the input is transparent inside it. Border and
-   ring live in one place, so every field type lines up to the pixel. */
-.perch-control__input {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 100%;
-  border: none;
-  padding: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  outline: none;
-}
-
-.perch-control__input::placeholder {
-  color: var(--perch-content-subtle);
-}
-
-.perch-control__input:disabled {
-  cursor: not-allowed;
-}
-
-.perch-control--mono .perch-control__input,
-.perch-control__input[data-mono="true"] {
-  font-family: var(--perch-font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Affixes: a fixed scheme, a unit, a verification mark. Part of the frame, not
-   of the value — they are never typed into. */
-.perch-control__affix {
-  display: flex;
-  align-items: center;
-  /* Only ever between the two, so an affix that is words alone — which is most
-     of them — is spaced exactly as it was. */
-  gap: var(--perch-space-2);
-  align-self: stretch;
-  flex: none;
-  padding: 0 var(--perch-space-4);
-  font-family: var(--perch-font-mono);
-  font-size: var(--perch-text-sm);
-  color: var(--perch-content-muted);
-  background: var(--perch-surface-muted);
-}
-
-.perch-control__affix--prefix {
-  margin-left: calc(-1 * var(--perch-space-5));
-  border-right: 1px solid var(--perch-border);
-  border-top-left-radius: calc(var(--perch-radius) - 1px);
-  border-bottom-left-radius: calc(var(--perch-radius) - 1px);
-}
-
-.perch-control__affix--suffix {
-  margin-right: calc(-1 * var(--perch-space-5));
-  margin-left: auto;
-  border-left: 1px solid var(--perch-border);
-  border-top-right-radius: calc(var(--perch-radius) - 1px);
-  border-bottom-right-radius: calc(var(--perch-radius) - 1px);
-}
-
-.perch-control__affix--ok {
-  background: var(--perch-accent-surface);
-  border-color: var(--perch-accent-border);
-  color: var(--perch-accent);
-}
-
-.perch-control__affix--button {
-  background: var(--perch-surface-muted);
-  border: none;
-  border-left: 1px solid var(--perch-border);
-  color: var(--perch-content-muted);
-  cursor: pointer;
-  font-family: var(--perch-font-mono);
-  font-size: var(--perch-text-sm);
-}
-
-.perch-control__affix--button:hover {
-  color: var(--perch-content);
-}
 
 /* A select that can make the row it is missing, and the button that does it.
    Beside the control rather than inside it, so all three flavours of select get
@@ -527,62 +384,6 @@
      which is the fault this was all for. Decoration is quieter than the value
      it sits next to, and that is a decision, not something to inherit. */
   color: var(--perch-content-muted);
-}
-
-/* Status marks: Unsaved, Saving…, and the error badge. */
-.perch-control__mark {
-  flex: none;
-  margin-left: auto;
-  font-size: var(--perch-text-sm);
-  font-weight: 600;
-  color: var(--perch-content-muted);
-  white-space: nowrap;
-}
-
-.perch-control__mark--draft {
-  color: var(--perch-accent);
-}
-
-.perch-control__mark--error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: var(--perch-radius);
-  background: var(--perch-danger);
-  color: var(--perch-content-inverse);
-  font-size: var(--perch-text-sm);
-  font-weight: 700;
-}
-
-/* The round-trip hairline. 3 px inside the control's own frame, so showing it
-   costs no layout — the field does not grow when a patch is in flight. */
-.perch-control__track {
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 3px;
-  background: var(--perch-surface-skeleton-strong);
-  overflow: hidden;
-}
-
-.perch-control--tracked {
-  position: relative;
-  overflow: hidden;
-}
-
-.perch-control__track-fill {
-  height: 100%;
-  background: var(--perch-border-strong);
-  transition: width 160ms ease;
-}
-
-.perch-control__track-fill--draft {
-  background: var(--perch-accent);
-}
-
-.perch-control__track[data-state="draft"] {
-  background: var(--perch-accent-border);
 }
 
 /* A value being fetched. Never a spinner in place of the control: the box keeps
@@ -854,10 +655,6 @@
   font-size: var(--perch-text-base);
   line-height: 1;
   color: var(--perch-content-muted);
-}
-
-.perch-control:focus-within .perch-select__chevron {
-  color: var(--perch-accent);
 }
 
 /* A real input, kept in the accessibility tree and driven by the platform.

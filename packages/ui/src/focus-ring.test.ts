@@ -13,10 +13,26 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const STYLES = readFileSync(new URL("./styles.css", import.meta.url), "utf8").replace(
-  /\/\*[\s\S]*?\*\//g,
-  "",
-);
+// Both sheets, in the order the panel serves them. The floor this file is
+// mostly about is generated now: it carries no specificity by design, so it has
+// to sit in the same cascade origin as the rules it defers to, and that origin
+// is the generated one.
+const STYLES = [
+  readFileSync(new URL("./panda.css", import.meta.url), "utf8"),
+  readFileSync(new URL("./styles.css", import.meta.url), "utf8"),
+]
+  .join("\n")
+  .replace(/\/\*[\s\S]*?\*\//g, "");
+
+/**
+ * The ring token, in either spelling.
+ *
+ * A rule written by hand reads `--perch-focus-ring`, the property a theme
+ * overrides. A generated one reads it through the alias the styling engine
+ * names after its category, `--perch-shadows-focus-ring`, which resolves to
+ * the same property. Both are the ring; neither is a shadow of somebody's own.
+ */
+const RING = /--perch-(?:shadows-)?focus-ring/;
 
 /** Every rule, as the selectors it names and what it declares. */
 function rules(): readonly (readonly [string, string])[] {
@@ -32,7 +48,7 @@ describe("the mark of where the keyboard is", () => {
     );
 
     expect(floor, "nothing catches a control with no ring of its own").toBeDefined();
-    expect(floor?.[1]).toContain("box-shadow: var(--perch-focus-ring)");
+    expect(floor?.[1]).toMatch(new RegExp(`box-shadow: var\\(${RING.source}\\)`));
     // `:where` and nothing else, so a rule wanting a border colour with its ring
     // still wins. A floor that overrode them would be a ceiling.
     expect(floor?.[0].startsWith(":where(")).toBe(true);
@@ -56,7 +72,7 @@ describe("the mark of where the keyboard is", () => {
     const claimed = rules()
       .filter(([named]) => named.includes(":focus"))
       .filter(([, body]) => /(?:^|;)\s*box-shadow:/m.test(body))
-      .filter(([, body]) => !body.includes("--perch-focus-ring"))
+      .filter(([, body]) => !RING.test(body))
       .map(([named]) => named);
 
     expect(claimed).toEqual([]);

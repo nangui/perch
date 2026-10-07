@@ -17,10 +17,15 @@ import { describe, expect, it } from "vitest";
 
 // Comments out, because a comment holds no braces and a selector list spans
 // lines: left in, the prose above a rule is read as part of its selector.
-const STYLES = readFileSync(new URL("./styles.css", import.meta.url), "utf8").replace(
-  /\/\*[\s\S]*?\*\//g,
-  "",
-);
+// Both sheets, in the order the panel serves them: the generated one is
+// imported first, and the controls this file reasons about are now declared
+// there. Reading one of the two would have it reasoning about half a cascade.
+const STYLES = [
+  readFileSync(new URL("./panda.css", import.meta.url), "utf8"),
+  readFileSync(new URL("./styles.css", import.meta.url), "utf8"),
+]
+  .join("\n")
+  .replace(/\/\*[\s\S]*?\*\//g, "");
 
 /**
  * Every rule body this selector is named in, in the order they are declared.
@@ -70,15 +75,23 @@ describe("a control that has gone quiet in a cell", () => {
   });
 
   it("takes its frame back under a pointer, from the rule that outranks it", () => {
-    // A cell cannot restate this. `.perch-control:hover` carries two `:not()`
-    // clauses and beats any selector a cell could write, so the hover a reader
-    // gets is the panel's own — and a rule written here would read as the one
-    // doing the work while never being reached.
+    // No cell restates this, so the hover a reader gets is the panel's own.
+    //
+    // It used to be specificity that said so: two `:not()` clauses beat any
+    // selector a cell could write. That argument is gone. The control is
+    // declared in the generated sheet now, which is layered, and a rule written
+    // here would be unlayered — so it would win however little it carried.
+    // What holds this is that nothing here writes one, which is weaker and is
+    // the truth.
     const shared =
       '.perch-control:hover:not([data-disabled="true"]):not([data-readonly="true"])';
 
+    // Either spelling of the token. The generated sheet reads it through the
+    // alias the styling engine names after its category, so the same border
+    // colour arrives as `--perch-colors-border-hover` there and
+    // `--perch-border-hover` in a rule still written by hand.
     expect(settled(shared, "border-color"), "no shared hover to inherit").toMatch(
-      /^var\(--perch-border/,
+      /^var\(--perch-(colors-)?border/,
     );
     for (const selector of QUIET) {
       // A cell may name no hover of its own: `.perch-control:hover` outranks the

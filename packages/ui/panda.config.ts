@@ -227,6 +227,215 @@ export default defineConfig({
     // this object reads as a selector, and twenty-six of twenty-eight were
     // silently dropped before this line said where they go.
     ":where(:root)": FIXED,
+    /**
+     * The control, and everything that sits inside its frame.
+     *
+     * Through `globalCss` rather than as recipes, and that is the whole
+     * decision here. These class names are published: a theme overrides
+     * `.perch-control__affix--prefix`, and a recipe cannot emit that name —
+     * Panda spells a variant `--kind_prefix` and there is no setting that
+     * changes it. Written here they keep every name exactly, the sixteen
+     * components that wear them do not change a line, and what is gained is
+     * still real: the values are token references the compiler checks, so a
+     * colour that is not a token does not build and a raw one cannot be
+     * written at all.
+     *
+     * What is given up is a typed accessor per class. The components already
+     * carry these as string literals and would have either way.
+     */
+    /**
+     * The focus ring nothing else claimed, and the icon box.
+     *
+     * Both are `:where()`, so both carry no specificity at all: they are
+     * designed to lose to every rule that wants the same property, and the
+     * ring's own comment said so. That design only holds inside one cascade
+     * origin. Left in the hand-written sheet they would be unlayered, and
+     * unlayered beats every layer however specific — so the ring would have
+     * outranked the control's own focus style it was written to defer to.
+     */
+    ':where([class^="perch-"], [class*=" perch-"]):focus-visible': {
+      outline: "none",
+      boxShadow: "focus-ring",
+    },
+
+    ":where(.perch-icon)": {
+      display: "block",
+      flex: "none",
+      width: "1em",
+      height: "1em",
+    },
+
+    ".perch-control": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      minWidth: "0",
+      height: "control-height",
+      padding: "0 var(--perch-space-5)",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "md",
+      backgroundColor: "surface",
+      color: "content",
+      fontFamily: "sans",
+      fontSize: "control",
+      transition: "border-color 120ms ease, box-shadow 120ms ease",
+
+      '&:hover:not([data-disabled="true"]):not([data-readonly="true"])': {
+        borderColor: "border-hover",
+        backgroundColor: "surface-raised",
+      },
+
+      // `:focus-within` rather than `:focus`, so the wrapper lights up for the
+      // inner input, the combobox trigger and the segmented date control alike.
+      "&:focus-within": {
+        borderColor: "accent",
+        boxShadow: "focus-ring",
+        outline: "none",
+      },
+
+      "&:focus-within .perch-select__chevron": { color: "accent" },
+
+      '&[data-state="draft"]': {
+        borderColor: "accent",
+        backgroundColor: "accent-surface",
+      },
+      '&[data-invalid="true"]': { borderColor: "danger" },
+      '&[data-disabled="true"], &[data-readonly="true"]': {
+        borderColor: "border",
+        backgroundColor: "surface-muted",
+        color: "content-muted",
+      },
+      '&[data-empty="true"]': {
+        borderStyle: "dashed",
+        backgroundColor: "surface-muted",
+        color: "content-subtle",
+      },
+    },
+
+    ".perch-control--mono .perch-control__input": {
+      fontFamily: "mono",
+      fontVariantNumeric: "tabular-nums",
+    },
+
+    ".perch-control--tracked": { position: "relative", overflow: "hidden" },
+
+    /* The control owns the frame; the input is transparent inside it. Border
+       and ring live in one place, so every field type lines up to the pixel. */
+    ".perch-control__input": {
+      flex: "1 1 auto",
+      minWidth: "0",
+      height: "100%",
+      border: "none",
+      padding: "0",
+      background: "none",
+      color: "inherit",
+      font: "inherit",
+      outline: "none",
+
+      "&::placeholder": { color: "content-subtle" },
+      "&:disabled": { cursor: "not-allowed" },
+      '&[data-mono="true"]': {
+        fontFamily: "mono",
+        fontVariantNumeric: "tabular-nums",
+      },
+    },
+
+    /* Affixes: a fixed scheme, a unit, a verification mark. Part of the frame
+       and not of the value — they are never typed into. */
+    ".perch-control__affix": {
+      display: "flex",
+      alignItems: "center",
+      // Only ever between the two, so an affix that is words alone — which is
+      // most of them — is spaced exactly as it was.
+      gap: "2",
+      alignSelf: "stretch",
+      flex: "none",
+      padding: "0 var(--perch-space-4)",
+      fontFamily: "mono",
+      fontSize: "sm",
+      color: "content-muted",
+      background: "surface-muted",
+    },
+
+    ".perch-control__affix--prefix": {
+      marginLeft: "calc(-1 * var(--perch-space-5))",
+      borderRight: "1px solid var(--perch-border)",
+      borderTopLeftRadius: "calc(var(--perch-radius) - 1px)",
+      borderBottomLeftRadius: "calc(var(--perch-radius) - 1px)",
+    },
+
+    ".perch-control__affix--suffix": {
+      marginRight: "calc(-1 * var(--perch-space-5))",
+      marginLeft: "auto",
+      borderLeft: "1px solid var(--perch-border)",
+      borderTopRightRadius: "calc(var(--perch-radius) - 1px)",
+      borderBottomRightRadius: "calc(var(--perch-radius) - 1px)",
+    },
+
+    ".perch-control__affix--ok": {
+      background: "accent-surface",
+      borderColor: "accent-border",
+      color: "accent",
+    },
+
+    ".perch-control__affix--button": {
+      background: "surface-muted",
+      border: "none",
+      borderLeft: "1px solid var(--perch-border)",
+      color: "content-muted",
+      cursor: "pointer",
+      fontFamily: "mono",
+      fontSize: "sm",
+
+      "&:hover": { color: "content" },
+    },
+
+    /* Status marks: Unsaved, Saving…, and the error badge. */
+    ".perch-control__mark": {
+      flex: "none",
+      marginLeft: "auto",
+      fontSize: "sm",
+      fontWeight: "600",
+      color: "content-muted",
+      whiteSpace: "nowrap",
+    },
+
+    ".perch-control__mark--draft": { color: "accent" },
+
+    ".perch-control__mark--error": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "16px",
+      height: "16px",
+      borderRadius: "md",
+      background: "danger",
+      color: "content-inverse",
+      fontSize: "sm",
+      fontWeight: "700",
+    },
+
+    /* The round-trip hairline. Three pixels inside the control's own frame, so
+       showing it costs no layout — the field does not grow when a patch is in
+       flight. */
+    ".perch-control__track": {
+      position: "absolute",
+      inset: "auto 0 0 0",
+      height: "3px",
+      background: "surface-skeleton-strong",
+      overflow: "hidden",
+
+      '&[data-state="draft"]': { background: "accent-border" },
+    },
+
+    ".perch-control__track-fill": {
+      height: "100%",
+      background: "border-strong",
+      transition: "width 160ms ease",
+    },
+
+    ".perch-control__track-fill--draft": { background: "accent" },
+
     ':where(:root), :where([data-perch-theme="light"])': ramp(0),
     ':where([data-perch-theme="dark"])': ramp(1),
   },
@@ -256,7 +465,19 @@ export default defineConfig({
        */
       tokens: {
         colors: {
+          accent: { value: "var(--perch-accent)" },
+          "accent-border": { value: "var(--perch-accent-border)" },
+          "accent-surface": { value: "var(--perch-accent-surface)" },
+          border: { value: "var(--perch-border)" },
+          "border-hover": { value: "var(--perch-border-hover)" },
+          "border-strong": { value: "var(--perch-border-strong)" },
           content: { value: "var(--perch-content)" },
+          "content-inverse": { value: "var(--perch-content-inverse)" },
+          "content-subtle": { value: "var(--perch-content-subtle)" },
+          danger: { value: "var(--perch-danger)" },
+          "surface-muted": { value: "var(--perch-surface-muted)" },
+          "surface-raised": { value: "var(--perch-surface-raised)" },
+          "surface-skeleton-strong": { value: "var(--perch-surface-skeleton-strong)" },
           "content-muted": { value: "var(--perch-content-muted)" },
           "content-secondary": { value: "var(--perch-content-secondary)" },
           "danger-content": { value: "var(--perch-danger-content)" },
@@ -266,14 +487,24 @@ export default defineConfig({
           "success-content": { value: "var(--perch-success-content)" },
           "warning-content": { value: "var(--perch-warning-content)" },
         },
+        fonts: {
+          sans: { value: "var(--perch-font-sans)" },
+          mono: { value: "var(--perch-font-mono)" },
+        },
+        sizes: {
+          "control-height": { value: "var(--perch-control-height)" },
+        },
         fontSizes: {
+          control: { value: "var(--perch-text-control)" },
           sm: { value: "var(--perch-text-sm)" },
           "2xl": { value: "var(--perch-text-2xl)" },
         },
         radii: {
+          md: { value: "var(--perch-radius)" },
           lg: { value: "var(--perch-radius-lg)" },
         },
         shadows: {
+          "focus-ring": { value: "var(--perch-focus-ring)" },
           raised: { value: "var(--perch-shadow-raised)" },
         },
         spacing: {

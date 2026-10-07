@@ -44,6 +44,17 @@ const EVERY_COLOUR = new RegExp(COLOUR.source, "gi");
  * token was lifted from is a comment doing its job rather than a rule breaking
  * one.
  */
+/**
+ * The generated sheet with its token layer taken out.
+ *
+ * Every custom-property declaration goes, because that is where a colour is
+ * supposed to be. What is left is the rules, which are held to the same
+ * promise the hand-written sheet is.
+ */
+function rulesOnly(css: string): string {
+  return code(css).replace(/^\s*--[a-z0-9-]+\s*:[^;]*;?$/gm, "");
+}
+
 function code(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, " ");
 }
@@ -51,7 +62,12 @@ function code(css: string): string {
 describe("the token contract", () => {
   it("defines every variable the stylesheet reads without a fallback", () => {
     const tokens = read("panda.css");
-    const styles = read("styles.css");
+    // Both sheets, because both read. The generated one holds rules now as well
+    // as the token layer, and some of their values name a property directly
+    // rather than through a token — a border colour inside a shorthand, a
+    // negative margin inside a `calc`. Seventy-seven such reads were
+    // unguarded while this looked only at the hand-written half.
+    const styles = `${read("panda.css")}\n${read("styles.css")}`;
 
     // `var(--x, fallback)` is a deliberate runtime variable — `--perch-columns`
     // is set by the layout renderer as an inline style — so only the bare form
@@ -91,19 +107,24 @@ describe("the token contract", () => {
     ).toEqual([]);
   });
 
-  it("names a colour nowhere but in the token layer", () => {
+  it("names a colour nowhere but in the token layer, in either sheet", () => {
     // What `styles.css` already claims in its own header: "Not one raw colour
     // appears below. Every value is a token, which is what
     // makes the panel re-themable by replacing that one file." It was not quite
     // true — a modal's backdrop named its own ink — and a promise nothing holds
     // is worth less than one nobody made.
-    const raw = [...code(read("styles.css")).matchAll(EVERY_COLOUR)].map(
-      (one) => one[0],
-    );
+    // The generated sheet's rules are held to the same promise, and its token
+    // layer cannot be: that is where the values live. So the rules are read
+    // apart from the declarations — a colour in a rule is one no theme can
+    // replace, wherever the rule was written.
+    const raw = [
+      ...code(read("styles.css")).matchAll(EVERY_COLOUR),
+      ...rulesOnly(read("panda.css")).matchAll(EVERY_COLOUR),
+    ].map((one) => one[0]);
 
     expect(
       raw,
-      `raw colour in styles.css, which no theme can replace: ${raw.join(", ")}`,
+      `a rule names a colour, which no theme can replace: ${raw.join(", ")}`,
     ).toEqual([]);
   });
 });
@@ -116,7 +137,10 @@ describe("what an unavailable control looks like", () => {
     // to it, so without a hook of its own a control with nowhere to go looks
     // exactly as pressable as one that works. `[data-disabled="true"]` is that
     // hook here.
-    const styles = read("styles.css");
+    // Both sheets. The control's own unavailable state is generated now, and
+    // a guard that read only the hand-written one would report the panel's
+    // most-used class as styled by nothing.
+    const styles = `${read("panda.css")}\n${read("styles.css")}`;
 
     // Per element, not per class: `perch-button perch-button--icon` needs one
     // rule between the two of them, and asking for both fails on a modifier
