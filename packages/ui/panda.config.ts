@@ -274,6 +274,203 @@ export default defineConfig({
      * disabled primary button still lightens under a pointer — which is what it
      * did before this moved, and reordering would have quietly changed it.
      */
+
+    /* The same card the sections are, so a form ends on the surface it was
+       written on rather than with a button loose on the page ground. */
+    ".perch-form-actions": {
+      display: "flex",
+      alignItems: "center",
+      gap: "5",
+      marginTop: "9",
+      padding: "var(--perch-space-6) var(--perch-space-8)",
+      background: "surface",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "lg",
+    },
+
+    ".perch-form-actions__status": { fontSize: "base", color: "content-muted" },
+
+    /**
+     * The modal, and the footer it reaches into.
+     *
+     * Both surfaces move together, and they had to. The modal overrides
+     * `.perch-form-actions` twice — a footer inside a dialog is already on a
+     * surface, so it drops its own card — and that override is two classes
+     * against one. Specificity settles it only while both sit in the same
+     * cascade origin. Moving the modal alone would have put its override in a
+     * layer and left the footer's own rule unlayered, which beats every layer
+     * however specific: the footer would have grown its card back inside every
+     * dialog, and nothing would have said so.
+     */
+    /* The platform's own element, opened with `showModal()`. The focus trap,
+       the Escape key and painting above everything else come with it. */
+    ".perch-modal": {
+      maxWidth: "min(28rem, calc(100vw - var(--perch-space-8) * 2))",
+      padding: "0",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "lg",
+      background: "surface",
+      color: "content",
+      // It came from somewhere and it will go away, which is what the deepest
+      // step in the scale is for.
+      boxShadow: "overlay",
+    },
+
+    /* A question fits in a sentence; a form does not. `width`, not
+       `max-width`: a dialog shrinks to its content, and a form whose fields
+       are as wide as their placeholders is not a form anybody wants. */
+    '.perch-modal[data-form="true"]': {
+      width: "min(34rem, calc(100vw - var(--perch-space-8) * 2))",
+    },
+
+    /* A declared width, which wins over the one the content implies. Ceilings
+       rather than widths: each is the smaller of its own size and what the
+       window has, so the largest is still a panel on a phone and not a page
+       that scrolls sideways. */
+    ".perch-modal[data-width]": {
+      width: "min(var(--perch-modal-width), calc(100vw - var(--perch-space-8) * 2))",
+      maxWidth: "none",
+    },
+
+    '.perch-modal[data-width="sm"]': { "--perch-modal-width": "24rem" },
+    '.perch-modal[data-width="md"]': { "--perch-modal-width": "28rem" },
+    '.perch-modal[data-width="lg"]': { "--perch-modal-width": "32rem" },
+    '.perch-modal[data-width="xl"]': { "--perch-modal-width": "36rem" },
+    '.perch-modal[data-width="2xl"]': { "--perch-modal-width": "42rem" },
+    '.perch-modal[data-width="3xl"]': { "--perch-modal-width": "48rem" },
+    '.perch-modal[data-width="4xl"]': { "--perch-modal-width": "56rem" },
+    '.perch-modal[data-width="5xl"]': { "--perch-modal-width": "64rem" },
+    '.perch-modal[data-width="6xl"]': { "--perch-modal-width": "72rem" },
+    '.perch-modal[data-width="7xl"]': { "--perch-modal-width": "80rem" },
+
+    /* The one that is not a ceiling. `screen` is the window, so the margin the
+       others keep would be a promise it is not making. */
+    '.perch-modal[data-width="screen"]': {
+      width: "100vw",
+      maxWidth: "100vw",
+      height: "100vh",
+      maxHeight: "100vh",
+      borderRadius: "0",
+    },
+
+    /* Against the side rather than in the middle. The dialog is still the
+       dialog — `showModal()` gives the focus trap, the Escape key and the inert
+       background whatever this does with the box. */
+    '.perch-modal[data-slide-over="true"]': {
+      margin: "0 0 0 auto",
+      height: "100dvh",
+      maxHeight: "100dvh",
+      borderRadius: "0",
+      borderWidth: "0 0 0 1px",
+    },
+
+    '.perch-modal[data-slide-over="true"] .perch-modal__panel': {
+      height: "100%",
+      overflowY: "auto",
+    },
+
+    /* A full-height panel puts its footer at the foot of it. Left alone the
+       fields sit at the top and the button lands halfway up an empty column,
+       which reads as a panel that failed to finish rather than one with room
+       to spare. */
+    '.perch-modal[data-slide-over="true"] .perch-modal__panel > form': {
+      display: "flex",
+      flex: "1",
+      flexDirection: "column",
+      minHeight: "0",
+    },
+
+    '.perch-modal[data-slide-over="true"] .perch-form-actions': { marginTop: "auto" },
+
+    /* Only where the reader has not asked for less. A panel arriving from off
+       screen is motion, and motion is a thing some people have told their
+       machine they do not want. */
+    '.perch-modal[data-slide-over="true"][open]': {
+      _motionSafe: { animation: "perch-slide-in 180ms ease-out" },
+    },
+
+    /* The footer is a card on a page, where it sits on the page ground. Inside
+       a dialog it is already on a surface, and a second one reads as a box in a
+       box. */
+    ".perch-modal .perch-form-actions": {
+      marginTop: "6",
+      padding: "var(--perch-space-6) 0 0",
+      background: "none",
+      border: "0",
+      borderTop: "1px solid var(--perch-border-subtle)",
+      borderRadius: "0",
+    },
+
+    ".perch-modal::backdrop": { background: "overlay-scrim" },
+
+    ".perch-modal__panel": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "5",
+      padding: "8",
+      // Scrolls rather than spills. A dialog is capped at the viewport by the
+      // browser's own stylesheet, so a panel taller than that was clipped and
+      // the rest could not be reached at all.
+      maxHeight: "calc(100dvh - var(--perch-space-8) * 2)",
+      overflowY: "auto",
+    },
+
+    ".perch-modal__bar": {
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: "4",
+    },
+
+    /**
+     * A dialog holding a form ignores a click on the backdrop on purpose, so
+     * this and Escape are the only ways out of one — and a touch screen has no
+     * Escape. On a phone a slide-over fills the window and takes the backdrop
+     * with it, which leaves this corner as the only thing left to press. So the
+     * coarse-pointer floor is the AAA target rather than the AA one: being the
+     * only way out earns it.
+     */
+    ".perch-modal__close": {
+      flex: "none",
+      // The pointer target every other control here keeps.
+      minWidth: "24px",
+      minHeight: "24px",
+      padding: "0",
+      border: "0",
+      background: "none",
+      color: "content-secondary",
+      fontSize: "lg",
+      lineHeight: "1",
+      cursor: "pointer",
+      _pointerCoarse: { minWidth: "44px", minHeight: "44px" },
+    },
+
+    ".perch-modal__close:hover:not(:disabled)": { color: "content" },
+
+    ".perch-modal__close:disabled": { cursor: "not-allowed", opacity: "0.5" },
+
+    ".perch-modal__heading": {
+      margin: "0",
+      fontSize: "xl",
+      fontWeight: "600",
+      textWrap: "balance",
+    },
+
+    ".perch-modal__description": {
+      margin: "0",
+      fontSize: "control",
+      color: "content-muted",
+      textWrap: "pretty",
+    },
+
+    /* The confirming button last, where the eye ends up, and after the way out. */
+    ".perch-modal__actions": {
+      display: "flex",
+      justifyContent: "flex-end",
+      gap: "4",
+      marginTop: "3",
+    },
+
     ".perch-button": {
       display: "inline-flex",
       alignItems: "center",
@@ -562,6 +759,7 @@ export default defineConfig({
           "content-inverse": { value: "var(--perch-content-inverse)" },
           "content-subtle": { value: "var(--perch-content-subtle)" },
           danger: { value: "var(--perch-danger)" },
+          "overlay-scrim": { value: "var(--perch-overlay-scrim)" },
           "danger-border": { value: "var(--perch-danger-border)" },
           "surface-muted": { value: "var(--perch-surface-muted)" },
           "surface-raised": { value: "var(--perch-surface-raised)" },
@@ -586,6 +784,8 @@ export default defineConfig({
         fontSizes: {
           base: { value: "var(--perch-text-base)" },
           control: { value: "var(--perch-text-control)" },
+          lg: { value: "var(--perch-text-lg)" },
+          xl: { value: "var(--perch-text-xl)" },
           sm: { value: "var(--perch-text-sm)" },
           "2xl": { value: "var(--perch-text-2xl)" },
         },
@@ -595,6 +795,7 @@ export default defineConfig({
         },
         shadows: {
           "focus-ring": { value: "var(--perch-focus-ring)" },
+          overlay: { value: "var(--perch-shadow-overlay)" },
           raised: { value: "var(--perch-shadow-raised)" },
         },
         spacing: {

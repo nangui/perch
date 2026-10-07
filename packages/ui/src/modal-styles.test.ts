@@ -16,12 +16,25 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { MODAL_WIDTHS } from "@perchjs/core";
 
-const STYLES = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
+// Both sheets, in the order the panel serves them. The modal is declared in
+// the generated one now and its keyframes are not: an animation is global by
+// name, so nothing about a cascade layer moves it, and the rule that names it
+// and the frames it names are in different halves. A guard reading one half
+// would check an animation against no definition, or a definition against no
+// animation, and pass either way.
+const STYLES = [
+  readFileSync(new URL("./panda.css", import.meta.url), "utf8"),
+  readFileSync(new URL("./styles.css", import.meta.url), "utf8"),
+].join("\n");
 
 /** The body of a rule, or nothing where there is no such rule. */
 function ruleFor(selector: string): string | undefined {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^${escaped}\\s*\\{([\\s\\S]*?)\\n\\}`, "m").exec(STYLES)?.[1];
+  // Leading space allowed on both braces: a generated rule sits inside a
+  // cascade layer and is therefore indented, where a hand-written one is not.
+  return new RegExp(`^\\s*${escaped}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`, "m").exec(
+    STYLES,
+  )?.[1];
 }
 
 describe("every width a resource may declare", () => {
