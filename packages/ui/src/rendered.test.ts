@@ -99,16 +99,18 @@ describe("the colours an entry may take", () => {
   });
 
   it("each have a rule in the stylesheet, as a pill and as words", () => {
-    // Both sheets. The badge's pill rules are generated now and the entry's
-    // tone attributes are not, so the two halves of this claim live in
-    // different files — and either half alone passes by finding one of them.
+    // Both sheets, because a surface may be declared in either while the
+    // stylesheet is being moved one at a time.
     const styles = [
       readFileSync(new URL("./panda.css", import.meta.url), "utf8"),
       readFileSync(new URL("./styles.css", import.meta.url), "utf8"),
     ].join("\n");
     const missing = tones().flatMap((tone) => [
       ...(styles.includes(`.perch-badge--${tone}`) ? [] : [`badge:${tone}`]),
-      ...(styles.includes(`[data-tone="${tone}"]`) ? [] : [`text:${tone}`]),
+      // The entry's own rule, not any rule carrying the attribute. Written
+      // loosely, this passed with an entry's tone deleted, because the mark
+      // beside it matches on `[data-tone]` too. Probed, and it did.
+      ...(styles.includes(`.perch-entry[data-tone="${tone}"]`) ? [] : [`text:${tone}`]),
     ]);
 
     expect(missing).toEqual([]);

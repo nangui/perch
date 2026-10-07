@@ -115,7 +115,14 @@ const TARGETS: readonly {
     // became clear nothing asserted the floor for them: they are pointer
     // targets like every other control, and the only reason they met it was
     // that they happened to read the small-control height.
+    // Both editors' toolbars, which are the same claim written twice: the
+    // markdown one and the rich one carry identical buttons and met the floor
+    // for the same accidental reason.
     selectors: [".perch-markdown__tool"],
+  },
+  {
+    name: "the rich editor's toolbar buttons",
+    selectors: [".perch-rich__tool"],
   },
   {
     name: "a toggle button",

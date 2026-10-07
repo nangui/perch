@@ -310,6 +310,274 @@ export default defineConfig({
      * element, so there is no unlayered rule for these to lose to now that they
      * sit in a layer.
      */
+
+    /**
+     * The rich editor: a row of buttons over a page to write on.
+     *
+     * The page's rules reach bare elements, as the markdown preview's do, and
+     * deliberately match them — moving between the two fields should not move
+     * the text. Safe in a layer for the same reason: nothing in the panel
+     * styles a bare element, so there is nothing unlayered for these to lose
+     * to.
+     */
+
+    /**
+     * An infolist entry: the value a record shows, read rather than typed.
+     *
+     * `.perch-entry` was declared twice in the sheet this replaces — once for
+     * the line it keeps, once for the gap the copy button needs beside it. A
+     * configuration object cannot hold a key twice, so they are joined; checked
+     * first, and they declare nothing in common.
+     */
+    ".perch-entry": {
+      display: "flex",
+      alignItems: "center",
+      minHeight: "control-height",
+      margin: "0",
+      color: "content",
+      fontSize: "control",
+      // The value keeps its line; the button sits at the end of it.
+      gap: "2",
+    },
+
+    /* Nothing there, said plainly rather than left as a blank line to puzzle
+       over. */
+    '.perch-entry[data-empty="true"]': { color: "content-secondary" },
+
+    /* The mark an infolist shows in place of a word. Sized like the words it
+       stands among, so a column of entries keeps one rhythm whether a row reads
+       as a sentence or as a shape. */
+    ".perch-entry__mark": { fontSize: "control" },
+
+    '.perch-entry__mark[data-tone="success"]': { color: "success-content" },
+    '.perch-entry__mark[data-tone="warning"]': { color: "warning-content" },
+    '.perch-entry__mark[data-tone="danger"]': { color: "danger-content" },
+
+    /**
+     * Carried over as it stands, and worth a reader's attention: `flex-wrap`
+     * and the gap below both need a flex container, and nothing here declares
+     * `display` on this element. Both are therefore inert. Left exactly as
+     * found — a port preserves, and a suspected fault in what it preserves is
+     * reported rather than quietly repaired.
+     */
+    ".perch-entry__pictures": { flexWrap: "wrap" },
+
+    ".perch-entry__picture": {
+      width: "var(--perch-picture, 40px)",
+      height: "var(--perch-picture, 40px)",
+      flex: "none",
+      objectFit: "cover",
+      borderRadius: "md",
+      background: "surface-muted",
+    },
+
+    '.perch-entry__picture[data-circular="true"]': { borderRadius: "50%" },
+
+    /* Overlapping rather than in a line: it says "these belong together and
+       there are this many" in the width of about two. The ring is what keeps
+       the one behind from reading as a smudge on the one in front. */
+    '.perch-entry__pictures[data-stacked="true"]': { gap: "0" },
+
+    '.perch-entry__pictures[data-stacked="true"] .perch-entry__picture + .perch-entry__picture':
+      { marginLeft: "calc(var(--perch-picture, 40px) / -3)" },
+
+    '.perch-entry__pictures[data-stacked="true"] .perch-entry__picture': {
+      boxShadow: "0 0 0 2px var(--perch-surface)",
+    },
+
+    ".perch-entry__colour": { display: "inline-flex", alignItems: "center", gap: "2" },
+
+    ".perch-entry__swatch": {
+      flex: "none",
+      width: "16px",
+      height: "16px",
+      // A border, so a colour the same as the page still reads as a patch and
+      // not as a gap where one failed to draw.
+      border: "1px solid var(--perch-border)",
+      borderRadius: "sm",
+    },
+
+    ".perch-entry__code": { fontFamily: "mono" },
+
+    ".perch-entry__link": {
+      color: "accent",
+      textDecoration: "underline",
+      textUnderlineOffset: "2px",
+    },
+
+    /* Quiet until wanted. A copy button beside every value on a dense page is a
+       column of icons competing with the values themselves. */
+    ".perch-entry__copy": {
+      flex: "none",
+      padding: "0 var(--perch-space-1)",
+      border: "0",
+      background: "none",
+      color: "content-subtle",
+      cursor: "pointer",
+      opacity: "0",
+      transition: "opacity 120ms ease",
+      _motionReduce: { transition: "none" },
+    },
+
+    ".perch-entry:hover .perch-entry__copy, .perch-entry__copy:focus-visible": {
+      opacity: "1",
+    },
+
+    /* A colour without a pill colours the words. The same four names either
+       way. */
+    '.perch-entry[data-tone="success"]': { color: "success-content" },
+    '.perch-entry[data-tone="warning"]': { color: "warning-content" },
+    '.perch-entry[data-tone="danger"]': { color: "danger-content" },
+    '.perch-entry[data-tone="neutral"]': { color: "content-secondary" },
+
+    ".perch-rich": {
+      display: "flex",
+      flexDirection: "column",
+      minWidth: "0",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "md",
+      background: "surface",
+      overflow: "hidden",
+    },
+
+    ".perch-rich:focus-within": { borderColor: "accent", boxShadow: "focus-ring" },
+
+    '.perch-rich[data-disabled="true"]': {
+      borderColor: "border",
+      background: "surface-muted",
+    },
+
+    /* A document this editor cannot draw. Not an empty page: an empty page over
+       a document that exists is the mistake, not the fix. */
+    ".perch-rich--unreadable": { borderStyle: "dashed", background: "surface-muted" },
+
+    ".perch-rich__notice": {
+      margin: "0",
+      padding: "5",
+      color: "content-secondary",
+      fontSize: "control",
+      lineHeight: "1.5",
+    },
+
+    /* The height a resting editor takes, so the page does not move when the
+       chunk carrying it arrives. */
+    ".perch-rich--waiting": { minHeight: "140px", background: "surface-muted" },
+
+    ".perch-rich__toolbar": {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "1",
+      padding: "2",
+      borderBottom: "1px solid var(--perch-border)",
+      background: "surface-muted",
+    },
+
+    ".perch-rich__tool": {
+      // The pointer target every other control here keeps.
+      minWidth: "control-height-sm",
+      minHeight: "control-height-sm",
+      padding: "0 var(--perch-space-2)",
+      border: "1px solid transparent",
+      borderRadius: "sm",
+      background: "none",
+      color: "content-secondary",
+      fontSize: "control",
+      lineHeight: "1",
+      cursor: "pointer",
+    },
+
+    ".perch-rich__tool:hover:not(:disabled)": {
+      background: "surface-sunken",
+      color: "content",
+    },
+
+    '.perch-rich__tool[aria-pressed="true"]': {
+      borderColor: "accent-border",
+      background: "accent-surface",
+      color: "accent",
+    },
+
+    ".perch-rich__tool:focus-visible": {
+      outline: "none",
+      borderColor: "accent",
+      boxShadow: "focus-ring",
+    },
+
+    ".perch-rich__tool:disabled": { color: "content-subtle", cursor: "not-allowed" },
+
+    /* Where the address is asked for: on the page, under the buttons, rather
+       than in a dialog the browser draws and a sandboxed frame refuses to. */
+    ".perch-rich__link": {
+      display: "flex",
+      gap: "2",
+      padding: "2",
+      borderBottom: "1px solid var(--perch-border)",
+      background: "surface-muted",
+    },
+
+    ".perch-rich__address": {
+      flex: "1 1 auto",
+      minWidth: "0",
+      fontFamily: "mono",
+    },
+
+    /**
+     * The editor's own element. Its ring is the frame's, drawn above.
+     *
+     * A ceiling of its own, with its own scrollbar. Without one the surface
+     * grows with whatever is typed and the page grows under it: the toolbar
+     * leaves the screen, and a long note is written with its buttons somewhere
+     * above. The frame around this clips rather than scrolls, so anything past
+     * the fold could not be reached at all.
+     */
+    ".perch-rich__page": {
+      minHeight: "120px",
+      maxHeight: "60vh",
+      overflowY: "auto",
+      padding: "5",
+      color: "content",
+      fontSize: "control",
+      lineHeight: "1.6",
+      outline: "none",
+      overflowWrap: "anywhere",
+    },
+
+    ".perch-rich__page > * + *": { marginTop: "5" },
+
+    ".perch-rich__page h2": { margin: "0", fontSize: "xl", fontWeight: "600" },
+
+    ".perch-rich__page h3": { margin: "0", fontSize: "lg", fontWeight: "600" },
+
+    ".perch-rich__page p": { margin: "0" },
+
+    ".perch-rich__page ul, .perch-rich__page ol": { margin: "0", paddingLeft: "8" },
+
+    ".perch-rich__page blockquote": {
+      margin: "0",
+      paddingLeft: "5",
+      borderLeft: "2px solid var(--perch-border)",
+      color: "content-secondary",
+    },
+
+    ".perch-rich__page pre": {
+      margin: "0",
+      padding: "4",
+      borderRadius: "sm",
+      background: "surface-sunken",
+      fontFamily: "mono",
+      overflowX: "auto",
+    },
+
+    ".perch-rich__page code": { fontFamily: "mono" },
+
+    ".perch-rich__page a": { color: "accent" },
+
+    ".perch-rich__page hr": {
+      margin: "0",
+      border: "0",
+      borderTop: "1px solid var(--perch-border)",
+    },
+
     ".perch-markdown": {
       display: "flex",
       flexDirection: "column",
