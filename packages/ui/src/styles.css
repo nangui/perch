@@ -2618,40 +2618,6 @@
   color: var(--perch-content-subtle);
 }
 
-/*
- * A value from a closed set: the shape says "one of a few things" before the
- * word is read. Written for a header that never used it; this is its first
- * reader, so the layout it was carrying for that header is gone.
- */
-.perch-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--perch-space-1) var(--perch-space-3);
-  border-radius: var(--perch-space-1);
-  font-size: var(--perch-text-sm);
-  font-weight: 600;
-}
-
-.perch-badge--success {
-  color: var(--perch-success-content);
-  background: var(--perch-success-surface);
-}
-
-.perch-badge--neutral {
-  color: var(--perch-content-secondary);
-  background: var(--perch-surface-skeleton-strong);
-}
-
-.perch-badge--warning {
-  color: var(--perch-warning-content);
-  background: var(--perch-warning-surface);
-}
-
-.perch-badge--danger {
-  color: var(--perch-danger-content);
-  background: var(--perch-danger-surface);
-}
-
 /* A request that failed, announced rather than swallowed. */
 .perch-notice {
   display: flex;

@@ -99,7 +99,13 @@ describe("the colours an entry may take", () => {
   });
 
   it("each have a rule in the stylesheet, as a pill and as words", () => {
-    const styles = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
+    // Both sheets. The badge's pill rules are generated now and the entry's
+    // tone attributes are not, so the two halves of this claim live in
+    // different files — and either half alone passes by finding one of them.
+    const styles = [
+      readFileSync(new URL("./panda.css", import.meta.url), "utf8"),
+      readFileSync(new URL("./styles.css", import.meta.url), "utf8"),
+    ].join("\n");
     const missing = tones().flatMap((tone) => [
       ...(styles.includes(`.perch-badge--${tone}`) ? [] : [`badge:${tone}`]),
       ...(styles.includes(`[data-tone="${tone}"]`) ? [] : [`text:${tone}`]),

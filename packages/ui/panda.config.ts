@@ -277,6 +277,46 @@ export default defineConfig({
 
     /* The same card the sections are, so a form ends on the surface it was
        written on rather than with a button loose on the page ground. */
+
+    /**
+     * A value from a closed set: the shape says "one of a few things" before
+     * the word is read.
+     *
+     * The radius is a spacing step rather than a radius token, and that is what
+     * it was: a pill this small wants the tightest round in the scale, and the
+     * radius scale starts larger. Written as the property it names rather than
+     * as a token, because reading `radii` for it would be a lie about which
+     * scale the value came from.
+     */
+    ".perch-badge": {
+      display: "inline-flex",
+      alignItems: "center",
+      padding: "var(--perch-space-1) var(--perch-space-3)",
+      borderRadius: "var(--perch-space-1)",
+      fontSize: "sm",
+      fontWeight: "600",
+    },
+
+    ".perch-badge--success": {
+      color: "success-content",
+      background: "success-surface",
+    },
+
+    ".perch-badge--neutral": {
+      color: "content-secondary",
+      background: "surface-skeleton-strong",
+    },
+
+    ".perch-badge--warning": {
+      color: "warning-content",
+      background: "warning-surface",
+    },
+
+    ".perch-badge--danger": {
+      color: "danger-content",
+      background: "danger-surface",
+    },
+
     ".perch-form-actions": {
       display: "flex",
       alignItems: "center",
@@ -771,7 +811,9 @@ export default defineConfig({
           surface: { value: "var(--perch-surface)" },
           "surface-skeleton": { value: "var(--perch-surface-skeleton)" },
           "success-content": { value: "var(--perch-success-content)" },
+          "success-surface": { value: "var(--perch-success-surface)" },
           "warning-content": { value: "var(--perch-warning-content)" },
+          "warning-surface": { value: "var(--perch-warning-surface)" },
         },
         fonts: {
           sans: { value: "var(--perch-font-sans)" },
