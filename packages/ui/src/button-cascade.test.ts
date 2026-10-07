@@ -27,13 +27,88 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 // From the workspace root, not from `import.meta.url`: under jsdom that is not
 // a file URL, and `readFileSync` refuses it.
-const STYLES = readFileSync(resolve("packages/ui/src/styles.css"), "utf8");
+//
+// Both sheets, in the order the panel serves them. The button is declared in
+// the generated one now, and a cascade asked about half a cascade answers
+// whatever that half happens to say — which here would have been nothing.
+const STYLES = flattened(
+  [
+    readFileSync(resolve("packages/ui/src/panda.css"), "utf8"),
+    readFileSync(resolve("packages/ui/src/styles.css"), "utf8"),
+  ].join("\n"),
+);
+
+/**
+ * The sheet with its cascade layers unwrapped.
+ *
+ * jsdom does not implement `@layer`. Measured directly: a rule inside one is
+ * dropped entirely, while an unlayered rule beside it applies. So the generated
+ * half would arrive here as nothing at all and every answer below would be the
+ * browser default agreeing with itself — which is the shape this file exists to
+ * refuse, since nothing about the markup would look wrong.
+ *
+ * Unwrapping leaves specificity and source order, which is what this file is
+ * for: which of the button's own rules wins. What it therefore does not cover
+ * is layer against unlayered, and nothing here pretends to —
+ * `sheets.test.ts` holds that by reading the text instead.
+ */
+function flattened(css: string): string {
+  let out = "";
+  let depth = 0;
+  const unwrapped: number[] = [];
+  let at = 0;
+
+  while (at < css.length) {
+    if (css.startsWith("@layer", at)) {
+      const semi = css.indexOf(";", at);
+      const brace = css.indexOf("{", at);
+      // `@layer a, b, c;` declares an order and holds no rules.
+      if (semi !== -1 && (brace === -1 || semi < brace)) {
+        at = semi + 1;
+        continue;
+      }
+      unwrapped.push(depth);
+      depth += 1;
+      at = brace + 1;
+      continue;
+    }
+
+    const char = css.charAt(at);
+    if (char === "{") depth += 1;
+    else if (char === "}") {
+      depth -= 1;
+      if (unwrapped.at(-1) === depth) {
+        unwrapped.pop();
+        at += 1;
+        continue;
+      }
+    }
+    out += char;
+    at += 1;
+  }
+
+  return out;
+}
 
 beforeAll(() => {
   const style = document.createElement("style");
   style.textContent = STYLES;
   document.head.append(style);
 });
+
+/**
+ * A token reference, with the engine's category alias folded away.
+ *
+ * A rule still written by hand reads `--perch-surface`, the property a theme
+ * overrides. A generated one reaches it through `--perch-colors-surface`, and
+ * a size through `--perch-sizes-control-height-sm` — both resolve to the same
+ * property. This file asks which rule won, not how the winner spells its
+ * value, so the two are one answer. One place to delete when the second sheet
+ * is gone.
+ */
+function folded(value: string): string {
+  return value.replace(/--perch-(?:colors|sizes)-/g, "--perch-");
+}
 
 /** The declarations a button with those classes ends up with. */
 function resolved(
@@ -46,7 +121,7 @@ function resolved(
   document.body.append(button);
 
   const computed = globalThis.getComputedStyle(button);
-  return { background: computed.background, color: computed.color };
+  return { background: folded(computed.background), color: folded(computed.color) };
 }
 
 const PLAIN = ["perch-button"];
@@ -110,8 +185,11 @@ describe("the search form", () => {
     form.append(field, button);
     document.body.append(form);
 
-    expect(globalThis.getComputedStyle(field).height).toBe(
-      globalThis.getComputedStyle(button).height,
+    // Folded on both sides: the field's height is still a hand-written rule
+    // and the button's is generated, so the same property arrives spelled two
+    // ways and the comparison is about the value.
+    expect(folded(globalThis.getComputedStyle(field).height)).toBe(
+      folded(globalThis.getComputedStyle(button).height),
     );
   });
 });

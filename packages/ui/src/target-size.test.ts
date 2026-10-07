@@ -9,8 +9,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const STYLES = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
 const TOKENS = readFileSync(new URL("./panda.css", import.meta.url), "utf8");
+
+// Both sheets. A box this file measures may be declared in either while the
+// stylesheet is being moved one surface at a time.
+const STYLES = [
+  TOKENS,
+  readFileSync(new URL("./styles.css", import.meta.url), "utf8"),
+].join("\n");
 
 const MIN_TARGET = 24;
 
@@ -34,9 +40,13 @@ function declaredBox(selectors: readonly string[]): {
 
 function blockFor(selector: string): string {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const found = new RegExp(`^${escaped}\\s*\\{([\\s\\S]*?)\\n\\}`, "m").exec(STYLES);
+  // Leading space allowed on both braces: a generated rule sits inside a
+  // cascade layer and is therefore indented, where a hand-written one is not.
+  const found = new RegExp(`^\\s*${escaped}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`, "m").exec(
+    STYLES,
+  );
   if (found?.[1] === undefined) {
-    throw new Error(`No rule for ${selector} in styles.css — has it been renamed?`);
+    throw new Error(`No rule for ${selector} in either sheet — has it been renamed?`);
   }
   return found[1];
 }
@@ -51,13 +61,22 @@ function length(block: string, properties: readonly string[]): number | null {
   return null;
 }
 
-function resolve(value: string): number | null {
+/**
+ * A length, following a token to whatever it names.
+ *
+ * One hop is no longer enough: the styling engine's own token reads the
+ * property a theme overrides, so a rule asking for a size arrives at
+ * `var(--perch-sizes-control-height-sm)`, which reads
+ * `var(--perch-control-height-sm)`, which is the pixels. Followed rather than
+ * assumed, with a floor so a token naming itself stops rather than spins.
+ */
+function resolve(value: string, hops = 0): number | null {
   const direct = /^(\d+(?:\.\d+)?)px$/.exec(value);
   if (direct?.[1] !== undefined) return Number(direct[1]);
   const token = /^var\((--perch-[a-z0-9-]+)\)$/.exec(value);
-  if (token?.[1] === undefined) return null;
-  const declared = new RegExp(`${token[1]}:\\s*(\\d+(?:\\.\\d+)?)px;`).exec(TOKENS);
-  return declared?.[1] === undefined ? null : Number(declared[1]);
+  if (token?.[1] === undefined || hops > 4) return null;
+  const declared = new RegExp(`${token[1]}:\\s*([^;]+);`).exec(TOKENS);
+  return declared?.[1] === undefined ? null : resolve(declared[1].trim(), hops + 1);
 }
 
 /** A token that has to stay a length, read the same way the rules read it. */

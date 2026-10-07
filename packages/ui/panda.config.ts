@@ -265,6 +265,92 @@ export default defineConfig({
       height: "1em",
     },
 
+    /**
+     * The button.
+     *
+     * In source order, and that is load-bearing rather than tidy. Two of these
+     * weigh the same: a modifier's hover and the disabled state are both a
+     * class and one more thing. Between equals the later rule wins, so a
+     * disabled primary button still lightens under a pointer — which is what it
+     * did before this moved, and reordering would have quietly changed it.
+     */
+    ".perch-button": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "3",
+      height: "control-height-sm",
+      padding: "0 var(--perch-space-5)",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "md",
+      background: "surface",
+      color: "content",
+      fontFamily: "sans",
+      fontSize: "base",
+      cursor: "pointer",
+      // The list page's create action is an anchor: it goes somewhere, so it
+      // says so honestly, and then it has to stop underlining itself.
+      textDecoration: "none",
+    },
+
+    ".perch-button:hover": { background: "surface-muted" },
+
+    /**
+     * One rule for the two ways a button says it cannot be used.
+     *
+     * `aria-disabled` keeps it in the tab order, so the focus a reader is
+     * holding does not fall to the body, and `data-disabled` is what the
+     * stylesheet reads — the pair the control uses.
+     *
+     * Both weigh the same as each other and more than a modifier: a class plus
+     * a pseudo-class, or a class plus an attribute, against a modifier's single
+     * class. So a disabled primary or danger button looks disabled wherever
+     * this sits. That argument survives the move because every rule it compares
+     * moved with it — between two rules in one layer, specificity still
+     * decides.
+     */
+    '.perch-button:disabled, .perch-button[data-disabled="true"]': {
+      color: "content-muted",
+      background: "surface-muted",
+      cursor: "not-allowed",
+    },
+
+    ".perch-button:focus-visible": {
+      outline: "none",
+      borderColor: "accent",
+      boxShadow: "focus-ring",
+    },
+
+    ".perch-button--primary": {
+      borderColor: "accent",
+      background: "accent",
+      color: "content-inverse",
+      fontWeight: "500",
+    },
+
+    ".perch-button--primary:hover": {
+      background: "accent-hover",
+      borderColor: "accent-hover",
+    },
+
+    ".perch-button--icon": {
+      // A width alone is only a preference to a flex item.
+      flex: "none",
+      width: "control-height-sm",
+      padding: "0",
+      borderColor: "border",
+      color: "content-muted",
+    },
+
+    ".perch-button--icon:hover": { color: "content" },
+
+    ".perch-button--danger": {
+      borderColor: "danger-border",
+      color: "danger",
+    },
+
+    ".perch-button--danger:hover": { background: "danger-surface" },
+
     ".perch-control": {
       display: "flex",
       alignItems: "center",
@@ -466,6 +552,7 @@ export default defineConfig({
       tokens: {
         colors: {
           accent: { value: "var(--perch-accent)" },
+          "accent-hover": { value: "var(--perch-accent-hover)" },
           "accent-border": { value: "var(--perch-accent-border)" },
           "accent-surface": { value: "var(--perch-accent-surface)" },
           border: { value: "var(--perch-border)" },
@@ -475,6 +562,7 @@ export default defineConfig({
           "content-inverse": { value: "var(--perch-content-inverse)" },
           "content-subtle": { value: "var(--perch-content-subtle)" },
           danger: { value: "var(--perch-danger)" },
+          "danger-border": { value: "var(--perch-danger-border)" },
           "surface-muted": { value: "var(--perch-surface-muted)" },
           "surface-raised": { value: "var(--perch-surface-raised)" },
           "surface-skeleton-strong": { value: "var(--perch-surface-skeleton-strong)" },
@@ -493,8 +581,10 @@ export default defineConfig({
         },
         sizes: {
           "control-height": { value: "var(--perch-control-height)" },
+          "control-height-sm": { value: "var(--perch-control-height-sm)" },
         },
         fontSizes: {
+          base: { value: "var(--perch-text-base)" },
           control: { value: "var(--perch-text-control)" },
           sm: { value: "var(--perch-text-sm)" },
           "2xl": { value: "var(--perch-text-2xl)" },
