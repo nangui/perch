@@ -97,10 +97,18 @@ describe("a button that carries a drawn mark", () => {
     // the mechanism rather than as a position, since jsdom computes neither.
     // Anchored to the start of a line: unanchored, this found the same class
     // inside a compound selector and read a rule about a cursor.
+    // Both sheets, and leading space allowed on both braces: a carrier may be
+    // declared in either while the stylesheet is being moved a surface at a
+    // time, and a generated rule sits inside a cascade layer and is therefore
+    // indented.
+    const sheets = [
+      readFileSync(new URL("./panda.css", import.meta.url), "utf8"),
+      readFileSync(new URL("./styles.css", import.meta.url), "utf8"),
+    ].join("\n");
     const rule = new RegExp(
-      `^${selector.replace(".", "\\.")}\\s*\\{([\\s\\S]*?)\\n\\}`,
+      `^\\s*${selector.replace(".", "\\.")}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`,
       "m",
-    ).exec(readFileSync(new URL("./styles.css", import.meta.url), "utf8"))?.[1];
+    ).exec(sheets)?.[1];
 
     expect(rule, `no rule for ${selector}`).toBeDefined();
     expect(rule).toMatch(/display: (inline-)?flex/);

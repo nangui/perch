@@ -288,6 +288,197 @@ export default defineConfig({
      * as a token, because reading `radii` for it would be a lie about which
      * scale the value came from.
      */
+
+    /**
+     * The repeater: a card of rows, each with a grip, a name and its fields.
+     *
+     * Three of its selectors were declared twice in the sheet this replaces —
+     * the item, the label and the fields — each time to put a later concern
+     * beside the rule it belonged with rather than beside the selector. A
+     * configuration object cannot hold a key twice, so the port merges them,
+     * and merging is only safe because the pairs declare nothing in common.
+     * Checked, property by property, before they were joined.
+     */
+    ".perch-repeater": {
+      overflow: "hidden",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "lg",
+      background: "surface",
+    },
+
+    ".perch-repeater__head": {
+      display: "flex",
+      alignItems: "center",
+      gap: "5",
+      height: "42px",
+      padding: "0 var(--perch-space-7)",
+      borderBottom: "1px solid var(--perch-border)",
+    },
+
+    ".perch-repeater__title": { fontSize: "lg", fontWeight: "600", color: "content" },
+
+    ".perch-repeater__count": {
+      fontFamily: "mono",
+      fontSize: "sm",
+      color: "content-subtle",
+    },
+
+    ".perch-repeater__body": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "4",
+      padding: "var(--perch-space-6) var(--perch-space-7)",
+    },
+
+    /* The frame, and the transition that was a second rule: rows step aside
+       rather than jump. The dragged one is excluded below — it follows the
+       pointer, and a transition on that lags behind the finger. */
+    ".perch-repeater__item": {
+      border: "1px solid var(--perch-border)",
+      borderRadius: "lg",
+      background: "surface",
+      transition: "transform 160ms cubic-bezier(0.2, 0, 0, 1)",
+      _motionReduce: { transition: "none" },
+    },
+
+    '.perch-repeater__item[data-invalid="true"]': { borderColor: "danger-border" },
+
+    /* Off the page rather than merely outlined: lifted, above its neighbours,
+       and carrying the shadow of something no longer lying flat. */
+    '.perch-repeater__item[data-dragging="true"]': {
+      position: "relative",
+      zIndex: "1",
+      transition: "none",
+      borderColor: "border-strong",
+      boxShadow: "dragging",
+      background: "surface-raised",
+    },
+
+    '.perch-repeater__item[data-dragging="true"] .perch-repeater__handle': {
+      cursor: "grabbing",
+    },
+
+    '.perch-repeater__item[data-pending="true"]': {
+      borderColor: "pending-border",
+      background: "pending-surface",
+    },
+
+    /**
+     * The line that names a row: its controls at each end, its name between
+     * them. As many parts as the field asked for — a fold arrow only where one
+     * was declared — so a flex row rather than fixed tracks, which is what the
+     * grid before it could not survive.
+     */
+    ".perch-repeater__line": {
+      display: "flex",
+      alignItems: "center",
+      gap: "5",
+      padding: "var(--perch-space-4) var(--perch-space-5)",
+    },
+
+    /* Takes what is left between the two ends, and says which row this is.
+       Both were separate rules, for the two things a label does. */
+    ".perch-repeater__label": {
+      flex: "1",
+      minWidth: "0",
+      overflowWrap: "anywhere",
+      fontSize: "control",
+      fontWeight: "500",
+      color: "content-secondary",
+    },
+
+    /* The fields below the line, one per column the row declares. Folding takes
+       their height and leaves the line, which is how a folded row stays
+       findable — and it keeps the row's width, not its place in the grid. */
+    ".perch-repeater__fields": {
+      display: "grid",
+      gap: "6",
+      padding: "0 var(--perch-space-5) var(--perch-space-5)",
+      minWidth: "0",
+    },
+
+    /* `hidden` is `display: none` in the browser's own sheet, and a class beats
+       it — the browser's sheet is a weaker origin than any author rule, layered
+       or not. Without this the attribute is set, the arrow turns, and nothing
+       moves. The layout's own half of this rule stays where it is until that
+       surface moves. */
+    ".perch-repeater__fields[hidden]": { display: "none" },
+
+    ".perch-repeater__fold": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: "24px",
+      minHeight: "24px",
+      alignSelf: "start",
+      border: "none",
+      background: "none",
+      color: "content-subtle",
+      cursor: "pointer",
+    },
+
+    ".perch-repeater__fold:hover": { color: "content" },
+
+    /* A grip that can be dragged says so under the pointer, and stops the
+       browser turning the gesture into a text selection or a scroll. */
+    ".perch-repeater__handle": {
+      cursor: "grab",
+      touchAction: "none",
+      userSelect: "none",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: "24px",
+      minHeight: "24px",
+      gap: "1px",
+      border: "none",
+      background: "none",
+      color: "content-subtle",
+    },
+
+    ".perch-repeater__handle:focus-visible": {
+      outline: "none",
+      borderRadius: "sm",
+      boxShadow: "focus-ring",
+    },
+
+    ".perch-repeater__index": { fontFamily: "mono", fontSize: "xs" },
+
+    /* Pushed to the end, and never shrunk: three buttons at 28 px with 6 px
+       between them need 96 px, and a flex item that may shrink gives that up
+       first. Asserted in target-size.test.ts. */
+    ".perch-repeater__actions": {
+      display: "flex",
+      gap: "3",
+      justifyContent: "flex-end",
+      marginLeft: "auto",
+      flex: "none",
+    },
+
+    ".perch-repeater__note": {
+      minHeight: "help-line",
+      padding: "0 var(--perch-space-5) var(--perch-space-4) 50px",
+      fontSize: "base",
+      color: "content-muted",
+      textWrap: "pretty",
+    },
+
+    '.perch-repeater__note[data-error="true"]': { color: "danger-content" },
+
+    ".perch-repeater__dropzone": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "4",
+      height: "40px",
+      border: "1px dashed var(--perch-border-strong)",
+      borderRadius: "lg",
+      background: "surface-muted",
+      fontSize: "base",
+      color: "content-muted",
+    },
+
     ".perch-badge": {
       display: "inline-flex",
       alignItems: "center",
@@ -800,6 +991,8 @@ export default defineConfig({
           "content-subtle": { value: "var(--perch-content-subtle)" },
           danger: { value: "var(--perch-danger)" },
           "overlay-scrim": { value: "var(--perch-overlay-scrim)" },
+          "pending-border": { value: "var(--perch-pending-border)" },
+          "pending-surface": { value: "var(--perch-pending-surface)" },
           "danger-border": { value: "var(--perch-danger-border)" },
           "surface-muted": { value: "var(--perch-surface-muted)" },
           "surface-raised": { value: "var(--perch-surface-raised)" },
@@ -821,9 +1014,11 @@ export default defineConfig({
         },
         sizes: {
           "control-height": { value: "var(--perch-control-height)" },
+          "help-line": { value: "var(--perch-help-line-height)" },
           "control-height-sm": { value: "var(--perch-control-height-sm)" },
         },
         fontSizes: {
+          xs: { value: "var(--perch-text-xs)" },
           base: { value: "var(--perch-text-base)" },
           control: { value: "var(--perch-text-control)" },
           lg: { value: "var(--perch-text-lg)" },
@@ -832,11 +1027,13 @@ export default defineConfig({
           "2xl": { value: "var(--perch-text-2xl)" },
         },
         radii: {
+          sm: { value: "var(--perch-radius-sm)" },
           md: { value: "var(--perch-radius)" },
           lg: { value: "var(--perch-radius-lg)" },
         },
         shadows: {
           "focus-ring": { value: "var(--perch-focus-ring)" },
+          dragging: { value: "var(--perch-shadow-dragging)" },
           overlay: { value: "var(--perch-shadow-overlay)" },
           raised: { value: "var(--perch-shadow-raised)" },
         },
