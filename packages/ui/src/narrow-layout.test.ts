@@ -14,7 +14,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const STYLES = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
+// Both sheets, the generated one first, as the panel serves them.
+const STYLES = [
+  readFileSync(new URL("./panda.css", import.meta.url), "utf8"),
+  readFileSync(new URL("./styles.css", import.meta.url), "utf8"),
+].join("\n");
 
 /** The body of the at-rule opening with this condition, counting from `from`. */
 function blockOf(condition: string, from = 0): string {
@@ -32,25 +36,49 @@ function blockOf(condition: string, from = 0): string {
   return "";
 }
 
+/**
+ * The block at this width that names this selector, wherever it sits.
+ *
+ * Found by what it holds rather than by being the first or the second. There
+ * are several blocks at this width now — the dashboard's grid collapses here
+ * too — so counting them picks whichever surface happens to be written first.
+ * Position still matters for the shell, and the test below holds it directly
+ * instead of leaving it implied by a lookup.
+ */
+function narrowBlockNaming(selector: string): string {
+  const condition = "(max-width: 40rem)";
+  for (let from = 0; ;) {
+    const at = STYLES.indexOf(`@media ${condition}`, from);
+    if (at === -1) break;
+    const block = blockOf(condition, at);
+    if (block.includes(selector)) return block;
+    from = at + block.length;
+  }
+  expect.fail(`no block at ${condition} names ${selector}`);
+}
+
 describe("a form in a narrow window", () => {
-  const narrow = blockOf("(max-width: 40rem)");
+  const narrow = (): string => narrowBlockNaming(".perch-layout__body");
 
   it("stacks what a declaration asked to put side by side", () => {
-    expect(narrow).toContain(".perch-layout__body");
-    expect(narrow).toContain("grid-template-columns: minmax(0, 1fr)");
+    expect(narrow()).toContain(".perch-layout__body");
+    expect(narrow()).toContain("grid-template-columns: minmax(0, 1fr)");
   });
 
   it("closes the gap the columns had needed", () => {
     // The space that separated two columns reads as a space between unrelated
     // things once everything is one column.
-    expect(narrow).toMatch(/gap:\s*var\(--perch-space-\d\)/);
+    // Either spelling of the step: a hand-written rule names the property a
+    // theme overrides, a generated one reaches it through the alias the styling
+    // engine names after its category.
+    expect(narrow()).toMatch(/gap:\s*var\(--perch-(?:space|spacing)-\d\)/);
   });
 
   it("is keyed to the width and not to the device", () => {
     // A narrow window on a desktop has the same problem, and a rule keyed to a
     // touch screen would miss it.
-    expect(narrow).not.toContain("pointer:");
-    expect(narrow).not.toContain("hover:");
+    expect(narrow()).not.toContain("pointer:");
+    expect(narrow()).not.toContain("hover:");
   });
 });
 
@@ -62,18 +90,19 @@ describe("a form in a narrow window", () => {
  * into a space that was already too small.
  */
 describe("the shell in a narrow window", () => {
-  // The second block, deliberately: written after the rules it undoes, because
-  // at equal specificity the last one wins. Placed beside the grid's rules it
-  // lost to `display: flex` and measured as no change at all.
-  const shell = blockOf("(max-width: 40rem)", STYLES.indexOf(".perch-shell {"));
+  // Written after the rules it undoes, because at equal specificity the last
+  // one wins. Placed beside the grid's rules it lost to `display: flex` and
+  // measured as no change at all. That it comes after is the test below; this
+  // only has to find it.
+  const shell = (): string => narrowBlockNaming(".perch-shell");
 
   it("stacks the navigation above the page rather than beside it", () => {
-    expect(shell).toContain(".perch-shell");
-    expect(shell).toContain("display: block");
+    expect(shell()).toContain(".perch-shell");
+    expect(shell()).toContain("display: block");
   });
 
   it("lets the navigation take the width instead of a fixed column", () => {
-    expect(shell).toContain("width: auto");
+    expect(shell()).toContain("width: auto");
   });
 
   it("comes after the rule it has to undo, or it does nothing at all", () => {

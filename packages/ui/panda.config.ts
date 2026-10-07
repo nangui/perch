@@ -329,6 +329,176 @@ export default defineConfig({
      * configuration object cannot hold a key twice, so they are joined; checked
      * first, and they declare nothing in common.
      */
+
+    /**
+     * The layouts a schema declares: a fieldset, a callout, a section, and the
+     * grid body they all hold.
+     *
+     * `.perch-layout__body` reads `--perch-columns`, which a renderer sets as
+     * an inline style from the count a declaration asked for. The fallback is
+     * the whole point of it: a layout that named no count is one column.
+     */
+    ".perch-layout--fieldset": {
+      minWidth: "0",
+      margin: "0",
+      padding: "var(--perch-space-4) var(--perch-space-5) var(--perch-space-5)",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "md",
+    },
+
+    ".perch-layout__legend": {
+      display: "flex",
+      alignItems: "center",
+      gap: "2",
+      paddingInline: "2",
+      color: "content-muted",
+      fontSize: "sm",
+      fontWeight: "600",
+      letterSpacing: "0.07em",
+      textTransform: "uppercase",
+    },
+
+    /* Under the title, above what the layout holds. */
+    ".perch-layout__description": {
+      margin: "0 0 var(--perch-space-4)",
+      color: "content-secondary",
+      fontSize: "control",
+    },
+
+    /**
+     * A box that says something. Bordered on the leading edge rather than
+     * filled edge to edge: a panel of coloured blocks stops meaning anything,
+     * and the stripe reads as a tone at a glance without competing with the
+     * fields inside.
+     */
+    ".perch-layout--callout": {
+      padding: "var(--perch-space-4) var(--perch-space-5)",
+      border: "1px solid var(--perch-border)",
+      borderInlineStart: "3px solid var(--perch-content-muted)",
+      borderRadius: "md",
+      background: "surface",
+    },
+
+    /**
+     * The tone on the stripe and on the words, never on the whole box: a filled
+     * panel behind a form's fields fights the controls it is warning about.
+     * Both, not the stripe alone — colour is not the only thing carrying it,
+     * but it should not be the only thing carrying it twice either.
+     */
+    '.perch-layout--callout[data-tone="success"]': {
+      borderInlineStartColor: "success-content",
+      background: "success-surface",
+    },
+    '.perch-layout--callout[data-tone="warning"]': {
+      borderInlineStartColor: "warning-content",
+      background: "warning-surface",
+    },
+    '.perch-layout--callout[data-tone="danger"]': {
+      borderInlineStartColor: "danger-content",
+      background: "danger-surface",
+    },
+
+    /* Its own line of prose is the point of it, not an aside under a title. */
+    ".perch-layout--callout .perch-layout__description": {
+      marginBottom: "0",
+      color: "content",
+    },
+
+    /* Only where it holds something: an empty body would push the box open. */
+    ".perch-layout--callout .perch-layout__body:not(:empty)": { marginTop: "4" },
+
+    /**
+     * Below the width two fields need to be worth reading side by side, the
+     * declaration stops being an instruction and becomes a wish. A count of
+     * three honoured on a phone is three fields of eleven characters each, and
+     * a date picker that cannot show a date — so the layout collapses and the
+     * declaration goes back to meaning what it meant: these belong together.
+     *
+     * Closer together once stacked, too: the gap that separated columns reads
+     * as a gap between unrelated things when everything is one column.
+     */
+    ".perch-layout__body": {
+      display: "grid",
+      gridTemplateColumns: "repeat(var(--perch-columns, 1), minmax(0, 1fr))",
+      gap: "7",
+      _narrow: { gridTemplateColumns: "minmax(0, 1fr)", gap: "5" },
+    },
+
+    /* `hidden` is `display: none` in the browser's own sheet, and a class beats
+       it: the browser's sheet is a weaker origin than any author rule, layered
+       or not. Without this the attribute is set, the arrow turns, and nothing
+       moves. */
+    ".perch-layout__body[hidden]": { display: "none" },
+
+    /* A section is a card: it is the unit a reader scans by, and on a flat page
+       the fields ran together into one long list with headings floating in it.
+       The gap between cards is a step coarser than the gap between fields
+       inside one, so the grouping reads before the content does. */
+    ".perch-layout--section": {
+      padding: "8",
+      background: "surface",
+      borderRadius: "lg",
+      // Lifted rather than outlined: a border was the only thing separating
+      // this from the page, and every other rectangle had the same one.
+      boxShadow: "raised",
+    },
+
+    ".perch-layout--schema > .perch-layout__body": { gap: "9" },
+
+    /* The whole heading is the control where a section folds: a title beside a
+       small arrow is a target most people aim at and miss. */
+    ".perch-layout__title--folds:focus-visible": {
+      outline: "none",
+      borderRadius: "md",
+      // The panel's own ring rather than the browser's. A default outline drawn
+      // around something the width of the card reads as an error box, which is
+      // what it looked like.
+      boxShadow: "focus-ring",
+    },
+
+    /* A row of a mark and some words is what a title already is; what the
+       button adds is filling its line and looking like nothing. */
+    ".perch-layout__title--folds": {
+      width: "100%",
+      padding: "0",
+      border: "0",
+      background: "none",
+      font: "inherit",
+      color: "inherit",
+      textAlign: "left",
+      cursor: "pointer",
+    },
+
+    /* Beside the words, never in their place: it is hidden from a screen
+       reader. */
+    ".perch-layout__caret": { color: "content-subtle" },
+
+    ".perch-layout__title": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      marginBottom: "5",
+      fontSize: "control",
+      fontWeight: "500",
+      color: "content",
+    },
+
+    /* Only where the card gives it an edge to sit against. A layout with no
+       surface of its own has nothing for the rule to divide. */
+    ".perch-layout--section > .perch-layout__title": {
+      margin: "0 0 var(--perch-space-7)",
+      paddingBottom: "5",
+      borderBottom: "1px solid var(--perch-border-subtle)",
+      fontSize: "lg",
+      fontWeight: "600",
+    },
+
+    /* A folded section is its heading and nothing else. The rule above divides
+       the heading from what follows, and the space under it is for what
+       follows — with the body gone, both leave a card with a hole in it. */
+    ".perch-layout--section:has(> .perch-layout__body[hidden]) > .perch-layout__title":
+      { marginBottom: "0", paddingBottom: "0", borderBottom: "0" },
+
     ".perch-entry": {
       display: "flex",
       alignItems: "center",
