@@ -50,6 +50,20 @@ function allRules(): readonly (readonly [readonly string[], string])[] {
   );
 }
 
+/**
+ * One token, either spelling. A hand-written rule reads `--perch-focus-ring`,
+ * the property a theme overrides; a generated one reaches it through
+ * `--perch-shadows-focus-ring`. Both resolve to the same property, and this
+ * file asks which rule won rather than how the winner spells its value. One
+ * place to delete when the second sheet is gone.
+ */
+function folded(value: string | undefined): string | undefined {
+  return value?.replace(
+    /--perch-(?:colors|sizes|shadows|radii|spacing|font-sizes|fonts)-/g,
+    "--perch-",
+  );
+}
+
 /** What a property ends up as once every rule naming this selector has had its say. */
 function settled(selector: string, property: string): string | undefined {
   let value: string | undefined;
@@ -114,7 +128,7 @@ describe("a control that has gone quiet in a cell", () => {
       ".perch-table__cell .perch-cell__choice",
     ]) {
       expect(
-        settled(`${selector}:focus-within`, "box-shadow"),
+        folded(settled(`${selector}:focus-within`, "box-shadow")),
         `${selector} has no focus of its own`,
       ).toBe("var(--perch-focus-ring)");
     }
@@ -199,9 +213,9 @@ describe("the mark on a browser's own select", () => {
     // wrapper rather than from the control beside it, so it came out the colour
     // of the value in a filter and the colour of a label under the table. The
     // token is named on both, and this holds them together.
-    const styled = settled(".perch-select__chevron", "color");
+    const styled = folded(settled(".perch-select__chevron", "color"));
 
     expect(styled, "the styled chevron has no colour to match").toBeDefined();
-    expect(settled(".perch-picker > svg", "color")).toBe(styled);
+    expect(folded(settled(".perch-picker > svg", "color"))).toBe(styled);
   });
 });

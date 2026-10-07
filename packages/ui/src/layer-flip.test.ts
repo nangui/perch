@@ -1,37 +1,19 @@
 /**
  * @vitest-environment jsdom
  *
- * The hand-written sheet wins where specificity would have given it away.
+ * A hand-written rule winning where specificity would have given it away.
  *
- * `sheets.test.ts` catches the blunt version of this: a class styled directly
- * by both sheets, where the moved rule renders from the old one. It skips any
- * selector carrying a combinator on purpose, because a combinator usually means
- * a deliberate override — `.perch-table__cell .perch-control` sets a cell's
- * control apart, and the cascade is what that is for.
+ * Unlayered beats every layer, so a surface still written by hand can overrule
+ * a moved one whatever it carries. The question here is not whether both sheets
+ * touch an element — they do, legitimately — but whether the layer reversed the
+ * outcome: where the generated selector is strictly more specific, the rule left
+ * behind was written to lose.
  *
- * This is the case that slips between the two. A filter renders
- * `<select class="perch-control">` inside `.perch-list__search`, and the sheet
- * still written by hand frames every bare native control the panel draws —
- * `.perch-list__search select`, one class and one element. Against
- * `.perch-list__search .perch-control`, two classes, it lost, which is what the
- * `:not(.perch-control)` on the `input` arm beside it was written for. Once the
- * list surface moved into a layer it won instead, and a select filter grew from
- * the bar's small height to the full one while every assertion stayed green.
- *
- * So the test is not "do both sheets touch this element" — they do, constantly,
- * and legitimately. It is: *would specificity have decided it the other way?*
- * Where the generated selector is as specific or more, the layer flipped the
- * outcome and the hand-written rule is a rule written to lose, left behind.
- *
- * It reads elements rather than selectors, because `select` matching
- * `.perch-control` is a fact about the markup and not one any pair of selectors
- * reveals.
- *
- * What it does not see is a state. An element here is never hovered, so the
- * `:hover` arm of that same rule — which overrode the control's own hover and
- * took a disabled one's suppression with it — was found by reading the sheet
- * and not by this. Reproducing a state means driving the element, which is a
- * different test from one that reads two files.
+ * It reads elements, not selectors. A select filter renders
+ * `<select class="perch-control">`, so `.perch-list__search select` and
+ * `.perch-list__search .perch-control` meet on one element, which no pair of
+ * selectors shows. States are taken off both sides before matching, since jsdom
+ * hovers nothing; specificity is still counted on what is written.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -45,12 +27,10 @@ const read = (name: string): string =>
   readFileSync(resolve(`packages/ui/src/${name}`), "utf8");
 
 /**
- * Shapes the panel actually renders, with the container they render inside.
+ * Shapes the panel renders, with the container they render inside.
  *
- * A roster rather than a sweep: there is no corpus of rendered markup to read,
- * and a fixture built from the real components needs a resolved tree per page.
- * Each line is a shape somebody checked, so a shape nobody has checked is
- * visibly absent instead of silently covered.
+ * A roster rather than a sweep, so a shape nobody has checked is visibly
+ * absent instead of silently covered.
  */
 const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
   {
@@ -83,18 +63,107 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
     what: "a field's control on a form page",
     html: `<div class="perch-field"><input class="perch-control" /></div>`,
   },
+  {
+    // Both classes on one element: the cell quiets the frame the control draws.
+    what: "an editable cell's quiet line",
+    html:
+      `<td class="perch-table__cell">` +
+      `<input class="perch-control perch-cell__line" /></td>`,
+  },
+  {
+    what: "an editable cell's quiet select",
+    html:
+      `<td class="perch-table__cell"><span class="perch-picker">` +
+      `<select class="perch-control perch-cell__choice"></select></span></td>`,
+  },
+  {
+    what: "a pending edit in a cell",
+    html:
+      `<td class="perch-table__cell">` +
+      `<input class="perch-control perch-cell__line" data-pending="true" /></td>`,
+  },
+  {
+    what: "the pick column's checkbox",
+    html:
+      `<td class="perch-table__cell perch-table__pick"><span class="perch-checkbox">` +
+      `<input type="checkbox" class="perch-checkbox__input" />` +
+      `<span class="perch-checkbox__box"></span></span></td>`,
+  },
+  {
+    what: "a column heading",
+    html:
+      `<table class="perch-table"><thead><tr>` +
+      `<th class="perch-table__head"></th></tr></thead></table>`,
+  },
+  {
+    what: "a row and its cell",
+    html:
+      `<table class="perch-table"><tbody><tr>` +
+      `<td class="perch-table__cell"></td></tr></tbody></table>`,
+  },
+  {
+    what: "an action in a cell",
+    html:
+      `<td class="perch-table__cell perch-table__actions">` +
+      `<button class="perch-table__action"></button></td>`,
+  },
 ];
+
+/**
+ * The states a selector can ask for that no static DOM is in. A pair asking for
+ * two different ones is still compared: an element can be hovered and focused.
+ */
+const STATES =
+  /:(hover|focus|focus-visible|focus-within|active|visited|target|checked|indeterminate|placeholder-shown|user-invalid)\b/g;
+
+const stateless = (selector: string): string => selector.replace(STATES, "");
+
+/**
+ * A `<td>` assigned to a `div` is dropped on the floor — no table context — so
+ * every shape starting at a cell became an empty host with nothing to compare.
+ */
+function built(html: string): Element {
+  const host = document.createElement("div");
+  host.innerHTML = /^\s*<(td|th|tr|tbody|thead)\b/.test(html)
+    ? `<table><tbody><tr>${html}</tr></tbody></table>`
+    : html;
+  return host;
+}
+
+/**
+ * A selector list, split at its own commas. Not `split(",")`:
+ * `:where([class^="perch-"], [class*=" perch-"])` carries one, and the halves
+ * it produced matched everything.
+ */
+function listed(head: string): readonly string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let quote = "";
+  let one = "";
+  for (const character of head) {
+    if (quote !== "") {
+      if (character === quote) quote = "";
+    } else if (character === '"' || character === "'") quote = character;
+    else if (character === "(" || character === "[") depth += 1;
+    else if (character === ")" || character === "]") depth -= 1;
+    else if (character === "," && depth === 0) {
+      out.push(one.trim());
+      one = "";
+      continue;
+    }
+    one += character;
+  }
+  out.push(one.trim());
+  return out.filter((selector) => selector !== "");
+}
 
 /** A rule, flattened out of whatever layers and at-rules wrapped it. */
 type Rule = { readonly selector: string; readonly properties: ReadonlySet<string> };
 
 /**
- * Top-level rules only, layers unwrapped.
- *
- * An at-rule that is not a layer — a media query, a `@supports` — is skipped
- * rather than flattened: its rules apply under a condition this test does not
- * reproduce, and hoisting them out would compare two rules that never both
- * apply.
+ * Top-level rules only, layers unwrapped. A media query or `@supports` is
+ * skipped rather than hoisted: its rules apply under a condition this test does
+ * not reproduce.
  */
 function rules(css: string): readonly Rule[] {
   const clean = css.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -123,10 +192,7 @@ function rules(css: string): readonly Rule[] {
           if (property !== "" && !property.startsWith("--")) properties.add(property);
         }
         if (properties.size > 0) {
-          for (const selector of head
-            .split(",")
-            .map((one) => one.trim())
-            .filter(Boolean)) {
+          for (const selector of listed(head)) {
             out.push({ selector, properties });
           }
         }
@@ -139,11 +205,8 @@ function rules(css: string): readonly Rule[] {
 }
 
 /**
- * How much a selector carries, as the cascade counts it.
- *
- * Ids, then classes with attributes and pseudo-classes, then elements. `:not()`
- * and `:is()` contribute what is inside them; `:where()` contributes nothing,
- * which is the whole reason a floor is written with it.
+ * How much a selector carries, as the cascade counts it. `:not()` and `:is()`
+ * contribute what is inside them; `:where()` contributes nothing.
  */
 function weight(selector: string): readonly [number, number, number] {
   let rest = selector;
@@ -179,11 +242,16 @@ function weight(selector: string): readonly [number, number, number] {
   return [a, b, c];
 }
 
-const atLeast = (one: readonly number[], other: readonly number[]): boolean => {
+/**
+ * Strictly more, and strictly is the point. At equal specificity the
+ * hand-written rule wins, which is what won before the move too — it was the
+ * later of the two in the one file they shared — so a tie is not a flip.
+ */
+const outranks = (one: readonly number[], other: readonly number[]): boolean => {
   for (let at = 0; at < 3; at += 1) {
     if ((one[at] ?? 0) !== (other[at] ?? 0)) return (one[at] ?? 0) > (other[at] ?? 0);
   }
-  return true;
+  return false;
 };
 
 describe("a surface that moved into a layer", () => {
@@ -194,13 +262,12 @@ describe("a surface that moved into a layer", () => {
     const flipped: string[] = [];
 
     for (const shape of SHAPES) {
-      const host = document.createElement("div");
-      host.innerHTML = shape.html;
+      const host = built(shape.html);
       for (const element of host.querySelectorAll("*")) {
         const matching = (set: readonly Rule[]): readonly Rule[] =>
           set.filter((rule) => {
             try {
-              return element.matches(rule.selector);
+              return element.matches(stateless(rule.selector));
             } catch {
               // A selector jsdom cannot parse cannot be reasoned about either.
               return false;
@@ -215,7 +282,7 @@ describe("a surface that moved into a layer", () => {
             const beaten = theirs.find(
               (rule) =>
                 rule.properties.has(property) &&
-                atLeast(weight(rule.selector), weight(old.selector)),
+                outranks(weight(rule.selector), weight(old.selector)),
             );
             if (beaten === undefined) continue;
             flipped.push(
@@ -236,12 +303,11 @@ describe("a surface that moved into a layer", () => {
     // And the roster reaches the generated sheet at all: a selector typo in
     // every shape would otherwise read as nothing to report.
     const reached = SHAPES.some((shape) => {
-      const host = document.createElement("div");
-      host.innerHTML = shape.html;
+      const host = built(shape.html);
       return [...host.querySelectorAll("*")].some((element) =>
         generated.some((rule) => {
           try {
-            return element.matches(rule.selector);
+            return element.matches(stateless(rule.selector));
           } catch {
             return false;
           }

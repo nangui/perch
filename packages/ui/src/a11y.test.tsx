@@ -226,8 +226,9 @@ describe("2.5.7 Dragging Movements — a pointer alternative to every drag", () 
   });
 
   it("puts exactly as many buttons in a row as the grid track was sized for", () => {
-    // The row's last track in `styles.css` is sized from this count. A fourth
-    // button has to fail here and in `target-size.test.ts` together.
+    // The row's last grid track is sized from this count, in the styling
+    // config. A fourth button has to fail here and in `target-size.test.ts`
+    // together.
     renderRepeater();
     const actions = document.querySelectorAll(".perch-repeater__actions");
     expect(actions.length).toBe(3);

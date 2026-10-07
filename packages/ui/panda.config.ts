@@ -1845,6 +1845,886 @@ export default defineConfig({
 
     ':where(:root), :where([data-perch-theme="light"])': ramp(0),
     ':where([data-perch-theme="dark"])': ramp(1),
+
+    /**
+     * The table, its cells and everything drawn inside one.
+     *
+     * The largest surface by some way, and it moves whole. Splitting one is the
+     * mistake the modal taught: half a surface in each sheet means every rule
+     * that reaches across the seam is decided by cascade origin rather than by
+     * what it carries, and nothing says so.
+     *
+     * Last in this object, as it was last in the sheet it came from. Three of
+     * its rules tie a control rule on specificity — a cell quieting the frame
+     * the control draws — and a tie is settled by which is written later, so the
+     * order of these two surfaces is load-bearing and not a matter of reading.
+     */
+    /* Every native control the panel draws, given the one look the rest has.
+       Styled rather than replaced: a native select keeps the keyboard behaviour
+       and the platform's own picker on a phone. */
+    /* A control that already carries its own frame is left alone. A select filter
+       is one: it carries the class, so the control's own rules frame it, size it
+       and grey it out, and this rule would undo all three. */
+    '.perch-list__search select:not(.perch-control), .perch-list__search input:not([type="checkbox"]):not([type="radio"]):not(.perch-control):not(.perch-control__input), .perch-list__size select, .perch-table__cell select':
+      {
+        height: "control-height",
+        padding: "0 var(--perch-space-5)",
+        border: "1px solid var(--perch-border-strong)",
+        borderRadius: "md",
+        backgroundColor: "surface",
+        color: "content",
+        fontFamily: "sans",
+        fontSize: "control",
+      },
+
+    ".perch-list__search select:not(.perch-control):hover, .perch-list__size select:hover, .perch-table__cell select:hover":
+      {
+        borderColor: "border-hover",
+      },
+
+    /* The same ring every other control answers focus with. A browser's own outline
+       is a different shape on every platform, which is the inconsistency this rule
+       exists to remove. */
+    ".perch-list__search select:not(.perch-control):focus-visible, .perch-list__search input:not(.perch-control):not(.perch-control__input):focus-visible, .perch-list__size select:focus-visible, .perch-table__cell select:focus-visible":
+      {
+        outline: "none",
+        borderColor: "accent",
+        boxShadow: "focus-ring",
+      },
+
+    /* A select may hold nothing but options, so the mark that says it opens a
+       list sits over a wrapper rather than inside the control. */
+    ".perch-picker": {
+      position: "relative",
+      display: "inline-flex",
+      alignItems: "center",
+      minWidth: "0",
+    },
+
+    ".perch-picker > select": {
+      appearance: "none",
+      width: "100%",
+      paddingRight: "8",
+    },
+
+    ".perch-picker > svg": {
+      position: "absolute",
+      right: "4",
+      /* The control underneath takes the click: the mark is decoration, and a
+         reader aiming at it means to open the list. */
+      pointerEvents: "none",
+      /* Named, not inherited: a mark inherits from its wrapper rather than from the
+         control beside it, which gave one shape three weights on one screen. */
+      color: "content-muted",
+    },
+
+    /* A real input, kept in the accessibility tree and driven by the platform.
+       Taken out of sight rather than out of the layout: `display: none` would
+       remove it from the tab order along with everything else. */
+    ".perch-checkbox": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      minHeight: "control-height",
+      position: "relative",
+    },
+
+    ".perch-checkbox__input": {
+      position: "absolute",
+      width: "20px",
+      height: "20px",
+      margin: "0",
+      opacity: "0",
+      cursor: "pointer",
+    },
+
+    ".perch-checkbox__input:disabled": {
+      cursor: "not-allowed",
+    },
+
+    ".perch-checkbox__box": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "20px",
+      height: "20px",
+      flex: "none",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "sm",
+      background: "surface",
+      color: "content-inverse",
+      fontSize: "sm",
+      lineHeight: "1",
+    },
+
+    ".perch-checkbox__input:checked + .perch-checkbox__box": {
+      borderColor: "accent",
+      background: "accent",
+    },
+
+    /* The ring follows the invisible input, so the focus lands where the reader
+       sees the box rather than nowhere at all. */
+    ".perch-checkbox__input:focus-visible + .perch-checkbox__box": {
+      outline: "2px solid var(--perch-accent)",
+      outlineOffset: "2px",
+    },
+
+    ".perch-checkbox__input:disabled + .perch-checkbox__box": {
+      borderColor: "border",
+      background: "surface-muted",
+      color: "content-muted",
+    },
+
+    /* ------------------------------------------------------------------- view */
+    /* The rows of a relation, read. Stacked rather than tabulated: a row here
+       holds a handful of labelled values, not a line of columns. */
+    ".perch-rows": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "3",
+    },
+
+    ".perch-rows__title": {
+      margin: "0",
+      fontSize: "sm",
+      fontWeight: "600",
+      letterSpacing: "0.07em",
+      textTransform: "uppercase",
+      color: "content-muted",
+    },
+
+    ".perch-rows__row": {
+      padding: "4",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "var(--perch-space-2)",
+    },
+
+    /* Said, not left blank: an empty box reads as a page that failed to load. */
+    ".perch-rows__empty": {
+      margin: "0",
+      color: "content-secondary",
+      fontSize: "control",
+    },
+
+    /* ------------------------------------------------------------ table cells */
+    ".perch-cell__images": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "2",
+    },
+
+    /* Overlapping, which is how a row shows a group in the width of one and a bit. */
+    '.perch-cell__images[data-stacked="true"]': {
+      gap: "0",
+    },
+
+    '.perch-cell__images[data-stacked="true"] > * + *': {
+      marginLeft: "-10px",
+    },
+
+    ".perch-cell__image": {
+      flex: "none",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "sm",
+      background: "surface-muted",
+      objectFit: "cover",
+    },
+
+    '.perch-cell__image[data-circular="true"]': {
+      borderRadius: "50%",
+    },
+
+    /* A face, a name and the line under it, drawn as one column — a reader scans
+       them as one thing, and three headings is what nobody deciding looks like. */
+    ".perch-cell__identity": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      minWidth: "0",
+    },
+
+    ".perch-cell__face": {
+      flex: "none",
+      border: "1px solid var(--perch-border)",
+      background: "surface-muted",
+      borderRadius: "sm",
+      objectFit: "cover",
+    },
+
+    '.perch-cell__face[data-circular="true"]': {
+      borderRadius: "50%",
+    },
+
+    /* Initials where there is no picture, so the column keeps one width down its
+       whole length rather than going ragged wherever a face is missing. */
+    ".perch-cell__face--empty": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "content-muted",
+      fontSize: "sm",
+      fontWeight: "500",
+      letterSpacing: "0.02em",
+    },
+
+    ".perch-cell__named": {
+      display: "flex",
+      flexDirection: "column",
+      minWidth: "0",
+    },
+
+    /* Both lines cut rather than wrap: a row that grows a line because one address
+       is long is a row that moves everything under it. */
+    ".perch-cell__name, .perch-cell__under": {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
+
+    ".perch-cell__under": {
+      color: "content-muted",
+      fontSize: "sm",
+    },
+
+    /* A number drawn as a length, with the number kept beside it.
+
+       The bar answers "which of these is short" without being read; the digits
+       answer "how short" for the reader who came for one row. */
+    ".perch-cell__gauge": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      minWidth: "0",
+    },
+
+    ".perch-cell__gauge-track": {
+      flex: "1 1 auto",
+      minWidth: "3rem",
+      maxWidth: "8rem",
+      blockSize: "6px",
+      borderRadius: "999px",
+      backgroundColor: "surface-sunken",
+      overflow: "hidden",
+    },
+
+    ".perch-cell__gauge-fill": {
+      display: "block",
+      blockSize: "100%",
+      borderRadius: "inherit",
+      backgroundColor: "accent",
+    },
+
+    /* Lined up on the digit rather than on the glyph, so a column of numbers reads
+       down as a column rather than as a ragged edge. */
+    ".perch-cell__gauge-value": {
+      flex: "none",
+      color: "content-secondary",
+      fontSize: "sm",
+      fontVariantNumeric: "tabular-nums",
+    },
+
+    /* The ones there was no room for, counted. A stack keeps its own edge visible
+       against the image it overlaps. */
+    ".perch-cell__more": {
+      display: "inline-flex",
+      flex: "none",
+      alignItems: "center",
+      justifyContent: "center",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "50%",
+      background: "surface-sunken",
+      color: "content-secondary",
+      fontSize: "sm",
+      fontVariantNumeric: "tabular-nums",
+    },
+
+    '.perch-cell__images[data-stacked="true"] .perch-cell__image, .perch-cell__images[data-stacked="true"] .perch-cell__more':
+      {
+        boxShadow: "0 0 0 2px var(--perch-surface)",
+      },
+
+    /* A switch in a cell, smaller than the form's. The input is real, taken out
+       of sight rather than out of the tab order. */
+    ".perch-cell__toggle, .perch-cell__tick": {
+      position: "relative",
+      display: "inline-flex",
+      alignItems: "center",
+    },
+
+    '.perch-cell__toggle[data-pending="true"], .perch-cell__tick[data-pending="true"]':
+      {
+        opacity: "0.6",
+      },
+
+    ".perch-cell__toggle-input": {
+      /* WCAG's pointer target, which for a switch is the switch. */
+      width: "34px",
+      height: "24px",
+      margin: "0",
+      borderRadius: "999px",
+      appearance: "none",
+      background: "surface-sunken",
+      border: "1px solid var(--perch-border-strong)",
+      cursor: "pointer",
+      transition: "background 120ms ease, border-color 120ms ease",
+    },
+
+    ".perch-cell__toggle-input::after": {
+      content: '""',
+      position: "absolute",
+      top: "50%",
+      left: "4px",
+      width: "14px",
+      height: "14px",
+      borderRadius: "50%",
+      background: "surface",
+      boxShadow: "popover",
+      transform: "translateY(-50%)",
+      transition: "left 120ms ease",
+    },
+
+    ".perch-cell__toggle-input:checked": {
+      borderColor: "accent",
+      background: "accent",
+    },
+
+    ".perch-cell__toggle-input:checked::after": {
+      left: "16px",
+    },
+
+    ".perch-cell__toggle-input:disabled": {
+      cursor: "not-allowed",
+      opacity: "0.7",
+    },
+
+    ".perch-cell__toggle-input:focus-visible, .perch-cell__tick-input:focus-visible": {
+      outline: "none",
+      boxShadow: "focus-ring",
+    },
+    ".perch-cell__tick-input": {
+      width: "24px",
+      height: "24px",
+      margin: "0",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "sm",
+      appearance: "none",
+      background: "surface",
+      cursor: "pointer",
+    },
+
+    ".perch-cell__tick-input:checked": {
+      borderColor: "accent",
+      background: "accent-surface",
+    },
+
+    ".perch-cell__tick-input:disabled": {
+      cursor: "not-allowed",
+      opacity: "0.7",
+    },
+    ".perch-cell__tick .perch-cell__mark": {
+      position: "absolute",
+      left: "0",
+      width: "24px",
+      color: "accent",
+      fontSize: "control",
+      lineHeight: "24px",
+      textAlign: "center",
+      pointerEvents: "none",
+    },
+
+    /* A line of text in a cell: the panel's own control, narrower, and never wider
+       than the column it sits in. */
+    ".perch-cell__line": {
+      width: "100%",
+      minWidth: "0",
+      height: "control-height-sm",
+      fontSize: "base",
+    },
+
+    '.perch-cell__line[data-pending="true"]': {
+      opacity: "0.6",
+    },
+    ".perch-cell__choice": {
+      width: "100%",
+      minWidth: "0",
+      height: "control-height-sm",
+      fontSize: "base",
+    },
+
+    '.perch-cell__choice[data-pending="true"]': {
+      opacity: "0.6",
+    },
+
+    /* A cell at rest is the value it holds: an editable column framing every row
+       read as nine controls in a table of three people. The border keeps its 1px
+       and loses only its colour, so nothing moves when it comes back.
+
+       Only the resting state. `.perch-control:hover` carries two `:not()` clauses
+       and outranks anything a cell can say, so repeating it here would never be
+       reached; `:focus-within` ties on specificity, which is why focus is
+       restated below rather than inherited and why this surface is declared
+       after the control's. */
+    ".perch-table__cell .perch-cell__line, .perch-table__cell .perch-cell__choice": {
+      height: "auto",
+      paddingBlock: "0",
+      borderColor: "transparent",
+      /* `background-color`, never the shorthand. The chevron is a drawn shape now
+         rather than an image on this element, so the shorthand no longer erases it
+         — but a control quieting its ground has no business clearing every layer
+         under it, and the rule that once did erased the mark for a whole release. */
+      backgroundColor: "transparent",
+      lineHeight: "inherit",
+      paddingInline: "4",
+    },
+
+    /* Pulled left by its own padding so the value lines up with the plain text
+       beside it, and widened by as much so the frame reaches back out. On the
+       wrapper for a choice, not the control: the mark is positioned against the
+       wrapper, and pulling the select alone left the chevron a padding inside
+       the edge it sits against. */
+    ".perch-table__cell .perch-cell__line, .perch-table__cell .perch-picker": {
+      marginInline: "calc(-1 * (var(--perch-space-4) + 1px))",
+      width: "calc(100% + 2 * (var(--perch-space-4) + 1px))",
+    },
+
+    /* The chevron's room, given back: `padding-inline` above is one value for
+       both sides, and on a select the right one is where the arrow stands. */
+    ".perch-table__cell .perch-cell__choice, .perch-table__cell select": {
+      paddingRight: "8",
+    },
+
+    /* Focus is not a hint that something can be reached, it is the mark of where
+       the reader already is, so it keeps the full frame the rest of the panel uses.
+       Restated because the quieting rule above outranks the shared one by order. */
+    ".perch-table__cell .perch-cell__line:focus-within, .perch-table__cell .perch-cell__choice:focus-within":
+      {
+        borderColor: "accent",
+        backgroundColor: "surface",
+        boxShadow: "focus-ring",
+        outline: "none",
+      },
+
+    /* A pending write still has to be visible as one, and opacity alone on an
+       unframed value is easy to miss. */
+    '.perch-table__cell .perch-cell__line[data-pending="true"], .perch-table__cell .perch-cell__choice[data-pending="true"]':
+      {
+        borderColor: "border",
+      },
+
+    /* The browser's own select, given the same quiet. The chevron stays, or a
+       column of choices at rest reads as text; `background-color` rather than the
+       shorthand, so it survives. */
+    ".perch-table__cell select": {
+      height: "auto",
+      paddingBlock: "0",
+      borderColor: "transparent",
+      backgroundColor: "transparent",
+      lineHeight: "inherit",
+    },
+
+    ".perch-table__cell select:focus-visible": {
+      backgroundColor: "surface",
+    },
+
+    ".perch-cell__colour": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "3",
+    },
+
+    ".perch-cell__swatch": {
+      flex: "none",
+      width: "14px",
+      height: "14px",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "sm",
+    },
+
+    ".perch-cell__code": {
+      fontFamily: "mono",
+      fontSize: "base",
+    },
+
+    ".perch-cell__copy": {
+      /* Centred the way the other two marks are, rather than left in flow: an
+         inline SVG sits on a baseline, which put the mark 3px high in a 24px
+         button — measured, not guessed. */
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      /* WCAG's pointer target, the floor every other control here keeps. */
+      minWidth: "24px",
+      minHeight: "24px",
+      padding: "0",
+      border: "0",
+      background: "none",
+      color: "content-muted",
+      lineHeight: "1",
+      cursor: "pointer",
+    },
+
+    ".perch-cell__copy:hover": {
+      color: "content",
+    },
+
+    /* Said on the button itself, because a cell renderer has no state to say it
+       with — and taken off again by the timer that put it there. */
+    '.perch-cell__copy[data-copied="true"]': {
+      color: "accent",
+    },
+
+    ".perch-cell__copy-mark": {
+      width: "13px",
+      height: "13px",
+    },
+
+    ".perch-table": {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: "base",
+      color: "content",
+      boxShadow: "panel",
+    },
+
+    ".perch-table__head": {
+      padding: "var(--perch-space-4) var(--perch-space-5)",
+      textAlign: "left",
+      fontWeight: "500",
+      color: "content-muted",
+      borderBottom: "1px solid var(--perch-border-strong)",
+      whiteSpace: "nowrap",
+    },
+
+    /* A row wider than the window, stacked: each cell carries the heading the
+       hidden header row can no longer give it.
+
+       Every rule here undoes one of the table's own at the same specificity, so
+       order alone decides. The engine gathers conditional rules after plain ones
+       and emits these in the order written — measured, and held by
+       `emitted-order.test.ts`, because a release that changed it would take this
+       layout apart with nothing failing. */
+    ".perch-table, .perch-table tbody, .perch-table tr, .perch-table__cell": {
+      _narrow: {
+        display: "block",
+      },
+    },
+
+    /* Off the page rather than `display: none`: the headings are what a screen
+       reader announces each cell by, and removing them would take that away from
+       the readers who depend on it most. */
+    ".perch-table thead": {
+      _narrow: {
+        position: "absolute",
+        width: "1px",
+        height: "1px",
+        overflow: "hidden",
+        clipPath: "inset(50%)",
+        whiteSpace: "nowrap",
+      },
+    },
+
+    ".perch-table tr": {
+      _narrow: {
+        marginBottom: "5",
+        border: "1px solid var(--perch-border)",
+        borderRadius: "md",
+        background: "surface",
+      },
+    },
+
+    /* Dense on purpose: the operator who reads 200 rows a day comes ahead of the
+       developer who reads one screenshot. */
+    ".perch-table__cell": {
+      padding: "var(--perch-space-4) var(--perch-space-5)",
+      borderBottom: "1px solid var(--perch-border-subtle)",
+      verticalAlign: "top",
+      /* Stacked, the cell is a row of its own, which is why the padding and the
+         border above are restated rather than inherited. */
+      _narrow: {
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: "4",
+        padding: "var(--perch-space-3) var(--perch-space-4)",
+        borderBottom: "1px solid var(--perch-border-subtle)",
+        textAlign: "right",
+      },
+    },
+
+    ".perch-table__cell:last-child": {
+      _narrow: {
+        borderBottom: "none",
+      },
+    },
+    ".perch-table__cell::before": {
+      _narrow: {
+        content: "attr(data-label)",
+        flex: "0 0 auto",
+        marginRight: "auto",
+        textAlign: "left",
+        fontSize: "sm",
+        fontWeight: "600",
+        color: "content-muted",
+      },
+    },
+
+    /* Except the two that are not a value: a tick and a row's own controls read
+       as themselves, and a label beside them would name a column nobody asked
+       about. */
+    ".perch-table__actions::before, .perch-table__pick::before": {
+      _narrow: {
+        content: "none",
+      },
+    },
+
+    /* A button rather than a click handler on the header, so the keyboard reaches
+       it. It carries no chrome of its own. */
+    ".perch-table__sort": {
+      display: "inline-flex",
+      gap: "3",
+      alignItems: "center",
+      padding: "0",
+      background: "none",
+      border: "0",
+      font: "inherit",
+      color: "inherit",
+      cursor: "pointer",
+    },
+
+    ".perch-table__sort:hover": {
+      color: "content",
+    },
+
+    ".perch-table__sort-mark": {
+      color: "accent",
+    },
+
+    ".perch-table__empty": {
+      padding: "7",
+      textAlign: "center",
+      color: "content-muted",
+    },
+
+    ".perch-table__empty p": {
+      margin: "0",
+    },
+
+    /* Over the words rather than beside them, and centred by its own margins: the
+       box above centres what it holds with `text-align`, which places inline
+       content and does nothing at all to a block. The character it used to hold was
+       inline; the drawing is not. */
+    ".perch-table__empty-icon": {
+      margin: "0 auto var(--perch-space-3)",
+      fontSize: "2xl",
+    },
+
+    /* Named twice to outweigh the rule above rather than shouted over with
+       `!important`, which the next rule here would have to fight again. */
+    ".perch-table__empty .perch-table__empty-heading": {
+      marginBottom: "2",
+      color: "content",
+      fontWeight: "600",
+    },
+
+    '.perch-cell__icon[data-on="true"]': {
+      color: "accent",
+    },
+
+    '.perch-cell__icon[data-on="false"]': {
+      color: "content-muted",
+    },
+
+    /* Development only: a column type with no registered renderer. */
+    ".perch-table__unknown": {
+      color: "danger-content",
+      fontFamily: "mono",
+    },
+
+    /* The pairing is `flex` with a control-height minimum, which is right in a
+       form row and too tall in a table row. */
+    ".perch-table__pick .perch-checkbox": {
+      display: "inline-flex",
+      minHeight: "0",
+    },
+
+    /* As narrow as the control it holds, so the row of data is not pushed across
+       the page by a column that carries one checkbox. */
+    ".perch-table__pick": {
+      width: "1%",
+      whiteSpace: "nowrap",
+    },
+
+    '.perch-table tr[data-picked="true"]': {
+      background: "accent-surface",
+    },
+
+    /* Two actions in a cell run together into one word, because nothing between an
+       anchor and a button is whitespace. Spaced with a margin rather than by making
+       the cell a flex container: `display: flex` takes a `<td>` out of the table's
+       box model, and its borders stop lining up with the row it is in. */
+    ".perch-table__actions": {
+      textAlign: "right",
+      whiteSpace: "nowrap",
+    },
+
+    ".perch-table__actions > * + *": {
+      marginLeft: "6",
+    },
+
+    /* A group inside the row menu: a heading, then its items, then a hairline
+       under it so the eye can see where one ends. Not a nested menu — a dropdown
+       opening out of a dropdown is a shape a pointer loses and a keyboard cannot
+       follow. */
+    ".perch-table__action-group": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: "1",
+      paddingBottom: "2",
+      borderBottom: "1px solid var(--perch-border-subtle)",
+    },
+
+    ".perch-table__action-group:last-child": {
+      paddingBottom: "0",
+      borderBottom: "0",
+    },
+
+    ".perch-table__action-group-label": {
+      display: "flex",
+      alignItems: "center",
+      gap: "2",
+      margin: "0",
+      padding: "var(--perch-space-2) var(--perch-space-3) 0",
+      color: "content-muted",
+      fontSize: "sm",
+      fontWeight: "600",
+      letterSpacing: "0.07em",
+      textTransform: "uppercase",
+    },
+
+    ".perch-table__action": {
+      color: "accent",
+      textDecoration: "none",
+    },
+
+    ".perch-table__action:hover": {
+      textDecoration: "underline",
+    },
+
+    /* A run action is a button; it has to look like the links beside it rather
+       than like a form control dropped into a row. */
+    "button.perch-table__action": {
+      padding: "0",
+      border: "0",
+      background: "none",
+      font: "inherit",
+      cursor: "pointer",
+    },
+
+    ".perch-table__action--danger": {
+      color: "danger",
+    },
+
+    "button.perch-table__action:disabled": {
+      color: "content-subtle",
+      cursor: "not-allowed",
+    },
+
+    /* Which edge a column's values sit against.
+       Logical properties, not left and right: a panel read right to left puts the
+       start of a line on the other side, and a column of numbers pinned to the
+       left there is pinned to the wrong end of the row. */
+    /* A group's header. Set apart above its rows, and the whole row is one cell
+       so the name is not pushed into a column's width. */
+    ".perch-table__group-head": {
+      padding: "0",
+      textAlign: "start",
+      fontWeight: "500",
+      backgroundColor: "surface-sunken",
+      borderBottom: "1px solid var(--perch-border)",
+    },
+
+    /* The control is the cell: a header a reader can only reach by clicking a
+       triangle is a header a keyboard cannot reach at all. */
+    ".perch-table__group-toggle": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      width: "100%",
+      padding: "var(--perch-space-3) var(--perch-space-5)",
+      border: "0",
+      background: "none",
+      color: "content",
+      font: "inherit",
+      textAlign: "start",
+      cursor: "pointer",
+    },
+
+    ".perch-table__group-toggle:hover": {
+      backgroundColor: "surface-muted",
+    },
+
+    ".perch-table__group-mark": {
+      color: "content-muted",
+      fontSize: "xs",
+    },
+
+    ".perch-table__group-size": {
+      color: "content-muted",
+      fontSize: "xs",
+      fontVariantNumeric: "tabular-nums",
+    },
+
+    /* The footer, which is about every row a filter left rather than about the
+       twenty-five on screen. Set apart by a rule above it and a quieter ground,
+       because a reader scanning down the rows should be able to tell where the
+       rows stop. */
+    ".perch-table__foot .perch-table__cell": {
+      borderTop: "1px solid var(--perch-border-strong)",
+      borderBottom: "none",
+      backgroundColor: "surface-sunken",
+      whiteSpace: "nowrap",
+    },
+
+    /* The name sits above the number rather than beside it: a footer beside a
+       narrow column of amounts has no room for both on one line, and wrapping
+       mid-label is worse than stacking. */
+    ".perch-table__summary-name": {
+      display: "block",
+      fontSize: "xs",
+      color: "content-muted",
+    },
+
+    ".perch-table__summary-value": {
+      display: "block",
+      fontVariantNumeric: "tabular-nums",
+      color: "content",
+    },
+
+    ".perch-table__head--start, .perch-table__cell--start": {
+      textAlign: "start",
+    },
+
+    ".perch-table__head--center, .perch-table__cell--center": {
+      textAlign: "center",
+    },
+
+    ".perch-table__head--end, .perch-table__cell--end": {
+      textAlign: "end",
+    },
+
+    ".perch-table__head--wide-only, .perch-table__cell--wide-only": {
+      _narrow: {
+        display: "none",
+      },
+    },
+
+    /* Words a column shows where the row holds nothing.
+       Dimmed, and readable: it is a fact about the row rather than decoration, so
+       unlike the dash it is not hidden from a screen reader. */
+    ".perch-cell__placeholder": {
+      color: "content-muted",
+    },
   },
 
   theme: {
@@ -2020,7 +2900,6 @@ export default defineConfig({
               fontSize: "sm",
               color: "content-secondary",
             },
-            /** The arrow beside the quiet line, which keeps its size. */
             trend: { flexShrink: "0" },
           },
           variants: {

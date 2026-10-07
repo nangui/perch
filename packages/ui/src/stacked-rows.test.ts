@@ -14,7 +14,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const STYLES = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
+// Both sheets, the generated one first: the table is drawn there now.
+const STYLES = [
+  readFileSync(new URL("./panda.css", import.meta.url), "utf8"),
+  readFileSync(new URL("./styles.css", import.meta.url), "utf8"),
+].join("\n");
 const TABLE = readFileSync(new URL("./DataTable.tsx", import.meta.url), "utf8");
 
 /** The at-rule that stacks a table, found by what only it contains. */
@@ -35,37 +39,39 @@ function stacking(): string {
 }
 
 describe("a table in a narrow window", () => {
-  const rule = stacking();
+  // Inside the tests, not beside them: an assertion that runs while the file is
+  // being collected takes the whole file down and the run reports no tests.
+  const rule = (): string => stacking();
 
   it("lays a row down the page instead of across it", () => {
-    expect(rule).toContain("display: block");
+    expect(rule()).toContain("display: block");
   });
 
   it("writes each cell's heading onto the cell", () => {
     // The header row is gone from view, so the heading has to travel with the
     // value or a stacked row is a column of unlabelled strings.
-    expect(rule).toContain("content: attr(data-label)");
+    expect(rule()).toContain("content: attr(data-label)");
   });
 
   it("keeps the heading row for the readers who hear it", () => {
     // Off the page rather than `display: none`: the headings are what a screen
     // reader announces each cell by, and removing them would take that away
     // from the readers who depend on it most.
-    expect(rule).toContain("clip-path");
-    expect(rule).not.toMatch(/thead[^{]*\{[^}]*display:\s*none/);
+    expect(rule()).toContain("clip-path");
+    expect(rule()).not.toMatch(/thead[^{]*\{[^}]*display:\s*none/);
   });
 
   it("says nothing beside a tick or a row's own controls", () => {
     // Neither is a value, and a label there would name a column nobody asked
     // about.
-    expect(rule).toContain(".perch-table__actions::before");
-    expect(rule).toContain("content: none");
+    expect(rule()).toContain(".perch-table__actions::before");
+    expect(rule()).toContain("content: none");
   });
 
   it("is keyed to the width rather than to a touch screen", () => {
     // A narrow window on a desktop has the same problem.
-    expect(rule).toContain("max-width");
-    expect(rule).not.toContain("pointer:");
+    expect(rule()).toContain("max-width");
+    expect(rule()).not.toContain("pointer:");
   });
 });
 
