@@ -266,6 +266,26 @@ describe("the roster a dashboard carries", () => {
   });
 });
 
+describe("a page with nothing to submit", () => {
+  it("says so, so no button is drawn that could only fail", async () => {
+    // The save route refuses a page with no `submit`, which is right and is
+    // not enough: the client passed the transport unconditionally, so a
+    // dashboard drew a Save whose one outcome was a 404 — on the screen a
+    // reader meets first.
+    const { html } = await dashboard(await serve(), "admin");
+
+    expect(html).toContain('data-saves="false"');
+  });
+
+  it("leaves the attribute off a page that does submit", async () => {
+    // Absent means savable, which is every form route in the panel. Saying it
+    // on all of them would be saying the ordinary case out loud.
+    const { html } = await dashboard(await serve(), "admin", "settings");
+
+    expect(html).not.toContain("data-saves");
+  });
+});
+
 describe("a page that names a widget nothing answers to", () => {
   it("stops the boot rather than drawing a gap", async () => {
     @PanelPage({ path: "typo", widgets: ["vists"] })

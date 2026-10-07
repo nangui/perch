@@ -69,6 +69,9 @@ export function mount(element: HTMLElement): void {
   const who = userMenuOf(element.dataset["userMenu"]);
   const recordPages = recordPagesOf(element.dataset["recordPages"]);
   const cards = widgetsOf(element.dataset["widgets"]);
+  // Only the shell can know. Absent means savable, which is every form route;
+  // a page with nothing to submit is the one case that says so.
+  const saves = element.dataset["saves"] !== "false";
 
   if (operation === "list") {
     // Read once, on the way in. Whatever was said on the page that sent the
@@ -158,7 +161,9 @@ export function mount(element: HTMLElement): void {
         <PanelForm
           initial={JSON.parse(payload) as SchemaPayload}
           send={(request) => send(api, operation, id, request)}
-          save={(request) => save(api, operation, id, request)}
+          {...(saves
+            ? { save: (request: SaveRequest) => save(api, operation, id, request) }
+            : {})}
           onSaved={goWhereTheServerSays}
           renderFailure={renderFailure}
           searchOptions={(path, term, state) =>

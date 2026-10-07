@@ -511,6 +511,11 @@ export class PanelPageController {
       // Absent rather than empty: a page that holds no card, and a page whose
       // every card this reader may not have, both draw no grid at all.
       ...(roster.length === 0 ? {} : { widgets: roster }),
+      // A dashboard shows and does not submit, and the save route already
+      // refuses one. This is what stops the button being drawn in the first
+      // place, which is the difference between a screen with nothing to save
+      // and a screen with a button that fails.
+      saves: page.instance.submit !== undefined,
       scriptFile: entry(this.#assets, "panel.js"),
       ...(this.#scripts.length === 0 ? {} : { scripts: this.#scripts }),
       ...(this.#styles.length === 0 ? {} : { styles: this.#styles }),
