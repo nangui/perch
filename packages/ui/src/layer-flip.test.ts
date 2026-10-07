@@ -145,6 +145,21 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `<label class="perch-radio__label"></label></div></div>`,
   },
   {
+    what: "a textarea with its footer",
+    html:
+      `<div class="perch-textarea" data-state="draft">` +
+      `<textarea class="perch-textarea__input" data-autosize="true"></textarea>` +
+      `<div class="perch-textarea__footer">` +
+      `<span class="perch-textarea__status"></span>` +
+      `<span class="perch-textarea__count"></span></div></div>`,
+  },
+  {
+    what: "a read-only textarea",
+    html:
+      `<div class="perch-textarea" data-readonly="true">` +
+      `<textarea class="perch-textarea__input"></textarea></div>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +

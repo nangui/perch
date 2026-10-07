@@ -1,5 +1,5 @@
 /**
- * Both writing surfaces stop growing, and why that is not a preference.
+ * Every writing surface stops growing, and why that is not a preference.
  *
  * A textarea and a contenteditable both grow with what is typed into them, and
  * the page grows under them. The toolbar is at the top of each, so a long note
@@ -7,9 +7,15 @@
  * the rich editor clips rather than scrolls, which put anything past the fold
  * out of reach entirely.
  *
- * Both carry a ceiling and their own scrollbar for that reason, and both say so
- * at length in a comment. Neither was asserted anywhere: probed by deleting the
+ * Each carries a ceiling and its own scrollbar for that reason, and each says
+ * so at length in a comment. None was asserted anywhere: probed by deleting the
  * rich editor's, and the whole suite stayed green.
+ *
+ * Three surfaces, not two. The field's own textarea was left out of this list
+ * while the prose above already described it, and its ceiling is conditional —
+ * `field-sizing` grows the box during layout and `max-height` is what stops
+ * that past the fold, so the cap and the scrolling are declared on two
+ * selectors rather than one. That is why each entry names both.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -32,9 +38,21 @@ function ruleFor(selector: string): string | undefined {
   )?.[1];
 }
 
+/**
+ * Each surface, the selector that caps it and the selector that lets it scroll.
+ *
+ * The same twice where one rule does both. Naming them apart is what lets a
+ * conditional ceiling be checked without gathering every rule whose selector
+ * starts the same way — gathering would only ever make these easier to pass.
+ */
 const SURFACES = [
-  ["the markdown editor's box", ".perch-markdown__box"],
-  ["the rich editor's page", ".perch-rich__page"],
+  ["the markdown editor's box", ".perch-markdown__box", ".perch-markdown__box"],
+  ["the rich editor's page", ".perch-rich__page", ".perch-rich__page"],
+  [
+    "the field's textarea",
+    '.perch-textarea__input[data-autosize="true"]',
+    ".perch-textarea__input",
+  ],
 ] as const;
 
 describe("a surface somebody writes into", () => {
@@ -45,7 +63,7 @@ describe("a surface somebody writes into", () => {
     expect(rule, `${selector} grows without a ceiling`).toMatch(/max-height:/);
   });
 
-  it.each(SURFACES)("%s scrolls rather than clipping", (_what, selector) => {
+  it.each(SURFACES)("%s scrolls rather than clipping", (_what, _caps, selector) => {
     // A ceiling on its own hides the overflow instead of reaching it, which is
     // the fault this replaced rather than a smaller version of it.
     const rule = ruleFor(selector);

@@ -1847,6 +1847,128 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * The third surface somebody writes into.
+     *
+     * A frame that holds the control, a footer under it and a count in the
+     * corner — the frame carries the focus ring because the input inside it
+     * draws none, which is what lets the footer sit inside the same border.
+     *
+     * Its ceiling is conditional: `field-sizing` lets the browser grow the box
+     * during layout, so nothing measures on keystroke, and `max-height` is what
+     * stops that growing past the fold. Only the autosizing one needs it, which
+     * is why the two are separate rules rather than one.
+     */
+    /* ------------------------------------------------------------------ textarea */
+    ".perch-textarea": {
+      display: "flex",
+      flexDirection: "column",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "md",
+      background: "surface",
+      transition: "border-color 120ms ease, box-shadow 120ms ease",
+    },
+
+    ".perch-textarea:focus-within": {
+      borderColor: "accent",
+      boxShadow: "focus-ring",
+    },
+
+    '.perch-textarea[data-state="draft"]': {
+      borderColor: "accent",
+      background: "accent-surface",
+    },
+
+    '.perch-textarea[data-invalid="true"]': {
+      borderColor: "danger",
+    },
+
+    '.perch-textarea[data-readonly="true"]': {
+      borderColor: "border",
+      background: "surface-muted",
+    },
+
+    ".perch-textarea__input": {
+      /* Stated rather than inherited from a flex parent that happens to stretch it:
+         a textarea's own width is 20 columns, and that should not depend on the box
+         it was put in. */
+      width: "100%",
+      minHeight: "96px",
+      padding: "var(--perch-space-4) var(--perch-space-5)",
+      border: "none",
+      background: "none",
+      color: "content",
+      fontFamily: "sans",
+      fontSize: "control",
+      lineHeight: "1.5",
+      resize: "vertical",
+      outline: "none",
+      textWrap: "pretty",
+    },
+
+    ".perch-textarea__input::placeholder": {
+      color: "content-subtle",
+    },
+
+    '.perch-textarea[data-readonly="true"] .perch-textarea__input': {
+      color: "content-secondary",
+      resize: "none",
+    },
+
+    /* The browser sizes it during layout, so there is no measuring on keystroke
+       and nothing to redo when a value arrives from the server. `rows` stays the
+       floor, and where this is unsupported it is the whole answer. */
+    '.perch-textarea__input[data-autosize="true"]': {
+      fieldSizing: "content",
+      maxHeight: "60vh",
+    },
+
+    ".perch-textarea__footer": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      padding: "var(--perch-space-3) var(--perch-space-5)",
+      borderTop: "1px solid var(--perch-border)",
+    },
+
+    '.perch-textarea[data-state="draft"] .perch-textarea__footer': {
+      borderTopColor: "accent-border",
+    },
+
+    '.perch-textarea[data-invalid="true"] .perch-textarea__footer': {
+      borderTopColor: "danger-border",
+      background: "danger-surface",
+    },
+
+    ".perch-textarea__status": {
+      fontSize: "sm",
+      fontWeight: "600",
+      color: "accent",
+    },
+
+    ".perch-textarea__status--error": {
+      color: "danger-content",
+    },
+
+    ".perch-textarea__status--muted": {
+      fontWeight: "600",
+      letterSpacing: "0.06em",
+      textTransform: "uppercase",
+      color: "content-muted",
+    },
+
+    ".perch-textarea__count": {
+      marginLeft: "auto",
+      fontFamily: "mono",
+      fontSize: "sm",
+      fontVariantNumeric: "tabular-nums",
+      color: "content-muted",
+    },
+
+    ".perch-textarea__count--error": {
+      color: "danger-content",
+    },
+
+    /**
      * The switch field, and the choice group that wears buttons.
      *
      * Two surfaces rather than one. `.perch-toggle` is a Radix switch with a
