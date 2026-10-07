@@ -30,132 +30,11 @@
   box-sizing: border-box;
 }
 
-/* ---------------------------------------------------------------- field shell
-
-   The heart of the design, stated in its own header: help text and error share
-   one reserved line under the control, so a field is exactly as tall at rest, in
-   flight and in error. A server patch therefore never shifts what is below it —
-   which is the visual half of "the state is authoritative on the server". */
-
-.perch-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--perch-space-3);
-  min-width: 0;
-}
-
-.perch-field__label {
-  display: flex;
-  align-items: baseline;
-  gap: var(--perch-space-3);
-}
-
-/* At the far end of the label row. `margin-left: auto` rather than
-   `justify-content`, so the label and any tag stay where they were. */
-.perch-field__hint {
-  margin-left: auto;
-  display: flex;
-  /* Centred, not on the baseline: a drawn mark has no baseline worth aligning
-     to, and a flex item without one is laid out by its bottom edge — which put
-     the mark low against words it is supposed to sit beside. */
-  align-items: center;
-  gap: var(--perch-space-1);
-  font-size: var(--perch-text-sm);
-  color: var(--perch-content-muted);
-  text-align: right;
-}
-
-.perch-field__hint-icon {
-  font-size: var(--perch-text-base);
-}
-
-.perch-field__label-text {
-  font-size: var(--perch-text-sm);
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--perch-content-muted);
-}
-
-.perch-field__required {
-  color: var(--perch-danger);
-  font-weight: 600;
-}
-
-.perch-field__tag {
-  font-family: var(--perch-font-mono);
-  font-size: var(--perch-text-xs);
-  letter-spacing: 0.06em;
-  color: var(--perch-content-subtle);
-}
-
-/* Never `display: none` and never conditional height: the line is always here. */
-.perch-field__help {
-  font-size: var(--perch-text-base);
-  color: var(--perch-content-muted);
-  min-height: var(--perch-help-line-height);
-  text-wrap: pretty;
-}
-
-.perch-field__help[data-error="true"] {
-  color: var(--perch-danger-content);
-}
-
-/* ------------------------------------------------------------------- control */
-
-/* The ring every focusable thing in the panel gets, unless it says otherwise.
-
-   Twenty-six of them had none and fell back to the browser's own outline: a
-   blue ring in the middle of a panel that has a green one, on a tab, on a
-   calendar's arrow, on the button that adds an option. Written as a list, this
-   is a list somebody forgets — so it is a floor instead.
-
-   Matched on the prefix rather than under `.perch-shell`, because a dialog and
-   a popover are drawn against the body and are outside it. Wrapped in `:where`
-   so it carries no specificity at all: every rule that wants a border colour
-   with its ring still wins, and this only reaches what nothing else claimed. */
-
-/* ---------------------------------------------------------------------- icon */
-
-/* Every mark the named set draws, wherever a surface puts one.
-
-   Sized in `em` rather than given a size of its own: the surface has already
-   decided how big its words are, and a mark beside a word is the size of the
-   word. The stroke is in the mark's own box, so its weight stays the same
-   fraction of it whatever that size turns out to be.
-
-   `block` because an inline SVG sits on a text baseline, which leaves a gap
-   under it and, in a line box of its own, drew a mark three pixels high. Every
-   surface that carries one lays its children out with flex, so a block child
-   is centred by the row rather than starting one.
-
-   In `:where`, so it carries no specificity and every one of these is a floor
-   rather than a ceiling. A component that asks the named set for a drawing and
-   wants it at a size of its own — a calendar at 14px in a control's affix, a
-   copy at 13px in a cell — sets that size on its own class and wins, whichever
-   order the two rules happen to be written in. The focus ring below is a floor
-   for the same reason. */
+/* ------------------------------------------------------- small shared pieces */
 
 /* A select that can make the row it is missing, and the button that does it.
    Beside the control rather than inside it, so all three flavours of select get
    it without any of them knowing it is there. */
-/* The control's own line, where something may stand beside it.
-
-   Not around the whole field: a field is a label row, a control and a reserved
-   line for the error, so a button placed around all three could only align to
-   the bottom of the last one — which put it 22px under the control it belongs
-   to. Tops, because both start where the control starts. */
-.perch-field__row {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--perch-space-2);
-}
-
-.perch-field__row > :first-child {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 .perch-select-create {
   flex: none;
   /* The control's own height, so the two are the same object seen twice rather
@@ -742,40 +621,6 @@
   font-size: var(--perch-text-control);
 }
 
-/* `.inlineLabel()` puts the label beside the control, which is how a checkbox
-   reads: the label is the thing being agreed to, not a heading over it. The help
-   line below stays where it is, so nothing under the field moves. */
-.perch-field[data-inline="true"] {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  column-gap: var(--perch-space-4);
-}
-
-.perch-field[data-inline="true"] .perch-field__label {
-  order: 2;
-  margin: 0;
-}
-
-/* A label beside its control is the thing being agreed to — "On call this week"
-   — so it is set as running text. Uppercase micro-caps are for a heading over a
-   field, and beside a checkbox they read as shouting. */
-.perch-field[data-inline="true"] .perch-field__label-text {
-  font-size: var(--perch-text-control);
-  font-weight: 400;
-  letter-spacing: normal;
-  text-transform: none;
-  color: var(--perch-content);
-}
-
-.perch-field[data-inline="true"] .perch-field__help {
-  /* After the label, not before it. `order` defaults to 0, so a help line left
-     at 0 while the label asked for 2 was placed first — and, spanning both
-     columns, it opened a new row that pushed the label under the control. */
-  order: 3;
-  grid-column: 1 / -1;
-}
-
 .perch-popover {
   overflow: hidden;
   border: 1px solid var(--perch-border-strong);
@@ -1357,8 +1202,6 @@
   white-space: nowrap;
   border: 0;
 }
-
-/* ------------------------------------------------------------------ renderer */
 
 /* ------------------------------------------------------------------ prime */
 

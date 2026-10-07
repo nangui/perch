@@ -255,17 +255,32 @@ export default defineConfig({
      * The focus ring nothing else claimed, and the icon box.
      *
      * Both are `:where()`, so both carry no specificity at all: they are
-     * designed to lose to every rule that wants the same property, and the
-     * ring's own comment said so. That design only holds inside one cascade
-     * origin. Left in the hand-written sheet they would be unlayered, and
-     * unlayered beats every layer however specific — so the ring would have
-     * outranked the control's own focus style it was written to defer to.
+     * designed to lose to every rule that wants the same property. That design
+     * only holds inside one cascade origin. Left in the hand-written sheet they
+     * would be unlayered, and unlayered beats every layer however specific — so
+     * the ring would have outranked the control's own focus style it was
+     * written to defer to.
+     *
+     * Why each is what it is came over with them, late: it was written in the
+     * sheet they left and stayed there when they moved, so for several
+     * releases the rules were here and the reasons were in a file that no
+     * longer held them.
      */
+    /* A floor, not a list. Twenty-six focusable things had no ring of their own
+       and fell back to the browser's outline — a blue ring in a panel that has a
+       green one — and a list of them is a list somebody forgets. Matched on the
+       class prefix rather than under `.perch-shell`, because a dialog and a
+       popover are drawn against the body and are outside it. */
     ':where([class^="perch-"], [class*=" perch-"]):focus-visible': {
       outline: "none",
       boxShadow: "focus-ring",
     },
 
+    /* Sized in `em` because the surface has already decided how big its words
+       are, and a mark beside a word is the size of the word. `block` because an
+       inline SVG sits on a text baseline, which in a line box of its own drew a
+       mark three pixels high; every surface carrying one lays its children out
+       with flex, so a block child is centred rather than starting a line. */
     ":where(.perch-icon)": {
       display: "block",
       flex: "none",
@@ -1845,6 +1860,140 @@ export default defineConfig({
 
     ':where(:root), :where([data-perch-theme="light"])': ramp(0),
     ':where([data-perch-theme="dark"])': ramp(1),
+
+    /**
+     * The shell every field lives in.
+     *
+     * Not a field itself — a label row, a control and a line held under it for
+     * whatever the server says about the value. That reserved line is the
+     * design, and it is why a field is the same height at rest, in flight and
+     * in error: a patch from the server never moves what is below it.
+     *
+     * One rule about it is written elsewhere and stays there: the view page
+     * closes the reserved line where it holds nothing, because a page that only
+     * reads has no errors coming. It is rooted in `.perch-view`, carries more
+     * than anything here, and keeps winning.
+     */
+    /* ---------------------------------------------------------------- field shell
+
+       The heart of the design, stated in its own header: help text and error share
+       one reserved line under the control, so a field is exactly as tall at rest, in
+       flight and in error. A server patch therefore never shifts what is below it —
+       which is the visual half of "the state is authoritative on the server". */
+    ".perch-field": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "3",
+      minWidth: "0",
+    },
+
+    ".perch-field__label": {
+      display: "flex",
+      alignItems: "baseline",
+      gap: "3",
+    },
+
+    /* At the far end of the label row. `margin-left: auto` rather than
+       `justify-content`, so the label and any tag stay where they were. */
+    ".perch-field__hint": {
+      marginLeft: "auto",
+      display: "flex",
+      /* Centred, not on the baseline: a drawn mark has no baseline worth aligning
+         to, and a flex item without one is laid out by its bottom edge — which put
+         the mark low against words it is supposed to sit beside. */
+      alignItems: "center",
+      gap: "1",
+      fontSize: "sm",
+      color: "content-muted",
+      textAlign: "right",
+    },
+
+    ".perch-field__hint-icon": {
+      fontSize: "base",
+    },
+
+    ".perch-field__label-text": {
+      fontSize: "sm",
+      fontWeight: "600",
+      letterSpacing: "0.07em",
+      textTransform: "uppercase",
+      color: "content-muted",
+    },
+
+    ".perch-field__required": {
+      color: "danger",
+      fontWeight: "600",
+    },
+
+    ".perch-field__tag": {
+      fontFamily: "mono",
+      fontSize: "xs",
+      letterSpacing: "0.06em",
+      color: "content-subtle",
+    },
+
+    /* Never `display: none` and never conditional height: the line is always here. */
+    ".perch-field__help": {
+      fontSize: "base",
+      color: "content-muted",
+      minHeight: "help-line",
+      textWrap: "pretty",
+    },
+
+    '.perch-field__help[data-error="true"]': {
+      color: "danger-content",
+    },
+
+    /* The control's own line, where something may stand beside it.
+
+       Not around the whole field: a field is a label row, a control and a reserved
+       line for the error, so a button placed around all three could only align to
+       the bottom of the last one — which put it 22px under the control it belongs
+       to. Tops, because both start where the control starts. */
+    ".perch-field__row": {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "2",
+    },
+
+    ".perch-field__row > :first-child": {
+      flex: "1 1 auto",
+      minWidth: "0",
+    },
+
+    /* `.inlineLabel()` puts the label beside the control, which is how a checkbox
+       reads: the label is the thing being agreed to, not a heading over it. The help
+       line below stays where it is, so nothing under the field moves. */
+    '.perch-field[data-inline="true"]': {
+      display: "grid",
+      gridTemplateColumns: "auto 1fr",
+      alignItems: "center",
+      columnGap: "4",
+    },
+
+    '.perch-field[data-inline="true"] .perch-field__label': {
+      order: "2",
+      margin: "0",
+    },
+
+    /* A label beside its control is the thing being agreed to — "On call this week"
+       — so it is set as running text. Uppercase micro-caps are for a heading over a
+       field, and beside a checkbox they read as shouting. */
+    '.perch-field[data-inline="true"] .perch-field__label-text': {
+      fontSize: "control",
+      fontWeight: "400",
+      letterSpacing: "normal",
+      textTransform: "none",
+      color: "content",
+    },
+
+    '.perch-field[data-inline="true"] .perch-field__help': {
+      /* After the label, not before it. `order` defaults to 0, so a help line left
+         at 0 while the label asked for 2 was placed first — and, spanning both
+         columns, it opened a new row that pushed the label under the control. */
+      order: "3",
+      gridColumn: "1 / -1",
+    },
 
     /**
      * The third surface somebody writes into.

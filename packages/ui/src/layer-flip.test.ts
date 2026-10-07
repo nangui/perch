@@ -160,6 +160,22 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `<textarea class="perch-textarea__input"></textarea></div>`,
   },
   {
+    what: "a field on a form page",
+    html:
+      `<div class="perch-field"><div class="perch-field__label-row">` +
+      `<label class="perch-field__label"></label></div>` +
+      `<div class="perch-field__row"><input class="perch-control" /></div>` +
+      `<p class="perch-field__help" data-error="true"></p></div>`,
+  },
+  {
+    // The view page closes the reserved line where it holds nothing, which is
+    // the one rule about a field written outside the surface.
+    what: "a field on a view page",
+    html:
+      `<div class="perch-view"><div class="perch-field">` +
+      `<p class="perch-field__help"></p></div></div>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +
