@@ -213,6 +213,14 @@ export default defineConfig({
        * and a half rem from the first.
        */
       narrow: "@media (max-width: 40rem)",
+      /**
+       * Above where the panel folds, and a hundredth of a rem above it.
+       *
+       * The pair is deliberate: a filter bar lays its controls out in a row
+       * only where there is room, and the rule that stacks everything below
+       * `narrow` must not be fighting it at the same width.
+       */
+      wide: "@media (min-width: 40.0625rem)",
     },
   },
 
@@ -338,6 +346,265 @@ export default defineConfig({
      * an inline style from the count a declaration asked for. The fallback is
      * the whole point of it: a layout that named no count is one column.
      */
+
+    /**
+     * The list page: its header, the filter bar, the bulk strip, the table's
+     * card and the pager's size control.
+     *
+     * Three rules are not here on purpose. The ones that give a native
+     * `select` and a bare `input` the frame the rest of the panel has are
+     * rooted in this surface, in the page-size control and in a table cell —
+     * one rule each, three selectors wide. They move whole when the table does
+     * rather than being split three ways and duplicated across both sheets for
+     * one release.
+     */
+    ".perch-list": {
+      flex: "1",
+      minWidth: "0",
+      padding: "var(--perch-space-8) var(--perch-space-9) var(--perch-space-10)",
+    },
+
+    ".perch-list__header": {
+      display: "flex",
+      gap: "5",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      marginBottom: "6",
+    },
+
+    ".perch-list__actions": { display: "flex", gap: "4" },
+
+    ".perch-list__title": {
+      fontSize: "2xl",
+      fontWeight: "600",
+      letterSpacing: "-0.01em",
+      color: "content",
+    },
+
+    ".perch-list__total": { marginTop: "5", fontSize: "base", color: "content-muted" },
+
+    /* The menu sits beside whatever the header already offered. */
+    ".perch-list__tools": {
+      display: "flex",
+      alignItems: "center",
+      gap: "3",
+      marginLeft: "auto",
+    },
+
+    /**
+     * The search sits above the table, not in its header: it acts on the whole
+     * result set rather than on a column.
+     *
+     * A grid rather than a wrapping row, and not as a matter of taste. In a
+     * wrapping row every item on a line takes that line's height, so one tall
+     * filter — a schema filter is a whole fieldset — pushed every short one
+     * beside it to the bottom of a 250px line. The bar took a third of the page
+     * to hold eight boxes, with the short ones adrift in it. Each filter gets a
+     * cell of its own and sits at the top of it, so a tall one grows downward
+     * without moving anything else.
+     */
+    ".perch-list__search": {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(11rem, 1fr))",
+      alignItems: "start",
+      gap: "5",
+      padding: "6",
+      marginBottom: "6",
+      background: "surface",
+      borderRadius: "lg",
+      // A panel, not a card — it holds the controls for everything below it.
+      boxShadow: "panel",
+    },
+
+    /* Apply belongs to the whole bar, not to the filter it happens to sit
+       beside. Its own row at the end, pushed to the right, where a form's
+       confirm button is looked for. */
+    '.perch-list__search > button[type="submit"]': {
+      gridColumn: "1 / -1",
+      justifySelf: "end",
+    },
+
+    /* A field is taller than a button everywhere else in the panel, because a
+       button is not a field. Side by side in one form they have to agree, and
+       the button is the one that cannot grow: its size is a pointer target. */
+    ".perch-list__search .perch-control": { height: "control-height-sm" },
+
+    /**
+     * A filter carrying a schema is several controls, so it is given the room
+     * of two — and the whole width where there is only room for one.
+     *
+     * Its controls side by side rather than stacked: a schema renders in one
+     * column by default, which is right in a form and wrong in a filter bar.
+     * Two boxes one above the other made the fieldset 250px tall and every row
+     * of the bar as tall as it.
+     *
+     * The two widths below are a hundredth of a rem apart and therefore never
+     * both apply, which is what keeps the row layout and the narrow stacking
+     * from fighting. That used to rest on which was written later in one file
+     * as well; it does not any more, and it never needed to.
+     */
+    ".perch-list__form": {
+      gridColumn: "span 2",
+      // A fieldset's own padding is a browser default meant for a page-sized
+      // form, and inside a filter bar it left a hand's width of nothing under
+      // the controls — which made the whole row of the grid as tall as the gap.
+      margin: "0",
+      padding: "0 var(--perch-space-4) var(--perch-space-4)",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "md",
+      _narrow: { gridColumn: "1 / -1" },
+    },
+
+    ".perch-list__form .perch-layout__body": {
+      _wide: {
+        gridTemplateColumns: "repeat(auto-fit, minmax(8rem, 1fr))",
+        gap: "4",
+      },
+    },
+
+    /* Between the filters and the rows, where the reader's eye already is after
+       ticking something. Not a floating bar: it must not cover a row. */
+    ".perch-list__bulk": {
+      display: "flex",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: "5",
+      marginBottom: "6",
+      padding: "var(--perch-space-5) var(--perch-space-6)",
+      background: "accent-surface",
+      border: "1px solid var(--perch-accent-border)",
+      borderRadius: "lg",
+    },
+
+    ".perch-list__bulk-count": {
+      margin: "0",
+      marginRight: "auto",
+      fontSize: "control",
+      fontWeight: "500",
+      color: "content",
+      fontVariantNumeric: "tabular-nums",
+    },
+
+    ".perch-list__bulk-group": { position: "relative" },
+
+    ".perch-list__bulk-group > summary": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "2",
+      cursor: "pointer",
+      listStyle: "none",
+    },
+
+    ".perch-list__bulk-group > summary::-webkit-details-marker": { display: "none" },
+
+    ".perch-list__bulk-menu": {
+      position: "absolute",
+      zIndex: "20",
+      bottom: "calc(100% + var(--perch-space-2))",
+      // Anchored to its right edge, because the bar puts its buttons on the
+      // right and a menu opening rightward from one of them runs off the
+      // window — measured at 1280 wide, 25px past it.
+      right: "0",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+      minWidth: "10rem",
+      padding: "2",
+      gap: "1",
+      background: "surface",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "var(--perch-space-2)",
+      boxShadow: "popover",
+    },
+
+    /**
+     * Its own card rather than a lid on the table's. Seaming the two meant a
+     * rule that only holds while nothing comes between them — and something
+     * does: the failure line is rendered right there, between the filters and
+     * the rows, whenever a round trip fails.
+     */
+    ".perch-list__table": {
+      overflowX: "auto",
+      background: "surface",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "lg",
+    },
+
+    ".perch-list__failure": { marginBottom: "5", color: "danger-content" },
+
+    /* Each control under its own name. A row of boxes all reading "Any" is
+       three identical controls to anybody reading the page by eye. */
+    ".perch-list__narrow": { display: "flex", flexDirection: "column", gap: "1" },
+
+    /* The same treatment a field's label gets, because it is the same thing:
+       the name of the control under it. */
+    ".perch-list__narrow-name": {
+      color: "content-muted",
+      fontSize: "sm",
+      fontWeight: "600",
+      letterSpacing: "0.07em",
+      textTransform: "uppercase",
+    },
+
+    /**
+     * Two dates under one name, laid along the row rather than stacked, so the
+     * pair reads as one control and the bar keeps its height.
+     *
+     * Two cells of the bar, for the reason the schema filter takes two: the bar
+     * hands every filter one cell sized for one control, and this holds two
+     * with a dash between. Sharing one cell left each box at about 79px, under
+     * what a native date control needs — so the browser clipped it, taking the
+     * calendar button off the end and leaving no way to open the picker by
+     * clicking.
+     *
+     * Room to sit at their own width, not to be stretched across. The trailing
+     * `1fr` is what keeps them their own size: with a track to take the free
+     * space, the three that hold something size to what they hold.
+     */
+    ".perch-list__range": {
+      gridColumn: "span 2",
+      display: "grid",
+      gridTemplateAreas: '"name name name name" "from dash to ."',
+      gridTemplateColumns: "auto auto auto 1fr",
+      alignItems: "center",
+      gap: "var(--perch-space-1) var(--perch-space-2)",
+      minWidth: "0",
+      padding: "0",
+      border: "0",
+      _narrow: { gridColumn: "1 / -1" },
+    },
+
+    ".perch-list__range > .perch-list__narrow-name": { gridArea: "name" },
+
+    ".perch-list__range-end": { display: "block", minWidth: "0" },
+
+    ".perch-list__range-end:first-of-type": { gridArea: "from" },
+
+    ".perch-list__range-end:last-of-type": { gridArea: "to" },
+
+    ".perch-list__range-end > .perch-control": { width: "100%" },
+
+    ".perch-list__range-to": { gridArea: "dash", color: "content-muted" },
+
+    /* The pager and the page size on one line: they are the same question asked
+       two ways, and a reader looking for one finds the other. */
+    ".perch-list__foot": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "4",
+      flexWrap: "wrap",
+    },
+
+    ".perch-list__size": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "2",
+      marginLeft: "auto",
+      fontSize: "sm",
+      color: "content-muted",
+    },
+
     ".perch-layout--fieldset": {
       minWidth: "0",
       margin: "0",
@@ -1662,6 +1929,8 @@ export default defineConfig({
           "focus-ring": { value: "var(--perch-focus-ring)" },
           dragging: { value: "var(--perch-shadow-dragging)" },
           overlay: { value: "var(--perch-shadow-overlay)" },
+          panel: { value: "var(--perch-shadow-panel)" },
+          popover: { value: "var(--perch-shadow-popover)" },
           raised: { value: "var(--perch-shadow-raised)" },
         },
         spacing: {
