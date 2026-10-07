@@ -210,6 +210,28 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `</td></tr></tbody></table></div>`,
   },
   {
+    // The control tints this on focus, from a rule of its own. Both have to
+    // sit in the same origin for three classes to beat one.
+    what: "a select's chevron inside a control",
+    html: `<div class="perch-control"><span class="perch-select__chevron"></span></div>`,
+  },
+  {
+    what: "an option row in a list",
+    html:
+      `<li class="perch-option" data-highlighted aria-selected="true">` +
+      `<span class="perch-option__meta"></span>` +
+      `<span class="perch-option__check"></span></li>`,
+  },
+  {
+    // Second in the row, which is where the shell puts it: the control is first
+    // and takes `> :first-child`. Written the other way round, this reported a
+    // flip that only its own markup had.
+    what: "the button that makes a missing row",
+    html:
+      `<div class="perch-field__row"><div class="perch-control"></div>` +
+      `<button class="perch-select-create"></button></div>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +
@@ -220,9 +242,14 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
 /**
  * The states a selector can ask for that no static DOM is in. A pair asking for
  * two different ones is still compared: an element can be hovered and focused.
+ *
+ * Longest first, and that is the whole correctness of it. Written with `focus`
+ * ahead of `focus-within`, the alternation took `:focus` and left `-within`
+ * glued to the class before it, so every selector carrying either long form
+ * matched nothing and no focus state was ever compared.
  */
 const STATES =
-  /:(hover|focus|focus-visible|focus-within|active|visited|target|checked|indeterminate|placeholder-shown|user-invalid)\b/g;
+  /:(focus-visible|focus-within|placeholder-shown|user-invalid|indeterminate|hover|focus|active|visited|target|checked)\b/g;
 
 const stateless = (selector: string): string => selector.replace(STATES, "");
 

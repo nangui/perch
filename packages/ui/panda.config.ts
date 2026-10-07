@@ -1862,6 +1862,117 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * A select: the option rows, the chevron, and the button that adds a row.
+     *
+     * The rows are drawn by three components — the plain select, the multi
+     * select and the searchable one — which is why they were left behind when
+     * the comboboxes moved and why they come now, with the select they belong
+     * to rather than with one of its callers.
+     *
+     * The chevron is the reason this could not wait. The control tints it on
+     * focus from a rule of its own, and that rule went into a layer with the
+     * control while this one stayed out: one class beat three, and the chevron
+     * stopped turning. Both sit in the same origin now.
+     */
+    /* ------------------------------------------------------- small shared pieces */
+    /* A select that can make the row it is missing, and the button that does it.
+       Beside the control rather than inside it, so all three flavours of select get
+       it without any of them knowing it is there. */
+    ".perch-select-create": {
+      flex: "none",
+      /* The control's own height, so the two are the same object seen twice rather
+         than a button that happens to be nearby. */
+      height: "control-height",
+      width: "control-height",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "md",
+      background: "surface-muted",
+      color: "content-muted",
+      fontSize: "lg",
+      lineHeight: "1",
+      cursor: "pointer",
+    },
+
+    ".perch-select-create:hover": {
+      color: "content",
+      borderColor: "accent-border",
+    },
+
+    ".perch-select-create:focus-visible": {
+      outline: "2px solid var(--perch-accent)",
+      outlineOffset: "2px",
+    },
+
+    /* -------------------------------------------------------------------- select */
+    ".perch-select__chevron": {
+      flex: "none",
+      marginLeft: "auto",
+      /* Sized to the one the native selects are given rather than to the smallest
+         step in the scale. Two chevrons of two weights on a screen is what makes a
+         styled control and a browser control look like two products. */
+      fontSize: "base",
+      lineHeight: "1",
+      color: "content-muted",
+    },
+
+    ".perch-option": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      height: "var(--perch-control-height-inner)",
+      padding: "0 var(--perch-space-5)",
+      borderLeft: "2px solid transparent",
+      color: "content",
+      fontSize: "control",
+      cursor: "pointer",
+      outline: "none",
+      userSelect: "none",
+    },
+
+    ".perch-option[data-highlighted], .perch-option:hover": {
+      background: "surface-muted",
+    },
+
+    /* A combobox names its active option with `aria-activedescendant` rather than
+       focusing it, so the highlight has to be drawn: without this the keyboard
+       moves through a list that never looks like it moved. */
+    '.perch-option[data-active="true"]': {
+      background: "surface-muted",
+    },
+
+    '.perch-option[aria-selected="true"]': {
+      borderLeftColor: "accent",
+      background: "accent-surface",
+      fontWeight: "600",
+    },
+
+    '.perch-option[data-state="checked"]': {
+      borderLeftColor: "accent",
+      background: "accent-surface",
+      fontWeight: "600",
+    },
+
+    ".perch-option[data-disabled]": {
+      color: "content-muted",
+      background: "surface-muted",
+      cursor: "not-allowed",
+    },
+
+    ".perch-option__meta": {
+      marginLeft: "auto",
+      fontFamily: "mono",
+      fontSize: "sm",
+      color: "content-muted",
+    },
+
+    ".perch-option__check": {
+      width: "12px",
+      flex: "none",
+      color: "accent",
+      fontSize: "base",
+    },
+
+    /**
      * The date grid's clothes. Ark draws the grid itself.
      *
      * So nothing here is behaviour: no roving focus, no arrow keys, no month
