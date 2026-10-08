@@ -215,4 +215,51 @@ describe("2.5.8 Target Size — 24 × 24 CSS px minimum", () => {
     // A width is only a preference to a flex item.
     expect(blockFor(".perch-button--icon")).toMatch(/flex:\s*none;/);
   });
+
+  /**
+   * 2.5.8 has a second form and the dot look is the one surface that needs it.
+   *
+   * A radio's target is the dot and the label its `for` reaches, 18 px tall
+   * because that is the dot: a 24 px square does not fit in it, and the size
+   * form of the rule cannot be met without redrawing the control. The spacing
+   * form can: an undersized target passes where a 24 px circle centred on it
+   * meets neither another target nor another's circle.
+   *
+   * Stacked, that comes to the dot plus the gap between options, and it is 24
+   * exactly — the two circles touch without overlapping, which the rule allows
+   * and which leaves nothing in hand. A gap narrowed by one step, or a dot
+   * drawn two pixels smaller, takes the panel out of conformance with every
+   * other guard here still green. So the arithmetic is asserted rather than
+   * the box, and nothing about how it looks is decided here.
+   */
+  it("spaces the dots far enough apart to stand in for their size", () => {
+    const dot = declaredBox([".perch-radio__dot"]);
+    expect(dot.height, "the dot declares no height to measure").not.toBeNull();
+
+    // The row is as tall as the taller of the dot and the label's line box, and
+    // the dot is the taller at every size the panel sets. Reading the dot is
+    // therefore the pessimistic half: a label that grew would push the rows
+    // further apart, never closer.
+    // The gap read from the rule rather than from a token named here. Written
+    // the other way, narrowing the gap by one step left this green: the test
+    // was asserting arithmetic on a number it had chosen itself.
+    const declared = /(?:^|;)\s*gap:\s*([^;]+)/.exec(blockFor(".perch-radio"));
+    expect(declared?.[1], "the stacked dots declare no gap").toBeDefined();
+    const gap = resolve(declared![1]!.trim());
+    expect(gap, `the gap is not a px length: ${String(declared?.[1])}`).not.toBeNull();
+
+    const pitch = dot.height! + gap!;
+
+    expect(
+      pitch,
+      `a dot of ${String(dot.height)} px and a gap of ${String(gap)} px put ` +
+        `${String(pitch)} px between the centres of two choices, and 2.5.8 asks ` +
+        "for 24 where the target itself is smaller than that",
+    ).toBeGreaterThanOrEqual(MIN_TARGET);
+
+    // And the size form really is out of reach, so the exception is the only
+    // thing holding this up: if the dot ever reaches 24 this test is the one to
+    // delete, not to keep as a weaker duplicate.
+    expect(dot.height).toBeLessThan(MIN_TARGET);
+  });
 });
