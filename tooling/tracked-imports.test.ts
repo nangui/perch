@@ -34,7 +34,10 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const tracked = (): readonly string[] =>
   execFileSync("git", ["ls-files", "-z"], { cwd: ROOT, encoding: "utf8" })
     .split("\0")
-    .filter((path) => path !== "");
+    .filter((path) => path !== "")
+    // A path git carries whose file is gone: somebody is mid-deletion, and
+    // reading it throws rather than reporting anything about an import.
+    .filter((path) => existsSync(join(ROOT, path)));
 
 /** Which of these paths git refuses to carry — those answer to the other rule. */
 function ignoredAmong(paths: readonly string[]): ReadonlySet<string> {

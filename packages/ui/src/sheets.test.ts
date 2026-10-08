@@ -69,6 +69,14 @@ describe("the sheet still written by hand", () => {
     ).toEqual([]);
   });
 
+  it("pulls in the generated one, which is the only thing that serves it", () => {
+    // The panel links this sheet and nothing else; the generated half arrives
+    // through this line. It has been deleted twice by a tool cutting a moved
+    // rule out, taking the file header it sat under with it, and nothing in
+    // the suite failed either time — a panel with no styles at all passed.
+    expect(read("styles.css")).toContain('@import "./panda.css";');
+  });
+
   it("was comparing something, so it cannot pass by reading nothing", () => {
     // Both halves have to be non-empty. A path that stopped resolving would
     // otherwise make the rule above vacuous on the day it matters most.

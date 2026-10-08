@@ -26,9 +26,15 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 /** Every file git carries, which is where an import may be written. */
 function tracked(): readonly string[] {
-  return execFileSync("git", ["ls-files", "-z"], { cwd: ROOT, encoding: "utf8" })
-    .split("\0")
-    .filter((path) => /\.tsx?$/.test(path));
+  return (
+    execFileSync("git", ["ls-files", "-z"], { cwd: ROOT, encoding: "utf8" })
+      .split("\0")
+      .filter((path) => /\.tsx?$/.test(path))
+      // A path git still carries whose file is gone: somebody is mid-deletion.
+      // Reading it throws and takes this rule down with it, which says nothing
+      // about imports.
+      .filter((path) => existsSync(join(ROOT, path)))
+  );
 }
 
 /**

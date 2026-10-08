@@ -1831,6 +1831,413 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * Ten small surfaces: the column chooser, the read-only pairs, a record's
+     * own pages, the tabs, what a page says when it holds nothing, the date
+     * segments, the attach list, the notices, a span and the topbar.
+     *
+     * Two overrides about other surfaces travel with them, both now safe
+     * because both targets are already layered: the date field narrows the
+     * control it holds, and the relation manager closes the seam under its tab
+     * strip — the one rule held back from the last lot for exactly this.
+     */
+    /**
+     * Atlas — component styles.
+     *
+     * Shipped precompiled and served as static assets by the PanelModule: the user
+     * of the framework configures no bundler and no CSS pipeline.
+     *
+     * Not one raw colour appears below. Every value is a token, and the tokens
+     * are declared in `panda.config.ts` and written out by the build — which is
+     * what makes the panel re-themable by redefining the custom properties it
+     * publishes.
+     */
+    /* Written by `panda cssgen` from `panda.config.ts`, which is where the design
+       now lives: every colour, size, radius and shadow, once, with its dark value
+       beside its light one. Imported first so the cascade layers it declares are
+       established before any rule here, and because the rules here sit in no layer
+       at all — unlayered beats every layer, so while both ways of writing this
+       exist, a leftover rule below would quietly outrank a recipe. */
+    /* The rows a record could be joined to, offered one per line. Buttons rather
+       than a list with a control beside each: the whole line is the target, which
+       is what people aim at. */
+    ".perch-attach": {
+      listStyle: "none",
+      margin: "0",
+      padding: "0",
+      display: "flex",
+      flexDirection: "column",
+      gap: "1",
+      maxHeight: "60vh",
+      overflowY: "auto",
+    },
+
+    ".perch-attach__row": {
+      width: "100%",
+      textAlign: "left",
+      padding: "2",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "md",
+      background: "surface",
+      color: "content",
+      cursor: "pointer",
+    },
+
+    ".perch-attach__row:hover": {
+      borderColor: "accent-border",
+      background: "surface-muted",
+    },
+
+    ".perch-attach__row:focus-visible": {
+      outline: "2px solid var(--perch-accent)",
+      outlineOffset: "2px",
+    },
+
+    /* Which columns a reader keeps. A `details`, so it opens and closes and is
+       announced without a line of JavaScript. */
+    ".perch-columns": {
+      position: "relative",
+    },
+
+    ".perch-columns__button": {
+      display: "inline-flex",
+      alignItems: "center",
+      height: "control-height",
+      padding: "0 var(--perch-space-4)",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "md",
+      background: "surface",
+      color: "content",
+      fontSize: "sm",
+      cursor: "pointer",
+      listStyle: "none",
+    },
+
+    ".perch-columns__button::-webkit-details-marker": {
+      display: "none",
+    },
+
+    ".perch-columns__button:hover": {
+      borderColor: "accent-border",
+    },
+
+    /* Over the table rather than pushing it down: a menu that moved the rows would
+       move the one the reader was reading. */
+    ".perch-columns__panel": {
+      position: "absolute",
+      zIndex: "20",
+      right: "0",
+      marginTop: "2",
+      minWidth: "12rem",
+      padding: "3",
+      display: "flex",
+      flexDirection: "column",
+      gap: "2",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "md",
+      background: "surface",
+      /* The panel floats over the table, so it takes the shadow every other
+         floating thing takes. It used to read a token called `--perch-shadow-2`
+         that is declared nowhere, so it was always the fallback beside it — the
+         one shadow in this file no theme could change, carrying the one colour
+         this file says it never names. */
+      boxShadow: "popover",
+    },
+
+    ".perch-columns__row": {
+      display: "flex",
+      alignItems: "center",
+      gap: "2",
+      fontSize: "sm",
+      cursor: "pointer",
+    },
+
+    /* A reading, in the shape of a control: it sits in a column of fields and the
+       eye reads that column as a column. Not a control, so nothing here suggests
+       there is something to do to it. */
+    /* ------------------------------------------------------------------- tabs */
+    /* The relation manager's own rule about this, held back one lot while the
+       tabs were still hand-written. Two classes against one, both layered. */
+    ".perch-relations__head .perch-tabs__list": {
+      borderBottom: "0",
+    },
+
+    ".perch-tabs__list": {
+      display: "flex",
+      gap: "1",
+      borderBottom: "1px solid var(--perch-border)",
+    },
+
+    ".perch-tabs__tab": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "2",
+      /* WCAG's pointer target, the floor every other control here keeps. */
+      minHeight: "24px",
+      padding: "var(--perch-space-3) var(--perch-space-4)",
+      border: "0",
+      borderBottom: "2px solid transparent",
+      background: "none",
+      color: "content-secondary",
+      fontSize: "control",
+      cursor: "pointer",
+    },
+
+    ".perch-tabs__tab:hover": {
+      color: "content",
+    },
+
+    /*
+     * Underlined and darker, not colour alone: which panel you are on has to be
+     * legible to somebody who cannot tell the two colours apart.
+     */
+    '.perch-tabs__tab[aria-selected="true"]': {
+      color: "content",
+      borderBottomColor: "accent",
+      fontWeight: "600",
+    },
+
+    /* A request that failed, announced rather than swallowed. */
+    ".perch-notice": {
+      display: "flex",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: "4",
+      marginBottom: "5",
+      padding: "var(--perch-space-4) var(--perch-space-5)",
+      border: "1px solid var(--perch-danger-border)",
+      borderRadius: "md",
+      background: "danger-surface",
+      color: "danger-content",
+      fontSize: "base",
+      textWrap: "pretty",
+    },
+
+    /* The base reads as a problem, which is what the only earlier caller was. A
+       tone says otherwise; `--danger` is what the base already looks like. */
+    ".perch-notice--success": {
+      borderColor: "accent-border",
+      background: "success-surface",
+      color: "success-content",
+    },
+
+    ".perch-notice--warning": {
+      borderColor: "pending-border",
+      background: "warning-surface",
+      color: "warning-content",
+    },
+
+    ".perch-notice--info": {
+      borderColor: "border",
+      background: "surface-muted",
+      color: "content-secondary",
+    },
+
+    ".perch-empty": {
+      display: "flex",
+      flex: "1",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "4",
+      padding: "var(--perch-space-8) var(--perch-space-7)",
+      textAlign: "center",
+    },
+
+    ".perch-empty__glyph": {
+      width: "40px",
+      height: "40px",
+      border: "1px dashed var(--perch-border-strong)",
+      borderRadius: "lg",
+      background:
+        "repeating-linear-gradient( 45deg, var(--perch-surface-muted), var(--perch-surface-muted) 5px, var(--perch-surface-sunken) 5px, var(--perch-surface-sunken) 10px )",
+    },
+
+    ".perch-empty__glyph--wide": {
+      width: "100%",
+      height: "56px",
+    },
+
+    ".perch-empty__title": {
+      fontSize: "control",
+      fontWeight: "600",
+      color: "content",
+    },
+
+    ".perch-empty__body": {
+      maxWidth: "280px",
+      fontSize: "base",
+      color: "content-muted",
+      textWrap: "pretty",
+    },
+
+    /* ----------------------------------------------------------- date and time */
+    /* The box is the width of what it holds. Stretched across a column it read as
+       an empty field with some text loose at one end. */
+    ".perch-datetime": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      flexWrap: "wrap",
+    },
+
+    ".perch-datetime > .perch-control": {
+      flex: "0 0 auto",
+      width: "auto",
+    },
+
+    ".perch-datetime__segment": {
+      flex: "none",
+      fontFamily: "mono",
+      fontSize: "control",
+      color: "content",
+      whiteSpace: "nowrap",
+    },
+
+    /* A note beside the field, in the voice the help line uses: it says which
+       clock you are reading, and it is not something to type into. */
+    ".perch-datetime__zone": {
+      flex: "none",
+      fontSize: "sm",
+      color: "content-subtle",
+    },
+
+    ".perch-datetime__divider": {
+      flex: "none",
+      width: "1px",
+      height: "16px",
+      background: "border",
+    },
+
+    /* A node that was told how much of the row to take.
+       `1 / -1` for `full` rather than a count, because how many columns there are
+       is the grid's answer and it changes on a narrow screen — a span of three on a
+       layout that collapsed to one is a field claiming columns nobody drew. The
+       wrapper is a grid item and the field inside fills it. */
+    ".perch-span": {
+      gridColumn: "span var(--perch-span, 1)",
+      minWidth: "0",
+    },
+
+    '.perch-span[data-span="full"]': {
+      gridColumn: "1 / -1",
+    },
+
+    /**
+     * The pairs in a Json column, shown.
+     *
+     * A table because that is what two named columns of data are, and because the
+     * headings have to be real ones: the form beside it hides its headings, each
+     * of its cells being a box that carries its own name, and a read page has no
+     * such thing to lean on.
+     */
+    ".perch-pairs": {
+      borderCollapse: "collapse",
+      /* Not the full width: a settings column of short pairs stretched across a
+         page puts a hand's width of nothing between a key and its value. */
+      width: "auto",
+      maxWidth: "100%",
+      textAlign: "left",
+    },
+
+    ".perch-pairs th, .perch-pairs td": {
+      padding: "var(--perch-space-1) var(--perch-space-3) var(--perch-space-1) 0",
+      verticalAlign: "top",
+      fontWeight: "normal",
+    },
+
+    ".perch-pairs thead th": {
+      color: "content-subtle",
+      fontSize: "sm",
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+    },
+
+    ".perch-pairs tbody th": {
+      color: "content-subtle",
+      /* Long keys wrap rather than pushing the values off the page. */
+      wordBreak: "break-word",
+    },
+
+    ".perch-pairs tbody td": {
+      color: "content",
+      wordBreak: "break-word",
+    },
+
+    /**
+     * The bar across the top, and who is signed in.
+     *
+     * Drawn only when something is in it — the component decides that, not this
+     * file, because an empty bar that is merely invisible still takes its space.
+     */
+    ".perch-topbar": {
+      display: "flex",
+      alignItems: "center",
+      gap: "3",
+      padding: "var(--perch-space-2) var(--perch-space-5)",
+      borderBottom: "1px solid var(--perch-border)",
+      background: "surface",
+    },
+
+    ".perch-topbar__end": {
+      display: "flex",
+      alignItems: "center",
+      gap: "3",
+      /* Pushed to the far end, which is where a reader looks for their own name. */
+      marginLeft: "auto",
+    },
+
+    /**
+     * The pages one record has.
+     *
+     * A row of links under the heading, above whatever the page is showing. Not
+     * tabs: these are addresses, and a control that looks like it holds state and
+     * does not is worse than a plain link.
+     */
+    ".perch-record-pages": {
+      marginBottom: "5",
+      borderBottom: "1px solid var(--perch-border)",
+    },
+
+    ".perch-record-pages__list": {
+      display: "flex",
+      gap: "1",
+      margin: "0",
+      padding: "0",
+      /* Narrow windows scroll the strip rather than wrapping it: a second row of
+         links under the first reads as a second kind of thing. */
+      overflowX: "auto",
+      listStyle: "none",
+    },
+
+    ".perch-record-pages__link": {
+      display: "flex",
+      alignItems: "center",
+      gap: "2",
+      padding: "var(--perch-space-2) var(--perch-space-3)",
+      /* On the border the strip draws, so the current page joins the page below
+         it rather than sitting on a line that crosses under it. */
+      borderBottom: "2px solid transparent",
+      marginBottom: "-1px",
+      color: "content-subtle",
+      whiteSpace: "nowrap",
+      textDecoration: "none",
+    },
+
+    ".perch-record-pages__link:hover": {
+      color: "content",
+    },
+
+    '.perch-record-pages__link[aria-current="page"]': {
+      borderBottomColor: "accent",
+      color: "content",
+      fontWeight: "500",
+    },
+
+    ".perch-record-pages__icon": {
+      flex: "none",
+    },
+
+    /**
      * The relation manager, the key-value field, the uploader and the tags.
      *
      * The relation manager writes two rules about other surfaces and only one
