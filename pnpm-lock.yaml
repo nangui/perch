@@ -131,6 +131,52 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  examples/hr:
+    dependencies:
+      '@nestjs/common':
+        specifier: ^11.2.6
+        version: 11.2.6(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.2.6
+        version: 11.2.6(@nestjs/common@11.2.6(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.2.6)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.2.6
+        version: 11.2.6(@nestjs/common@11.2.6(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.2.6)
+      '@perchjs/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@perchjs/nest':
+        specifier: workspace:*
+        version: link:../../packages/nest
+      '@perchjs/prisma':
+        specifier: workspace:*
+        version: link:../../packages/prisma
+      '@prisma/adapter-pg':
+        specifier: ^7.9.1
+        version: 7.9.1
+      '@prisma/client':
+        specifier: ^7.9.1
+        version: 7.9.1(prisma@7.9.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(typescript@5.9.3)
+      '@prisma/client-runtime-utils':
+        specifier: ^7.9.1
+        version: 7.9.1
+      pg:
+        specifier: ^8.23.0
+        version: 8.23.0
+    devDependencies:
+      '@perchjs/prisma-generator':
+        specifier: workspace:*
+        version: link:../../packages/prisma-generator
+      '@types/pg':
+        specifier: ^8.21.0
+        version: 8.21.0
+      prisma:
+        specifier: ^7.9.1
+        version: 7.9.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/cli:
     dependencies:
       '@perchjs/core':

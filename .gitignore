@@ -36,7 +36,10 @@ tooling/.generated/
 
 # Fixtures the discovery suite writes while it runs.
 tooling/.discover/
-examples/demo/src/generated/client/
+
+# An example generates its Prisma client; the Perch IR beside it is checked in,
+# which is what lets an example typecheck and build with no database.
+examples/*/src/generated/client/
 
 # The built documentation site.
 docs/.vitepress/dist

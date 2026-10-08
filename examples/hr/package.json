@@ -1,0 +1,33 @@
+{
+  "name": "@perchjs/example-hr",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A people operations panel: employees, their time and their leave.",
+  "type": "module",
+  "scripts": {
+    "build": "prisma generate && tsdown",
+    "typecheck": "prisma generate && tsc --build",
+    "lint": "prisma generate && eslint src",
+    "generate": "prisma generate",
+    "db:push": "prisma db push",
+    "start": "node --env-file-if-exists=.env dist/main.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.2.6",
+    "@nestjs/core": "^11.2.6",
+    "@nestjs/platform-express": "^11.2.6",
+    "@perchjs/core": "workspace:*",
+    "@perchjs/nest": "workspace:*",
+    "@perchjs/prisma": "workspace:*",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "@prisma/client-runtime-utils": "^7.9.1",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@perchjs/prisma-generator": "workspace:*",
+    "@types/pg": "^8.21.0",
+    "prisma": "^7.9.1",
+    "typescript": "5.9.3"
+  }
+}

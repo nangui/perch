@@ -1,0 +1,90 @@
+// A people operations panel: who works here, what they did with their hours,
+// and when they are away.
+//
+// Four models, chosen for what they make the panel do rather than for what an
+// HR system would need. An employee belongs to a department and reports to
+// another employee, which is a relation and a relation to the same table. A
+// time log carries a state somebody has to move, which is a badge and a filter
+// over an enum. A leave request carries a range of dates, which is the filter
+// that needed two boxes and a dash. And an employee carries a salary, which is
+// a `Decimal`: the one column type that cannot survive a double, and therefore
+// the one the totals under a table have to get right.
+//
+// `LeaveRequest` soft-deletes. It is the row somebody will withdraw, and a
+// withdrawn request that is gone forever is a panel nobody trusts with the
+// real thing.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+// Into `src/`, and checked in, which is what the file it writes asks for: it
+// is the metadata the panel is built from, so a change to it belongs in a diff
+// somebody reads.
+generator perch {
+  provider = "node ../../packages/prisma-generator/dist/generator.js"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Department {
+  id   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(120)
+  code String @unique @db.VarChar(8)
+
+  employees Employee[]
+}
+
+model Employee {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(120)
+  email        String   @unique @db.VarChar(255)
+  avatarUrl    String?  @db.VarChar(500)
+  jobTitle     String   @db.VarChar(120)
+  employment   String   @db.VarChar(16)
+  salary       Decimal  @db.Decimal(10, 2)
+  weeklyHours  Int      @default(40)
+  hiredAt      DateTime @default(now())
+
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  // Reports to another employee, which is the relation a panel has the most
+  // trouble with: the same table on both ends.
+  managerId Int?
+  manager   Employee?  @relation("Reports", fields: [managerId], references: [id])
+  reports   Employee[] @relation("Reports")
+
+  timeLogs TimeLog[]
+  leave    LeaveRequest[]
+}
+
+model TimeLog {
+  id        Int      @id @default(autoincrement())
+  startedAt DateTime
+  endedAt   DateTime
+  project   String   @db.VarChar(120)
+  notes     String?  @db.VarChar(500)
+  status    String   @default("pending") @db.VarChar(16)
+
+  employeeId Int
+  employee   Employee @relation(fields: [employeeId], references: [id])
+}
+
+model LeaveRequest {
+  id        Int       @id @default(autoincrement())
+  kind      String    @db.VarChar(16)
+  startsOn  DateTime  @db.Date
+  endsOn    DateTime  @db.Date
+  reason    String?   @db.VarChar(500)
+  status    String    @default("pending") @db.VarChar(16)
+  requestedAt DateTime @default(now())
+  deletedAt DateTime?
+
+  employeeId Int
+  employee   Employee @relation(fields: [employeeId], references: [id])
+}
