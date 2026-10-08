@@ -19,11 +19,42 @@ are collected at the boundary rather than dripped through patches.
 This page starts at `0.2`. Going from `0.1` to `0.2` added things and took nothing away,
 so there was nothing to do, and a section saying so would be a section about nothing.
 
-## 0.3 to 0.4
+## 0.4 to 0.5
 
-Four things. Two are on the `DataAdapter` port, one is an export that changed name,
-and the compiler sees those three. The fourth it does not: a field or column you never
-gave a label to is now headed differently.
+Two things, and the compiler sees one of them. An export changed name, and a field or
+column you never gave a label to is now headed differently.
+
+### `Calendar` is now `CalendarSurface`
+
+The month grid the date field draws was hand-written, and it was reachable from the
+keyboard without being navigable: thirty-one tab stops under a `role="group"`, with no
+arrow keys. It is now a real date grid: one tab stop for the month, the arrows across it,
+Home and End to the month's own ends, Page Up and Page Down between months. It also lives on
+a chunk fetched when a reader opens a calendar, so a form with a date on it pays for the
+grid when one is opened rather than on every page.
+
+```diff
+-import { Calendar } from "@perchjs/ui";
++import { CalendarSurface } from "@perchjs/ui";
+```
+
+The props are the same four, plus one: `timeZone`, which is the zone the field declared.
+Pass it and the grid marks the panel's today; leave it out and it marks the browser's. A
+string that is not a zone is ignored rather than obeyed, so a typo in a column's `timezone`
+stays a word spelled wrong instead of a calendar that will not draw.
+
+`DateTimePicker` itself did not change. Its props, its ISO value contract and the shape it
+reports are what they were. The grid behind it is what moved.
+
+### Two things the grid now does differently
+
+Both of them towards what the panel was already drawing, so neither needs anything from you:
+
+- **A day lent by a neighbouring month is no longer selectable.** It is still shown, so the
+  grid keeps its height between months, and it has been greyed with `cursor: not-allowed`
+  all along. Now the cursor is telling the truth.
+- **A date field with no value opens on today.** It opened on January 2026 before, every
+  time, from a fallback written as a placeholder and never revisited.
 
 ### A field with no label of its own reads its path as a heading
 
@@ -46,6 +77,11 @@ table holding it beside `observer.name` does not head two columns alike.
 Nothing to do, unless you had been relying on the old text. A label you gave is
 untouched, including an empty one: ``.label("")`` still means no label rather than no
 name, and only an absent label falls back.
+
+## 0.3 to 0.4
+
+Three things, all on the `DataAdapter` port, and the compiler sees all three. If you
+have never written an adapter of your own there is nothing in this section for you.
 
 ### An adapter of your own has to be able to aggregate
 
@@ -157,38 +193,6 @@ column cannot bear is refused rather than passed along.
 
 What it still does not ask, so that you know where you are on your own: the arithmetic over
 a `Decimal` or a `BigInt`, which is where an adapter that rounds quietly would show.
-
-### `Calendar` is now `CalendarSurface`
-
-The month grid the date field draws was hand-written, and it was reachable from the
-keyboard without being navigable: thirty-one tab stops under a `role="group"`, with no
-arrow keys. It is now a real date grid: one tab stop for the month, the arrows across it,
-Home and End to the month's own ends, Page Up and Page Down between months. It also lives on
-a chunk fetched when a reader opens a calendar, so a form with a date on it pays for the
-grid when one is opened rather than on every page.
-
-```diff
--import { Calendar } from "@perchjs/ui";
-+import { CalendarSurface } from "@perchjs/ui";
-```
-
-The props are the same four, plus one: `timeZone`, which is the zone the field declared.
-Pass it and the grid marks the panel's today; leave it out and it marks the browser's. A
-string that is not a zone is ignored rather than obeyed, so a typo in a column's `timezone`
-stays a word spelled wrong instead of a calendar that will not draw.
-
-`DateTimePicker` itself did not change. Its props, its ISO value contract and the shape it
-reports are what they were. The grid behind it is what moved.
-
-### Two things the grid now does differently
-
-Both of them towards what the panel was already drawing, so neither needs anything from you:
-
-- **A day lent by a neighbouring month is no longer selectable.** It is still shown, so the
-  grid keeps its height between months, and it has been greyed with `cursor: not-allowed`
-  all along. Now the cursor is telling the truth.
-- **A date field with no value opens on today.** It opened on January 2026 before, every
-  time, from a fallback written as a placeholder and never revisited.
 
 ## 0.2 to 0.3
 

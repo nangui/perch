@@ -76,13 +76,15 @@ validate is measured rather than remembered:
 The gate these were written for is cleared. The protocol held at A1, and nothing built since has
 asked for it to be redesigned.
 
-**v0.1 and v0.2 are closed, and six releases have gone out since.** All seven packages are on
-npm at `0.3.5`, released 2026-09-28, published together through npm's trusted publishing rather
-than a token. The release job opens the version pull request; merging it publishes. Read a
-release afterwards in the job log, not off the registry: a public read can answer 404 for
-minutes after a successful publish, and has. Do not read the current version off this file
-either — `packages/*/package.json` and the root `CHANGELOG.md` are where it is true, and this
-line claimed `0.2.0` through all six of them, which went out on one day.
+**v0.1 and v0.2 are closed, and seven releases have gone out since.** The packages are
+published together through npm's trusted publishing rather than a token. The release job opens
+the version pull request; merging it publishes. Read a release afterwards in the job log, not
+off the registry: a public read can answer 404 for minutes after a successful publish, and has.
+
+**Do not read the current version off this file.** `packages/*/package.json` and the root
+`CHANGELOG.md` are where it is true. This line claimed `0.2.0` through six releases that went
+out on one day, and the paragraph below it named a version as forthcoming on the morning it
+shipped. A number in prose here rots between one session and the next.
 
 **What is left of PRD 10 §4.2 is the deployed demo.** Its code is written and its Dockerfile
 with it, under `examples/demo`: four resources over a bird-sightings schema, seeded at boot and
@@ -90,14 +92,14 @@ reset hourly. Where it is deployed is a decision nobody in this tree can take. E
 in that table is built, `llms.txt` and the auth recipes included, and every TypeScript block in
 the guide is compiled against what the packages publish.
 
-**The next release is `0.4.0`, and three of its changes are breaking.** `DataAdapter` gains
-`aggregate` and `groupBy`, required on the interface rather than optional — a port with
-optional halves is two ports — which breaks an adapter written outside this repository and
-nothing inside it; and `@perchjs/ui` replaces the `Calendar` export with `CalendarSurface`.
-All three are written up in `docs/guide/upgrade.md`, which exists because PRD 10 §4.2 asks for
-an upgrade guide from the first breaking change and this is it. Before 1.0 a minor is the
-breaking one (ADR 0008 §2), which is why they land together — and why a page offering two
-hops for one release is a page a reader cannot follow.
+**What is breaking next is in `docs/guide/upgrade.md`, under the newest heading.** That guide
+exists because PRD 10 §4.2 asks for one from the first breaking change, and it is the only
+place that says what a reader has to do. Before 1.0 a minor is the breaking one (ADR 0008 §2),
+so the breaking changes collect at a boundary rather than drip through patches — and a page
+offering two hops for one release is a page a reader cannot follow, which it has done twice.
+
+Which version that heading names is worked out by changesets from `.changeset/`, not decided
+here. `pnpm changeset status` says it.
 
 **Two suites need a database, and skip without one.** `tooling/database.test.ts` and
 `tooling/panel-database.test.ts` skip what touches PostgreSQL unless `DATABASE_URL` is set,
