@@ -1831,6 +1831,250 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * The relation manager, the key-value field, the uploader and the tags.
+     *
+     * The relation manager writes two rules about other surfaces and only one
+     * of them travels: the list's padding, because the list is already layered
+     * and two classes beat one. The seam under its tab strip stays behind until
+     * the tabs move, or a layered rule carrying two classes would lose to an
+     * unlayered one carrying a single class.
+     */
+    /* The input is real and keeps the dialog the platform owns. The note under it
+       is always rendered, so the field does not change height as it goes from
+       empty to sending to holding a file. */
+    ".perch-upload": {
+      display: "flex",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: "4",
+    },
+
+    ".perch-upload__control": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4",
+      minHeight: "control-height",
+    },
+
+    ".perch-upload__input": {
+      color: "content",
+      fontSize: "control",
+    },
+
+    ".perch-upload__input::file-selector-button": {
+      marginRight: "4",
+      padding: "0 var(--perch-space-5)",
+      height: "var(--perch-control-height-inner)",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "sm",
+      background: "surface",
+      color: "content",
+      font: "inherit",
+      cursor: "pointer",
+    },
+
+    ".perch-upload__input:disabled::file-selector-button": {
+      borderColor: "border",
+      background: "surface-muted",
+      color: "content-muted",
+      cursor: "not-allowed",
+    },
+
+    /* Small, square, and only ever shown for a file the field is actually
+       holding — so it goes when the value goes. */
+    ".perch-upload__preview": {
+      width: "56px",
+      height: "56px",
+      flex: "none",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "sm",
+      objectFit: "cover",
+      background: "surface-muted",
+    },
+
+    ".perch-upload__note": {
+      margin: "0",
+      /* Long filenames are the rule, not the exception. Left to itself the note
+         pushed the Remove button off the end of the row. */
+      minWidth: "0",
+      overflowWrap: "anywhere",
+      minHeight: "help-line",
+      color: "content-subtle",
+      fontSize: "sm",
+    },
+
+    /* -------------------------------------------------------------- relations */
+    /*
+     * The managers under a form. Separated from it by a rule rather than a gap:
+     * what is above is the record, what is below is what hangs off it, and the two
+     * are edited by different requests.
+     */
+    ".perch-relations": {
+      marginTop: "6",
+      paddingTop: "5",
+      borderTop: "1px solid var(--perch-border)",
+    },
+
+    /* The strip and the add button on one line, the button pushed to the end. */
+    ".perch-relations__head": {
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "space-between",
+      gap: "4",
+      borderBottom: "1px solid var(--perch-border)",
+    },
+
+    ".perch-relations__body": {
+      paddingTop: "4",
+    },
+
+    /* Already inside a page, so it brings no page padding of its own. */
+    ".perch-relations .perch-list": {
+      padding: "0",
+    },
+
+    ".perch-relations__waiting, .perch-relations__failed": {
+      margin: "0",
+      padding: "var(--perch-space-4) 0",
+      color: "content-secondary",
+      fontSize: "control",
+    },
+
+    ".perch-relations__failed": {
+      color: "danger",
+    },
+
+    /* Real inputs sharing a name, so the browser gives the group its arrow keys
+       and its single tab stop. Out of sight, not out of the layout: `display: none`
+       would take them out of the tab order along with everything else. */
+    /* ------------------------------------------------------------------- tags */
+    /*
+     * The tags already made, above the box that makes them. Stacked rather than
+     * wrapped around the input: a box that moves as tags are added is one the
+     * reader loses track of mid-sentence.
+     */
+    ".perch-tags": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "3",
+      minWidth: "0",
+    },
+
+    ".perch-tags__list": {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "2",
+      margin: "0",
+      padding: "0",
+      listStyle: "none",
+    },
+
+    ".perch-tags__tag": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "2",
+      maxWidth: "100%",
+      padding:
+        "var(--perch-space-1) var(--perch-space-2) var(--perch-space-1) var(--perch-space-3)",
+      borderRadius: "md",
+      background: "surface-skeleton-strong",
+      color: "content-secondary",
+      fontSize: "control",
+    },
+
+    /* A long tag is cut rather than allowed to push the row sideways. */
+    ".perch-tags__text": {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
+
+    ".perch-tags__remove": {
+      flex: "none",
+      /* WCAG's pointer target, the floor every other control here keeps. */
+      minWidth: "24px",
+      minHeight: "24px",
+      padding: "0",
+      border: "0",
+      background: "none",
+      color: "content-muted",
+      lineHeight: "1",
+      cursor: "pointer",
+    },
+
+    ".perch-tags__remove:hover:not(:disabled)": {
+      color: "content",
+    },
+
+    ".perch-tags__remove:disabled": {
+      cursor: "not-allowed",
+      opacity: "0.5",
+    },
+
+    /* -------------------------------------------------------------- key value */
+    /*
+     * Two columns of boxes and a control to take a row off. The heading row and
+     * the rows below it are separate grids, so the last column is given a width
+     * rather than measured — otherwise `auto` reads a button in one and an empty
+     * span in the other, and the headings sit askew.
+     */
+    ".perch-kv": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      gap: "3",
+      minWidth: "0",
+      /* A fieldset, for the group and the name the legend gives it. Its own frame
+         is dropped: the field shell already draws one. */
+      margin: "0",
+      padding: "0",
+      border: "0",
+    },
+
+    ".perch-kv__rows": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "2",
+      width: "100%",
+    },
+
+    ".perch-kv__head, .perch-kv__row": {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr var(--perch-space-9)",
+      alignItems: "center",
+      gap: "2",
+    },
+
+    ".perch-kv__head": {
+      color: "content-subtle",
+      fontSize: "sm",
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+    },
+
+    ".perch-kv__remove": {
+      /* WCAG's pointer target, the floor every other control here keeps, and the
+         width the heading row reserves for this column. */
+      width: "var(--perch-space-9)",
+      minHeight: "24px",
+      padding: "0",
+      border: "0",
+      background: "none",
+      color: "content-muted",
+      lineHeight: "1",
+      cursor: "pointer",
+    },
+
+    ".perch-kv__remove:hover:not(:disabled)": {
+      color: "content",
+    },
+
+    ".perch-kv__remove:disabled": {
+      cursor: "not-allowed",
+      opacity: "0.5",
+    },
+
+    /**
      * Static content between the controls, and a row's own menu.
      *
      * The menu's one override about somebody else travels with it this time:

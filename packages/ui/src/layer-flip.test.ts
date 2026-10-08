@@ -311,6 +311,16 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `<button class="perch-table__action"></button></div></details>`,
   },
   {
+    // Two overrides, one moved and one not: the list's padding travelled
+    // because the list is layered, and the seam under the tab strip did not.
+    what: "a relation manager",
+    html:
+      `<section class="perch-relations"><div class="perch-relations__head">` +
+      `<ul class="perch-tabs__list"></ul></div>` +
+      `<div class="perch-list"></div>` +
+      `<p class="perch-relations__failed"></p></section>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +
