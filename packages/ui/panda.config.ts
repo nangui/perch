@@ -1831,6 +1831,125 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * Static content between the controls, and a row's own menu.
+     *
+     * The menu's one override about somebody else travels with it this time:
+     * `.perch-table__action` is already layered, so two classes beat one and
+     * nothing rests on cascade origin — the opposite of the breadcrumb, where
+     * the target had not moved and the override had to stay behind.
+     */
+    /* ------------------------------------------------------------------ prime */
+    /*
+     * Static content between the controls. No field chrome around any of them: a
+     * paragraph with a label over it reads as a field nobody can fill in.
+     */
+    ".perch-prime--text": {
+      margin: "0",
+      color: "content-secondary",
+      fontSize: "control",
+    },
+
+    '.perch-prime--text[data-tone="success"]': {
+      color: "success-content",
+    },
+
+    '.perch-prime--text[data-tone="warning"]': {
+      color: "warning-content",
+    },
+
+    '.perch-prime--text[data-tone="danger"]': {
+      color: "danger-content",
+    },
+
+    /* Bounded by the column it sits in, never wider than it. */
+    ".perch-prime--image": {
+      display: "block",
+      maxWidth: "100%",
+      height: "auto",
+      borderRadius: "md",
+    },
+
+    ".perch-prime--icon": {
+      fontSize: "2xl",
+      lineHeight: "1",
+    },
+
+    '.perch-prime--icon[data-tone="success"]': {
+      color: "success-content",
+    },
+
+    '.perch-prime--icon[data-tone="warning"]': {
+      color: "warning-content",
+    },
+
+    '.perch-prime--icon[data-tone="danger"]': {
+      color: "danger-content",
+    },
+
+    /*
+     * One control per row instead of a line of words. `<details>` because it opens
+     * on click and on Enter, closes on Escape, and is one tab stop — a handmade
+     * popover has to be given all three and usually gets two.
+     */
+    ".perch-row-actions": {
+      position: "relative",
+      display: "inline-block",
+    },
+
+    ".perch-row-actions__open": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      /* WCAG's pointer target, the same floor every other control here keeps. */
+      minWidth: "24px",
+      minHeight: "24px",
+      borderRadius: "var(--perch-space-1)",
+      color: "content-secondary",
+      cursor: "pointer",
+      listStyle: "none",
+    },
+
+    ".perch-row-actions__open::-webkit-details-marker": {
+      display: "none",
+    },
+
+    ".perch-row-actions__open:hover, .perch-row-actions[open] .perch-row-actions__open":
+      {
+        background: "surface-skeleton-strong",
+      },
+
+    /*
+     * Against the viewport, not against the row. The table scrolls sideways for a
+     * wide one, and a box that scrolls clips in both directions whatever the
+     * z-index says — so a menu placed inside it is cut off at the last row.
+     */
+    '.perch-row-actions__menu[data-placed="false"]': {
+      visibility: "hidden",
+    },
+
+    ".perch-row-actions__menu": {
+      position: "fixed",
+      zIndex: "20",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+      minWidth: "10rem",
+      padding: "2",
+      gap: "1",
+      background: "surface",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "var(--perch-space-2)",
+      boxShadow: "popover",
+    },
+
+    /* Left, not centred: a column of labels is read down its left edge. */
+    ".perch-row-actions__menu .perch-table__action": {
+      justifyContent: "flex-start",
+      textAlign: "left",
+      padding: "var(--perch-space-2) var(--perch-space-3)",
+    },
+
+    /**
      * The panel's own ground, and the trail above a page.
      *
      * The reset is scoped to `.perch-root` rather than the document, which is

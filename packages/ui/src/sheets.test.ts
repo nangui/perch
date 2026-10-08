@@ -73,6 +73,10 @@ describe("the sheet still written by hand", () => {
     // Both halves have to be non-empty. A path that stopped resolving would
     // otherwise make the rule above vacuous on the day it matters most.
     expect(ownTargets(read("panda.css")).size).toBeGreaterThan(10);
-    expect(ownTargets(read("styles.css")).size).toBeGreaterThan(50);
+    // No floor on the hand-written half: the migration empties it, so a number
+    // here is one to lower at every move. It had 59 against a floor of 50 when
+    // this was written. When it reaches nothing this file is spent, the second
+    // sheet being the only reason it exists.
+    expect(ownTargets(read("styles.css")).size).toBeGreaterThan(0);
   });
 });

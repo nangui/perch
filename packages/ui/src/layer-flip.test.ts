@@ -301,6 +301,16 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
     html: `<main class="perch-shell__main"><nav class="perch-breadcrumb"></nav></main>`,
   },
   {
+    // Its one override is about an action, and the table already drew those
+    // from a layer — so two classes beat one without resting on origin.
+    what: "a row's own menu",
+    html:
+      `<details class="perch-row-actions">` +
+      `<summary class="perch-row-actions__open"></summary>` +
+      `<div class="perch-row-actions__menu">` +
+      `<button class="perch-table__action"></button></div></details>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +
@@ -505,7 +515,10 @@ describe("a surface that moved into a layer", () => {
 
   it("was comparing something, so it cannot pass by matching nothing", () => {
     expect(generated.length).toBeGreaterThan(100);
-    expect(byHand.length).toBeGreaterThan(100);
+    // Not a floor on the hand-written half: it shrinks every move and had
+    // already fallen through a floor of 100 by the time one noticed. When it
+    // reaches nothing this whole file is spent, which is the right end for it.
+    expect(byHand.length).toBeGreaterThan(0);
     // And the roster reaches the generated sheet at all: a selector typo in
     // every shape would otherwise read as nothing to report.
     const reached = SHAPES.some((shape) => {
