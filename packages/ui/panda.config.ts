@@ -1,47 +1,23 @@
 /**
  * The styling system, and the design it carries.
  *
- * Panda reads the source, finds the style calls, and writes one plain CSS file.
- * Nothing is injected at run time, which is what lets this coexist with the
- * promise the package already makes: the panel ships precompiled and nobody
- * configures a build to install it.
+ * Panda reads the source and writes one plain CSS file. Nothing is injected at
+ * run time, which is what lets the panel keep shipping precompiled.
  *
- * **This file is now where the design lives.** Every colour, size, radius and
- * shadow the panel draws with is declared below, once, with its dark value
- * beside its light one. `tokens.css` held them before, in two blocks seventy
- * lines apart that only a test kept level.
+ * Every colour, size, radius and shadow is declared below, once, with its dark
+ * value beside its light one. The values sit in `globalCss` under the published
+ * `--perch-*` names and the tokens only alias them: those names are the public
+ * theming API, and letting Panda own them would have renamed all hundred and
+ * eight after their category and broken every theme in existence.
  *
- * Why the values are in `globalCss` and the tokens only point at them. The
- * `--perch-*` custom properties are the panel's public theming API, and that is
- * a published promise rather than an accident: the bundle ships compiled, so a
- * theme is a file that redefines them and is linked after. Panda names its own
- * properties after their category, so letting it own them outright would have
- * renamed all hundred and eight and broken every theme in existence. Declaring
- * them here and aliasing them keeps that contract exactly as published, and a
- * theme that overrides `--perch-accent` still reaches a recipe that reads it.
+ * `preflight: false`, because the panel resets what it owns under `.perch-root`;
+ * a document-wide reset would be this package deciding how the rest of
+ * somebody's page looks. The dark condition is the panel's own attribute, not
+ * the desktop's preference. And every recipe names its own class, because the
+ * architecture promises a stable one on every structural element.
  *
- * Three settings carry the rest of the reasoning.
- *
- * `preflight: false`, because the panel already resets what it owns, scoped
- * under `.perch-root`. A document-wide reset here would be this package
- * deciding how the other half of somebody's page looks.
- *
- * The dark condition is the panel's own attribute rather than the desktop's
- * preference. That decision is already written down: the dark ramp is derived
- * rather than designed, so a host asks for it instead of inheriting it from a
- * setting the design was never checked against.
- *
- * And every recipe names its own class. Panda would otherwise invent one, and
- * the architecture promises a stable class on every structural element so a
- * reader can override without forking. A recipe called `perch-stat` with a
- * `label` slot emits `perch-stat__label` — the name that is already there, now
- * generated instead of hand-written.
- *
- * Park UI is not here, and it was the reason to choose this engine. Its preset
- * declares a peer range that admits Panda 2 and contributes configuration that
- * Panda 2 rejects: array conditions, which 2 removed. Holding the styling
- * engine a major version back to borrow a palette is the worse trade, and the
- * design this panel has is the one below.
+ * Park UI is not here, and it was the reason to choose this engine: its preset
+ * admits Panda 2 and contributes array conditions, which 2 removed.
  */
 import { defineConfig } from "@pandacss/dev";
 
@@ -254,17 +230,10 @@ export default defineConfig({
     /**
      * The focus ring nothing else claimed, and the icon box.
      *
-     * Both are `:where()`, so both carry no specificity at all: they are
-     * designed to lose to every rule that wants the same property. That design
-     * only holds inside one cascade origin. Left in the hand-written sheet they
-     * would be unlayered, and unlayered beats every layer however specific — so
-     * the ring would have outranked the control's own focus style it was
-     * written to defer to.
-     *
-     * Why each is what it is came over with them, late: it was written in the
-     * sheet they left and stayed there when they moved, so for several
-     * releases the rules were here and the reasons were in a file that no
-     * longer held them.
+     * Both are `:where()` and carry no specificity at all: they are designed to
+     * lose to every rule wanting the same property, which only holds inside one
+     * cascade origin. Left unlayered, the ring would have outranked the
+     * control's own focus style it was written to defer to.
      */
     /* A floor, not a list. Twenty-six focusable things had no ring of their own
        and fell back to the browser's outline — a blue ring in a panel that has a
@@ -1862,19 +1831,137 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * The shell and the navigation in it.
+     *
+     * Two families, one surface here: the rules that stack the panel on a phone
+     * undo all three of them in one block, and the guard reads the block.
+     *
+     * `.perch-shell__main > .perch-breadcrumb` stays hand-written. It zeroes a
+     * padding the breadcrumb gives itself, the breadcrumb has not moved, and a
+     * layered rule cannot beat an unlayered one however much it carries.
+     */
+    ".perch-shell": {
+      display: "flex",
+      /* A column now, the bar across the top spanning the navigation as well as
+         the page. Laid out as a row, it became a third column beside them. */
+      flexDirection: "column",
+      minHeight: "100vh",
+      /* Stacked below the width where a row stops being a row. The navigation
+         holds a fixed fifteen rems, which on a phone is most of the page —
+         measured at 390px, the form was left 134 and a field 22. It becomes a
+         strip above the content instead: it is a short list of links, and a
+         list reads across as readily as down.
+
+         Every rule here undoes one of the three above at the same specificity,
+         so order alone decides. It used to be answered by this block sitting
+         later in a hand-maintained file; it is answered now by the engine
+         gathering conditional rules after plain ones in the layer, which
+         `emitted-order.test.ts` reads off the sheet. */
+      _narrow: {
+        display: "block",
+      },
+    },
+
+    ".perch-shell__body": {
+      display: "flex",
+      /* Stretch, not flex-start: the nav is a column of the page, and left to its
+         content height it stopped under the last link with the page ground showing
+         through beneath it. */
+      alignItems: "stretch",
+      flex: "1",
+      minWidth: "0",
+    },
+
+    ".perch-shell__main": {
+      flex: "1",
+      minWidth: "0",
+      padding: "var(--perch-space-8) var(--perch-space-9) var(--perch-space-10)",
+      _narrow: {
+        padding: "var(--perch-space-6) var(--perch-space-5) var(--perch-space-8)",
+      },
+    },
+
+    ".perch-nav": {
+      flex: "0 0 auto",
+      width: "15rem",
+      padding: "var(--perch-space-8) var(--perch-space-6)",
+      background: "surface",
+      /* Against the page ground, `border-subtle` was the same value as the ground
+         itself: an edge nobody could see. */
+      borderRight: "1px solid var(--perch-border)",
+      _narrow: {
+        width: "auto",
+        borderRight: "none",
+        borderBottom: "1px solid var(--perch-border)",
+        padding: "var(--perch-space-5) var(--perch-space-6)",
+      },
+    },
+
+    /* The page's own margins were sized for a desk. Kept, but a step in: a form
+       with eight pixels of air either side reads as one that overflowed. */
+    ".perch-nav__group + .perch-nav__group": {
+      marginTop: "6",
+    },
+
+    ".perch-nav__heading": {
+      margin: "0 0 var(--perch-space-4)",
+      fontSize: "xs",
+      fontWeight: "600",
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      color: "content-muted",
+    },
+
+    ".perch-nav__list": {
+      margin: "0",
+      padding: "0",
+      listStyle: "none",
+    },
+
+    ".perch-nav__link": {
+      display: "flex",
+      gap: "4",
+      alignItems: "center",
+      padding: "var(--perch-space-3) var(--perch-space-4)",
+      borderRadius: "md",
+      color: "content",
+      fontSize: "base",
+      textDecoration: "none",
+    },
+
+    /* The count beside a name. Pushed to the far end, because the name is what a
+       reader scans down and a number in the middle of that column breaks the line
+       they are reading. Tabular figures so 9 and 10 sit in the same width and the
+       column does not shift as counts change. */
+    ".perch-nav__badge": {
+      marginLeft: "auto",
+      padding: "0 var(--perch-space-3)",
+      borderRadius: "var(--perch-radius-full, 999px)",
+      background: "surface-muted",
+      color: "content-secondary",
+      fontSize: "sm",
+      fontVariantNumeric: "tabular-nums",
+    },
+
+    ".perch-nav__link:hover": {
+      background: "surface-muted",
+    },
+
+    '.perch-nav__link[aria-current="page"]': {
+      background: "accent-surface",
+      color: "accent",
+    },
+
+    /**
      * The colour picker, and the list of checkboxes.
      *
-     * The picker is a control: `.perch-control` and `.perch-color` sit on one
-     * element and both declare `gap`. Which applies used to be settled by one
-     * being in a layer and the other not; now that both are, it is settled by
-     * this block standing after the control's. Measured by moving it above —
-     * the row then opens to the control's 8px instead of the picker's 6.
+     * The picker is a control: `.perch-control` and `.perch-color` share an
+     * element and both declare `gap`, so which applies rests on this block
+     * standing after the control's. Measured by moving it above — the row then
+     * opens to the control's 8px instead of the picker's 6.
      *
-     * The list is its own: nothing reaches into it and its input is the
-     * browser's own, visible and unstyled, which is why it is not among the
-     * ones that draw their focus on a sibling. It lays its choices out in as
-     * many columns as the component says through `--perch-choices`, a property
-     * set on the element rather than declared here, hence the fallback of one.
+     * The list takes its column count from `--perch-choices`, set on the element
+     * rather than declared here, hence its fallback of one.
      */
     /* ------------------------------------------------------------ colour picker */
     /*
@@ -2189,15 +2276,12 @@ export default defineConfig({
     /**
      * A select: the option rows, the chevron, and the button that adds a row.
      *
-     * The rows are drawn by three components — the plain select, the multi
-     * select and the searchable one — which is why they were left behind when
-     * the comboboxes moved and why they come now, with the select they belong
-     * to rather than with one of its callers.
+     * The rows are drawn by three components, which is why they waited for the
+     * select rather than leaving with one of its callers.
      *
-     * The chevron is the reason this could not wait. The control tints it on
-     * focus from a rule of its own, and that rule went into a layer with the
-     * control while this one stayed out: one class beat three, and the chevron
-     * stopped turning. Both sit in the same origin now.
+     * The chevron is why this could not wait longer. The control tints it on
+     * focus from a rule that went into a layer while this one stayed out: one
+     * class beat three and the chevron stopped turning.
      */
     /* ------------------------------------------------------- small shared pieces */
     /* A select that can make the row it is missing, and the button that does it.
@@ -2300,14 +2384,12 @@ export default defineConfig({
     /**
      * The date grid's clothes. Ark draws the grid itself.
      *
-     * So nothing here is behaviour: no roving focus, no arrow keys, no month
-     * arithmetic. What is left is a panel of a stated width, a day that is a
-     * seventh of it, and a height worked out from six rows so the panel does not
-     * change size between a month of five weeks and one of six.
+     * A panel of a stated width, a day that is a seventh of it, and a height
+     * worked out from six rows so the panel does not change size between a
+     * month of five weeks and one of six.
      *
-     * Classes only, no attribute selectors, and that is not an accident: Ark
-     * writes its state attributes without values — `data-selected=""` — so a
-     * rule keyed on `[data-selected="true"]` would never match anything.
+     * Classes only: Ark writes its state attributes without values, so a rule
+     * keyed on `[data-selected="true"]` would never match.
      */
     ".perch-calendar": {
       width: "300px",
@@ -2430,14 +2512,12 @@ export default defineConfig({
     /**
      * The two comboboxes: a searchable select, and the one a relation uses.
      *
-     * The option rows inside them are not here. `.perch-option` is drawn by the
-     * plain select as well, so it is the select's surface rather than this one's
-     * — and nothing here reaches into it, which is what makes leaving it behind
-     * safe rather than lucky.
+     * The option rows are not here: the plain select draws them too, and
+     * nothing here reaches into them.
      *
-     * Neither result row takes focus. The keyboard moves a highlight along them
-     * through `data-highlighted`, with focus staying in the search box, which is
-     * why they quiet the outline and draw their state from an attribute.
+     * Neither result row takes focus. The keyboard moves a highlight along
+     * them while focus stays in the search box, which is why they quiet the
+     * outline and draw their state from an attribute.
      */
     /* Square with the popover: the input is the top edge of the panel, so it drops
        its own border and radius rather than drawing a box inside a box. */
@@ -2586,15 +2666,12 @@ export default defineConfig({
     /**
      * The shell every field lives in.
      *
-     * Not a field itself — a label row, a control and a line held under it for
-     * whatever the server says about the value. That reserved line is the
-     * design, and it is why a field is the same height at rest, in flight and
-     * in error: a patch from the server never moves what is below it.
+     * The line held under the control for whatever the server says is the
+     * design: it is why a field is the same height at rest, in flight and in
+     * error, so a patch never moves what is below it.
      *
-     * One rule about it is written elsewhere and stays there: the view page
-     * closes the reserved line where it holds nothing, because a page that only
-     * reads has no errors coming. It is rooted in `.perch-view`, carries more
-     * than anything here, and keeps winning.
+     * The view page closes that line where it holds nothing. Rooted in
+     * `.perch-view`, it carries more than anything here and stays where it is.
      */
     /* ---------------------------------------------------------------- field shell
 
@@ -2720,14 +2797,12 @@ export default defineConfig({
     /**
      * The third surface somebody writes into.
      *
-     * A frame that holds the control, a footer under it and a count in the
-     * corner — the frame carries the focus ring because the input inside it
-     * draws none, which is what lets the footer sit inside the same border.
+     * The frame carries the focus ring because the input inside it draws none,
+     * which is what lets the footer sit inside the same border.
      *
-     * Its ceiling is conditional: `field-sizing` lets the browser grow the box
-     * during layout, so nothing measures on keystroke, and `max-height` is what
-     * stops that growing past the fold. Only the autosizing one needs it, which
-     * is why the two are separate rules rather than one.
+     * Its ceiling is conditional: `field-sizing` grows the box during layout and
+     * `max-height` stops that past the fold, so only the autosizing one is
+     * capped — hence two rules rather than one.
      */
     /* ------------------------------------------------------------------ textarea */
     ".perch-textarea": {
@@ -2842,11 +2917,9 @@ export default defineConfig({
     /**
      * The switch field, and the choice group that wears buttons.
      *
-     * Two surfaces rather than one. `.perch-toggle` is a Radix switch with a
-     * knob; `.perch-toggles` is a native radio group drawn as a segmented
-     * control, and `ChoiceGroup` draws it from the same markup it draws
-     * `.perch-radio` from. Nothing reaches into either from outside and no rule
-     * names both looks, so they move without the dot look following.
+     * Two surfaces. `ChoiceGroup` draws the second from the same markup it draws
+     * `.perch-radio` from, and no rule names both looks — which is what lets
+     * them move without the dot look following.
      */
     /* -------------------------------------------------------------------- toggle
 
@@ -4100,17 +4173,12 @@ export default defineConfig({
        * untouched.
        */
       /**
-       * Every token points at the public property above it.
+       * Every token points at the public property above it, so a recipe asking
+       * for `colors.surface` reaches `var(--perch-surface)` — what a theme
+       * redefines. One indirection, the published contract untouched.
        *
-       * So a recipe asking for `colors.surface` emits
-       * `var(--perch-colors-surface)`, which reads `var(--perch-surface)`,
-       * which is what a theme redefines. One indirection, and the published
-       * contract untouched.
-       *
-       * Only what a recipe actually reads is here, and that is deliberate
-       * rather than lazy: Panda emits an alias for every token declared, and
-       * this package refuses to ship a custom property nothing reads. So this
-       * list is the record of which surfaces have moved — it grows as they do.
+       * Only what a recipe reads is declared: Panda emits an alias for each,
+       * and this package refuses a custom property nothing reads.
        */
       tokens: {
         colors: {

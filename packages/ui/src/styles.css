@@ -813,30 +813,6 @@
   text-decoration: underline;
 }
 
-.perch-shell {
-  display: flex;
-  /* A column now, the bar across the top spanning the navigation as well as
-     the page. Laid out as a row, it became a third column beside them. */
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.perch-shell__body {
-  display: flex;
-  /* Stretch, not flex-start: the nav is a column of the page, and left to its
-     content height it stopped under the last link with the page ground showing
-     through beneath it. */
-  align-items: stretch;
-  flex: 1;
-  min-width: 0;
-}
-
-.perch-shell__main {
-  flex: 1;
-  min-width: 0;
-  padding: var(--perch-space-8) var(--perch-space-9) var(--perch-space-10);
-}
-
 .perch-page__title {
   margin: var(--perch-space-4) 0 var(--perch-space-8);
   font-size: var(--perch-text-2xl);
@@ -844,97 +820,6 @@
   letter-spacing: -0.01em;
   color: var(--perch-content);
   text-wrap: balance;
-}
-
-.perch-nav {
-  flex: 0 0 auto;
-  width: 15rem;
-  padding: var(--perch-space-8) var(--perch-space-6);
-  background: var(--perch-surface);
-  /* Against the page ground, `border-subtle` was the same value as the ground
-     itself: an edge nobody could see. */
-  border-right: 1px solid var(--perch-border);
-}
-
-/* After the rules above and not beside the grid's, which is where this started:
-   at equal specificity the last one wins, and a media query written earlier in
-   the file loses to the plain rule it was meant to undo. It measured as no
-   change at all.
-
-   The navigation holds a fixed fifteen rems, which on a phone is most of the
-   page — measured at 390px, the form was left 134 and a field 22. Stacked, the
-   content gets the width and the nav becomes a strip above it: it is a short
-   list of links, and a list reads across as readily as down. */
-@media (max-width: 40rem) {
-  .perch-shell {
-    display: block;
-  }
-
-  .perch-nav {
-    width: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--perch-border);
-    padding: var(--perch-space-5) var(--perch-space-6);
-  }
-
-  /* The page's own margins were sized for a desk. Kept, but a step in: a form
-     with eight pixels of air either side reads as one that overflowed. */
-  .perch-shell__main {
-    padding: var(--perch-space-6) var(--perch-space-5) var(--perch-space-8);
-  }
-}
-
-.perch-nav__group + .perch-nav__group {
-  margin-top: var(--perch-space-6);
-}
-
-.perch-nav__heading {
-  margin: 0 0 var(--perch-space-4);
-  font-size: var(--perch-text-xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--perch-content-muted);
-}
-
-.perch-nav__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.perch-nav__link {
-  display: flex;
-  gap: var(--perch-space-4);
-  align-items: center;
-  padding: var(--perch-space-3) var(--perch-space-4);
-  border-radius: var(--perch-radius);
-  color: var(--perch-content);
-  font-size: var(--perch-text-base);
-  text-decoration: none;
-}
-
-/* The count beside a name. Pushed to the far end, because the name is what a
-   reader scans down and a number in the middle of that column breaks the line
-   they are reading. Tabular figures so 9 and 10 sit in the same width and the
-   column does not shift as counts change. */
-.perch-nav__badge {
-  margin-left: auto;
-  padding: 0 var(--perch-space-3);
-  border-radius: var(--perch-radius-full, 999px);
-  background: var(--perch-surface-muted);
-  color: var(--perch-content-secondary);
-  font-size: var(--perch-text-sm);
-  font-variant-numeric: tabular-nums;
-}
-
-.perch-nav__link:hover {
-  background: var(--perch-surface-muted);
-}
-
-.perch-nav__link[aria-current="page"] {
-  background: var(--perch-accent-surface);
-  color: var(--perch-accent);
 }
 
 /**

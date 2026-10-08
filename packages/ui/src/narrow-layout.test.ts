@@ -90,10 +90,10 @@ describe("a form in a narrow window", () => {
  * into a space that was already too small.
  */
 describe("the shell in a narrow window", () => {
-  // Written after the rules it undoes, because at equal specificity the last
-  // one wins. Placed beside the grid's rules it lost to `display: flex` and
-  // measured as no change at all. That it comes after is the test below; this
-  // only has to find it.
+  // After the rules it undoes, because at equal specificity the last one wins.
+  // Placed beside the grid's rules it lost to `display: flex` and measured as
+  // no change at all. Which block that is no longer depends on where anybody
+  // wrote it: both halves are generated, so it is found by what it names.
   const shell = (): string => narrowBlockNaming(".perch-shell");
 
   it("stacks the navigation above the page rather than beside it", () => {
@@ -108,6 +108,13 @@ describe("the shell in a narrow window", () => {
   it("comes after the rule it has to undo, or it does nothing at all", () => {
     // The bug this file exists to keep out: the rule was right, unreachable,
     // and silent about it.
+    //
+    // Still the right thing to measure — the order in the sheet the panel
+    // serves — but no longer for the reason it was written. Both halves are
+    // generated now, so where the block lands is the engine's decision rather
+    // than a file somebody keeps in order, and `emitted-order.test.ts` is
+    // what reads that decision off the sheet. This stays because it is about
+    // this layout and names the fault.
     const flex = STYLES.indexOf(".perch-shell {");
     const block = STYLES.indexOf("@media (max-width: 40rem)", flex);
 

@@ -2,20 +2,14 @@
  * A control whose input is invisible draws the keyboard's mark on something
  * that is not.
  *
- * `focus-ring.test.ts` holds the floor — a `:where(…):focus-visible` rule that
- * puts the ring on anything claiming none of its own. That floor cannot reach
- * these: a switch, a radio and a tick keep a real native input for the
- * semantics and the keyboard, and take it out of sight rather than out of the
- * tab order. The floor still matches it, and a ring drawn on an element at nil
- * opacity is a ring nobody sees.
+ * The focus floor puts the ring on whatever claims none of its own, and for a
+ * switch, a radio and a tick that is an input kept for the semantics and taken
+ * out of sight — so the ring lands on an element at nil opacity and nobody
+ * sees it. Each draws on the sibling instead, and nothing said so: the dot was
+ * shrunk to 4px with its focus deleted and all 3 604 tests passed.
  *
- * So each of them draws on the sibling the reader is actually looking at, and
- * until now nothing said so. Measured: the dot shrunk to 4px, its focus outline
- * deleted and its checked colour removed, and all 3 604 tests passed.
- *
- * Discovered rather than listed. The invisible inputs are found by reading what
- * the sheets make invisible, so a fourth one is covered the day it is written
- * instead of the day somebody remembers this file.
+ * Discovered by reading what the sheets make invisible, so a fourth one is
+ * covered the day it is written.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

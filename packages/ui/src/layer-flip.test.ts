@@ -287,6 +287,23 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `<span class="perch-checkbox-list__empty"></span></div>`,
   },
   {
+    what: "the shell, stacked or not",
+    html:
+      `<div class="perch-shell"><div class="perch-shell__body">` +
+      `<nav class="perch-nav"><div class="perch-nav__group">` +
+      `<p class="perch-nav__heading"></p><ul class="perch-nav__list"><li>` +
+      `<a class="perch-nav__link" aria-current="page">` +
+      `<span class="perch-nav__badge"></span></a></li></ul></div></nav>` +
+      `<main class="perch-shell__main"></main></div></div>`,
+  },
+  {
+    // The shell zeroes a padding the breadcrumb gives itself, and the
+    // breadcrumb is still hand-written — so that override had to stay out of
+    // the layer. Moved in, this shape is what says so.
+    what: "a breadcrumb under the shell's main",
+    html: `<main class="perch-shell__main"><nav class="perch-breadcrumb"></nav></main>`,
+  },
+  {
     what: "an action in a cell",
     html:
       `<td class="perch-table__cell perch-table__actions">` +

@@ -1,21 +1,14 @@
 /**
  * No heading in the hand-written sheet stands over nothing.
  *
- * The sheet is divided into named sections, and the migration empties them one
- * at a time: the rules go into the styling config and the heading stays, over
- * nothing, reading as though that surface were still written by hand. Three
- * were standing that way — `control` and `renderer` over no rule at all, and
- * `icon` over five surfaces that are not icons, its own rules having left
- * several releases earlier.
+ * The migration empties the sections one at a time and the headings stay, over
+ * nothing, reading as though the surface were still written by hand. Three
+ * were — and what hid under them matters more than the untidiness: the
+ * reasoning for the focus-ring floor and the icon box was written there and
+ * never carried to the config when the rules were.
  *
- * Worse than untidy, because of what went with them. The reasoning for the
- * focus-ring floor and the icon box was written under those headings and was
- * never carried to the config when the rules were, so for several releases the
- * rules were in one file and the reasons in another that no longer held them.
- * A heading nobody checks is where that hides.
- *
- * This asks only the measurable half: that each heading has rules under it.
- * Whether the name still fits what it heads is not something a test can read.
+ * Only the measurable half is asked. Whether a name still fits what it heads
+ * is not something a test can read.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
