@@ -133,12 +133,15 @@ describe("every workspace package", () => {
   it("declares how it is typechecked and linted", () => {
     // The shape the gap took twice: a package with no scripts is counted as
     // successful by turbo without anything having run.
-    const manifests = [
-      "docs",
-      "tooling",
-      ...readdirSync(join(ROOT, "packages")).map((name) => join("packages", name)),
-      ...readdirSync(join(ROOT, "examples")).map((name) => join("examples", name)),
-    ];
+    // Directories only. Both of these hold a README beside the packages, and
+    // reading a manifest inside a file is `ENOTDIR` rather than a package with
+    // no scripts — the rule went down instead of reporting.
+    const under = (where: string): readonly string[] =>
+      readdirSync(join(ROOT, where), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => join(where, entry.name));
+
+    const manifests = ["docs", "tooling", ...under("packages"), ...under("examples")];
     const missing = manifests.filter((where) => {
       const manifest = JSON.parse(
         readFileSync(join(ROOT, where, "package.json"), "utf8"),

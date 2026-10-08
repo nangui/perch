@@ -75,7 +75,17 @@
           "isList": true
         }
       ],
-      "uniqueConstraints": [["id"], ["name"], ["code"]],
+      "uniqueConstraints": [
+        [
+          "id"
+        ],
+        [
+          "name"
+        ],
+        [
+          "code"
+        ]
+      ],
       "hasSoftDelete": false,
       "labelField": "name"
     },
@@ -254,8 +264,12 @@
           "type": "one",
           "targetModel": "Department",
           "relationName": "DepartmentToEmployee",
-          "foreignKeyFields": ["departmentId"],
-          "referencedFields": ["id"],
+          "foreignKeyFields": [
+            "departmentId"
+          ],
+          "referencedFields": [
+            "id"
+          ],
           "isRequired": true,
           "isList": false
         },
@@ -264,8 +278,12 @@
           "type": "one",
           "targetModel": "Employee",
           "relationName": "Reports",
-          "foreignKeyFields": ["managerId"],
-          "referencedFields": ["id"],
+          "foreignKeyFields": [
+            "managerId"
+          ],
+          "referencedFields": [
+            "id"
+          ],
           "isRequired": false,
           "isList": false
         },
@@ -300,7 +318,14 @@
           "isList": true
         }
       ],
-      "uniqueConstraints": [["id"], ["email"]],
+      "uniqueConstraints": [
+        [
+          "id"
+        ],
+        [
+          "email"
+        ]
+      ],
       "hasSoftDelete": false,
       "labelField": "name"
     },
@@ -423,13 +448,21 @@
           "type": "one",
           "targetModel": "Employee",
           "relationName": "EmployeeToTimeLog",
-          "foreignKeyFields": ["employeeId"],
-          "referencedFields": ["id"],
+          "foreignKeyFields": [
+            "employeeId"
+          ],
+          "referencedFields": [
+            "id"
+          ],
           "isRequired": true,
           "isList": false
         }
       ],
-      "uniqueConstraints": [["id"]],
+      "uniqueConstraints": [
+        [
+          "id"
+        ]
+      ],
       "hasSoftDelete": false,
       "labelField": "id"
     },
@@ -580,13 +613,21 @@
           "type": "one",
           "targetModel": "Employee",
           "relationName": "EmployeeToLeaveRequest",
-          "foreignKeyFields": ["employeeId"],
-          "referencedFields": ["id"],
+          "foreignKeyFields": [
+            "employeeId"
+          ],
+          "referencedFields": [
+            "id"
+          ],
           "isRequired": true,
           "isList": false
         }
       ],
-      "uniqueConstraints": [["id"]],
+      "uniqueConstraints": [
+        [
+          "id"
+        ]
+      ],
       "hasSoftDelete": true,
       "labelField": "id"
     }

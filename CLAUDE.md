@@ -61,6 +61,29 @@ documentation; do not relitigate them, apply them.
 8. **Authorization is checked on the server at execution time**, never only when the button is
    rendered. A hidden button is not a protection.
 
+## Getting a working tree
+
+```bash
+pnpm install
+pnpm build          # the proofs read what the packages publish
+```
+
+Then the four gates, in this order, **read by exit code and not by what they
+print**: `pnpm format:check`, `pnpm typecheck`, `pnpm lint`, `pnpm boundaries`,
+and then `npx vitest run`. `pnpm typecheck` runs turbo and then a root `tsc`;
+turbo's summary can say "18 successful" while the root one fails, which is why
+the exit code is the thing to read.
+
+The suite takes about fifty seconds and builds once before the first worker. It
+needs no database: the two suites that touch PostgreSQL skip without
+`DATABASE_URL`, which is what CI gives them.
+
+**The examples do need one**, and git carries no connection string: `.env` is
+ignored and `.env.example` beside it shows the shape. Each example has a
+database of its own on the same server and a port of its own.
+[`examples/README.md`](examples/README.md) is the one place that says how, and
+also holds the two examples that are wanted and not written yet.
+
 ## Where we are, and where to start
 
 **The four acceptance milestones pass.** Each is held by a test that names it, so what they

@@ -31,12 +31,21 @@ const THEME = String.raw`
   --perch-radius-sm: 6px;
 }
 
+/* Every colour the block above sets has to be answered here.
+
+   The panel's own dark ramp is inside a cascade layer and this sheet is in
+   none, so a token set on .perch-root wins in both themes however the panel
+   declared it. Three were missed on the first pass and a light border carried
+   into the dark one. */
 [data-perch-theme="dark"] {
   --perch-accent: #60a5fa;
   --perch-accent-hover: #93c5fd;
   --perch-accent-surface: #10203c;
   --perch-accent-border: #1e3a5f;
+  --perch-accent-ring: rgb(96 165 250 / 0.3);
   --perch-surface-page: #0a0c10;
+  --perch-border: #262c36;
+  --perch-border-subtle: #1b2028;
 }
 
 /* ------------------------------------------------------------- the shell */
