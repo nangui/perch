@@ -17,19 +17,6 @@
    exist, a leftover rule below would quietly outrank a recipe. */
 @import "./panda.css";
 
-.perch-root {
-  font-family: var(--perch-font-sans);
-  color: var(--perch-content);
-  background: var(--perch-surface-page);
-  -webkit-font-smoothing: antialiased;
-}
-
-.perch-root *,
-.perch-root *::before,
-.perch-root *::after {
-  box-sizing: border-box;
-}
-
 /* The rows a record could be joined to, offered one per line. Buttons rather
    than a list with a control beside each: the whole line is the target, which
    is what people aim at. */
@@ -588,17 +575,6 @@
   font-size: var(--perch-text-sm);
 }
 
-/* --------------------------------------------------------- reduced motion */
-
-@media (prefers-reduced-motion: reduce) {
-  .perch-root *,
-  .perch-root *::before,
-  .perch-root *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-  }
-}
-
 /* Screen-reader-only text. Used for the label of a control whose visible label
    sits elsewhere, and for live status announcements. */
 .perch-sr-only {
@@ -777,40 +753,6 @@
   justify-content: flex-start;
   text-align: left;
   padding: var(--perch-space-2) var(--perch-space-3);
-}
-
-.perch-breadcrumb {
-  padding: var(--perch-space-5) var(--perch-space-7) 0;
-}
-
-/* The page now supplies the margin. Left alone the trail was indented past the
-   cards it sits above. */
-.perch-shell__main > .perch-breadcrumb {
-  padding: 0;
-}
-
-.perch-breadcrumb__list {
-  display: flex;
-  gap: var(--perch-space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: var(--perch-text-sm);
-  color: var(--perch-content-muted);
-}
-
-.perch-breadcrumb__list li + li::before {
-  content: "/";
-  margin-right: var(--perch-space-4);
-}
-
-.perch-breadcrumb__link {
-  color: var(--perch-accent);
-  text-decoration: none;
-}
-
-.perch-breadcrumb__link:hover {
-  text-decoration: underline;
 }
 
 .perch-page__title {

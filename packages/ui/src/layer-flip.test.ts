@@ -297,9 +297,6 @@ const SHAPES: readonly { readonly what: string; readonly html: string }[] = [
       `<main class="perch-shell__main"></main></div></div>`,
   },
   {
-    // The shell zeroes a padding the breadcrumb gives itself, and the
-    // breadcrumb is still hand-written — so that override had to stay out of
-    // the layer. Moved in, this shape is what says so.
     what: "a breadcrumb under the shell's main",
     html: `<main class="perch-shell__main"><nav class="perch-breadcrumb"></nav></main>`,
   },
@@ -450,7 +447,9 @@ function weight(selector: string): readonly [number, number, number] {
 }
 
 /**
- * Strictly more, and strictly is the point. At equal specificity the
+ * Strictly more, and strictly is the point. Nothing here reads `!important`,
+ * which beats a normal declaration whatever either carries — the panel has two,
+ * both on properties nothing else claims. At equal specificity the
  * hand-written rule wins, which is what won before the move too — it was the
  * later of the two in the one file they shared — so a tie is not a flip.
  */

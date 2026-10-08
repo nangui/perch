@@ -1831,6 +1831,70 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * The panel's own ground, and the trail above a page.
+     *
+     * The reset is scoped to `.perch-root` rather than the document, which is
+     * the same decision `preflight: false` carries: this package resets what it
+     * owns and nothing else.
+     *
+     * The breadcrumb's override arrives with it. While the trail was still
+     * hand-written the override had to be too — a layered rule cannot beat an
+     * unlayered one — and now that both are layered, two classes beat one.
+     */
+    ".perch-root": {
+      fontFamily: "sans",
+      color: "content",
+      background: "var(--perch-surface-page)",
+      WebkitFontSmoothing: "antialiased",
+    },
+
+    ".perch-root *, .perch-root *::before, .perch-root *::after": {
+      boxSizing: "border-box",
+      /* The only two `!important` declarations in the panel. For an important
+         declaration the layer order is reversed, so a layered one outranks an
+         unlayered one — this can only have got safer by moving, and nothing
+         else claims either property. */
+      _motionReduce: {
+        transitionDuration: "0.01ms !important",
+        animationDuration: "0.01ms !important",
+      },
+    },
+
+    ".perch-shell__main > .perch-breadcrumb": {
+      /* The page supplies the margin there. Left alone the trail was indented
+         past the cards it sits above. */
+      padding: "0",
+    },
+
+    ".perch-breadcrumb": {
+      padding: "var(--perch-space-5) var(--perch-space-7) 0",
+    },
+
+    ".perch-breadcrumb__list": {
+      display: "flex",
+      gap: "4",
+      margin: "0",
+      padding: "0",
+      listStyle: "none",
+      fontSize: "sm",
+      color: "content-muted",
+    },
+
+    ".perch-breadcrumb__list li + li::before": {
+      content: '"/"',
+      marginRight: "4",
+    },
+
+    ".perch-breadcrumb__link": {
+      color: "accent",
+      textDecoration: "none",
+    },
+
+    ".perch-breadcrumb__link:hover": {
+      textDecoration: "underline",
+    },
+
+    /**
      * The shell and the navigation in it.
      *
      * Two families, one surface here: the rules that stack the panel on a phone
