@@ -43,13 +43,14 @@ function publishable(): string[] {
 }
 
 /**
- * The records the index does not call accepted.
+ * The records the index does not call accepted, by whichever means.
  *
  * Read from the index rather than from the records: a record is never edited,
- * so the one that was superseded still carries the status it was written with,
- * and the index is where its status now lives.
+ * so one closed still carries the status it was written with, and the index is
+ * where its status now lives. Two kinds live there — superseded by a later
+ * decision, and retired because the subject is gone and nothing replaces it.
  */
-function superseded(): string[] {
+function closed(): string[] {
   return [
     ...read("docs/adr/README.md").matchAll(
       /^\| \[(\d{4})\][^|]*\|[^|]*\| ([^|]+) \|$/gm,
@@ -238,12 +239,15 @@ const CLAIMS: readonly Claim[] = [
   {
     page: "CONTRIBUTING.md",
     counts: "records the index no longer calls accepted",
+    // Two kinds of closed now — one superseded by a later decision, one
+    // retired because its subject is gone and nothing replaces it — so the
+    // claim counts both rather than naming one and missing the other.
     // The claim beside the count, which was wrong for longer than the count
     // ever was: it read "every one accepted" while the index had already
     // marked one superseded. A count nobody holds is a count that drifts; a
     // claim nobody holds is worse, because it reads as a fact.
-    sentence: /records, ([a-z0-9-]+) of them superseded/,
-    truth: () => superseded().length,
+    sentence: /records, ([a-z0-9-]+) of them closed/,
+    truth: () => closed().length,
   },
 ];
 

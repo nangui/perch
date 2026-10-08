@@ -46,6 +46,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0038](adr/0038-who-writes-the-stylesheet.md) | Panda CSS writes the stylesheet from `panda.config.ts`, and the published properties do not move |
 | [0039](adr/0039-what-moving-a-surface-costs.md) | What has to be checked each time a surface moves, because three times out of three something was found |
 | [0040](adr/0040-what-a-stylesheet-guard-promises.md) | The suite holds the panel to floors rather than to how any surface looks |
+| [0041](adr/0041-what-the-stylesheet-migration-cost.md) | What the stylesheet migration cost and found, and the procedure it retires |
 
 ## Perch — a UI framework for NestJS
 

@@ -50,8 +50,9 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0036](0036-when-a-widget-gets-its-numbers.md) | A widget's numbers arrive on their own request after the shell, so a slow one is slow alone | accepted |
 | [0037](0037-who-draws-a-date-grid.md) | Ark UI draws the date grid, on a chunk of its own, because the hand-written one was reachable and not navigable | accepted |
 | [0038](0038-who-writes-the-stylesheet.md) | Panda CSS writes the stylesheet from `panda.config.ts`; recipes keep the class names and `globalCss` keeps the published properties | accepted |
-| [0039](0039-what-moving-a-surface-costs.md) | Moving a surface into a layer costs more than its rules: the floors under it, the specificity arguments about it, and the guards that read the other half | accepted |
+| [0039](0039-what-moving-a-surface-costs.md) | Moving a surface into a layer costs more than its rules: the floors under it, the specificity arguments about it, and the guards that read the other half | retired by [0041](0041-what-the-stylesheet-migration-cost.md) |
 | [0040](0040-what-a-stylesheet-guard-promises.md) | The suite promises floors every surface must answer, not that any surface looks right; a new surface test needs an expensive decision, not a gap in a count | accepted |
+| [0041](0041-what-the-stylesheet-migration-cost.md) | What twenty-seven moves found, and why ADR 0039's procedure is retired rather than replaced | accepted |
 
 ## Format
 
