@@ -1831,6 +1831,128 @@ export default defineConfig({
     ':where([data-perch-theme="dark"])': ramp(1),
 
     /**
+     * The last twelve, and with them the last rule written by hand.
+     *
+     * A skeleton, a loading note, a placeholder, a popover, a keycap, the two
+     * ways of hiding text from the eye and not the ear, an unknown column, the
+     * pager and a page title — plus the view page's rule closing the reserved
+     * line under a field, which travels because the field is already layered.
+     */
+    ".perch-skeleton": {
+      display: "block",
+      height: "9px",
+      borderRadius: "var(--perch-space-1)",
+      background: "surface-skeleton",
+    },
+
+    ".perch-loading-note": {
+      marginLeft: "auto",
+      flex: "none",
+      fontSize: "sm",
+      color: "content-muted",
+    },
+
+    /*
+     * The help line is reserved on a form so an error appearing cannot make the
+     * page jump. Nothing here can be in error — there is no state to validate — so
+     * an empty one is empty space, and eight of them are a page of it.
+     */
+    ".perch-view .perch-field__help:empty": {
+      minHeight: "0",
+    },
+
+    ".perch-placeholder": {
+      display: "flex",
+      alignItems: "center",
+      minHeight: "control-height",
+      margin: "0",
+      color: "content-secondary",
+      fontSize: "control",
+    },
+
+    ".perch-popover": {
+      overflow: "hidden",
+      border: "1px solid var(--perch-border-strong)",
+      borderRadius: "lg",
+      background: "surface",
+      boxShadow: "popover",
+      zIndex: "40",
+    },
+
+    ".perch-kbd": {
+      padding: "1px var(--perch-space-3)",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "sm",
+      background: "surface-muted",
+      color: "content",
+      fontFamily: "mono",
+      fontSize: "sm",
+    },
+
+    /* Screen-reader-only text. Used for the label of a control whose visible label
+       sits elsewhere, and for live status announcements. */
+    ".perch-sr-only": {
+      position: "absolute",
+      width: "1px",
+      height: "1px",
+      padding: "0",
+      margin: "-1px",
+      overflow: "hidden",
+      clipPath: "inset(50%)",
+      whiteSpace: "nowrap",
+      border: "0",
+    },
+
+    /* Sizes for the two drawings a component takes from the named set. Both are
+       what those components already drew — 14 and 13 — and they say it here because
+       `.perch-icon` sizes in `em` and these two want a fixed mark in a fixed box. */
+    ".perch-date__calendar": {
+      width: "14px",
+      height: "14px",
+    },
+
+    /* Development only: a node whose type has no registered renderer. */
+    ".perch-unknown": {
+      padding: "5",
+      border: "1px dashed var(--perch-danger-border)",
+      borderRadius: "md",
+      color: "danger-content",
+      fontFamily: "mono",
+      fontSize: "base",
+    },
+
+    /* Available to a screen reader, and to nothing else. Used by the table caption
+       and by the word an icon cell says out loud. */
+    ".perch-visually-hidden": {
+      position: "absolute",
+      width: "1px",
+      height: "1px",
+      margin: "-1px",
+      padding: "0",
+      overflow: "hidden",
+      clipPath: "inset(50%)",
+      whiteSpace: "nowrap",
+      border: "0",
+    },
+
+    /* Turning a page is a button, not a link: it replaces the rows in place rather
+       than going anywhere the browser knows about. */
+    ".perch-pagination": {
+      display: "flex",
+      gap: "4",
+      marginTop: "5",
+    },
+
+    ".perch-page__title": {
+      margin: "var(--perch-space-4) 0 var(--perch-space-8)",
+      fontSize: "2xl",
+      fontWeight: "600",
+      letterSpacing: "-0.01em",
+      color: "content",
+      textWrap: "balance",
+    },
+
+    /**
      * Ten small surfaces: the column chooser, the read-only pairs, a record's
      * own pages, the tabs, what a page says when it holds nothing, the date
      * segments, the attach list, the notices, a span and the topbar.
@@ -4998,6 +5120,21 @@ export default defineConfig({
 
   theme: {
     extend: {
+      /**
+       * The one animation the panel declares, for a panel sliding in from the
+       * side. It lived in the hand-written sheet and was deleted with it: a
+       * `@keyframes` carries no selector, so every tool in the migration read
+       * past it, and `modal-styles.test.ts` is what noticed — an animation
+       * naming keyframes that do not exist does nothing, and looks exactly
+       * like one that works.
+       */
+      keyframes: {
+        "perch-slide-in": {
+          from: { transform: "translateX(100%)" },
+          to: { transform: "translateX(0)" },
+        },
+      },
+
       /**
        * Every token points at the property above it.
        *

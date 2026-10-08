@@ -1,143 +1,16 @@
 /**
- * Atlas — component styles.
+ * Atlas — the panel's stylesheet, and the name it is published under.
  *
- * Shipped precompiled and served as static assets by the PanelModule: the user
- * of the framework configures no bundler and no CSS pipeline.
+ * Not a stylesheet any more: `@perchjs/ui/styles.css` is the entry the exports
+ * map advertises and `panel.tsx` imports, so this is the door the generated
+ * sheet is served through. It holds no rule of its own and is not going to —
+ * the design lives in `panda.config.ts`, where every colour, size, radius and
+ * shadow is declared once with its dark value beside its light one, and
+ * `panda cssgen` writes it out.
  *
- * Not one raw colour appears below. Every value is a token, and the tokens
- * are declared in `panda.config.ts` and written out by the build — which is
- * what makes the panel re-themable by redefining the custom properties it
- * publishes.
+ * It took five thousand and forty-three lines to this, one surface at a time.
+ * While both halves existed the rules here sat in no layer and so outranked
+ * every recipe, which is why they were moved whole rather than a rule at a
+ * time; nothing is left to outrank anything now.
  */
-/* Written by `panda cssgen` from `panda.config.ts`, which is where the design
-   now lives: every colour, size, radius and shadow, once, with its dark value
-   beside its light one. Imported first so the cascade layers it declares are
-   established before any rule here, and because the rules here sit in no layer
-   at all — unlayered beats every layer, so while both ways of writing this
-   exist, a leftover rule below would quietly outrank a recipe. */
 @import "./panda.css";
-
-/* A value being fetched. Never a spinner in place of the control: the box keeps
-   its height and its border so the fields under it do not move. */
-.perch-skeleton {
-  display: block;
-  height: 9px;
-  border-radius: var(--perch-space-1);
-  background: var(--perch-surface-skeleton);
-}
-
-.perch-loading-note {
-  margin-left: auto;
-  flex: none;
-  font-size: var(--perch-text-sm);
-  color: var(--perch-content-muted);
-}
-
-/*
- * The help line is reserved on a form so an error appearing cannot make the
- * page jump. Nothing here can be in error — there is no state to validate — so
- * an empty one is empty space, and eight of them are a page of it.
- */
-.perch-view .perch-field__help:empty {
-  min-height: 0;
-}
-
-.perch-placeholder {
-  display: flex;
-  align-items: center;
-  min-height: var(--perch-control-height);
-  margin: 0;
-  color: var(--perch-content-secondary);
-  font-size: var(--perch-text-control);
-}
-
-.perch-popover {
-  overflow: hidden;
-  border: 1px solid var(--perch-border-strong);
-  border-radius: var(--perch-radius-lg);
-  background: var(--perch-surface);
-  box-shadow: var(--perch-shadow-popover);
-  z-index: 40;
-}
-
-@keyframes perch-slide-in {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-.perch-kbd {
-  padding: 1px var(--perch-space-3);
-  border: 1px solid var(--perch-border);
-  border-radius: var(--perch-radius-sm);
-  background: var(--perch-surface-muted);
-  color: var(--perch-content);
-  font-family: var(--perch-font-mono);
-  font-size: var(--perch-text-sm);
-}
-
-/* Screen-reader-only text. Used for the label of a control whose visible label
-   sits elsewhere, and for live status announcements. */
-.perch-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Sizes for the two drawings a component takes from the named set. Both are
-   what those components already drew — 14 and 13 — and they say it here because
-   `.perch-icon` sizes in `em` and these two want a fixed mark in a fixed box. */
-.perch-date__calendar {
-  width: 14px;
-  height: 14px;
-}
-
-/* Development only: a node whose type has no registered renderer. */
-.perch-unknown {
-  padding: var(--perch-space-5);
-  border: 1px dashed var(--perch-danger-border);
-  border-radius: var(--perch-radius);
-  color: var(--perch-danger-content);
-  font-family: var(--perch-font-mono);
-  font-size: var(--perch-text-base);
-}
-
-/* Available to a screen reader, and to nothing else. Used by the table caption
-   and by the word an icon cell says out loud. */
-.perch-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Turning a page is a button, not a link: it replaces the rows in place rather
-   than going anywhere the browser knows about. */
-.perch-pagination {
-  display: flex;
-  gap: var(--perch-space-4);
-  margin-top: var(--perch-space-5);
-}
-
-.perch-page__title {
-  margin: var(--perch-space-4) 0 var(--perch-space-8);
-  font-size: var(--perch-text-2xl);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--perch-content);
-  text-wrap: balance;
-}
