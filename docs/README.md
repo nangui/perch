@@ -47,6 +47,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0039](adr/0039-what-moving-a-surface-costs.md) | What has to be checked each time a surface moves, because three times out of three something was found |
 | [0040](adr/0040-what-a-stylesheet-guard-promises.md) | The suite holds the panel to floors rather than to how any surface looks |
 | [0041](adr/0041-what-the-stylesheet-migration-cost.md) | What the stylesheet migration cost and found, and the procedure it retires |
+| [0042](adr/0042-the-pointer-target-floor-has-two-forms.md) | A pointer target conforms by its size or by its spacing, and the panel uses both |
 
 ## Perch — a UI framework for NestJS
 
