@@ -11,6 +11,7 @@
  * that cannot do its one job.
  */
 import type { FormState, IconName, Schema } from "@perchjs/core";
+import { titled } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import { Injectable, SetMetadata } from "@nestjs/common";
 
@@ -106,10 +107,4 @@ function withDefaults(options: PanelPageOptions): PageMetadata {
     ...(options.icon === undefined ? {} : { icon: options.icon }),
     ...(options.widgets === undefined ? {} : { widgets: options.widgets }),
   };
-}
-
-/** `import-orders` → `Import orders`, which is what a menu reads. */
-function titled(path: string): string {
-  const words = path.replaceAll("-", " ").trim();
-  return words === "" ? path : words.charAt(0).toUpperCase() + words.slice(1);
 }

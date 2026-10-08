@@ -49,6 +49,7 @@ import { KeyValueEntry } from "./entries/KeyValueEntry.js";
 import type { TextFlavour } from "./fields/TextInput.js";
 import type { NodeProps, SearchedOption } from "./node-props.js";
 import { registerComponent } from "./registry.js";
+import { headingOf } from "./heading.js";
 
 /**
  * What a field asked to sit inside its frame.
@@ -356,7 +357,7 @@ function TextInputRenderer({
   const [revealed, setRevealed] = useState(false);
   return (
     <FieldShell
-      label={node.label ?? node.path ?? ""}
+      label={headingOf(node)}
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
@@ -443,7 +444,7 @@ function SelectRenderer({
   const status = statusOf(node, error, pending, inFlight);
   const options = choices(node.options);
 
-  const label = node.label ?? node.path ?? "";
+  const label = headingOf(node);
   const path = node.path;
 
   const [creating, setCreating] = useState(false);
@@ -603,7 +604,7 @@ function ColorPickerRenderer({
   onChange,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
-  const label = node.label ?? node.path ?? "";
+  const label = headingOf(node);
 
   return (
     <FieldShell
@@ -639,7 +640,7 @@ function KeyValueRenderer({
   onChange,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
-  const label = node.label ?? node.path ?? "";
+  const label = headingOf(node);
   // Anything that is not a list of pairs reads as no rows. The server refuses
   // the shape at the boundary; drawing it is not the place to argue about it.
   const rows = Array.isArray(value)
@@ -693,7 +694,7 @@ function TagsInputRenderer({
   onChange,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
-  const label = node.label ?? node.path ?? "";
+  const label = headingOf(node);
   // Anything that is not a list of text reads as no tags. The server refuses
   // the shape at the boundary; drawing it is not the place to argue about it.
   const tags = Array.isArray(value)
@@ -746,7 +747,7 @@ function CheckboxListRenderer({
   onChange,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
-  const label = node.label ?? node.path ?? "";
+  const label = headingOf(node);
   const options = choices(node.options);
 
   // Anything that is not a list reads as nothing ticked. The server refuses
@@ -797,7 +798,7 @@ function MarkdownEditorRenderer({
   onChange,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
-  const label = node.label ?? node.path ?? "";
+  const label = headingOf(node);
   const declared = node.props?.["toolbar"];
   const toolbar = (Array.isArray(declared) ? declared : []).filter(
     (one): one is MarkdownTool =>
@@ -845,7 +846,7 @@ function RichEditorRenderer({
   onChange,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
-  const label = node.label ?? node.path ?? "";
+  const label = headingOf(node);
   const declared = node.props?.["toolbar"];
   // Whatever the wire says, drawn only where a button exists for it. The
   // server refuses what its own toolbar cannot make, so a name this does not
@@ -902,7 +903,7 @@ function ToggleButtonsRenderer({
   onChange,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
-  const label = node.label ?? node.path ?? "";
+  const label = headingOf(node);
   const options = choices(node.options);
 
   return (
@@ -941,7 +942,7 @@ function RadioRenderer({
   onChange,
 }: NodeProps): ReactNode {
   const status = statusOf(node, error, pending, inFlight);
-  const label = node.label ?? node.path ?? "";
+  const label = headingOf(node);
   const options = choices(node.options);
 
   return (
@@ -982,7 +983,7 @@ function CheckboxRenderer({
 
   return (
     <FieldShell
-      label={node.label ?? node.path ?? ""}
+      label={headingOf(node)}
       status={status}
       required={node.required === true}
       inline={node.inlineLabel === true}
@@ -1027,7 +1028,7 @@ function ToggleRenderer({
       onCheckedChange={(next) => {
         if (node.path !== undefined) onChange(node.path, next);
       }}
-      label={node.label ?? node.path ?? ""}
+      label={headingOf(node)}
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
@@ -1054,7 +1055,7 @@ function TextareaRenderer({
 
   return (
     <FieldShell
-      label={node.label ?? node.path ?? ""}
+      label={headingOf(node)}
       status={status}
       required={node.required === true}
       {...(node.helperText === undefined ? {} : { help: node.helperText })}
@@ -1356,7 +1357,7 @@ function PlaceholderRenderer({ node, error, pending, inFlight }: NodeProps): Rea
 
   return (
     <FieldShell
-      label={node.label ?? node.path ?? ""}
+      label={headingOf(node)}
       status={status}
       labelable={false}
       inline={node.inlineLabel === true}
@@ -1416,7 +1417,7 @@ function DateTimePickerRenderer({
 
   return (
     <FieldShell
-      label={node.label ?? node.path ?? ""}
+      label={headingOf(node)}
       status={status}
       required={node.required === true}
       inline={node.inlineLabel === true}
@@ -1482,7 +1483,7 @@ function FileUploadRenderer({
 
   return (
     <FieldShell
-      label={node.label ?? node.path ?? ""}
+      label={headingOf(node)}
       status={status}
       required={node.required === true}
       inline={node.inlineLabel === true}
@@ -1571,7 +1572,7 @@ function RepeaterRenderer({
   return (
     <div className="perch-field" data-error={error !== undefined}>
       <Repeater
-        title={node.label ?? path ?? ""}
+        title={headingOf({ label: node.label, path })}
         items={items}
         {...(typeof max === "number" ? { max } : {})}
         {...(node.props?.["collapsible"] === true ? { collapsible: true } : {})}

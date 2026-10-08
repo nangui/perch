@@ -79,6 +79,10 @@ describe("what a cell carries for it", () => {
   it("is the column's label, in the markup", () => {
     // Written once where the cell is drawn rather than in a second pass: a cell
     // is drawn by one memoised function per column type, and that stays true.
-    expect(TABLE).toContain("data-label={column.label ?? column.path}");
+    //
+    // The heading rather than the raw expression: a column with no label of its
+    // own reads its path as a heading now, and a stacked cell has to carry what
+    // the hidden header row would have said, not what the schema called it.
+    expect(TABLE).toContain("data-label={headingOf(column)}");
   });
 });

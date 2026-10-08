@@ -225,6 +225,8 @@ export {
 export type { IconState, PrimeState } from "./prime.js";
 export { Icon, Image, Prime, Text } from "./prime.js";
 
+export { titled } from "./titled.js";
+
 // Fields: components that hold state and are validated.
 export type {
   FieldState,

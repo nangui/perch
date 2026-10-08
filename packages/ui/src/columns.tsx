@@ -15,6 +15,7 @@ import { swatchable } from "./colour.js";
 import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
 import { registerColumn } from "./column-registry.js";
+import { headingOf } from "./heading.js";
 
 /**
  * A cell shows what it was given, or the em dash a table uses for nothing.
@@ -409,7 +410,7 @@ function choose(value: unknown, column: ColumnNode, cell: CellHandle): ReactNode
  * is what reading the row's own first string gave.
  */
 function nameOf(column: ColumnNode, cell: CellHandle): string {
-  const what = column.label ?? column.path;
+  const what = headingOf(column);
   return cell.rowName === undefined ? what : `${what}: ${cell.rowName}`;
 }
 

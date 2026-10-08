@@ -28,6 +28,7 @@ import { EllipsisMark } from "./marks.js";
 import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
 import { lookupColumn } from "./column-registry.js";
+import { headingOf } from "./heading.js";
 
 export interface DataTableSort {
   readonly path: string;
@@ -474,7 +475,7 @@ export function DataTable({
                       // says what it is — and it says it in the markup rather than in
                       // a second render pass, because a cell is drawn by one
                       // memoised function per column type and that stays true.
-                      data-label={column.label ?? column.path}
+                      data-label={headingOf(column)}
                     >
                       {render === undefined
                         ? unknownColumn(column)
@@ -730,7 +731,7 @@ function header(
   sort: DataTableSort | undefined,
   onSort: ((sort: DataTableSort) => void) | undefined,
 ): ReactNode {
-  const label = column.label ?? column.path;
+  const label = headingOf(column);
   if (column.sortable !== true || onSort === undefined) return label;
 
   const next: SortDirection =

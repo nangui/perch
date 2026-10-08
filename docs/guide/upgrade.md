@@ -21,10 +21,31 @@ so there was nothing to do, and a section saying so would be a section about not
 
 ## 0.3 to 0.4
 
-Three things. Two are on the `DataAdapter` port and one is an export that changed
-name, and unlike every change at the last boundary the compiler sees all three. If you
-have never written an adapter of your own and never reached into `@perchjs/ui` for a
-calendar, there is nothing on this page for you.
+Four things. Two are on the `DataAdapter` port, one is an export that changed name,
+and the compiler sees those three. The fourth it does not: a field or column you never
+gave a label to is now headed differently.
+
+### A field with no label of its own reads its path as a heading
+
+A field, column or entry has always fallen back to its path when nothing named it, and
+it printed that path exactly as written. A table headed `Species | Site | count |
+certainty` and a form asked for `name`, `region`, `habitat`. The lower-case ones were
+the paths, printed exactly as the resource wrote them.
+
+They are read as headings now, the way a page's title already was:
+
+```diff
+-count            certainty            confirmed
++Count            Certainty            Confirmed
+```
+
+`commonName` reads as `Common name`, and `common_name` and `import-orders` the same. A
+dotted path keeps its segments, so `site.name` is `Site name` rather than `Name` and a
+table holding it beside `observer.name` does not head two columns alike.
+
+Nothing to do, unless you had been relying on the old text. A label you gave is
+untouched, including an empty one: ``.label("")`` still means no label rather than no
+name, and only an absent label falls back.
 
 ### An adapter of your own has to be able to aggregate
 

@@ -14,6 +14,7 @@
  * production, with no error at all.
  */
 import type { FormState, IconName, Row, Schema } from "@perchjs/core";
+import { titled } from "@perchjs/core";
 import type { Authorization } from "./authorization.js";
 import { Injectable, SetMetadata } from "@nestjs/common";
 
@@ -89,10 +90,4 @@ function withDefaults(options: PanelResourcePageOptions): ResourcePageMetadata {
     ...(options.icon === undefined ? {} : { icon: options.icon }),
     ...(options.sort === undefined ? {} : { sort: options.sort }),
   };
-}
-
-/** `audit-trail` → `Audit trail`, which is what a strip of links reads. */
-function titled(path: string): string {
-  const words = path.replaceAll("-", " ").trim();
-  return words === "" ? path : words.charAt(0).toUpperCase() + words.slice(1);
 }

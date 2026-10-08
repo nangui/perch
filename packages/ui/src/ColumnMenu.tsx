@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import { useRef } from "react";
 import type { ColumnNode } from "@perchjs/core";
 import { useDismiss } from "./dismiss.js";
+import { headingOf } from "./heading.js";
 
 export interface ColumnMenuProps {
   readonly columns: readonly ColumnNode[];
@@ -51,7 +52,7 @@ export function ColumnMenu({ columns, hidden, onToggle }: ColumnMenuProps): Reac
                   onToggle(column.path);
                 }}
               />
-              {column.label ?? column.path}
+              {headingOf(column)}
             </label>
           );
         })}
