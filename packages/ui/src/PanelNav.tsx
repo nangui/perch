@@ -9,7 +9,9 @@
  */
 import { RenderHooks } from "./hooks.js";
 import type { ReactNode } from "react";
+import { useId, useState } from "react";
 import { IconMark } from "./icons.js";
+import { ChevronDown, MenuMark } from "./marks.js";
 
 export interface NavigationItem {
   readonly label: string;
@@ -30,43 +32,78 @@ export interface PanelNavProps {
 }
 
 export function PanelNav({ groups }: PanelNavProps): ReactNode {
+  // Whether the menu is open where it is folded. A reader's own business, held
+  // here and nowhere else; wider than the fold the button is not drawn and the
+  // list always is, so this changes nothing there.
+  const [open, setOpen] = useState(false);
+  const list = useId();
   if (groups.length === 0) return null;
 
+  // Named after the page the reader is on, so a folded menu still says where
+  // they are rather than only that a menu exists.
+  const here = groups.flatMap((group) => group.items).find((item) => item.current);
+
   return (
-    <nav className="perch-nav" aria-label="Panel">
+    <nav className="perch-nav" aria-label="Panel" data-open={open ? "true" : undefined}>
       <RenderHooks at="sidebar.start" />
-      {groups.map((group, index) => (
-        <div className="perch-nav__group" key={group.label ?? `#${String(index)}`}>
-          {group.label === undefined ? null : (
-            <h2 className="perch-nav__heading">{group.label}</h2>
+      <button
+        type="button"
+        className="perch-nav__toggle"
+        aria-expanded={open}
+        aria-controls={list}
+        onClick={() => {
+          setOpen(!open);
+        }}
+      >
+        <MenuMark />
+        {/* "Menu" said first, so the button is announced as what it opens and
+            not as a page; the page's name is what it shows. */}
+        <span className="perch-nav__toggle-label">
+          {here === undefined ? (
+            "Menu"
+          ) : (
+            <>
+              <span className="perch-visually-hidden">Menu, </span>
+              {here.label}
+            </>
           )}
-          <ul className="perch-nav__list">
-            {group.items.map((item) => (
-              <li key={item.href}>
-                <a
-                  className="perch-nav__link"
-                  href={item.href}
-                  // The page you are on, said to a screen reader rather than
-                  // only drawn.
-                  {...(item.current === true
-                    ? { "aria-current": "page" as const }
-                    : {})}
-                >
-                  <IconMark name={item.icon} className="perch-nav__icon" />
-                  {item.label}
-                  {/* Not `aria-hidden`: a number beside a name is the one thing
+        </span>
+        <ChevronDown />
+      </button>
+      <div id={list} className="perch-nav__groups">
+        {groups.map((group, index) => (
+          <div className="perch-nav__group" key={group.label ?? `#${String(index)}`}>
+            {group.label === undefined ? null : (
+              <h2 className="perch-nav__heading">{group.label}</h2>
+            )}
+            <ul className="perch-nav__list">
+              {group.items.map((item) => (
+                <li key={item.href}>
+                  <a
+                    className="perch-nav__link"
+                    href={item.href}
+                    // The page you are on, said to a screen reader rather than
+                    // only drawn.
+                    {...(item.current === true
+                      ? { "aria-current": "page" as const }
+                      : {})}
+                  >
+                    <IconMark name={item.icon} className="perch-nav__icon" />
+                    {item.label}
+                    {/* Not `aria-hidden`: a number beside a name is the one thing
                       in this menu that is not decoration, and a reader who
                       cannot see it is the reader who most needs telling. */}
-                  {item.badge === undefined ? null : (
-                    <span className="perch-nav__badge">{item.badge}</span>
-                  )}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-      <RenderHooks at="sidebar.end" />
+                    {item.badge === undefined ? null : (
+                      <span className="perch-nav__badge">{item.badge}</span>
+                    )}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <RenderHooks at="sidebar.end" />
+      </div>
     </nav>
   );
 }

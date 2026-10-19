@@ -101,6 +101,36 @@ describe("the shell in a narrow window", () => {
     expect(shell()).toContain("display: block");
   });
 
+  it("reaches the window's edge, with no margin left on the body", () => {
+    // The shell puts the root class on `<body>`, which a browser gives eight
+    // pixels of margin.
+    const root = /\.perch-root\s*\{([^}]*)\}/.exec(STYLES)?.[1];
+
+    expect(root).toContain("margin: 0");
+  });
+
+  it("stacks the row the navigation and the page share", () => {
+    // The topbar moved both into `.perch-shell__body`, and stacking only the
+    // shell above it left them side by side on a phone, with nothing failing.
+    const body = narrowBlockNaming(".perch-shell__body");
+    const rule = /\.perch-shell__body\s*\{([^}]*)\}/.exec(body)?.[1];
+
+    expect(rule).toContain("display: block");
+  });
+
+  it("folds the menu behind its button", () => {
+    const groups = narrowBlockNaming(".perch-nav__groups");
+
+    expect(/\.perch-nav__groups\s*\{([^}]*)\}/.exec(groups)?.[1]).toContain(
+      "display: none",
+    );
+    expect(
+      /\.perch-nav__toggle\s*\{([^}]*)\}/.exec(
+        narrowBlockNaming(".perch-nav__toggle"),
+      )?.[1],
+    ).toContain("display: flex");
+  });
+
   it("lets the navigation take the width instead of a fixed column", () => {
     expect(shell()).toContain("width: auto");
   });

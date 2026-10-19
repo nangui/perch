@@ -2766,6 +2766,11 @@ export default defineConfig({
      * unlayered one — and now that both are layered, two classes beat one.
      */
     ".perch-root": {
+      /* The shell puts this class on `<body>`, and a body's eight pixels of
+         margin are a browser default nothing reset: the navigation stopped
+         short of the window's edge on every side, a frame round the panel in
+         the page ground's colour. */
+      margin: "0",
       fontFamily: "sans",
       /* Nothing set one, `preflight` being off, so text sat at the browser's
          `normal` — about 1.2, which is what made every row and label read as
@@ -2862,6 +2867,13 @@ export default defineConfig({
       alignItems: "stretch",
       flex: "1",
       minWidth: "0",
+      /* The row the navigation and the page share, and the one the stacking
+         has to undo. Stacking `.perch-shell` alone did nothing once the
+         topbar moved the two into this element: on a phone the navigation
+         stayed a column beside the page, as wide as its longest link. */
+      _narrow: {
+        display: "block",
+      },
     },
 
     ".perch-shell__main": {
@@ -2885,7 +2897,83 @@ export default defineConfig({
         width: "auto",
         borderRight: "none",
         borderBottom: "1px solid var(--perch-border)",
-        padding: "var(--perch-space-5) var(--perch-space-6)",
+        padding: "var(--perch-space-4) var(--perch-space-5)",
+      },
+    },
+
+    /**
+     * The menu folded behind one button where there is no room for a column.
+     *
+     * Stacked open above the page, a panel of five resources put three hundred
+     * pixels of links between a reader and the page they opened. Folded, it is
+     * one line naming the page they are on. Wider than the fold the button is
+     * not drawn and the list is always there.
+     */
+    ".perch-nav__toggle": {
+      display: "none",
+      _narrow: {
+        display: "flex",
+        alignItems: "center",
+        gap: "4",
+        width: "100%",
+        height: "control-height",
+        padding: "0 var(--perch-space-4)",
+        border: "0",
+        borderRadius: "md",
+        background: "none",
+        color: "content",
+        font: "inherit",
+        fontSize: "base",
+        fontWeight: "500",
+        textAlign: "start",
+        cursor: "pointer",
+      },
+    },
+
+    ".perch-nav__toggle:hover": {
+      _narrow: {
+        background: "surface-muted",
+      },
+    },
+
+    ".perch-nav__toggle:focus-visible": {
+      _narrow: {
+        outline: "2px solid var(--perch-accent)",
+        outlineOffset: "2px",
+      },
+    },
+
+    ".perch-nav__toggle > svg": {
+      flex: "none",
+      color: "content-muted",
+    },
+
+    ".perch-nav__toggle > svg:last-child": {
+      marginLeft: "auto",
+      transition: "transform 120ms ease",
+    },
+
+    '.perch-nav[data-open="true"] .perch-nav__toggle > svg:last-child': {
+      transform: "rotate(180deg)",
+    },
+
+    ".perch-nav__toggle-label": {
+      minWidth: "0",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
+
+    ".perch-nav__groups": {
+      _narrow: {
+        display: "none",
+      },
+    },
+
+    '.perch-nav[data-open="true"] .perch-nav__groups': {
+      _narrow: {
+        display: "block",
+        marginTop: "4",
       },
     },
 

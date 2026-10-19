@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { NavigationGroup } from "./PanelNav.js";
 import { PanelNav } from "./PanelNav.js";
@@ -94,5 +94,42 @@ describe("a count beside a name", () => {
     const posts = screen.getByRole("link", { name: "Posts" });
 
     expect(posts.querySelector(".perch-nav__badge")).toBeNull();
+  });
+});
+
+describe("the menu where there is no room for it", () => {
+  // jsdom draws no media query, so what is held here is the behaviour; that
+  // the button shows and the list folds only below the fold is held by the
+  // sheet, in `narrow-layout.test.ts`.
+  const toggle = (): HTMLElement => screen.getByRole("button", { name: /Menu/ });
+
+  it("is opened by a button named for the menu and the page you are on", () => {
+    render(<PanelNav groups={GROUPS} />);
+
+    expect(toggle().textContent).toContain("Posts");
+    expect(toggle().getAttribute("aria-expanded")).toBe("false");
+    expect(document.getElementById(toggle().getAttribute("aria-controls") ?? "")).toBe(
+      document.querySelector(".perch-nav__groups"),
+    );
+  });
+
+  it("says it is open, and closes again", () => {
+    render(<PanelNav groups={GROUPS} />);
+
+    fireEvent.click(toggle());
+    expect(toggle().getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("navigation").getAttribute("data-open")).toBe("true");
+
+    fireEvent.click(toggle());
+    expect(toggle().getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getByRole("navigation").getAttribute("data-open")).toBeNull();
+  });
+
+  it("is called Menu on a page the menu does not list", () => {
+    render(
+      <PanelNav groups={[{ items: [{ label: "Posts", href: "/admin/posts" }] }]} />,
+    );
+
+    expect(toggle().textContent).toContain("Menu");
   });
 });

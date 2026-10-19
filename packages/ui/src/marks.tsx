@@ -156,3 +156,21 @@ export function SortMark({
     </svg>
   );
 }
+
+/** The three bars that open the panel's menu where there is no room for it. */
+export function MenuMark(): ReactNode {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 12"
+      width="16"
+      height="12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    >
+      <path d="M1 1h14M1 6h14M1 11h14" />
+    </svg>
+  );
+}
