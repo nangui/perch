@@ -42,7 +42,7 @@ const RAMP: Readonly<
   "--perch-accent-track-border": ["#8ba79d", "#4e8071"],
   "--perch-border": ["#dfe3e6", "#333c41"],
   "--perch-border-hover": ["#59646a", "#8c979d"],
-  "--perch-border-strong": ["#767f84", "#6b757b"],
+  "--perch-border-strong": ["#8a9398", "#6b757b"],
   "--perch-border-subtle": ["#eef0f1", "#262d31"],
   "--perch-content": ["#14181a", "#eef0f1"],
   "--perch-content-inverse": ["#ffffff", "#0d1012"],
@@ -99,8 +99,9 @@ const FIXED: Properties = {
   "--perch-control-height-sm": "28px",
   "--perch-focus-ring":
     "0 0 0 1px var(--perch-surface), 0 0 0 3px var(--perch-accent-ring)",
-  "--perch-font-mono": '"IBM Plex Mono", ui-monospace, SFMono-Regular, monospace',
-  "--perch-font-sans": '"Libre Franklin", system-ui, -apple-system, sans-serif',
+  "--perch-font-mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+  "--perch-font-sans":
+    'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   "--perch-help-line-height": "18px",
   "--perch-modal-width": "28rem",
   "--perch-radius": "6px",
@@ -162,6 +163,17 @@ export default defineConfig({
    * this package publishes.
    */
   prefix: { cssVar: "perch" },
+
+  /**
+   * Where the aliases are declared, which is everywhere a value can change.
+   *
+   * An alias is `var(--perch-surface)`, and a custom property holding a
+   * `var()` resolves on the element declaring it. On `:root` alone every alias
+   * froze at the light ramp, so the dark attribute on `<body>` and a theme on
+   * `.perch-root` both reached only the rules reading a published name
+   * directly. Still inside `:where()`, so a theme wins without a fight.
+   */
+  cssVarRoot: ":where(:root, :host, .perch-root, [data-perch-theme])",
 
   presets: ["@pandacss/preset-base"],
   preflight: false,
@@ -412,6 +424,7 @@ export default defineConfig({
        button is not a field. Side by side in one form they have to agree, and
        the button is the one that cannot grow: its size is a pointer target. */
     ".perch-list__search .perch-control": { height: "control-height-sm" },
+    ".perch-list__search .perch-button": { height: "control-height-sm" },
 
     /**
      * A filter carrying a schema is several controls, so it is given the room
@@ -1385,6 +1398,20 @@ export default defineConfig({
       background: "danger-surface",
     },
 
+    /**
+     * A form is as wide as a line worth reading, not as wide as the screen.
+     *
+     * One column of fields stretched across 1 100 pixels is a name typed into
+     * a box four times longer than any name. A form that declared columns
+     * asked for the width to put them side by side, and keeps it.
+     */
+    ".perch-form": {
+      maxWidth: "48rem",
+      "&:has(.perch-layout__body[style*='--perch-columns'])": {
+        maxWidth: "80rem",
+      },
+    },
+
     ".perch-form-actions": {
       display: "flex",
       alignItems: "center",
@@ -1584,15 +1611,21 @@ export default defineConfig({
       alignItems: "center",
       justifyContent: "center",
       gap: "3",
-      height: "control-height-sm",
-      padding: "0 var(--perch-space-5)",
+      /* The height of the controls beside it, so a Save under a column of
+         fields is not the smallest thing on the page. */
+      height: "control-height",
+      padding: "0 var(--perch-space-7)",
       border: "1px solid var(--perch-border-strong)",
       borderRadius: "md",
       background: "surface",
       color: "content",
       fontFamily: "sans",
-      fontSize: "base",
+      fontSize: "control",
+      fontWeight: "500",
+      whiteSpace: "nowrap",
       cursor: "pointer",
+      transition:
+        "background-color 120ms ease, border-color 120ms ease, color 120ms ease",
       // The list page's create action is an anchor: it goes somewhere, so it
       // says so honestly, and then it has to stop underlining itself.
       textDecoration: "none",
@@ -1642,6 +1675,7 @@ export default defineConfig({
       // A width alone is only a preference to a flex item.
       flex: "none",
       width: "control-height-sm",
+      height: "control-height-sm",
       padding: "0",
       borderColor: "border",
       color: "content-muted",
@@ -2735,6 +2769,10 @@ export default defineConfig({
      */
     ".perch-root": {
       fontFamily: "sans",
+      /* Nothing set one, `preflight` being off, so text sat at the browser's
+         `normal` — about 1.2, which is what made every row and label read as
+         cramped. 1.5 is what every component library assumes beneath it. */
+      lineHeight: "1.5",
       color: "content",
       background: "var(--perch-surface-page)",
       WebkitFontSmoothing: "antialiased",
@@ -3667,12 +3705,13 @@ export default defineConfig({
       fontSize: "base",
     },
 
+    /* Sentence case at reading size. Small tracked capitals shouted every
+       label on the page at the same volume, and turned a path borrowed as a
+       heading into one unbroken word. */
     ".perch-field__label-text": {
-      fontSize: "sm",
-      fontWeight: "600",
-      letterSpacing: "0.07em",
-      textTransform: "uppercase",
-      color: "content-muted",
+      fontSize: "base",
+      fontWeight: "500",
+      color: "content-secondary",
     },
 
     ".perch-field__required": {
