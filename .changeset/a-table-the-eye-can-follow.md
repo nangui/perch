@@ -11,3 +11,5 @@ Bring a table and its filter bar to what a reader expects of one.
 **The header is quieter than the rows it names.** 12px on a `surface-muted` band, under `--perch-border` rather than the strong edge a control owes its surface.
 
 **Filter labels match field labels.** Sentence case, weight 500, without the tracked capitals, and the bar is a little tighter: 10px of padding, 8px between rows of filters.
+
+**A filter without a label is named like a column.** It fell back on its name verbatim, so `SelectFilter.make("employment")` sat labelled `employment` beside a box called Search; the tracked capitals had hidden it. The name is now read as a heading, `Employment`, the way a column or a field without a label already is.

@@ -10,6 +10,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "./marks.js";
+import { headingOf } from "./heading.js";
 import { IconMark } from "./icons.js";
 import { ColumnMenu, hiddenAtFirst } from "./ColumnMenu.js";
 import { remember, remembered } from "./remembered.js";
@@ -924,7 +925,7 @@ function narrowing(
         // The name is on a `<label>` around the control rather than on the
         // control itself: an `aria-label` names it for a screen reader and
         // leaves a row of boxes all reading "Any" for everybody else.
-        const named = filter.label ?? filter.name;
+        const named = headingOf({ label: filter.label, path: filter.name });
         const shared = {
           className: "perch-control",
           name: filter.name,

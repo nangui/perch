@@ -623,6 +623,20 @@ describe("narrowing by a filter", () => {
     expect(screen.queryByLabelText("Search")).toBeNull();
   });
 
+  it("reads an unlabelled filter's name as a heading", () => {
+    // Shown verbatim, `jobTitle` sat beside a box called "Search". Tracked
+    // capitals hid it, which is why nothing noticed until they went.
+    const page = filtered({
+      columns: {
+        ...PAGE.columns,
+        filters: [{ type: "TextFilter", name: "jobTitle" }],
+      },
+    });
+    render(<PanelList initial={page} title="Posts" fetchPage={vi.fn()} />);
+
+    expect(screen.getByLabelText("Job title")).toBeTruthy();
+  });
+
   it("sends the value under the name the server named", () => {
     const fetchPage = vi.fn(() => Promise.resolve(filtered()));
     render(<PanelList initial={filtered()} title="Posts" fetchPage={fetchPage} />);
@@ -1123,7 +1137,7 @@ describe("the controls that narrow a list", () => {
     expect(screen.getByRole("searchbox", { name: "Search" })).toBeTruthy();
   });
 
-  it("falls back to the name where a filter declared no label", () => {
+  it("falls back to the name, read as a heading, where a filter declared no label", () => {
     render(
       <PanelList
         initial={{
@@ -1138,7 +1152,7 @@ describe("the controls that narrow a list", () => {
       />,
     );
 
-    expect(screen.getByRole("textbox", { name: "email" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Email" })).toBeTruthy();
   });
 });
 
