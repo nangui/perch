@@ -301,7 +301,12 @@ export function PanelList({
     asked.current = true;
     const size = remembered(initial.resourcePath).perPage;
     if (size === undefined || size === initial.perPage) return;
-    ask({ ...(sort === undefined ? {} : { sort }), page: 1, perPage: size });
+    ask({
+      ...(sort === undefined ? {} : { sort }),
+      ...narrowedAs(initial),
+      page: 1,
+      perPage: size,
+    });
     // Arrival only. Naming the transport here would ask again every time the
     // list redrew, which is a request per keystroke in the search box.
   }, []);
@@ -312,7 +317,7 @@ export function PanelList({
     ask === undefined
       ? undefined
       : (next: DataTableSort) => {
-          ask({ sort: next, page: 1 });
+          ask({ sort: next, ...narrowedAs(page), page: 1, perPage: page.perPage });
         };
   // `perPage` travels with the turn: an address may carry one and the server
   // honours it, so a request that leaves it out gets the default back and the
@@ -337,8 +342,7 @@ export function PanelList({
       : (to: number) => {
           ask({
             ...(sort === undefined ? {} : { sort }),
-            ...(page.search === undefined ? {} : { search: page.search }),
-            ...(page.filters === undefined ? {} : { filters: page.filters }),
+            ...narrowedAs(page),
             page: to,
             perPage: page.perPage,
           });
@@ -552,8 +556,7 @@ export function PanelList({
     ask?.(
       {
         ...(sort === undefined ? {} : { sort }),
-        ...(page.search === undefined ? {} : { search: page.search }),
-        ...(page.filters === undefined ? {} : { filters: page.filters }),
+        ...narrowedAs(page),
         page: page.page,
         perPage: page.perPage,
       },
@@ -837,6 +840,7 @@ export function PanelList({
                 remember(page.resourcePath, { perPage: size });
                 ask({
                   ...(sort === undefined ? {} : { sort }),
+                  ...narrowedAs(page),
                   page: 1,
                   perPage: size,
                 });
@@ -1109,6 +1113,21 @@ function narrowing(
  * every render: the same tidying applied while a reader types erases `1.` on
  * the way to `1.5`.
  */
+/**
+ * The term and the filters the server applied to a page, to ask for another
+ * page of the same rows.
+ *
+ * Every request but a new search carries them. Sorting and resizing asked
+ * without, so a reader who narrowed the list to two part-timers and then
+ * ordered them by salary was handed the whole company again.
+ */
+function narrowedAs(page: RecordsPage): Pick<PageRequest, "search" | "filters"> {
+  return {
+    ...(page.search === undefined ? {} : { search: page.search }),
+    ...(page.filters === undefined ? {} : { filters: page.filters }),
+  };
+}
+
 function asEntered(page: RecordsPage): Readonly<Record<string, string>> {
   const applied = page.filters ?? {};
   const shapes = new Map(

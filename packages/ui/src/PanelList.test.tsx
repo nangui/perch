@@ -71,6 +71,7 @@ describe("the list page", () => {
     expect(fetchPage).toHaveBeenCalledWith({
       sort: { path: "title", direction: "desc" },
       page: 1,
+      perPage: PAGE.perPage,
     });
     await waitFor(() => {
       expect(screen.queryByText("Ada")).toBeNull();
@@ -311,8 +312,28 @@ describe("turning a page", () => {
       expect(fetchPage).toHaveBeenCalledWith({
         page: 1,
         sort: { path: "title", direction: "desc" },
+        perPage: paged(3).perPage,
       });
     });
+  });
+
+  it("keeps what the list was narrowed to when the order changes", () => {
+    // Asked without them, two part-timers ordered by salary came back as the
+    // whole company.
+    const fetchPage = vi.fn(() => Promise.resolve(paged(1)));
+    render(
+      <PanelList
+        initial={{ ...paged(3), search: "ada", filters: { status: "draft" } }}
+        title="Posts"
+        fetchPage={fetchPage}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Headline/ }));
+
+    expect(fetchPage).toHaveBeenCalledWith(
+      expect.objectContaining({ search: "ada", filters: { status: "draft" }, page: 1 }),
+    );
   });
 
   it("offers no way off either end", () => {

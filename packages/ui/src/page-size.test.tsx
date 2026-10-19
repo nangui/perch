@@ -15,6 +15,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
+import { remember } from "./remembered.js";
 
 const page = (over: Partial<RecordsPage> = {}): RecordsPage => ({
   rows: [{ id: 1, title: "First" }],
@@ -85,6 +86,49 @@ describe("the page size control", () => {
 
     expect(fetchPage).toHaveBeenCalledTimes(1);
     expect(fetchPage.mock.calls[0]?.[0]).toMatchObject({ page: 1, perPage: 50 });
+  });
+
+  it("keeps what the list was narrowed to", () => {
+    // A size is how many of these rows, not a reason to show different ones.
+    cleanup();
+    const fetchPage = vi.fn().mockResolvedValue(page({ page: 1, perPage: 50 }));
+    render(
+      <PanelList
+        initial={page({ search: "ada", filters: { status: "draft" } })}
+        title="Things"
+        fetchPage={fetchPage}
+      />,
+    );
+
+    pick("50");
+
+    expect(fetchPage.mock.calls[0]?.[0]).toMatchObject({
+      search: "ada",
+      filters: { status: "draft" },
+      page: 1,
+      perPage: 50,
+    });
+  });
+
+  it("asks for the size it remembers without dropping the address's filters", () => {
+    // Arriving on a link to a narrowed list, with a size kept from last time,
+    // asked for that size of the whole table.
+    cleanup();
+    remember("/admin/things", { perPage: 50 });
+    const fetchPage = vi.fn().mockResolvedValue(page({ page: 1, perPage: 50 }));
+    render(
+      <PanelList
+        initial={page({ resourcePath: "/admin/things", filters: { status: "draft" } })}
+        title="Things"
+        fetchPage={fetchPage}
+      />,
+    );
+
+    expect(fetchPage.mock.calls[0]?.[0]).toMatchObject({
+      filters: { status: "draft" },
+      perPage: 50,
+    });
+    globalThis.localStorage.clear();
   });
 
   it("shows what came back rather than what was picked", async () => {
