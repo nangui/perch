@@ -53,9 +53,22 @@ const THEME = String.raw`
 /* A sidebar that reads as a panel of its own rather than as a column the
    content happens to start after. */
 .perch-nav {
-  padding: 20px 14px;
   background: var(--perch-surface);
-  border-right: 1px solid var(--perch-border);
+}
+
+/* A column's padding and edge only where the menu is a column. This sheet is
+   in no layer, so a rule here outranks the panel's own at every width: written
+   bare, it put the column's edge and its padding back on the strip a phone
+   folds the menu into. */
+@media (min-width: 40.0625rem) {
+  .perch-nav {
+    padding: 20px 14px;
+    border-right: 1px solid var(--perch-border);
+  }
+
+  .perch-shell__main {
+    padding: 28px 32px 48px;
+  }
 }
 
 .perch-nav__heading {
@@ -87,9 +100,6 @@ const THEME = String.raw`
   font-weight: 600;
 }
 
-.perch-shell__main {
-  padding: 28px 32px 48px;
-}
 
 .perch-page__title,
 .perch-list__title {
