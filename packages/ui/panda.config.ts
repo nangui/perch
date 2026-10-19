@@ -3366,11 +3366,19 @@ export default defineConfig({
       color: "content-muted",
     },
 
+    /* At the end of the row, where a reader looks for it. Pushed by the meta
+       when there is one, and by itself when there is not: without this an
+       option with no meta drew its tick against the word, "Any ✓". */
     ".perch-option__check": {
       width: "12px",
       flex: "none",
+      marginLeft: "auto",
       color: "accent",
       fontSize: "base",
+    },
+
+    ".perch-option__meta ~ .perch-option__check": {
+      marginLeft: "0",
     },
 
     /**
@@ -4288,12 +4296,14 @@ export default defineConfig({
      * order of these two surfaces is load-bearing and not a matter of reading.
      */
     /* Every native control the panel draws, given the one look the rest has.
-       Styled rather than replaced: a native select keeps the keyboard behaviour
-       and the platform's own picker on a phone. */
+       The select left is a table cell's: a filter and the page size open the
+       Radix list a form's field does, because the platform's menu is drawn
+       where no stylesheet reaches. A cell stays native, because a Radix select
+       is a component with state and context, and a cell is a render function. */
     /* A control that already carries its own frame is left alone. A select filter
        is one: it carries the class, so the control's own rules frame it, size it
        and grey it out, and this rule would undo all three. */
-    '.perch-list__search select:not(.perch-control), .perch-list__search input:not([type="checkbox"]):not([type="radio"]):not(.perch-control):not(.perch-control__input), .perch-list__size select, .perch-table__cell select':
+    '.perch-list__search select:not(.perch-control), .perch-list__search input:not([type="checkbox"]):not([type="radio"]):not(.perch-control):not(.perch-control__input), .perch-table__cell select':
       {
         height: "control-height",
         padding: "0 var(--perch-space-5)",
@@ -4305,7 +4315,7 @@ export default defineConfig({
         fontSize: "control",
       },
 
-    ".perch-list__search select:not(.perch-control):hover, .perch-list__size select:hover, .perch-table__cell select:hover":
+    ".perch-list__search select:not(.perch-control):hover, .perch-table__cell select:hover":
       {
         borderColor: "border-hover",
       },
@@ -4313,7 +4323,7 @@ export default defineConfig({
     /* The same ring every other control answers focus with. A browser's own outline
        is a different shape on every platform, which is the inconsistency this rule
        exists to remove. */
-    ".perch-list__search select:not(.perch-control):focus-visible, .perch-list__search input:not(.perch-control):not(.perch-control__input):focus-visible, .perch-list__size select:focus-visible, .perch-table__cell select:focus-visible":
+    ".perch-list__search select:not(.perch-control):focus-visible, .perch-list__search input:not(.perch-control):not(.perch-control__input):focus-visible, .perch-table__cell select:focus-visible":
       {
         outline: "none",
         borderColor: "accent",

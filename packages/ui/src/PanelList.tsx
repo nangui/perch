@@ -8,9 +8,9 @@
  * page it holds.
  */
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "./marks.js";
+import { useEffect, useId, useRef, useState } from "react";
 import { headingOf } from "./heading.js";
+import { ListSelect } from "./ListSelect.js";
 import { IconMark } from "./icons.js";
 import { ColumnMenu, hiddenAtFirst } from "./ColumnMenu.js";
 import { remember, remembered } from "./remembered.js";
@@ -195,6 +195,9 @@ export function PanelList({
   actionState,
 }: PanelListProps): ReactNode {
   const [page, setPage] = useState(initial);
+  // What the list's own controls are named by, so two lists on one page never
+  // point at each other's labels.
+  const listId = useId();
   // Which columns the reader has taken off. Seeded from what the table
   // declared and its own from then on: a page turning is not a reason to put
   // back a column somebody removed.
@@ -601,7 +604,7 @@ export function PanelList({
           {headerActions(page)}
         </div>
       </div>
-      {narrowing(page, find, { typed, setTyped, entered, setEntered })}
+      {narrowing(page, find, { typed, setTyped, entered, setEntered }, listId)}
       {failed ? (
         // One sentence for both round trips this page makes. "Could not
         // reorder" was the only one when reordering was the only one, and it
@@ -817,34 +820,30 @@ export function PanelList({
       <div className="perch-list__foot">
         {pagination(page, turn)}
         {ask === undefined ? null : (
-          <label className="perch-list__size">
-            Rows per page
-            <span className="perch-picker">
-              <select
-                value={String(page.perPage)}
-                onChange={(event) => {
-                  // Back to the first page. Page 5 of twenty-five rows is not
-                  // page 5 of a hundred, and keeping the number would land the
-                  // reader somewhere they did not choose — the same rule sorting
-                  // and searching already follow.
-                  const size = Number(event.target.value);
-                  remember(page.resourcePath, { perPage: size });
-                  ask({
-                    ...(sort === undefined ? {} : { sort }),
-                    page: 1,
-                    perPage: size,
-                  });
-                }}
-              >
-                {PAGE_SIZES.map((size) => (
-                  <option key={size} value={String(size)}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown />
-            </span>
-          </label>
+          <div className="perch-list__size">
+            <span id={`${listId}-size`}>Rows per page</span>
+            <ListSelect
+              value={String(page.perPage)}
+              options={PAGE_SIZES.map((size) => ({
+                value: String(size),
+                label: String(size),
+              }))}
+              onValueChange={(value) => {
+                // Back to the first page. Page 5 of twenty-five rows is not
+                // page 5 of a hundred, and keeping the number would land the
+                // reader somewhere they did not choose — the same rule sorting
+                // and searching already follow.
+                const size = Number(value);
+                remember(page.resourcePath, { perPage: size });
+                ask({
+                  ...(sort === undefined ? {} : { sort }),
+                  page: 1,
+                  perPage: size,
+                });
+              }}
+              labelledBy={`${listId}-size`}
+            />
+          </div>
         )}
       </div>
       {/*
@@ -882,6 +881,9 @@ function narrowing(
   page: RecordsPage,
   find: ((term: string, filters: Readonly<Record<string, string>>) => void) | undefined,
   state: Narrowing,
+  // The list's own id, so a filter's name has an id to be pointed at by: two
+  // lists on one page may declare a filter of the same name.
+  base: string,
 ): ReactNode {
   const searchable = page.columns.searchable === true;
   const filters = page.columns.filters;
@@ -953,22 +955,26 @@ function narrowing(
             filter.type === "TernaryFilter") &&
           (filter.options?.length ?? 0) > 0
         ) {
+          // Named by `aria-labelledby` rather than a wrapping `<label>`: inside a
+          // form, Radix renders a hidden native select beside its trigger, and
+          // a label round both would name whichever came first.
+          const nameId = `${base}-filter-${filter.name}`;
           return (
-            <label key={filter.name} className="perch-list__narrow">
-              <span className="perch-list__narrow-name">{named}</span>
-              <span className="perch-picker">
-                <select {...shared}>
-                  {/* An empty choice, or the control cannot be put back. */}
-                  <option value="">Any</option>
-                  {filter.options?.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown />
+            <div key={filter.name} className="perch-list__narrow">
+              <span id={nameId} className="perch-list__narrow-name">
+                {named}
               </span>
-            </label>
+              <ListSelect
+                value={shared.value}
+                options={filter.options ?? []}
+                onValueChange={(value) => {
+                  shared.onChange({ target: { value } });
+                }}
+                labelledBy={nameId}
+                // An empty choice, or the control cannot be put back.
+                none="Any"
+              />
+            </div>
           );
         }
         // Two ends of one value. They travel as `from..to` in a single

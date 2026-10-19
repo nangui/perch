@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerBuiltInColumns, resetColumnRegistry } from "./index.js";
 import type { RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
@@ -1003,6 +1003,23 @@ describe("narrowing by a range of numbers", () => {
 });
 
 describe("narrowing by a choice", () => {
+  // What Radix asks of an element and jsdom does not draw.
+  beforeAll(() => {
+    const element = Element.prototype as unknown as Record<string, unknown>;
+    element["hasPointerCapture"] = () => false;
+    element["setPointerCapture"] = () => undefined;
+    element["releasePointerCapture"] = () => undefined;
+    element["scrollIntoView"] = () => undefined;
+  });
+
+  const status = (): HTMLElement => screen.getByRole("combobox", { name: "Status" });
+
+  /** Opens the list and picks one, the way a reader does. */
+  const pick = (label: string): void => {
+    fireEvent.click(status());
+    fireEvent.click(screen.getByRole("option", { name: label }));
+  };
+
   const chooser = (over: Partial<RecordsPage> = {}): RecordsPage => ({
     ...PAGE,
     columns: {
@@ -1024,10 +1041,10 @@ describe("narrowing by a choice", () => {
 
   it("draws the choices the server declared, and no others", () => {
     render(<PanelList initial={chooser()} title="Posts" fetchPage={vi.fn()} />);
-    const control = screen.getByLabelText("Status");
+    fireEvent.click(status());
 
     expect(
-      [...control.querySelectorAll("option")].map((one) => one.textContent),
+      screen.getAllByRole("option").map((one) => one.textContent.replace("✓", "")),
     ).toEqual(["Any", "Draft", "Published"]);
   });
 
@@ -1043,7 +1060,8 @@ describe("narrowing by a choice", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "" } });
+    expect(status().textContent).toBe("Draft");
+    pick("Any");
     fireEvent.submit(screen.getByRole("search"));
 
     expect(fetchPage).toHaveBeenCalledWith(
@@ -1055,7 +1073,7 @@ describe("narrowing by a choice", () => {
     const fetchPage = vi.fn(() => Promise.resolve(chooser()));
     render(<PanelList initial={chooser()} title="Posts" fetchPage={fetchPage} />);
 
-    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "draft" } });
+    pick("Draft");
     fireEvent.submit(screen.getByRole("search"));
 
     expect(fetchPage).toHaveBeenCalledWith(
@@ -1069,11 +1087,11 @@ describe("narrowing by a choice", () => {
     );
     render(<PanelList initial={chooser()} title="Posts" fetchPage={fetchPage} />);
 
-    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "draft" } });
+    pick("Draft");
     fireEvent.submit(screen.getByRole("search"));
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Status")).toHaveProperty("value", "published");
+      expect(status().textContent).toBe("Published");
     });
   });
 
@@ -1093,7 +1111,7 @@ describe("narrowing by a choice", () => {
       />,
     );
 
-    expect(screen.queryByLabelText("Status")).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Status" })).toBeNull();
   });
 });
 

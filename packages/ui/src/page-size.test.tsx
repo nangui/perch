@@ -11,7 +11,7 @@
  * the pager and the sort indicator follow. Advancing the control locally would
  * say fifty while the page held twenty-five.
  */
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { RecordsPage } from "./PanelList.js";
 import { PanelList } from "./PanelList.js";
@@ -32,20 +32,46 @@ const page = (over: Partial<RecordsPage> = {}): RecordsPage => ({
   ...over,
 });
 
-const size = (): HTMLSelectElement => screen.getByLabelText(/rows per page/i);
+// What Radix asks of an element and jsdom does not draw.
+beforeAll(() => {
+  const element = Element.prototype as unknown as Record<string, unknown>;
+  element["hasPointerCapture"] = () => false;
+  element["setPointerCapture"] = () => undefined;
+  element["releasePointerCapture"] = () => undefined;
+  element["scrollIntoView"] = () => undefined;
+});
+
+const size = (): HTMLElement =>
+  screen.getByRole("combobox", { name: /rows per page/i });
+
+/** Opens the list and picks one, the way a reader does. */
+const pick = (rows: string): void => {
+  fireEvent.click(size());
+  fireEvent.click(screen.getByRole("option", { name: rows }));
+};
 
 describe("the page size control", () => {
   it("offers a short list and shows what the page holds", () => {
     cleanup();
     render(<PanelList initial={page()} title="Things" fetchPage={vi.fn()} />);
 
-    expect([...size().options].map((one) => one.value)).toEqual([
+    expect(size().textContent).toBe("25");
+    fireEvent.click(size());
+    const options = screen.getAllByRole("option");
+    expect(options.map((one) => one.textContent.replace("✓", ""))).toEqual([
       "10",
       "25",
       "50",
       "100",
     ]);
-    expect(size().value).toBe("25");
+    // `data-state` rather than `aria-selected`, which Radix sets on the focused
+    // option only.
+    expect(options.map((one) => one.getAttribute("data-state"))).toEqual([
+      "unchecked",
+      "checked",
+      "unchecked",
+      "unchecked",
+    ]);
   });
 
   it("asks for the first page, because page 3 of 25 is not page 3 of 50", () => {
@@ -55,7 +81,7 @@ describe("the page size control", () => {
     const fetchPage = vi.fn().mockResolvedValue(page({ page: 1, perPage: 50 }));
     render(<PanelList initial={page()} title="Things" fetchPage={fetchPage} />);
 
-    fireEvent.change(size(), { target: { value: "50" } });
+    pick("50");
 
     expect(fetchPage).toHaveBeenCalledTimes(1);
     expect(fetchPage.mock.calls[0]?.[0]).toMatchObject({ page: 1, perPage: 50 });
@@ -68,10 +94,10 @@ describe("the page size control", () => {
     const fetchPage = vi.fn().mockResolvedValue(page({ page: 1, perPage: 25 }));
     render(<PanelList initial={page()} title="Things" fetchPage={fetchPage} />);
 
-    fireEvent.change(size(), { target: { value: "100" } });
+    pick("100");
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(size().value).toBe("25");
+    expect(size().textContent).toBe("25");
   });
 
   it("is not drawn where the list cannot ask for another page", () => {
@@ -80,6 +106,6 @@ describe("the page size control", () => {
     cleanup();
     render(<PanelList initial={page()} title="Things" />);
 
-    expect(screen.queryByLabelText(/rows per page/i)).toBeNull();
+    expect(screen.queryByRole("combobox", { name: /rows per page/i })).toBeNull();
   });
 });
