@@ -74,6 +74,12 @@ describe.each(RAMPS)("the %s ramp", (which) => {
     expect(against("content-subtle", "surface")).toBeGreaterThanOrEqual(3);
   });
 
+  it("draws a sortable header's mark where somebody can see it", () => {
+    // The mark is the only sign a header can be clicked, so it is held to what
+    // a graphic carrying meaning owes its ground: the header band it sits on.
+    expect(against("content-subtle", "surface-muted")).toBeGreaterThanOrEqual(3);
+  });
+
   it("draws a control's outline where somebody can see it", () => {
     // `border-strong` is the one that says where a control is, and that is the
     // boundary the guidelines are about. `border` and `border-subtle` are

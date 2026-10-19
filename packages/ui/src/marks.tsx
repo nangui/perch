@@ -128,3 +128,31 @@ export function CaretMark({ folded }: { readonly folded: boolean }): ReactNode {
     </svg>
   );
 }
+
+/**
+ * The mark beside a header that can sort.
+ *
+ * Drawn on every sortable header rather than only the sorted one: a header
+ * that says nothing until it is clicked is a header nobody knows to click. At
+ * rest both carets stand dimmed, which reads as "this column orders"; sorted,
+ * the one pointing the way the rows run stays, so the direction is the shape
+ * and not the colour alone.
+ */
+export function SortMark({
+  direction,
+}: {
+  readonly direction: "asc" | "desc" | undefined;
+}): ReactNode {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 8 12"
+      width="8"
+      height="12"
+      fill="currentColor"
+    >
+      {direction !== "desc" ? <path d="M1 5l3-4 3 4z" /> : null}
+      {direction !== "asc" ? <path d="M1 7l3 4 3-4z" /> : null}
+    </svg>
+  );
+}

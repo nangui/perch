@@ -171,6 +171,28 @@ describe("sorting from the keyboard", () => {
     expect(author?.getAttribute("aria-sort")).toBeNull();
   });
 
+  it("says a header sorts before anyone has clicked it", () => {
+    // A mark only on the sorted column left every other sortable header
+    // looking like a plain one, so nobody knew to click it.
+    table({ onSort: vi.fn() });
+    const mark = screen
+      .getByRole("button", { name: /Headline/ })
+      .querySelector(".perch-table__sort-mark");
+
+    expect(mark?.querySelectorAll("path")).toHaveLength(2);
+    expect(mark?.getAttribute("data-active")).toBeNull();
+  });
+
+  it("draws the direction as a shape, not a colour alone", () => {
+    table({ onSort: vi.fn(), sort: { path: "title", direction: "desc" } });
+    const mark = screen
+      .getByRole("button", { name: /Headline/ })
+      .querySelector(".perch-table__sort-mark");
+
+    expect(mark?.querySelectorAll("path")).toHaveLength(1);
+    expect(mark?.getAttribute("data-active")).toBe("true");
+  });
+
   it("asks for the other direction when it already sorts that way", () => {
     const onSort = vi.fn();
     table({ onSort, sort: { path: "title", direction: "asc" } });

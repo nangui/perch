@@ -24,7 +24,7 @@ import type {
 } from "@perchjs/core";
 import { useDismiss } from "./dismiss.js";
 import { formatValue } from "./format.js";
-import { EllipsisMark } from "./marks.js";
+import { EllipsisMark, SortMark } from "./marks.js";
 import { IconMark } from "./icons.js";
 import { readPath } from "./read-path.js";
 import { lookupColumn } from "./column-registry.js";
@@ -746,8 +746,12 @@ function header(
       }}
     >
       {label}
-      <span aria-hidden className="perch-table__sort-mark">
-        {sort?.path === column.path ? (sort.direction === "asc" ? "↑" : "↓") : ""}
+      <span
+        aria-hidden
+        className="perch-table__sort-mark"
+        data-active={sort?.path === column.path ? "true" : undefined}
+      >
+        <SortMark direction={sort?.path === column.path ? sort.direction : undefined} />
       </span>
     </button>
   );

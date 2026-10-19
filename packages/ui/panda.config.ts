@@ -403,8 +403,8 @@ export default defineConfig({
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(11rem, 1fr))",
       alignItems: "start",
-      gap: "5",
-      padding: "6",
+      gap: "var(--perch-space-4) var(--perch-space-5)",
+      padding: "5",
       marginBottom: "6",
       background: "surface",
       borderRadius: "lg",
@@ -536,11 +536,9 @@ export default defineConfig({
     /* The same treatment a field's label gets, because it is the same thing:
        the name of the control under it. */
     ".perch-list__narrow-name": {
-      color: "content-muted",
+      color: "content-secondary",
       fontSize: "sm",
-      fontWeight: "600",
-      letterSpacing: "0.07em",
-      textTransform: "uppercase",
+      fontWeight: "500",
     },
 
     /**
@@ -4816,12 +4814,18 @@ export default defineConfig({
       boxShadow: "panel",
     },
 
+    /* Quieter than the rows it names: a step smaller, on a tinted band, under
+       the same rule that divides the container from the page. The strong edge
+       a control owes its surface is a ruled line across a table. */
     ".perch-table__head": {
       padding: "var(--perch-space-4) var(--perch-space-5)",
       textAlign: "left",
+      verticalAlign: "middle",
+      fontSize: "sm",
       fontWeight: "500",
       color: "content-muted",
-      borderBottom: "1px solid var(--perch-border-strong)",
+      background: "surface-muted",
+      borderBottom: "1px solid var(--perch-border)",
       whiteSpace: "nowrap",
     },
 
@@ -4867,7 +4871,10 @@ export default defineConfig({
     ".perch-table__cell": {
       padding: "var(--perch-space-4) var(--perch-space-5)",
       borderBottom: "1px solid var(--perch-border-subtle)",
-      verticalAlign: "top",
+      /* Middle, so a cell of one line lines up with the avatar, the badge or
+         the menu beside it; a row of one tall cell no longer leaves the rest
+         hanging from its top edge. */
+      verticalAlign: "middle",
       /* Stacked, the cell is a row of its own, which is why the padding and the
          border above are restated rather than inherited. */
       _narrow: {
@@ -4925,7 +4932,21 @@ export default defineConfig({
       color: "content",
     },
 
+    /* Quieter than the heading at rest, so twelve sortable headers do not
+       shout at once, and still 3:1 on the header band: the mark is the only
+       thing on the screen saying the header can be clicked. Dimmed by opacity
+       it came out near 2:1. The sorted one takes the accent. */
     ".perch-table__sort-mark": {
+      display: "inline-flex",
+      color: "content-subtle",
+    },
+
+    ".perch-table__sort:hover .perch-table__sort-mark, .perch-table__sort:focus-visible .perch-table__sort-mark":
+      {
+        color: "content-secondary",
+      },
+
+    '.perch-table__sort-mark[data-active="true"]': {
       color: "accent",
     },
 
@@ -4986,6 +5007,22 @@ export default defineConfig({
 
     '.perch-table tr[data-picked="true"]': {
       background: "accent-surface",
+    },
+
+    /* Where the eye is along a row of twelve columns. Wide only: stacked, a
+       row is a card, and a card has no neighbour to be told apart from. */
+    '.perch-table tbody tr:not([data-picked="true"]):not(.perch-table__group):hover': {
+      _wide: {
+        background: "surface-muted",
+      },
+    },
+
+    /* The container draws the edge under the last row, so the row's own rule
+       would be a second line one pixel above it. */
+    ".perch-table tbody tr:last-child > .perch-table__cell": {
+      _wide: {
+        borderBottom: "none",
+      },
     },
 
     /* Two actions in a cell run together into one word, because nothing between an
