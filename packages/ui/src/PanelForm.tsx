@@ -172,7 +172,7 @@ export function PanelForm({
   const inFlight = useMemo(() => new Set(snapshot.inFlight), [snapshot.inFlight]);
 
   return (
-    <form onSubmit={onSubmit} noValidate>
+    <form className="perch-form" onSubmit={onSubmit} noValidate>
       {snapshot.failure === undefined ? null : renderFailure?.(snapshot, retry)}
       <SchemaRenderer
         payload={snapshot.payload}
