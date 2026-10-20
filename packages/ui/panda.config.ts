@@ -354,10 +354,15 @@ export default defineConfig({
      * rather than being split three ways and duplicated across both sheets for
      * one release.
      */
+    /* On a phone the shell's main already holds the page off the edges, and
+       a list padding itself inside it as well put the title 50px under the
+       menu bar and every card 34px in from each side. One gutter there, the
+       shell's. */
     ".perch-list": {
       flex: "1",
       minWidth: "0",
       padding: "var(--perch-space-8) var(--perch-space-9) var(--perch-space-10)",
+      _narrow: { padding: "0" },
     },
 
     ".perch-list__header": {
@@ -370,7 +375,11 @@ export default defineConfig({
 
     ".perch-list__actions": { display: "flex", gap: "4" },
 
+    /* A heading's own margin is the browser's, and on a phone it was a third
+       of the space above the title: the gutter around the page is the
+       spacing there. */
     ".perch-list__title": {
+      _narrow: { margin: "0" },
       fontSize: "2xl",
       fontWeight: "600",
       letterSpacing: "-0.01em",
@@ -2917,8 +2926,10 @@ export default defineConfig({
       flex: "1",
       minWidth: "0",
       padding: "var(--perch-space-8) var(--perch-space-9) var(--perch-space-10)",
+      // The 16px a phone's own apps keep from the edge, on every side but the
+      // foot, which leaves room to scroll the last row clear of the thumb.
       _narrow: {
-        padding: "var(--perch-space-6) var(--perch-space-5) var(--perch-space-8)",
+        padding: "var(--perch-space-7) var(--perch-space-7) var(--perch-space-10)",
       },
     },
 

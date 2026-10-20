@@ -153,6 +153,22 @@ describe("the shell in a narrow window", () => {
   });
 });
 
+describe("a list's gutter in a narrow window", () => {
+  // Measured on a phone: the shell's main and the list both padded the page,
+  // and the heading kept the browser's margin, which put the title 50px under
+  // the menu bar and every card 34px in from each side.
+  it("is the shell's alone, 16px from every edge", () => {
+    const main = /\.perch-shell__main\s*\{([^}]*)\}/.exec(
+      narrowBlockNaming(".perch-shell__main"),
+    )?.[1];
+    expect(main).toContain("padding: var(--perch-space-7) var(--perch-space-7)");
+
+    const block = narrowBlockNaming(".perch-list__title");
+    expect(/\.perch-list\s*\{([^}]*)\}/.exec(block)?.[1]).toContain("padding: 0");
+    expect(/\.perch-list__title\s*\{([^}]*)\}/.exec(block)?.[1]).toContain("margin: 0");
+  });
+});
+
 describe("a table's footer in a narrow window", () => {
   // Measured on a phone: every column with no total drew an empty strip of its
   // own, ruled top and bottom, under a footer that kept a table's width.
