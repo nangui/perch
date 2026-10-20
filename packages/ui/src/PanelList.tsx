@@ -519,6 +519,34 @@ export function PanelList({
     }
   }
 
+  /**
+   * The row an action was carried out on, until the page that follows it is
+   * drawn.
+   *
+   * A delete takes its row away and the row's menu button with it, which is
+   * where the focus was: the browser drops it to the top of the document, and a
+   * keyboard reader starts again from the navigation. So the focus goes to the
+   * same place in the table — the row that moved up into it, the last row if
+   * it was the last, the title if the table emptied. Only when the focus was
+   * lost: an action that left its row standing left the focus where it was.
+   */
+  const regain = useRef<number | undefined>(undefined);
+  const frame = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const at = regain.current;
+    if (at === undefined) return;
+    regain.current = undefined;
+    const held = document.activeElement;
+    if (held !== null && held !== document.body) return;
+
+    const root = frame.current;
+    if (root === null) return;
+    const openers = root.querySelectorAll<HTMLElement>(".perch-row-actions__open");
+    const next = openers[Math.min(at, openers.length - 1)];
+    (next ?? root.querySelector<HTMLElement>(".perch-list__title"))?.focus();
+  }, [page]);
+
   async function carry(
     action: ActionNode,
     ids: readonly (string | number)[],
@@ -546,6 +574,12 @@ export function PanelList({
       );
       intent.current = undefined;
       setPending(undefined);
+      // Where the reader was, by position: the row may be gone once the page
+      // comes back, and the one that took its place is where they carry on.
+      regain.current = Math.max(
+        0,
+        page.rows.findIndex((row) => keyOf(row) === ids[0]),
+      );
       // The rows are what the action just changed, so what is on screen is out
       // of date the moment it returns.
       refresh();
@@ -599,9 +633,15 @@ export function PanelList({
   const Frame = within === true ? "section" : "main";
 
   return (
-    <Frame className="perch-list">
+    <Frame className="perch-list" ref={frame}>
       <div className="perch-list__header">
-        {within === true ? null : <h1 className="perch-list__title">{title}</h1>}
+        {within === true ? null : (
+          // Reachable by script, not by Tab: it is where the focus goes when
+          // an action empties the table it was in.
+          <h1 className="perch-list__title" tabIndex={-1}>
+            {title}
+          </h1>
+        )}
         <div className="perch-list__tools">
           <ColumnMenu
             columns={page.columns.columns}

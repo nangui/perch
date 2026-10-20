@@ -1431,3 +1431,83 @@ describe("the menu a row's actions live in", () => {
     expect(document.activeElement).toBe(trigger);
   });
 });
+
+describe("where the focus goes once an action has taken its row away", () => {
+  // Measured in a browser: the row's menu button went with the row, the focus
+  // dropped to the top of the document, and a keyboard reader started again
+  // from the navigation.
+  const three = (ids: readonly number[]): RecordsPage => ({
+    ...page([REMOVE, ARCHIVE]),
+    rows: ids.map((id) => ({ id, title: `Row ${String(id)}` })),
+    total: ids.length,
+  });
+
+  async function remove(row: number, left: readonly number[]): Promise<void> {
+    const fetchPage = vi.fn().mockResolvedValue(three(left));
+    const runAction = vi.fn().mockResolvedValue(ANSWER);
+    render(
+      <PanelList
+        initial={three([1, 2, 3].slice(0, left.length + 1))}
+        title="People"
+        runAction={runAction}
+        fetchPage={fetchPage}
+      />,
+    );
+
+    await pressRow("Delete", row);
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    // Counted by their menu buttons: a table that empties draws its empty
+    // state instead, with no rows at all to count.
+    await waitFor(() => {
+      expect(screen.queryAllByRole("button", { name: "Actions" })).toHaveLength(
+        left.length,
+      );
+    });
+  }
+
+  it("lands on the row that moved up into its place", async () => {
+    await remove(1, [1, 3]);
+
+    expect(document.activeElement).toBe(
+      screen.getAllByRole("button", { name: "Actions" })[1],
+    );
+  });
+
+  it("lands on the last row when it was the last one", async () => {
+    await remove(2, [1, 2]);
+
+    expect(document.activeElement).toBe(
+      screen.getAllByRole("button", { name: "Actions" })[1],
+    );
+  });
+
+  it("lands on the title when the table has emptied", async () => {
+    await remove(0, []);
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("heading", { name: "People" }),
+    );
+  });
+
+  it("stays where it was when the row is still there", async () => {
+    const fetchPage = vi.fn().mockResolvedValue(three([1, 2, 3]));
+    const runAction = vi.fn().mockResolvedValue(ANSWER);
+    render(
+      <PanelList
+        initial={three([1, 2, 3])}
+        title="People"
+        runAction={runAction}
+        fetchPage={fetchPage}
+      />,
+    );
+
+    await pressRow("Archive", 2);
+    await waitFor(() => {
+      expect(fetchPage).toHaveBeenCalled();
+    });
+
+    expect(document.activeElement).toBe(
+      screen.getAllByRole("button", { name: "Actions" })[2],
+    );
+  });
+});
