@@ -25,11 +25,21 @@ export function TabStrip({
   readonly at: number;
   readonly choose: (index: number) => void;
 }): ReactNode {
+  // Home and End as well as the arrows, which is what the pattern every tab
+  // strip a reader has used before answers to: a strip of seven is two keys
+  // from either end rather than six.
+  const target = (key: string): number | undefined => {
+    if (key === "ArrowRight") return (at + 1) % tabs.length;
+    if (key === "ArrowLeft") return (at - 1 + tabs.length) % tabs.length;
+    if (key === "Home") return 0;
+    if (key === "End") return tabs.length - 1;
+    return undefined;
+  };
+
   const move = (event: KeyboardEvent<HTMLDivElement>): void => {
-    const towards = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
-    if (towards === 0) return;
+    const next = target(event.key);
+    if (next === undefined) return;
     event.preventDefault();
-    const next = (at + towards + tabs.length) % tabs.length;
     choose(next);
     // Focus follows the choice: a tab that is selected and not focused leaves
     // the reader pressing arrows and hearing nothing.

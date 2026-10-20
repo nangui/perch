@@ -118,6 +118,21 @@ describe("reaching the panels from a keyboard", () => {
     ).toBe("true");
   });
 
+  it("goes to either end on End and Home, and takes focus along", () => {
+    draw();
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "End" });
+
+    const last = screen.getByRole("tab", { name: "Status" });
+    expect(last.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(last);
+
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "Home" });
+
+    const first = screen.getByRole("tab", { name: "About" });
+    expect(first.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(first);
+  });
+
   it("ignores a key that means nothing here", () => {
     draw();
     fireEvent.keyDown(screen.getByRole("tablist"), { key: "a" });
