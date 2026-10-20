@@ -94,4 +94,25 @@ describe("the mark of where the keyboard is", () => {
     expect(item?.[1]).toMatch(/box-shadow: none/);
     expect(highlighted?.[1]).toMatch(/background: var\(--perch-colors-surface-muted\)/);
   });
+
+  it("draws one ring round a box a reader types into, the box's", () => {
+    // Measured on a phone: the floor reached the input inside a control as
+    // well as the control, and a square ring inside a rounded one left two
+    // straight strokes standing in every focused field.
+    const all = rules();
+    for (const [box, inner] of [
+      [".perch-control", ".perch-control__input"],
+      [".perch-textarea", ".perch-textarea__input"],
+      [".perch-markdown", ".perch-markdown__box"],
+      [".perch-rich", ".perch-rich__page"],
+    ] as const) {
+      const lit = all.find(([named]) => named === `${box}:focus-within`);
+      expect(lit?.[1], `${box} draws no ring of its own`).toMatch(RING);
+
+      const quiet = all.find(([named]) =>
+        named.split(",").some((one) => one.trim() === `${box} ${inner}`),
+      );
+      expect(quiet?.[1], `${inner} keeps the floor's ring`).toMatch(/box-shadow: none/);
+    }
+  });
 });

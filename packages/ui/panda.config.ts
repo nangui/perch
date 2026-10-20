@@ -1762,6 +1762,17 @@ export default defineConfig({
 
     /* The control owns the frame; the input is transparent inside it. Border
        and ring live in one place, so every field type lines up to the pixel. */
+    /* The text a reader types into, inside a box that lights up round it.
+       The box draws the ring, by `:focus-within`; the floor reached the text
+       inside as well, and a square ring drawn within a rounded one left two
+       straight strokes standing inside the box on every field. Named under
+       the box, because the floor and a bare class tie on specificity and the
+       floor is written later. */
+    ".perch-control .perch-control__input, .perch-textarea .perch-textarea__input, .perch-markdown .perch-markdown__box, .perch-rich .perch-rich__page":
+      {
+        boxShadow: "none",
+      },
+
     ".perch-control__input": {
       flex: "1 1 auto",
       minWidth: "0",
