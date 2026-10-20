@@ -21,9 +21,10 @@ so there was nothing to do, and a section saying so would be a section about not
 
 ## 0.4 to 0.5
 
-Three things, and the compiler sees one of them. An export changed name, a field or
-column you never gave a label to is now headed differently, and three controls above,
-beside and below a table are drawn by other elements.
+Four things, and the compiler sees one of them. An export changed name, a field or
+column you never gave a label to is now headed differently, three controls above,
+beside and below a table are drawn by other elements, and what an action answers with
+is a toast.
 
 ### `Calendar` is now `CalendarSurface`
 
@@ -99,6 +100,15 @@ A rule on `.perch-row-actions[open]`, `.perch-columns[open]`, `.perch-columns__p
 `.perch-list__size select` now reaches nothing.
 Nothing to do otherwise: a theme that only set the panel's tokens sees the new controls
 in its own colours.
+
+### A theme that styled the notice above a list
+
+What an action answers with is a toast now, not a `p.perch-notice` before the table: a
+`.perch-toast` with a tone class (`--success`, `--warning`, `--danger` or `--info`) inside
+`.perch-toasts`, holding `.perch-toast__title`, `.perch-toast__body` and
+`.perch-toast__close`. `.perch-notice--success`, `--warning` and `--info` are gone;
+`.perch-notice` stays, for the failure a form shows when the server cannot be reached. A
+theme that only set the panel's tokens sees the toast in its own colours.
 
 ## 0.3 to 0.4
 
