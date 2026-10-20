@@ -174,6 +174,13 @@ describe("a control that has gone quiet in a cell", () => {
     }
   });
 
+  it("is never squeezed narrower than its longest choice", () => {
+    // Measured on a full table: a select at a percentage width counts for
+    // nothing when a table sizes its columns, and "Member" was cut to "Mer"
+    // beside its chevron.
+    expect(settled(".perch-table__cell select", "min-width")).toBe("max-content");
+  });
+
   it("leaves a choice in a cell still saying that it is one", () => {
     // With the frame gone at rest, the chevron is all that separates a select
     // from the plain text in the cell beside it. It used to be a data URI in

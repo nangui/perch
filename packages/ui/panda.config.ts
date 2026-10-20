@@ -4912,7 +4912,12 @@ export default defineConfig({
     /* The browser's own select, given the same quiet. The chevron stays, or a
        column of choices at rest reads as text; `background-color` rather than the
        shorthand, so it survives. */
+    /* `min-width` because a select is a control a table may squeeze: at a
+       percentage width its least width counts as nothing when the table sizes
+       its columns, and a full table cut "Member" to "Mer" beside its chevron.
+       Its own width is the longest choice it holds, and that is the floor. */
     ".perch-table__cell select": {
+      minWidth: "max-content",
       height: "auto",
       paddingBlock: "0",
       borderColor: "transparent",
