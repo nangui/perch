@@ -48,6 +48,7 @@ The structural decisions, with their context, the options set aside and **the ru
 | [0040](adr/0040-what-a-stylesheet-guard-promises.md) | The suite holds the panel to floors rather than to how any surface looks |
 | [0041](adr/0041-what-the-stylesheet-migration-cost.md) | What the stylesheet migration cost and found, and the procedure it retires |
 | [0042](adr/0042-the-pointer-target-floor-has-two-forms.md) | A pointer target conforms by its size or by its spacing, and the panel uses both |
+| [0043](adr/0043-what-a-notification-carries.md) | A notification is a title, a body and a tone, and the renderer decides how long it stays |
 
 ## Perch — a UI framework for NestJS
 

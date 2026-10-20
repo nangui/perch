@@ -54,6 +54,7 @@ An ADR is not a living document. **It is never edited**, only replaced by a late
 | [0040](0040-what-a-stylesheet-guard-promises.md) | The suite promises floors every surface must answer, not that any surface looks right; a new surface test needs an expensive decision, not a gap in a count | accepted |
 | [0041](0041-what-the-stylesheet-migration-cost.md) | What twenty-seven moves found, and why ADR 0039's procedure is retired rather than replaced | accepted |
 | [0042](0042-the-pointer-target-floor-has-two-forms.md) | The pointer-target floor is 2.5.8 and both its forms, the spacing one being what the radio's dot meets | accepted |
+| [0043](0043-what-a-notification-carries.md) | A notification carries a title, a body and a tone; how long it is shown is the renderer's; PRD 08 is corrected to match | accepted |
 
 ## Format
 

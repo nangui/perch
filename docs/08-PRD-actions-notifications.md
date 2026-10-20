@@ -82,7 +82,7 @@ This contract is **identical** everywhere: table row, header, Edit page, bulk, n
 | Mode | Tier | Notes |
 |---|---|---|
 | Synchronous | v0.1 | default |
-| Notification return | v0.1 | the action returns one or more notifications |
+| Notification return | v0.1 | the action returns one notification, or none (ADR 0043) |
 | Redirect after the action | v0.1 | `.successRedirectUrl()` |
 | Table refresh | v0.1 | automatic after a mutation |
 | Queue (BullMQ) | v0.3 | for import/export and long batches |
@@ -96,19 +96,17 @@ This contract is **identical** everywhere: table row, header, Edit page, bulk, n
 ### 7.1 API
 
 ```ts
+// What an action's callback returns, rather than something it sends.
 Notification.make()
   .title('Report generated')
   .body('The monthly report is ready.')
-  .icon('document-chart-bar')
-  .success()                       // .warning() .danger() .info()
-  .persistent()                    // does not disappear on its own
-  .duration(5000)
-  .actions([
-    Action.make('download').color('primary').url(`/reports/${id}`),
-    Action.make('view').color('gray').url(`/reports/${id}/view`),
-  ])
-  .send();
+  .success();                      // .warning() .danger(); info by default
 ```
+
+A notification is a title, an optional body and a tone, and nothing else (ADR 0043). How
+long it is shown is the renderer's to decide: the panel's toast lets a success or a note
+go after a few seconds and keeps a warning or a danger until it is closed. An icon or a
+button inside a message is not built; ADR 0043 says what would open either.
 
 ### 7.2 Channels
 
