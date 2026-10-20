@@ -354,15 +354,13 @@ export default defineConfig({
      * rather than being split three ways and duplicated across both sheets for
      * one release.
      */
-    /* On a phone the shell's main already holds the page off the edges, and
-       a list padding itself inside it as well put the title 50px under the
-       menu bar and every card 34px in from each side. One gutter there, the
-       shell's. */
+    /* The shell's main already holds the page off the edges, and a list
+       padding itself inside it as well put its content 24px further in than
+       every other page's, so the table jumped sideways on the way from the
+       dashboard to a list. One gutter, the shell's, at every width. */
     ".perch-list": {
       flex: "1",
       minWidth: "0",
-      padding: "var(--perch-space-8) var(--perch-space-9) var(--perch-space-10)",
-      _narrow: { padding: "0" },
     },
 
     ".perch-list__header": {
@@ -370,15 +368,19 @@ export default defineConfig({
       gap: "5",
       alignItems: "baseline",
       justifyContent: "space-between",
-      marginBottom: "6",
+      // The space under every page's title, so what follows a list's starts
+      // where a dashboard's cards and a form's first field do.
+      marginBottom: "8",
     },
 
     ".perch-list__actions": { display: "flex", gap: "4" },
 
-    /* A heading's own margin is the browser's, and on a phone it was a third
-       of the space above the title: the gutter around the page is the
-       spacing there. */
+    /* A heading's own margin is the browser's, and nothing asked for it.
+       Wide, the space above a page's title, so a list's title sits where the
+       dashboard's and a form's do; on a phone, none, the gutter is the
+       spacing there. Below it the header's own margin. */
     ".perch-list__title": {
+      margin: "var(--perch-space-4) 0 0",
       _narrow: { margin: "0" },
       fontSize: "2xl",
       fontWeight: "600",

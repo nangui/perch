@@ -164,8 +164,33 @@ describe("a list's gutter in a narrow window", () => {
     expect(main).toContain("padding: var(--perch-space-7) var(--perch-space-7)");
 
     const block = narrowBlockNaming(".perch-list__title");
-    expect(/\.perch-list\s*\{([^}]*)\}/.exec(block)?.[1]).toContain("padding: 0");
     expect(/\.perch-list__title\s*\{([^}]*)\}/.exec(block)?.[1]).toContain("margin: 0");
+  });
+});
+
+describe("a list's place on the page at any width", () => {
+  // Measured at 1440px: a list padded itself inside the shell's main, so its
+  // title sat 31px lower and its table 24px further in than the dashboard's,
+  // and everything jumped on the way from one to the other.
+  it("adds no gutter of its own to the shell's", () => {
+    const own = [...STYLES.matchAll(/(?:^|\n)\s*\.perch-list\s*\{([^}]*)\}/g)].map(
+      (rule) => rule[1] ?? "",
+    );
+    expect(own.length).toBeGreaterThan(0);
+    for (const body of own) expect(body).not.toContain("padding");
+  });
+
+  it("starts its title and what follows it where every page's do", () => {
+    const page = /\.perch-page__title\s*\{([^}]*)\}/.exec(STYLES)?.[1] ?? "";
+    const title = /\.perch-list__title\s*\{([^}]*)\}/.exec(STYLES)?.[1] ?? "";
+    const header = /\.perch-list__header\s*\{([^}]*)\}/.exec(STYLES)?.[1] ?? "";
+
+    // A page's title is spaced `space-4` above and `space-8` below; a list's
+    // title takes the space above and its header the space below, because
+    // the header holds the tools beside the title as well.
+    expect(page).toContain("margin: var(--perch-space-4) 0 var(--perch-space-8)");
+    expect(title).toContain("margin: var(--perch-space-4) 0 0");
+    expect(header).toContain("margin-bottom: var(--perch-spacing-8)");
   });
 });
 
