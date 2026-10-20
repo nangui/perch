@@ -21,8 +21,9 @@ so there was nothing to do, and a section saying so would be a section about not
 
 ## 0.4 to 0.5
 
-Two things, and the compiler sees one of them. An export changed name, and a field or
-column you never gave a label to is now headed differently.
+Three things, and the compiler sees one of them. An export changed name, a field or
+column you never gave a label to is now headed differently, and two controls above and
+beside a table are drawn by other elements.
 
 ### `Calendar` is now `CalendarSurface`
 
@@ -77,6 +78,20 @@ table holding it beside `observer.name` does not head two columns alike.
 Nothing to do, unless you had been relying on the old text. A label you gave is
 untouched, including an empty one: ``.label("")`` still means no label rather than no
 name, and only an absent label falls back.
+
+### A theme that styled the row menu or the page size
+
+The row menu is no longer a `details.perch-row-actions`. Its button is
+`.perch-row-actions__open`, carrying `data-state="open"` while the menu is open. Its menu,
+`.perch-row-actions__menu`, is drawn at the end of the page and only while it is open, and
+an item in it is a `.perch-table__action` with `role="menuitem"`, carrying
+`data-highlighted` while the pointer or the arrow keys are on it. The page size is no
+longer a native `select` either: it is the same control a filter uses, a `.perch-control`
+inside `.perch-list__size`.
+
+A rule on `.perch-row-actions[open]` or `.perch-list__size select` now reaches nothing.
+Nothing to do otherwise: a theme that only set the panel's tokens sees the new controls
+in its own colours.
 
 ## 0.3 to 0.4
 
