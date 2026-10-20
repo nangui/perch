@@ -12,6 +12,9 @@
  * One handler answers both, and the second falls out of the first: a click on
  * another row's button is a click outside this one.
  *
+ * A row's menu has since moved to Radix's, which closes itself; the column
+ * menu is the `details` this still serves.
+ *
  * `pointerdown` in the capture phase, so the menu is gone before whatever was
  * clicked does its own work, and so a click on another summary closes this one
  * before the browser toggles that one. Escape as well, because a menu a mouse

@@ -8,6 +8,7 @@
  * afterwards — is the real component.
  */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -79,6 +80,39 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
+/**
+ * Opens a row's menu the way a keyboard does, and finds one item in it.
+ *
+ * A closed `<details>` held every item, so a test could press one without
+ * opening anything; a menu draws its items only once it is open.
+ */
+function rowItem(name: string | RegExp, row = 0): HTMLElement {
+  const trigger = screen.getAllByRole("button", { name: "Actions" })[row];
+  if (trigger === undefined) throw new Error(`no row menu on row ${String(row)}`);
+  if (trigger.getAttribute("data-state") !== "open") {
+    fireEvent.keyDown(trigger, { key: "Enter" });
+  }
+  return screen.getByRole("menuitem", { name });
+}
+
+/** The dialog an action opened, under `root`. */
+function dialogOf(root: HTMLElement): HTMLElement {
+  const dialog = root.querySelector("dialog");
+  if (dialog === null) throw new Error("no dialog was opened");
+  return dialog;
+}
+
+/**
+ * Presses one of a row's actions, as a reader does: open, then choose.
+ *
+ * Waits a turn afterwards, because the action runs once the menu has handed
+ * the focus back to its button, which the menu does on the next tick.
+ */
+async function pressRow(name: string | RegExp, row = 0): Promise<void> {
+  fireEvent.click(rowItem(name, row));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+}
+
 describe("an action that needs no confirmation", () => {
   it("runs on the press, naming itself and the row", async () => {
     const runAction = vi.fn().mockResolvedValue(ANSWER);
@@ -86,7 +120,7 @@ describe("an action that needs no confirmation", () => {
       <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     await waitFor(() => {
       expect(runAction).toHaveBeenCalledWith(
@@ -105,7 +139,7 @@ describe("an action that needs no confirmation", () => {
       <PanelList initial={page([renamed])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     await waitFor(() => {
       expect(runAction).toHaveBeenCalledWith(
@@ -123,7 +157,7 @@ describe("an action that needs no confirmation", () => {
       <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     expect(await screen.findByText("Done: 1 record.")).toBeTruthy();
   });
@@ -134,7 +168,7 @@ describe("an action that needs no confirmation", () => {
       <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     expect(await screen.findByText("Done: 3 records. 2 could not be.")).toBeTruthy();
   });
@@ -153,7 +187,7 @@ describe("an action that needs no confirmation", () => {
       <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     expect(await screen.findByText("Archived")).toBeTruthy();
     expect(screen.queryByText("Done: 1 record.")).toBeNull();
@@ -167,7 +201,7 @@ describe("an action that needs no confirmation", () => {
       <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     expect(await screen.findByText("That selection is too large.")).toBeTruthy();
   });
@@ -184,7 +218,7 @@ describe("an action that needs no confirmation", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     await waitFor(() => {
       expect(fetchPage).toHaveBeenCalled();
@@ -207,7 +241,7 @@ describe("what an earlier action said", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
     expect(await screen.findByText("Done: 1 record.")).toBeTruthy();
 
     // The sort trigger is a button inside the header. Clicking the header
@@ -222,20 +256,20 @@ describe("what an earlier action said", () => {
 });
 
 describe("an action that declared a confirmation", () => {
-  it("asks before it does anything at all", () => {
+  it("asks before it does anything at all", async () => {
     const runAction = vi.fn().mockResolvedValue(ANSWER);
     render(<PanelList initial={page([REMOVE])} title="People" runAction={runAction} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await pressRow("Delete");
 
     expect(screen.getByText("Delete this person?")).toBeTruthy();
     expect(runAction).not.toHaveBeenCalled();
   });
 
-  it("uses the wording the server sent, not a default", () => {
+  it("uses the wording the server sent, not a default", async () => {
     render(<PanelList initial={page([REMOVE])} title="People" runAction={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await pressRow("Delete");
 
     expect(screen.getByRole("heading", { name: "Delete this person?" })).toBeTruthy();
   });
@@ -244,11 +278,10 @@ describe("an action that declared a confirmation", () => {
     const runAction = vi.fn().mockResolvedValue(ANSWER);
     render(<PanelList initial={page([REMOVE])} title="People" runAction={runAction} />);
 
+    await pressRow("Delete");
+    // The dialog's own confirm button, which carries the declared label. The
+    // row's item is a menu item, gone with its menu, so it is the only one.
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    // The dialog's own confirm button, which carries the declared label.
-    fireEvent.click(
-      screen.getAllByRole("button", { name: "Delete" })[1] as HTMLElement,
-    );
 
     await waitFor(() => {
       expect(runAction).toHaveBeenCalledWith(
@@ -260,11 +293,11 @@ describe("an action that declared a confirmation", () => {
     });
   });
 
-  it("does nothing at all when the reader backs out", () => {
+  it("does nothing at all when the reader backs out", async () => {
     const runAction = vi.fn();
     render(<PanelList initial={page([REMOVE])} title="People" runAction={runAction} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await pressRow("Delete");
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(runAction).not.toHaveBeenCalled();
@@ -279,7 +312,7 @@ describe("an action that declared a confirmation", () => {
 });
 
 describe("a second press while the first is in flight", () => {
-  it("says so on the row button too, not only in the bulk bar", () => {
+  it("says so on the row button too, not only in the bulk bar", async () => {
     // The ref already stops a second request. What is missing is telling the
     // reader why nothing happened when they pressed again.
     const runAction = vi.fn().mockImplementation(() => new Promise(() => undefined));
@@ -287,15 +320,12 @@ describe("a second press while the first is in flight", () => {
       <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
-    expect(screen.getByRole("button", { name: "Archive" })).toHaveProperty(
-      "disabled",
-      true,
-    );
+    expect(rowItem("Archive").getAttribute("aria-disabled")).toBe("true");
   });
 
-  it("starts nothing for an action that asks nothing first either", () => {
+  it("starts nothing for an action that asks nothing first either", async () => {
     // Criterion 7: an action triggered twice by a double click performs the
     // mutation once. The dialog holds itself, but a press with no dialog has
     // nothing holding it.
@@ -304,9 +334,8 @@ describe("a second press while the first is in flight", () => {
       <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
     );
 
-    const button = screen.getByRole("button", { name: "Archive" });
-    fireEvent.click(button);
-    fireEvent.click(button);
+    await pressRow("Archive");
+    await pressRow("Archive");
 
     expect(runAction).toHaveBeenCalledTimes(1);
   });
@@ -318,8 +347,8 @@ describe("a second press while the first is in flight", () => {
       .mockImplementation(() => new Promise<ActionAnswer>((r) => (settle = r)));
     render(<PanelList initial={page([REMOVE])} title="People" runAction={runAction} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    const confirm = screen.getAllByRole("button", { name: "Delete" })[1] as HTMLElement;
+    await pressRow("Delete");
+    const confirm = screen.getByRole("button", { name: "Delete" });
     fireEvent.click(confirm);
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Working…" })).toBeTruthy();
@@ -357,7 +386,8 @@ describe("an action the host cannot carry out", () => {
     render(<PanelList initial={page([ARCHIVE, link])} title="People" />);
 
     expect(screen.getAllByRole("columnheader")).toHaveLength(2);
-    expect(screen.getByRole("link", { name: "Edit" })).toBeTruthy();
+    // Still a link inside the menu, so a new tab and a copied address work.
+    expect(rowItem("Edit").tagName).toBe("A");
   });
 });
 
@@ -594,18 +624,18 @@ describe("an action that collects something first", () => {
     return { runAction, actionForm };
   };
 
-  it("asks the server what to show, rather than showing what the table said", () => {
+  it("asks the server what to show, rather than showing what the table said", async () => {
     const { actionForm } = draw();
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     expect(actionForm).toHaveBeenCalledWith("ArchiveAction", [1]);
   });
 
-  it("runs nothing until the form is submitted", () => {
+  it("runs nothing until the form is submitted", async () => {
     const { runAction } = draw();
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     expect(runAction).not.toHaveBeenCalled();
   });
@@ -613,7 +643,7 @@ describe("an action that collects something first", () => {
   it("shows the fields the server resolved", async () => {
     draw();
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     expect(await screen.findByLabelText("Reason")).toBeTruthy();
   });
@@ -621,7 +651,7 @@ describe("an action that collects something first", () => {
   it("sends what was typed, with the selection it was opened for", async () => {
     const { runAction } = draw();
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
     fireEvent.change(await screen.findByLabelText("Reason"), {
       target: { value: "stale" },
     });
@@ -646,19 +676,19 @@ describe("an action that collects something first", () => {
     });
     draw({ runAction });
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
     fireEvent.click(await screen.findByRole("button", { name: "Archive it" }));
 
     expect(await screen.findByText("This field is required.")).toBeTruthy();
     expect(screen.getByLabelText("Reason")).toBeTruthy();
   });
 
-  it("still closes a plain confirmation on a click outside it", () => {
+  it("still closes a plain confirmation on a click outside it", async () => {
     // The other half of the rule: nothing is lost by dismissing a question, so
     // dismissing it stays as easy as it was.
     render(<PanelList initial={page([REMOVE])} title="People" runAction={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await pressRow("Delete");
     fireEvent.click(document.querySelector("dialog") as HTMLElement);
 
     expect(screen.queryByText("Delete this person?")).toBeNull();
@@ -669,7 +699,7 @@ describe("an action that collects something first", () => {
     // filled in cannot: the click is as likely to be a miss as a decision.
     draw();
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
     fireEvent.change(await screen.findByLabelText("Reason"), {
       target: { value: "stale" },
     });
@@ -692,7 +722,7 @@ describe("an action that collects something first", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     await waitFor(() => {
       expect(actionForm).not.toHaveBeenCalled();
@@ -700,13 +730,13 @@ describe("an action that collects something first", () => {
     expect(screen.queryByText("Archive them")).toBeNull();
   });
 
-  it("is not opened at all when the host cannot ask for the schema", () => {
+  it("is not opened at all when the host cannot ask for the schema", async () => {
     const runAction = vi.fn();
     render(
       <PanelList initial={page([WITH_FORM])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     expect(runAction).not.toHaveBeenCalled();
     expect(screen.queryByText("Why?")).toBeNull();
@@ -761,7 +791,7 @@ describe("naming what the reader asked for", () => {
       <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
 
     await waitFor(() => {
       expect(runAction).toHaveBeenCalled();
@@ -775,13 +805,13 @@ describe("naming what the reader asked for", () => {
       <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
     // What the first press put on screen, not the call it made: a press while
     // the first is in flight is ignored on purpose, so waiting on the call
     // races the answer being handled.
     expect(await screen.findByText(/^Done/)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
     await waitFor(() => {
       expect(runAction).toHaveBeenCalledTimes(2);
     });
@@ -801,13 +831,13 @@ describe("naming what the reader asked for", () => {
       <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
     // Waited for what the failure put on screen, not for the call: a press
     // while the first is in flight is ignored on purpose, and waiting on the
     // call alone races the rejection being handled.
     expect(await screen.findByText("network")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
     await waitFor(() => {
       expect(runAction).toHaveBeenCalledTimes(2);
     });
@@ -838,7 +868,7 @@ describe("naming what the reader asked for", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await pressRow("Archive");
     fireEvent.click(await screen.findByRole("button", { name: "Archive it" }));
     // The refusal, on the field it is about. Waiting on the call instead would
     // race the form coming back and the dialog being pressable again.
@@ -915,8 +945,7 @@ describe("a view opened in place", () => {
         actionContent={actionContent}
       />,
     );
-    fireEvent.click(await screen.findByLabelText("Actions"));
-    fireEvent.click(await screen.findByText("View"));
+    await pressRow("View");
     return { container, actionContent };
   };
 
@@ -931,7 +960,9 @@ describe("a view opened in place", () => {
   it("draws what came back, and asks for nothing", async () => {
     const { container } = await press();
 
-    expect(await screen.findByText("Ada")).toBeTruthy();
+    // In the dialog: the row's own cell says "Ada" too, and found anywhere the
+    // word proved nothing about what the dialog drew.
+    expect(await within(dialogOf(container)).findByText("Ada")).toBeTruthy();
     // Nothing is carried out, so there is nothing to agree to — no footer, and
     // no confirm button that would be agreeing to be shown something.
     expect(container.querySelector(".perch-modal__actions")).toBeNull();
@@ -949,9 +980,8 @@ describe("a view opened in place", () => {
         actionContent={vi.fn().mockResolvedValue(infolist)}
       />,
     );
-    fireEvent.click(await screen.findByLabelText("Actions"));
-    fireEvent.click(await screen.findByText("View"));
-    await screen.findByText("Ada");
+    await pressRow("View");
+    await within(dialogOf(document.body)).findByText("Ada");
 
     expect(runAction).not.toHaveBeenCalled();
   });
@@ -960,7 +990,7 @@ describe("a view opened in place", () => {
     // The opposite of a form, which ignores one because the click is as likely
     // a miss as a decision and what it would lose is the reader's.
     const { container } = await press();
-    await screen.findByText("Ada");
+    await within(dialogOf(container)).findByText("Ada");
     fireEvent.click(container.querySelector("dialog") as HTMLDialogElement);
 
     await waitFor(() => {
@@ -1010,8 +1040,7 @@ describe("how an action's modal opens", () => {
         runAction={vi.fn().mockResolvedValue({ processed: 1, refused: 0 })}
       />,
     );
-    fireEvent.click(await screen.findByLabelText("Actions"));
-    fireEvent.click(await screen.findByText("Archive"));
+    await pressRow("Archive");
     return container;
   };
 
@@ -1077,15 +1106,17 @@ describe("an action offered where it can do nothing", () => {
   });
 
   const opened = async (deleted?: (string | number)[]): Promise<HTMLElement> => {
-    const { container } = render(
+    render(
       <PanelList
         initial={page(deleted)}
         title="Posts"
         runAction={vi.fn().mockResolvedValue({ processed: 1, refused: 0 })}
       />,
     );
-    fireEvent.click(await screen.findByLabelText("Actions"));
-    return container;
+    // Opened, and the menu handed back: it is drawn outside the table, against
+    // the viewport, so the container no longer holds it.
+    fireEvent.keyDown(await screen.findByLabelText("Actions"), { key: "Enter" });
+    return screen.getByRole("menu");
   };
 
   it("does not offer a restore on a row that is not marked", async () => {
@@ -1139,31 +1170,21 @@ describe("a row's actions", () => {
       />,
     );
 
-    // Shut to start with. Asserted on the element rather than on the words:
-    // a closed `<details>` still holds its children, so looking for the text
-    // finds it either way — which is how a control that never opened could
-    // have passed this.
-    const menu = document.querySelector(
-      "details.perch-row-actions",
-    ) as HTMLDetailsElement;
-    expect(menu.open).toBe(false);
-    expect(within(menu).getByText("Delete")).toBeDefined();
-    expect(
-      (menu.querySelector(".perch-row-actions__menu") as HTMLElement).dataset["placed"],
-    ).toBe("false");
+    // Shut to start with: a closed menu draws none of its items, so the words
+    // are not on the page at all until a reader asks for them.
+    const trigger = await screen.findByLabelText("Actions");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("menu")).toBeNull();
 
-    fireEvent.click(await screen.findByLabelText("Actions"));
-    expect(menu.open).toBe(true);
+    fireEvent.keyDown(trigger, { key: "Enter" });
 
-    // Placed against the viewport once it opens. The table scrolls sideways for
-    // a wide one, and a scrolling box clips in both directions whatever the
-    // z-index says — measured on screen: the menu was cut off at the last row.
-    // `toggle` is queued by the specification, so the placement lands a task
-    // later — asserting straight after the click reads the shut state.
-    const list = menu.querySelector(".perch-row-actions__menu") as HTMLElement;
-    await waitFor(() => {
-      expect(list.dataset["placed"]).toBe("true");
-    });
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    const menu = screen.getByRole("menu");
+    expect(within(menu).getByRole("menuitem", { name: "Delete" })).toBeDefined();
+    // Drawn outside the table. The table scrolls sideways for a wide one, and a
+    // scrolling box clips in both directions whatever the z-index says —
+    // measured on screen: a menu inside it was cut off at the last row.
+    expect(document.querySelector(".perch-table")?.contains(menu)).toBe(false);
   });
 });
 
@@ -1296,11 +1317,11 @@ describe("a group on a row the actions inside it do not suit", () => {
   });
 
   const opened = async (deleted?: (string | number)[]): Promise<HTMLElement> => {
-    const { container } = render(
-      <PanelList initial={page(deleted)} title="Posts" runAction={vi.fn()} />,
-    );
-    fireEvent.click(await screen.findByLabelText("Actions"));
-    return container;
+    render(<PanelList initial={page(deleted)} title="Posts" runAction={vi.fn()} />);
+    // Opened, and the menu handed back: it is drawn outside the table, against
+    // the viewport, so the container no longer holds it.
+    fireEvent.keyDown(await screen.findByLabelText("Actions"), { key: "Enter" });
+    return screen.getByRole("menu");
   };
 
   it("asks the question of what it holds, not of the group", async () => {
@@ -1357,24 +1378,56 @@ describe("a group on a row the actions inside it do not suit", () => {
 });
 
 describe("the menu a row's actions live in", () => {
-  it("closes when the pointer goes down somewhere else", () => {
+  /** The menu opened from the first row, with its button. */
+  const opened = (): HTMLElement => {
+    render(<PanelList initial={page([ARCHIVE])} title="People" runAction={vi.fn()} />);
+    const trigger = screen.getByRole("button", { name: "Actions" });
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    expect(screen.getByRole("menu")).toBeTruthy();
+    return trigger;
+  };
+
+  it("closes when the pointer goes down somewhere else", async () => {
     // Reported from the demo: opened, thought better of, clicked away, and
-    // still standing over the rows below. A `details` does not close itself,
-    // and this is the wiring that makes it, rather than the rule, which has its
-    // own file.
-    const runAction = vi.fn().mockResolvedValue(ANSWER);
-    render(
-      <PanelList initial={page([ARCHIVE])} title="People" runAction={runAction} />,
-    );
-    const menu = document.querySelector<HTMLDetailsElement>(
-      "details.perch-row-actions",
-    );
-    expect(menu, "no row menu was drawn").not.toBeNull();
-    menu!.open = true;
+    // still standing over the rows below.
+    opened();
+    // The menu listens for a press outside it from the next tick on, so the
+    // press that opened it is not taken for one.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
     // The page itself, which is as far outside the menu as a reader gets.
     fireEvent.pointerDown(document.body);
 
-    expect(menu!.open).toBe(false);
+    await waitFor(() => {
+      expect(screen.queryByRole("menu")).toBeNull();
+    });
+  });
+
+  it("closes on Escape, and gives the focus back to its button", async () => {
+    // A menu a mouse can dismiss and a keyboard cannot is one somebody is
+    // trapped in, and the focus goes back where it came from.
+    const trigger = opened();
+
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("menu")).toBeNull();
+      expect(document.activeElement).toBe(trigger);
+    });
+  });
+
+  it("gives the focus back to its button before what it opened takes it", async () => {
+    // Run at once, an action opened its dialog while the menu was still
+    // closing, and the focus the dialog would hand back on closing was an
+    // item that had already left the page.
+    const runAction = vi.fn().mockResolvedValue(ANSWER);
+    render(<PanelList initial={page([REMOVE])} title="People" runAction={runAction} />);
+    const trigger = screen.getByRole("button", { name: "Actions" });
+
+    await pressRow("Delete");
+
+    expect(screen.getByRole("heading", { name: "Delete this person?" })).toBeTruthy();
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 });

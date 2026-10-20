@@ -3,7 +3,14 @@
  *
  * The table, and the constraint it exists to honour.
  */
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import type { ColumnTree, Row } from "@perchjs/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { registerColumn, resetColumnRegistry } from "./column-registry.js";
@@ -20,6 +27,21 @@ afterEach(() => {
   resetColumnRegistry();
   registerBuiltInColumns();
 });
+
+/**
+ * Opens a row's menu the way a keyboard does, and hands back the menu.
+ *
+ * Drawn only once it is open, and outside the table, against the viewport:
+ * a closed `<details>` held every item inside the row.
+ */
+function openRow(row = 0): HTMLElement {
+  const shown = screen.queryByRole("menu");
+  if (shown !== null) fireEvent.keyDown(shown, { key: "Escape" });
+  const trigger = screen.getAllByRole("button", { name: "Actions" })[row];
+  if (trigger === undefined) throw new Error(`no row menu on row ${String(row)}`);
+  fireEvent.keyDown(trigger, { key: "Enter" });
+  return screen.getByRole("menu");
+}
 
 const COLUMNS: ColumnTree = {
   actions: [],
@@ -111,7 +133,8 @@ describe("row actions", () => {
       />,
     );
 
-    expect(screen.getAllByRole("link", { name: "Edit" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Actions" })).toHaveLength(2);
+    expect(within(openRow()).getByRole("menuitem", { name: "Edit" }).tagName).toBe("A");
     expect(screen.getAllByRole("columnheader")).toHaveLength(4);
   });
 
@@ -278,12 +301,12 @@ describe("flat rendering, which is non-negotiable", () => {
 });
 
 describe("the row menu, once something has been pressed", () => {
-  it("folds itself before whatever it opened", () => {
-    // A `<details>` stays open on its own, so the menu sat above the dimmed
+  it("folds itself before whatever it opened", async () => {
+    // A `<details>` stayed open on its own, so the menu sat above the dimmed
     // page behind the dialog it had just opened: a list of things to press,
     // over a modal that had taken the focus away from all of them.
     const onAction = vi.fn();
-    const { container } = render(
+    render(
       <DataTable
         columns={{
           ...COLUMNS,
@@ -295,11 +318,11 @@ describe("the row menu, once something has been pressed", () => {
       />,
     );
 
-    const menu = container.querySelector("details") as HTMLDetailsElement;
-    fireEvent.click(container.querySelectorAll("summary")[0] as HTMLElement);
-    fireEvent.click(screen.getAllByText("Archive")[0] as HTMLElement);
+    fireEvent.click(within(openRow()).getByRole("menuitem", { name: "Archive" }));
+    // Run once the menu has handed the focus back, which it does a tick on.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
-    expect(menu.open).toBe(false);
+    expect(screen.queryByRole("menu")).toBeNull();
     expect(onAction).toHaveBeenCalled();
   });
 });
@@ -341,17 +364,20 @@ describe("a group of actions in a row's menu", () => {
       />,
     );
 
-    const section = container.querySelector(".perch-table__action-group");
+    const section = openRow().querySelector(".perch-table__action-group");
     expect(section?.getAttribute("role")).toBe("group");
     expect(section?.getAttribute("aria-label")).toBe("Recovery");
-    // One `<details>` on the row, which is the menu itself.
-    expect(container.querySelectorAll("tbody details")).toHaveLength(ROWS.length);
+    // One menu on the row, which is the only one: nothing inside it opens another.
+    expect(container.querySelectorAll("tbody [aria-haspopup]")).toHaveLength(
+      ROWS.length,
+    );
+    expect(screen.getAllByRole("menu")).toHaveLength(1);
   });
 
   it("draws the shape its mark names, beside the group's own label", () => {
     // A name and not a character: the arrow that used to sit here was whatever
     // the reader's font had for `↩`, in a menu where every other mark is drawn.
-    const { container } = render(
+    render(
       <DataTable
         columns={grouped}
         rows={ROWS}
@@ -361,7 +387,7 @@ describe("a group of actions in a row's menu", () => {
       />,
     );
 
-    const heading = container.querySelector(".perch-table__action-group-label");
+    const heading = openRow().querySelector(".perch-table__action-group-label");
     const mark = heading?.querySelector(".perch-table__action-group-icon");
 
     expect(mark?.tagName.toLowerCase()).toBe("svg");
@@ -370,7 +396,7 @@ describe("a group of actions in a row's menu", () => {
   });
 
   it("puts what it holds inside it, and the rest outside", () => {
-    const { container } = render(
+    render(
       <DataTable
         columns={grouped}
         rows={ROWS}
@@ -380,18 +406,20 @@ describe("a group of actions in a row's menu", () => {
       />,
     );
 
-    const section = container.querySelector(".perch-table__action-group");
+    const section = openRow().querySelector(".perch-table__action-group");
     expect(
-      [...(section?.querySelectorAll("button") ?? [])].map((b) => b.textContent),
+      [...(section?.querySelectorAll('[role="menuitem"]') ?? [])].map(
+        (b) => b.textContent,
+      ),
     ).toEqual(["Restore", "Force delete"]);
     expect(section?.textContent).not.toContain("Edit");
   });
 
-  it("runs what was pressed, not the group", () => {
+  it("runs what was pressed, not the group", async () => {
     // A group has nothing behind it. Pressing one of its items is pressing
     // that item, and the route never hears the group's name.
     const onAction = vi.fn();
-    const { container } = render(
+    render(
       <DataTable
         columns={grouped}
         rows={ROWS}
@@ -402,8 +430,11 @@ describe("a group of actions in a row's menu", () => {
     );
 
     fireEvent.click(
-      container.querySelector(".perch-table__action-group button") as HTMLElement,
+      openRow().querySelector(
+        '.perch-table__action-group [role="menuitem"]',
+      ) as HTMLElement,
     );
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
     expect(onAction).toHaveBeenCalledWith(
       expect.objectContaining({ name: "RestoreAction" }),

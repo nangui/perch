@@ -7,7 +7,14 @@
  * A record with six managers has to cost one page, not seven, and a tab nobody
  * looked at has to cost nothing at all.
  */
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import type { Mock } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -84,6 +91,30 @@ beforeEach(() => {
 });
 
 afterEach(cleanup);
+
+/**
+ * Opens a row's menu the way a keyboard does, and finds one item in it.
+ *
+ * A closed `<details>` held every item; a menu draws its items only once it
+ * is open.
+ */
+async function rowItem(name: string | RegExp, row = 0): Promise<HTMLElement> {
+  const trigger = (await screen.findAllByRole("button", { name: "Actions" }))[row];
+  if (trigger === undefined) throw new Error(`no row menu on row ${String(row)}`);
+  if (trigger.getAttribute("data-state") !== "open") {
+    fireEvent.keyDown(trigger, { key: "Enter" });
+  }
+  return screen.getByRole("menuitem", { name });
+}
+
+/**
+ * Presses one of a row's actions, then waits the turn the menu takes to hand
+ * the focus back to its button, which is when the action runs.
+ */
+async function pressRow(name: string | RegExp, row = 0): Promise<void> {
+  fireEvent.click(await rowItem(name, row));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+}
 
 describe("the tabs under a form", () => {
   it("draws one per manager, named by its label", () => {
@@ -177,8 +208,7 @@ describe("what a tab sends", () => {
       expect(screen.getByText("notes")).toBeTruthy();
     });
 
-    fireEvent.click(await screen.findByLabelText("Actions"));
-    fireEvent.click(screen.getByText("Delete"));
+    await pressRow("Delete");
 
     await waitFor(() => {
       expect(runAction).toHaveBeenCalled();
@@ -402,8 +432,7 @@ describe("a file in a manager's form", () => {
       expect(screen.getByText("First")).toBeTruthy();
     });
 
-    fireEvent.click(await screen.findByLabelText("Actions"));
-    fireEvent.click(screen.getByText("Edit"));
+    await pressRow("Edit");
     await waitFor(() => {
       expect(screen.getByLabelText("Cover")).toBeTruthy();
     });
@@ -540,8 +569,7 @@ describe("editing a child", () => {
       expect(screen.getByText("First")).toBeTruthy();
     });
 
-    fireEvent.click(await screen.findByLabelText("Actions"));
-    fireEvent.click(screen.getByText("Edit"));
+    await pressRow("Edit");
 
     await waitFor(() => {
       expect(screen.getByLabelText("Body")).toBeTruthy();
@@ -600,7 +628,7 @@ describe("a tab over a join", () => {
       />,
     );
 
-    expect(await screen.findByRole("button", { name: /detach/i })).toBeDefined();
+    expect(await rowItem(/detach/i)).toBeDefined();
   });
 
   it("offers no edit, there being nothing of this record's on the row", async () => {
@@ -614,8 +642,8 @@ describe("a tab over a join", () => {
       />,
     );
 
-    await screen.findByRole("button", { name: /detach/i });
-    expect(screen.queryByRole("button", { name: /^edit$/i })).toBeNull();
+    await rowItem(/detach/i);
+    expect(screen.queryByRole("menuitem", { name: /^edit$/i })).toBeNull();
   });
 
   it("shows the row gone once it has been let go of", async () => {
@@ -652,9 +680,7 @@ describe("a tab over a join", () => {
     );
 
     await screen.findByText("green");
-    fireEvent.click(
-      (await screen.findAllByRole("button", { name: /detach/i }))[0] as HTMLElement,
-    );
+    await pressRow(/detach/i);
 
     // Both halves, because either alone passes on the other's work: a list
     // that redraws without the request having gone is a row that comes back on

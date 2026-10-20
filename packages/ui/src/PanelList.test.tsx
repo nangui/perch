@@ -36,6 +36,21 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
+/**
+ * Opens a row's menu the way a keyboard does, and finds one item in it.
+ *
+ * A closed `<details>` held every item; a menu draws its items only once it
+ * is open, and only one row's at a time.
+ */
+function rowItem(name: string | RegExp, row = 0): HTMLElement {
+  const open = screen.queryByRole("menu");
+  if (open !== null) fireEvent.keyDown(open, { key: "Escape" });
+  const trigger = screen.getAllByRole("button", { name: "Actions" })[row];
+  if (trigger === undefined) throw new Error(`no row menu on row ${String(row)}`);
+  fireEvent.keyDown(trigger, { key: "Enter" });
+  return screen.getByRole("menuitem", { name });
+}
+
 describe("the list page", () => {
   it("shows the rows it was handed, and how many there are", () => {
     render(<PanelList initial={PAGE} title="Posts" />);
@@ -137,11 +152,10 @@ describe("the list page", () => {
     // Not `id` by convention: the response says which column addresses a row,
     // and a model keyed on `uuid` is addressed by `uuid`.
     render(<PanelList initial={PAGE} title="Posts" />);
-    const links = screen.getAllByRole("link", { name: "Edit" });
 
-    expect(links).toHaveLength(2);
-    expect(links[0]?.getAttribute("href")).toBe("/admin/posts/1/edit");
-    expect(links[1]?.getAttribute("href")).toBe("/admin/posts/2/edit");
+    expect(screen.getAllByRole("button", { name: "Actions" })).toHaveLength(2);
+    expect(rowItem("Edit", 0).getAttribute("href")).toBe("/admin/posts/1/edit");
+    expect(rowItem("Edit", 1).getAttribute("href")).toBe("/admin/posts/2/edit");
   });
 
   it("keeps the panel's own prefix", () => {
@@ -152,9 +166,7 @@ describe("the list page", () => {
       />,
     );
 
-    expect(screen.getAllByRole("link", { name: "Edit" })[0]?.getAttribute("href")).toBe(
-      "/api/v1/admin/posts/1/edit",
-    );
+    expect(rowItem("Edit").getAttribute("href")).toBe("/api/v1/admin/posts/1/edit");
   });
 
   it("addresses a row by whatever the model calls its key", () => {
@@ -169,9 +181,7 @@ describe("the list page", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "Edit" }).getAttribute("href")).toBe(
-      "/admin/posts/a-b-c/edit",
-    );
+    expect(rowItem("Edit").getAttribute("href")).toBe("/admin/posts/a-b-c/edit");
   });
 
   it("offers nothing when the server would not vouch for the address", () => {
@@ -242,7 +252,8 @@ describe("the list page", () => {
   it("offers no reordering when nothing can answer it", () => {
     render(<PanelList initial={PAGE} title="Posts" />);
 
-    expect(screen.queryByRole("button")).toBeNull();
+    // The row menus are buttons; a header that sorts would be one too.
+    expect(screen.queryByRole("button", { name: /Headline/ })).toBeNull();
   });
 });
 

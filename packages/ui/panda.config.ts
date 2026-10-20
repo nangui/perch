@@ -2692,15 +2692,10 @@ export default defineConfig({
     },
 
     /*
-     * One control per row instead of a line of words. `<details>` because it opens
-     * on click and on Enter, closes on Escape, and is one tab stop — a handmade
-     * popover has to be given all three and usually gets two.
+     * One control per row instead of a line of words, opening Radix's menu: on
+     * a click, on Enter and on the arrow keys, closed by Escape and by a click
+     * anywhere else, and placed by the menu inside the window.
      */
-    ".perch-row-actions": {
-      position: "relative",
-      display: "inline-block",
-    },
-
     ".perch-row-actions__open": {
       display: "inline-flex",
       alignItems: "center",
@@ -2708,32 +2703,24 @@ export default defineConfig({
       /* WCAG's pointer target, the same floor every other control here keeps. */
       minWidth: "24px",
       minHeight: "24px",
+      padding: "0",
+      border: "0",
       borderRadius: "var(--perch-space-1)",
+      background: "none",
       color: "content-secondary",
       cursor: "pointer",
-      listStyle: "none",
     },
 
-    ".perch-row-actions__open::-webkit-details-marker": {
-      display: "none",
+    '.perch-row-actions__open:hover, .perch-row-actions__open[data-state="open"]': {
+      background: "surface-skeleton-strong",
     },
 
-    ".perch-row-actions__open:hover, .perch-row-actions[open] .perch-row-actions__open":
-      {
-        background: "surface-skeleton-strong",
-      },
-
-    /*
-     * Against the viewport, not against the row. The table scrolls sideways for a
-     * wide one, and a box that scrolls clips in both directions whatever the
-     * z-index says — so a menu placed inside it is cut off at the last row.
-     */
-    '.perch-row-actions__menu[data-placed="false"]': {
-      visibility: "hidden",
+    ".perch-row-actions__open:focus-visible": {
+      outline: "2px solid var(--perch-accent)",
+      outlineOffset: "2px",
     },
 
     ".perch-row-actions__menu": {
-      position: "fixed",
       zIndex: "20",
       display: "flex",
       flexDirection: "column",
@@ -2745,13 +2732,43 @@ export default defineConfig({
       border: "1px solid var(--perch-border)",
       borderRadius: "var(--perch-space-2)",
       boxShadow: "popover",
+      outline: "none",
     },
 
-    /* Left, not centred: a column of labels is read down its left edge. */
+    /* An item of a menu, as every menu draws one: the reader's own colour, a
+       ground under the one the pointer or the arrow keys are on. Drawn as a
+       link beside the rows, they were a column of underlined blue words. */
     ".perch-row-actions__menu .perch-table__action": {
+      display: "flex",
+      alignItems: "center",
       justifyContent: "flex-start",
+      width: "100%",
+      padding: "var(--perch-space-3) var(--perch-space-4)",
+      borderRadius: "var(--perch-space-1)",
+      color: "content",
+      fontSize: "base",
       textAlign: "left",
-      padding: "var(--perch-space-2) var(--perch-space-3)",
+      textDecoration: "none",
+      outline: "none",
+      cursor: "pointer",
+      userSelect: "none",
+    },
+
+    ".perch-row-actions__menu .perch-table__action[data-highlighted]": {
+      background: "surface-muted",
+    },
+
+    ".perch-row-actions__menu .perch-table__action--danger": {
+      color: "danger",
+    },
+
+    ".perch-row-actions__menu .perch-table__action--danger[data-highlighted]": {
+      background: "danger-surface",
+    },
+
+    ".perch-row-actions__menu .perch-table__action[data-disabled]": {
+      color: "content-subtle",
+      cursor: "not-allowed",
     },
 
     /**
@@ -5163,8 +5180,6 @@ export default defineConfig({
       color: "content-muted",
       fontSize: "sm",
       fontWeight: "600",
-      letterSpacing: "0.07em",
-      textTransform: "uppercase",
     },
 
     ".perch-table__action": {
@@ -5249,6 +5264,32 @@ export default defineConfig({
       borderBottom: "none",
       backgroundColor: "surface-sunken",
       whiteSpace: "nowrap",
+      /* Stacked, a footer row is a card like the rows above it, holding only
+         the columns that have something to say: every cell of a column with no
+         total had become an empty strip of its own, ruled top and bottom. */
+      _narrow: {
+        borderTop: "none",
+        borderBottom: "none",
+        backgroundColor: "transparent",
+      },
+    },
+
+    ".perch-table__foot": {
+      _narrow: {
+        display: "block",
+      },
+    },
+
+    ".perch-table__foot tr": {
+      _narrow: {
+        background: "surface-sunken",
+      },
+    },
+
+    ".perch-table__foot .perch-table__cell:empty": {
+      _narrow: {
+        display: "none",
+      },
     },
 
     /* The name sits above the number rather than beside it: a footer beside a

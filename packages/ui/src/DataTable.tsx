@@ -11,6 +11,7 @@
  */
 import type { ReactNode } from "react";
 import { Fragment, useRef, useState } from "react";
+import * as Menu from "@radix-ui/react-dropdown-menu";
 import type {
   ActionNode,
   AggregateValue,
@@ -22,7 +23,6 @@ import type {
   SortDirection,
   Summary,
 } from "@perchjs/core";
-import { useDismiss } from "./dismiss.js";
 import { formatValue } from "./format.js";
 import { EllipsisMark, SortMark } from "./marks.js";
 import { IconMark } from "./icons.js";
@@ -527,7 +527,16 @@ export function DataTable({
               {rendered.map(({ column }) => {
                 const summary = (summaries?.[column.path] ?? [])[depth];
                 return (
-                  <td key={column.path} className={shape(column, "perch-table__cell")}>
+                  <td
+                    key={column.path}
+                    className={shape(column, "perch-table__cell")}
+                    // Named like a body cell, for the same reason: stacked on a
+                    // phone, "Total 58 300" says what was added up only if the
+                    // column says it beside it.
+                    {...(summary === undefined
+                      ? {}
+                      : { "data-label": headingOf(column) })}
+                  >
                     {summary === undefined ? null : (
                       <>
                         {/* Named in every cell rather than once at the end of
@@ -571,7 +580,7 @@ function rowAction(
   action: ActionNode,
   row: Row,
   href: ((action: ActionNode, row: Row) => string | undefined) | undefined,
-  onAction: ((action: ActionNode, row: Row) => void) | undefined,
+  pick: ((action: ActionNode) => void) | undefined,
   busy: boolean,
 ): ReactNode {
   // A section inside the menu rather than a menu inside it. The row's actions
@@ -580,23 +589,22 @@ function rowAction(
   // becomes a heading with its own items under it.
   if (action.trigger === "group") {
     const inside = (action.children ?? [])
-      .map((one) => rowAction(one, row, href, onAction, busy))
+      .map((one) => rowAction(one, row, href, pick, busy))
       .filter((one) => one !== null);
     if (inside.length === 0) return null;
 
     return (
-      <div
+      <Menu.Group
         key={action.name}
         className="perch-table__action-group"
-        role="group"
         aria-label={action.label ?? action.name}
       >
-        <p className="perch-table__action-group-label" aria-hidden="true">
+        <Menu.Label className="perch-table__action-group-label" aria-hidden="true">
           <IconMark name={action.icon} className="perch-table__action-group-icon" />
           {action.label ?? action.name}
-        </p>
+        </Menu.Label>
         {inside}
-      </div>
+      </Menu.Group>
     );
   }
 
@@ -604,30 +612,26 @@ function rowAction(
     const target = href?.(action, row);
     if (target === undefined) return null;
     return (
-      <a key={action.name} className="perch-table__action" href={target}>
-        {action.label ?? defaultLabel(action)}
-      </a>
+      <Menu.Item key={action.name} asChild>
+        <a className="perch-table__action" href={target}>
+          {action.label ?? defaultLabel(action)}
+        </a>
+      </Menu.Item>
     );
   }
 
-  if (onAction === undefined) return null;
+  if (pick === undefined) return null;
   return (
-    <button
+    <Menu.Item
       key={action.name}
-      type="button"
       className={`perch-table__action${action.danger === true ? " perch-table__action--danger" : ""}`}
       disabled={busy}
-      onClick={(event) => {
-        // Folded before whatever this opens. A `<details>` stays open on its
-        // own, so the menu sat above the dimmed page behind the dialog it had
-        // just opened — a list of things to press, over a modal that had taken
-        // the focus away from all of them.
-        event.currentTarget.closest("details")?.removeAttribute("open");
-        onAction(action, row);
+      onSelect={() => {
+        pick(action);
       }}
     >
       {action.label ?? defaultLabel(action)}
-    </button>
+    </Menu.Item>
   );
 }
 
@@ -656,9 +660,15 @@ export function defaultLabel(action: ActionNode): string {
  * they sit beside, and the reader scans past all of them. One button opens
  * them, which is also the shape that stays honest when a row has ten.
  *
- * A `<details>` rather than a handmade popover: it opens on click and on Enter,
- * closes on Escape, is in the tab order once, and needs no JavaScript to be
- * operable at all.
+ * Radix's menu rather than the `<details>` it was. A disclosure opened where
+ * the platform put it, moved with the arrow keys not at all, and closed on
+ * neither a click elsewhere nor Escape until a hook taught it both; this is
+ * the menu every component library draws, placed against the viewport so a
+ * table that scrolls sideways does not clip it, and kept inside the window.
+ *
+ * Not drawn into the DOM until it opens, which is the difference a reader of
+ * the tests notices: a closed `<details>` held every item, a closed menu holds
+ * none.
  */
 function RowActions({
   actions,
@@ -673,52 +683,54 @@ function RowActions({
   readonly onAction?: (action: ActionNode, row: Row) => void;
   readonly busy: boolean;
 }): ReactNode {
-  const open = useRef<HTMLElement | null>(null);
-  const shell = useRef<HTMLDetailsElement | null>(null);
-  const [at, setAt] = useState<{ top: number; right: number } | null>(null);
-  useDismiss(shell);
+  // What was chosen, run once the menu has put the focus back on its button.
+  // Run at once, it opened a dialog while the menu was still closing, and the
+  // dialog took the focus from an item about to leave the page — so closing
+  // the dialog sent the reader to the top of the document rather than back to
+  // the row they were on.
+  const chosen = useRef<ActionNode | null>(null);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+
+  const pick =
+    onAction === undefined
+      ? undefined
+      : (action: ActionNode) => {
+          chosen.current = action;
+        };
 
   const drawn = actions
-    .map((action) => rowAction(action, row, href, onAction, busy))
+    .map((action) => rowAction(action, row, href, pick, busy))
     .filter((one) => one !== null);
   if (drawn.length === 0) return null;
 
   return (
-    <details
-      className="perch-row-actions"
-      ref={shell}
-      onToggle={(event) => {
-        // Placed when it opens, against the viewport. The table scrolls
-        // sideways for a wide one, and a scrolling box clips in both
-        // directions whatever the z-index says — so a menu positioned inside
-        // it is cut off at the last row, which is what this was.
-        const details = event.currentTarget;
-        if (!details.open) {
-          setAt(null);
-          return;
-        }
-        const box = open.current?.getBoundingClientRect();
-        if (box !== undefined)
-          setAt({ top: box.bottom, right: window.innerWidth - box.right });
-      }}
-    >
-      <summary className="perch-row-actions__open" aria-label="Actions" ref={open}>
-        <EllipsisMark />
-      </summary>
-      {/* Held back until it has somewhere to be: a fixed box painted before it
-          is placed lands wherever the flow left it. Kept in the tree all the
-          same — a `<details>` holds its content and folds it, and a screen
-          reader is told as much. */}
-      <div
-        className="perch-row-actions__menu"
-        data-placed={at !== null}
-        {...(at === null
-          ? {}
-          : { style: { top: `${String(at.top)}px`, right: `${String(at.right)}px` } })}
+    <Menu.Root modal={false}>
+      <Menu.Trigger
+        className="perch-row-actions__open"
+        aria-label="Actions"
+        ref={trigger}
       >
-        {drawn}
-      </div>
-    </details>
+        <EllipsisMark />
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Content
+          className="perch-row-actions__menu"
+          align="end"
+          sideOffset={4}
+          collisionPadding={8}
+          onCloseAutoFocus={(event) => {
+            const action = chosen.current;
+            if (action === null) return;
+            chosen.current = null;
+            event.preventDefault();
+            trigger.current?.focus();
+            onAction?.(action, row);
+          }}
+        >
+          {drawn}
+        </Menu.Content>
+      </Menu.Portal>
+    </Menu.Root>
   );
 }
 
