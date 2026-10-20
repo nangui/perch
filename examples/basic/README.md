@@ -53,4 +53,6 @@ back.
 
 ## What this example does not do
 
-No list page yet, and no delete: those arrive with the table.
+Keep anything, or ask anything of a database. The rows are in a variable, so a
+restart starts over, and no query here reaches a real engine — `hr` and `demo`
+are the examples that run against PostgreSQL.

@@ -6,19 +6,23 @@ question.
 
 | | What it is | What it asks of the panel |
 |---|---|---|
+| [`basic`](basic) | People and teams, in memory | The smallest panel there is: no database, a field that is not on the page until another is chosen, a wide table, soft deletes, a field from a plugin, and a `DataAdapter` of its own |
 | [`demo`](demo) | Bird records | Four tables, one of them soft-deleting, and a relation to follow |
 | [`hr`](hr) | People operations | A self-relation, a `Decimal` totalled under its column, a state to move, a range of dates, and the CSS hooks used in anger |
 
 ## Running one
 
-Every example needs the PostgreSQL its schema was generated against, and each
-has a database of its own on the same server. The connection string is not in
+Every example but `basic` needs the PostgreSQL its schema was generated
+against, and each has a database of its own on the same server. `basic` keeps
+its rows in memory and needs nothing: `pnpm --filter @perchjs/example-basic
+start`, after a build. It takes port 3000 as the bird example does, and `PORT`
+moves it. The connection string is not in
 git — `.env` is ignored, and `.env.example` beside it shows the shape.
 
 ```bash
 cd examples/hr
 cp .env.example .env          # then put the real credentials in it
-createdb -h localhost -p 5433 hr
+createdb -h localhost -p 5432 hr
 export DATABASE_URL="…"       # `prisma db push` reads the environment, not .env
 pnpm db:push
 pnpm build

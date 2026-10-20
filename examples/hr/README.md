@@ -16,9 +16,9 @@ It needs the PostgreSQL the schema was generated against, on its own database.
 
 ```bash
 # once, if the database is not there
-createdb -h localhost -p 5433 hr
+createdb -h localhost -p 5432 hr
 
-export DATABASE_URL="postgresql://…@localhost:5433/hr"
+export DATABASE_URL="postgresql://…@localhost:5432/hr"
 pnpm db:push
 pnpm build
 pnpm start
