@@ -11,6 +11,8 @@ coverage
 
 # Environment
 .env*
+# The shape of one, with no credentials in it, is what a reader copies.
+!.env.example
 
 # macOS
 .DS_Store
