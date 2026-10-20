@@ -54,8 +54,9 @@ is how raw colours get back into components.
 
 ## Fonts
 
-The panel ships no font files. Both font tokens are stacks with real fallbacks, so you
-can load the named faces yourself or let the fallback stand.
+The panel ships no font files. Both font tokens are system stacks: every face they name
+is one the reader's machine already has, so the panel reads as native with nothing to
+download. To use a face of your own, load it and put it at the head of the stack.
 
 ```css
 :root {
