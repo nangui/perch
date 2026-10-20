@@ -77,4 +77,21 @@ describe("the mark of where the keyboard is", () => {
 
     expect(claimed).toEqual([]);
   });
+
+  it("quiets the ring on a menu's item only where its ground marks the keyboard", () => {
+    // A row menu's item drops the ring because the ground under the item the
+    // arrow keys are on already says where they are. Without that ground the
+    // keyboard would move through a menu that never shows it moved.
+    const all = rules();
+    const item = all.find(
+      ([named]) => named === ".perch-row-actions__menu .perch-table__action",
+    );
+    const highlighted = all.find(
+      ([named]) =>
+        named === ".perch-row-actions__menu .perch-table__action[data-highlighted]",
+    );
+
+    expect(item?.[1]).toMatch(/box-shadow: none/);
+    expect(highlighted?.[1]).toMatch(/background: var\(--perch-colors-surface-muted\)/);
+  });
 });

@@ -2737,8 +2737,12 @@ export default defineConfig({
 
     /* An item of a menu, as every menu draws one: the reader's own colour, a
        ground under the one the pointer or the arrow keys are on. Drawn as a
-       link beside the rows, they were a column of underlined blue words. */
+       link beside the rows, they were a column of underlined blue words.
+       The ground is where the keyboard is, so the focus ring the floor would
+       add is quieted here: a ring and a ground on one item drew two marks
+       for the one place the arrow keys had reached. */
     ".perch-row-actions__menu .perch-table__action": {
+      boxShadow: "none",
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-start",
