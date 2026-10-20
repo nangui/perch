@@ -821,7 +821,15 @@ export function PanelList({
         </ConfirmDialog>
       )}
       <div className="perch-list__foot">
-        {pagination(page, turn)}
+        {/*
+          The one live region on this page: it is what changes when a page is
+          turned, and a second would make the two talk over each other. First in
+          the bar, where a reader looks for how much there is, and on the line
+          of the controls that change it rather than on a line of its own.
+        */}
+        <p className="perch-list__total" role="status">
+          {status(page)}
+        </p>
         {ask === undefined ? null : (
           <div className="perch-list__size">
             <span id={`${listId}-size`}>Rows per page</span>
@@ -849,14 +857,8 @@ export function PanelList({
             />
           </div>
         )}
+        {pagination(page, turn)}
       </div>
-      {/*
-        The one live region on this page: it is what changes when a page is
-        turned, and a second would make the two talk over each other.
-      */}
-      <p className="perch-list__total" role="status">
-        {status(page)}
-      </p>
     </Frame>
   );
 }

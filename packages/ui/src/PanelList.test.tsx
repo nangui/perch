@@ -279,6 +279,19 @@ describe("turning a page", () => {
     expect(screen.getByRole("status").textContent).toBe("Page 2 of 3, 6 records");
   });
 
+  it("says it on the line of the controls that change it, before them", () => {
+    // A line of its own under the pager read as a caption nobody asked for,
+    // and the count is what a reader looks for first.
+    const { container } = render(
+      <PanelList initial={paged(2)} title="Posts" fetchPage={vi.fn()} />,
+    );
+
+    const foot = container.querySelector(".perch-list__foot");
+    const pager = screen.getByRole("navigation", { name: "Pagination" });
+    expect(foot?.firstElementChild).toBe(screen.getByRole("status"));
+    expect(pager.parentElement).toBe(foot);
+  });
+
   it("asks the server for the next page rather than slicing what it holds", async () => {
     // The same reason sorting is a round trip: the client cannot
     // see past the page it was given.

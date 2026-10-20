@@ -377,7 +377,13 @@ export default defineConfig({
       color: "content",
     },
 
-    ".perch-list__total": { marginTop: "5", fontSize: "base", color: "content-muted" },
+    /* The count at the start of the bar under the table, and everything that
+       changes it pushed to the far end. */
+    ".perch-list__total": {
+      margin: "0 auto 0 0",
+      fontSize: "sm",
+      color: "content-muted",
+    },
 
     /* The menu sits beside whatever the header already offered. */
     ".perch-list__tools": {
@@ -584,21 +590,21 @@ export default defineConfig({
 
     ".perch-list__range-to": { gridArea: "dash", color: "content-muted" },
 
-    /* The pager and the page size on one line: they are the same question asked
-       two ways, and a reader looking for one finds the other. */
+    /* The count, the page size and the pager on one line: they are the same
+       question asked three ways, and a reader looking for one finds the
+       others. */
     ".perch-list__foot": {
       display: "flex",
       alignItems: "center",
-      justifyContent: "space-between",
-      gap: "4",
+      gap: "var(--perch-space-4) var(--perch-space-6)",
       flexWrap: "wrap",
+      marginTop: "4",
     },
 
     ".perch-list__size": {
       display: "inline-flex",
       alignItems: "center",
       gap: "2",
-      marginLeft: "auto",
       fontSize: "sm",
       color: "content-muted",
     },
@@ -1972,10 +1978,17 @@ export default defineConfig({
 
     /* Turning a page is a button, not a link: it replaces the rows in place rather
        than going anywhere the browser knows about. */
+    /* On a phone the pair cannot share the count's line and wraps under it;
+       there it takes the whole line, halved, rather than huddling at its
+       start. */
     ".perch-pagination": {
       display: "flex",
-      gap: "4",
-      marginTop: "5",
+      gap: "2",
+      _narrow: { flexBasis: "100%" },
+    },
+
+    ".perch-pagination > *": {
+      _narrow: { flex: "1" },
     },
 
     ".perch-page__title": {

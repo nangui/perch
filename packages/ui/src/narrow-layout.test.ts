@@ -210,3 +210,15 @@ describe("a column that says how much room it takes", () => {
     );
   });
 });
+
+describe("a list's pager in a narrow window", () => {
+  it("takes the line it wraps onto, halved, rather than its start", () => {
+    const block = narrowBlockNaming(".perch-pagination");
+    expect(/\.perch-pagination\s*\{([^}]*)\}/.exec(block)?.[1]).toContain(
+      "flex-basis: 100%",
+    );
+    expect(/\.perch-pagination > \*\s*\{([^}]*)\}/.exec(block)?.[1]).toContain(
+      "flex: 1",
+    );
+  });
+});
