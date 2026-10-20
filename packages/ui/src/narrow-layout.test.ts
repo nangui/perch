@@ -194,6 +194,19 @@ describe("a list's place on the page at any width", () => {
   });
 });
 
+describe("a row's line in a narrow window", () => {
+  // Measured on a phone: on a baseline, an avatar's baseline is its bottom
+  // edge, and "Name" sat level with the foot of the picture.
+  it("centres the label against the value, as a wide row does", () => {
+    // Anchored to the start of a line: the footer's rule ends in the same
+    // class and comes first in the block.
+    const cell = /(?:^|\n)\s*\.perch-table__cell\s*\{([^}]*)\}/.exec(
+      narrowBlockNaming(".perch-table__cell"),
+    )?.[1];
+    expect(cell).toContain("align-items: center");
+  });
+});
+
 describe("a table's footer in a narrow window", () => {
   // Measured on a phone: every column with no total drew an empty strip of its
   // own, ruled top and bottom, under a footer that kept a table's width.

@@ -5035,10 +5035,13 @@ export default defineConfig({
          hanging from its top edge. */
       verticalAlign: "middle",
       /* Stacked, the cell is a row of its own, which is why the padding and the
-         border above are restated rather than inherited. */
+         border above are restated rather than inherited. Centred for the same
+         reason as middle above: on a baseline, an avatar's baseline is its
+         bottom edge, and the label sat level with the foot of the picture
+         rather than beside the name. */
       _narrow: {
         display: "flex",
-        alignItems: "baseline",
+        alignItems: "center",
         justifyContent: "space-between",
         gap: "4",
         padding: "var(--perch-space-3) var(--perch-space-4)",
