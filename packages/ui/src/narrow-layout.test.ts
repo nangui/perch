@@ -153,6 +153,24 @@ describe("the shell in a narrow window", () => {
   });
 });
 
+describe("a table's footer in a narrow window", () => {
+  // Measured on a phone: every column with no total drew an empty strip of its
+  // own, ruled top and bottom, under a footer that kept a table's width.
+  const foot = (): string => narrowBlockNaming(".perch-table__foot");
+
+  it("stacks like the rows above it", () => {
+    expect(/\.perch-table__foot\s*\{([^}]*)\}/.exec(foot())?.[1]).toContain(
+      "display: block",
+    );
+  });
+
+  it("draws only the columns that have something to say", () => {
+    expect(foot()).toMatch(
+      /\.perch-table__foot \.perch-table__cell:empty[^{]*\{\s*display: none/,
+    );
+  });
+});
+
 describe("a column that says how much room it takes", () => {
   it("is aligned by a logical property, so it holds right to left", () => {
     // `text-align: right` pins a column of numbers to the wrong end of the row
