@@ -1024,9 +1024,26 @@ describe("the columns a resource declares", () => {
     // because it did not ask.
     await get(`${url}/admin/api/listed/records?sort=id`);
 
+    // A refused sort is not obeyed and not reported: the read falls back to
+    // the order the table declared, which is what no sort at all reads in.
+    const declared = [{ path: "title", direction: "desc" }];
     expect(asked[0]?.sort).toEqual([{ path: "title", direction: "desc" }]);
-    expect(asked[1]?.sort).toBeUndefined();
-    expect(asked[2]?.sort).toBeUndefined();
+    expect(asked[1]?.sort).toEqual(declared);
+    expect(asked[2]?.sort).toEqual(declared);
+  });
+
+  it("reads in the order the table declared when nobody asked for one", async () => {
+    // Measured in a browser: a list arrived in the database's own order under
+    // a header marked as sorted, and came back sorted only once an action
+    // asked for the page again.
+    const url = await serve();
+    const body = (await (await get(`${url}/admin/api/listed/records`)).json()) as {
+      sort?: unknown;
+    };
+
+    expect(asked[0]?.sort).toEqual([{ path: "title", direction: "desc" }]);
+    // Said in the answer, so the header is marked from what was applied.
+    expect(body.sort).toEqual({ path: "title", direction: "desc" });
   });
 });
 

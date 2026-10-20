@@ -25,9 +25,19 @@ const PAGE: RecordsPage = {
     bulkActions: [],
     defaultSort: { path: "title", direction: "asc" },
   },
+  // What the server answers with: the order it applied, the table's default
+  // when nobody asked for another.
+  sort: { path: "title", direction: "asc" },
   recordKey: "id",
   resourcePath: "/admin/posts",
 };
+
+/** A page as the server answers when it applied no order at all. */
+function unsorted(page: RecordsPage): RecordsPage {
+  return Object.fromEntries(
+    Object.entries(page).filter(([key]) => key !== "sort"),
+  ) as unknown as RecordsPage;
+}
 
 beforeEach(() => {
   resetColumnRegistry();
@@ -65,11 +75,22 @@ describe("the list page", () => {
     expect(screen.getByRole("status").textContent).toBe("1 record");
   });
 
-  it("opens on the order the table declared", () => {
+  it("marks the order the server says it applied", () => {
     render(<PanelList initial={PAGE} title="Posts" fetchPage={vi.fn()} />);
 
     expect(screen.getAllByRole("columnheader")[0]?.getAttribute("aria-sort")).toBe(
       "ascending",
+    );
+  });
+
+  it("marks no order the server did not apply, whatever the table declared", () => {
+    // The declaration is the server's to apply. Read here as well, it marked a
+    // header as sorted over rows that arrived in the database's own order.
+    render(<PanelList initial={unsorted(PAGE)} title="Posts" fetchPage={vi.fn()} />);
+
+    // `none` is what a sortable header says while it is not the order.
+    expect(screen.getAllByRole("columnheader")[0]?.getAttribute("aria-sort")).toBe(
+      "none",
     );
   });
 
@@ -99,7 +120,7 @@ describe("the list page", () => {
     const fetchPage = vi.fn(() =>
       // No `sort` in the answer: the request was refused.
       Promise.resolve({
-        ...PAGE,
+        ...unsorted(PAGE),
         columns: {
           columns: PAGE.columns.columns,
           filters: [],

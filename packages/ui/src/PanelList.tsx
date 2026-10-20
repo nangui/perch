@@ -243,9 +243,11 @@ export function PanelList({
    * Read, never decided. The sort *indicator* belongs to the pure-UI zone, and
    * the order itself is canonical — so this comes from the answer. Setting it
    * optimistically would show "sorted by X" after the server had silently
-   * refused X, which is the client inventing a state.
+   * refused X, which is the client inventing a state. The table's default is
+   * the server's to apply as well, and it says so in `sort`: falling back to
+   * the declaration here marked a header as sorted over rows that were not.
    */
-  const sort = page.sort ?? page.columns.defaultSort;
+  const sort = page.sort;
 
   /**
    * The request the table is waiting on. Anything older that arrives after it

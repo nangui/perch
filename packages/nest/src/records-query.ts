@@ -510,10 +510,28 @@ function sortOf(
   table: Table | undefined,
 ): Sort | undefined {
   const [path, direction] = split(text(raw));
-  if (path === undefined) return undefined;
-  if (!allowed(model, ir, table).has(path)) return undefined;
+  if (path !== undefined && allowed(model, ir, table).has(path)) {
+    return { path, direction };
+  }
+  return defaultOf(table);
+}
 
-  return { path, direction };
+/**
+ * The order a table declared for when nobody asked for one.
+ *
+ * Read here rather than left to the client: a list that arrived in the
+ * database's own order under a header marked as sorted, and came back sorted
+ * only once something asked for the page again, showed one order on arrival
+ * and another after the first action. A sort that was asked for and refused
+ * falls back to it as well, so a refusal says nothing a missing sort would not.
+ *
+ * Not checked against the allowlist above. That list stops a caller choosing
+ * an order that answers a question about a column; this one was chosen by
+ * whoever declared the table, and a caller cannot change it.
+ */
+function defaultOf(table: Table | undefined): Sort | undefined {
+  const declared = table?.state.defaultSort;
+  return declared === undefined ? undefined : { ...declared };
 }
 
 function allowed(model: string, ir: Ir, table: Table | undefined): ReadonlySet<string> {

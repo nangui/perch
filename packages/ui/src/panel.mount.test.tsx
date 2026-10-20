@@ -350,6 +350,9 @@ describe("a shell that says too little", () => {
       total: 6,
       page: 1,
       perPage: 2,
+      // The order the server applied, which it says now that it applies the
+      // table's default itself.
+      sort: { path: "title", direction: "asc" },
       columns: {
         columns: [
           { type: "TextColumn", path: "title", label: "Headline", sortable: true },
