@@ -412,12 +412,15 @@ export default defineConfig({
       boxShadow: "panel",
     },
 
-    /* Apply belongs to the whole bar, not to the filter it happens to sit
-       beside. Its own row at the end, pushed to the right, where a form's
-       confirm button is looked for. */
+    /* Apply in the next cell after the last filter, on the line of the
+       controls it confirms. A row of its own left a band of empty panel under
+       two boxes and a button stranded at the far end of it. Against the foot
+       of its cell, where a box sits under its name, and only as wide as its
+       word. On a phone, where every filter is a line, it is a line too. */
     '.perch-list__search > button[type="submit"]': {
-      gridColumn: "1 / -1",
-      justifySelf: "end",
+      alignSelf: "end",
+      justifySelf: "start",
+      _narrow: { justifySelf: "stretch" },
     },
 
     /* A field is taller than a button everywhere else in the panel, because a

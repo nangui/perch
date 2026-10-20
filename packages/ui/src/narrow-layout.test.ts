@@ -171,6 +171,25 @@ describe("a table's footer in a narrow window", () => {
   });
 });
 
+describe("a filter bar's Apply", () => {
+  const rule = /\.perch-list__search > button\[type="submit"\]\s*\{([^}]*)\}/;
+
+  it("sits in the next cell rather than on a row of its own", () => {
+    // Its own row left a band of empty panel under two boxes, with the button
+    // stranded at the far end of it.
+    const wide = rule.exec(STYLES)?.[1];
+    expect(wide).toBeDefined();
+    expect(wide).not.toContain("grid-column");
+    expect(wide).toContain("align-self: end");
+  });
+
+  it("takes the whole line on a phone, as each filter does", () => {
+    expect(rule.exec(narrowBlockNaming(".perch-list__search > button"))?.[1]).toContain(
+      "justify-self: stretch",
+    );
+  });
+});
+
 describe("a column that says how much room it takes", () => {
   it("is aligned by a logical property, so it holds right to left", () => {
     // `text-align: right` pins a column of numbers to the wrong end of the row
