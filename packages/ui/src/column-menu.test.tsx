@@ -47,6 +47,14 @@ const at = "/admin/things";
 const heads = (): readonly string[] =>
   screen.getAllByRole("columnheader").map((one) => one.textContent);
 
+// jsdom fires no pointer events from a click, and Radix opens its trigger on
+// pointerdown or on a key: Enter is the one a test can send.
+function openColumns(): void {
+  fireEvent.keyDown(screen.getByRole("button", { name: "Columns" }), { key: "Enter" });
+}
+
+const items = (): HTMLElement[] => screen.getAllByRole("menuitemcheckbox");
+
 describe("the columns a table starts with", () => {
   it("leaves out the ones declared hidden", () => {
     cleanup();
@@ -60,12 +68,12 @@ describe("the columns a table starts with", () => {
   it("offers only the ones that may be taken off", () => {
     cleanup();
     render(<PanelList initial={page()} title="Things" />);
-    fireEvent.click(screen.getByText("Columns"));
+    openColumns();
 
-    const offered = screen.getAllByRole("checkbox").map((box) => {
-      const label = box.closest("label");
-      return `${label?.textContent ?? ""}:${String((box as HTMLInputElement).checked)}`;
-    });
+    const offered = items().map(
+      (item) =>
+        `${item.textContent.replace("✓", "")}:${item.getAttribute("aria-checked") ?? ""}`,
+    );
 
     // `Title` said nothing, so it is not here at all.
     expect(offered).toEqual(["Note:true", "Extra:false"]);
@@ -91,12 +99,53 @@ describe("the columns a table starts with", () => {
   });
 });
 
+describe("the menu itself", () => {
+  it("is a menu of checkable items, closed until it is opened", () => {
+    cleanup();
+    render(<PanelList initial={page()} title="Things" />);
+
+    expect(screen.queryByRole("menu")).toBeNull();
+    openColumns();
+
+    // Named by the button that opens it, which Radix points the menu at.
+    expect(screen.getByRole("menu", { name: "Columns" })).toBeTruthy();
+    expect(items().map((item) => item.getAttribute("aria-checked"))).toEqual([
+      "true",
+      "false",
+    ]);
+  });
+
+  it("stays open after a choice, so a second column is one more choice", () => {
+    cleanup();
+    render(<PanelList initial={page()} title="Things" />);
+    openColumns();
+    fireEvent.click(items()[0] as HTMLElement);
+
+    expect(screen.getByRole("menu")).toBeTruthy();
+    expect(items()[0]?.getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("closes on Escape and gives the focus back to its button", async () => {
+    cleanup();
+    render(<PanelList initial={page()} title="Things" />);
+    openColumns();
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+    // Radix hands the focus back a tick after the menu goes.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Columns" }),
+    );
+  });
+});
+
 describe("what the reader does with it", () => {
   it("puts a column back", () => {
     cleanup();
     render(<PanelList initial={page()} title="Things" />);
-    fireEvent.click(screen.getByText("Columns"));
-    fireEvent.click(screen.getAllByRole("checkbox")[1] as HTMLElement);
+    openColumns();
+    fireEvent.click(items()[1] as HTMLElement);
 
     expect(heads()).toContain("Extra");
   });
@@ -104,8 +153,8 @@ describe("what the reader does with it", () => {
   it("takes one off", () => {
     cleanup();
     render(<PanelList initial={page()} title="Things" />);
-    fireEvent.click(screen.getByText("Columns"));
-    fireEvent.click(screen.getAllByRole("checkbox")[0] as HTMLElement);
+    openColumns();
+    fireEvent.click(items()[0] as HTMLElement);
 
     expect(heads()).not.toContain("Note");
   });
@@ -113,8 +162,8 @@ describe("what the reader does with it", () => {
   it("keeps the table's order, not the order things were turned on", () => {
     cleanup();
     render(<PanelList initial={page()} title="Things" />);
-    fireEvent.click(screen.getByText("Columns"));
-    fireEvent.click(screen.getAllByRole("checkbox")[1] as HTMLElement);
+    openColumns();
+    fireEvent.click(items()[1] as HTMLElement);
 
     const shown = heads();
     expect(shown.indexOf("Note")).toBeLessThan(shown.indexOf("Extra"));
@@ -129,8 +178,8 @@ describe("a page that turns underneath it", () => {
     const fetchPage = vi.fn().mockResolvedValue({ ...page(), page: 2 });
     render(<PanelList initial={page()} title="Things" fetchPage={fetchPage} />);
 
-    fireEvent.click(screen.getByText("Columns"));
-    fireEvent.click(screen.getAllByRole("checkbox")[0] as HTMLElement);
+    openColumns();
+    fireEvent.click(items()[0] as HTMLElement);
     expect(heads()).not.toContain("Note");
 
     const next = screen.queryByRole("button", { name: /next/i });
@@ -161,8 +210,8 @@ describe("what the reader arranged last time", () => {
     globalThis.localStorage.clear();
     render(<PanelList initial={{ ...page(), resourcePath: at }} title="Things" />);
 
-    fireEvent.click(screen.getByText("Columns"));
-    fireEvent.click(screen.getAllByRole("checkbox")[0] as HTMLElement);
+    openColumns();
+    fireEvent.click(items()[0] as HTMLElement);
 
     expect(globalThis.localStorage.getItem(`perch.table.${at}`)).toContain("note");
   });

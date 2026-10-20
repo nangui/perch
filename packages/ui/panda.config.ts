@@ -2084,63 +2084,74 @@ export default defineConfig({
       outlineOffset: "2px",
     },
 
-    /* Which columns a reader keeps. A `details`, so it opens and closes and is
-       announced without a line of JavaScript. */
-    ".perch-columns": {
-      position: "relative",
-    },
-
+    /* Which columns a reader keeps: a button that opens a menu of the columns
+       that may be taken off, each one checked while it is shown. */
     ".perch-columns__button": {
       display: "inline-flex",
       alignItems: "center",
+      gap: "3",
       height: "control-height",
       padding: "0 var(--perch-space-4)",
       border: "1px solid var(--perch-border)",
       borderRadius: "md",
       background: "surface",
       color: "content",
+      font: "inherit",
       fontSize: "sm",
       cursor: "pointer",
-      listStyle: "none",
     },
 
-    ".perch-columns__button::-webkit-details-marker": {
-      display: "none",
-    },
-
-    ".perch-columns__button:hover": {
+    '.perch-columns__button:hover, .perch-columns__button[data-state="open"]': {
       borderColor: "accent-border",
     },
 
-    /* Over the table rather than pushing it down: a menu that moved the rows would
-       move the one the reader was reading. */
-    ".perch-columns__panel": {
-      position: "absolute",
-      zIndex: "20",
-      right: "0",
-      marginTop: "2",
-      minWidth: "12rem",
-      padding: "3",
-      display: "flex",
-      flexDirection: "column",
-      gap: "2",
-      border: "1px solid var(--perch-border)",
-      borderRadius: "md",
-      background: "surface",
-      /* The panel floats over the table, so it takes the shadow every other
-         floating thing takes. It used to read a token called `--perch-shadow-2`
-         that is declared nowhere, so it was always the fallback beside it — the
-         one shadow in this file no theme could change, carrying the one colour
-         this file says it never names. */
-      boxShadow: "popover",
+    ".perch-columns__chevron": {
+      display: "inline-flex",
+      color: "content-muted",
     },
 
-    ".perch-columns__row": {
+    /* Over the table rather than pushing it down: a menu that moved the rows would
+       move the one the reader was reading. Drawn as a row's menu is. */
+    ".perch-columns__menu": {
+      zIndex: "20",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+      minWidth: "12rem",
+      padding: "2",
+      gap: "1",
+      background: "surface",
+      border: "1px solid var(--perch-border)",
+      borderRadius: "var(--perch-space-2)",
+      boxShadow: "popover",
+      outline: "none",
+    },
+
+    /* The ground is where the keyboard is, as in a row's menu, so the floor's
+       ring is quieted rather than drawn round it as well. */
+    ".perch-columns__menu .perch-columns__item": {
+      boxShadow: "none",
       display: "flex",
       alignItems: "center",
-      gap: "2",
+      gap: "3",
+      padding: "var(--perch-space-3) var(--perch-space-4)",
+      borderRadius: "var(--perch-space-1)",
+      color: "content",
       fontSize: "sm",
+      outline: "none",
       cursor: "pointer",
+      userSelect: "none",
+    },
+
+    ".perch-columns__menu .perch-columns__item[data-highlighted]": {
+      background: "surface-muted",
+    },
+
+    /* A fixed width whether ticked or not, so the names stay in one column. */
+    ".perch-columns__check": {
+      width: "12px",
+      flex: "none",
+      color: "accent",
     },
 
     /* A reading, in the shape of a control: it sits in a column of fields and the

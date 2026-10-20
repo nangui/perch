@@ -7,17 +7,22 @@
  * plainly is one its author meant, and offering to remove it would make every
  * table's shape a suggestion.
  *
- * Drawn as a `details` rather than a menu built by hand: it opens on a click and
- * is announced as a disclosure without a line of JavaScript. Closing it is the
- * one thing the element does not do on its own, and `useDismiss` is that. What
- * is inside is checkboxes, because that is what choosing several of a set is,
- * and a reader who knows checkboxes knows this.
+ * The same Radix menu a row's actions open, holding one checkable item per
+ * column, because that is what choosing several of a set is in a menu. It was a
+ * `details` holding checkboxes: placed by hand under its button, closed by a
+ * hook written for it, and walked through with Tab one box at a time. The menu
+ * opens on the arrows and Enter as well as a click, moves with the arrows and by
+ * typing a letter, keeps itself inside the window and gives the focus back to
+ * its button on Escape.
+ *
+ * Choosing an item does not close the menu. Taking three columns off is three
+ * choices in a row, and a menu that shut after each would be opened three times.
  */
 import type { ReactNode } from "react";
-import { useRef } from "react";
+import * as Menu from "@radix-ui/react-dropdown-menu";
 import type { ColumnNode } from "@perchjs/core";
-import { useDismiss } from "./dismiss.js";
 import { headingOf } from "./heading.js";
+import { ChevronDown } from "./marks.js";
 
 export interface ColumnMenuProps {
   readonly columns: readonly ColumnNode[];
@@ -27,37 +32,49 @@ export interface ColumnMenuProps {
 }
 
 export function ColumnMenu({ columns, hidden, onToggle }: ColumnMenuProps): ReactNode {
-  const shell = useRef<HTMLDetailsElement | null>(null);
-  // Before the return below: a hook after one is a hook the next render may
-  // skip, and this component returns early on a table that offers nothing.
-  useDismiss(shell);
-
   const offered = columns.filter((one) => one.toggleable === true);
   // No control where nothing may be taken off. A menu that opens on an empty
   // list is a promise the table did not make.
   if (offered.length === 0) return null;
 
   return (
-    <details className="perch-columns" ref={shell}>
-      <summary className="perch-columns__button">Columns</summary>
-      <div className="perch-columns__panel" role="group" aria-label="Columns shown">
-        {offered.map((column) => {
-          const on = !hidden.has(column.path);
-          return (
-            <label key={column.path} className="perch-columns__row">
-              <input
-                type="checkbox"
-                checked={on}
-                onChange={() => {
-                  onToggle(column.path);
-                }}
-              />
+    // Not modal, as a row's menu is not: the table under it stays readable,
+    // and a column taken off is seen going while the menu is still open.
+    <Menu.Root modal={false}>
+      <Menu.Trigger className="perch-columns__button">
+        Columns
+        <span className="perch-columns__chevron" aria-hidden="true">
+          <ChevronDown />
+        </span>
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Content
+          className="perch-columns__menu"
+          align="end"
+          sideOffset={4}
+          collisionPadding={8}
+        >
+          {offered.map((column) => (
+            <Menu.CheckboxItem
+              key={column.path}
+              className="perch-columns__item"
+              checked={!hidden.has(column.path)}
+              onCheckedChange={() => {
+                onToggle(column.path);
+              }}
+              onSelect={(event) => {
+                event.preventDefault();
+              }}
+            >
+              <span className="perch-columns__check" aria-hidden="true">
+                <Menu.ItemIndicator>✓</Menu.ItemIndicator>
+              </span>
               {headingOf(column)}
-            </label>
-          );
-        })}
-      </div>
-    </details>
+            </Menu.CheckboxItem>
+          ))}
+        </Menu.Content>
+      </Menu.Portal>
+    </Menu.Root>
   );
 }
 
