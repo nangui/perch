@@ -207,6 +207,18 @@ describe("a row's line in a narrow window", () => {
   });
 });
 
+describe("a toast in a narrow window", () => {
+  // Measured on a phone: at the top it covered the button that opens the menu.
+  it("is said at the foot of the screen, across its width", () => {
+    const corner = /\.perch-toasts\s*\{([^}]*)\}/.exec(
+      narrowBlockNaming(".perch-toasts"),
+    )?.[1];
+    expect(corner).toContain("bottom: 0");
+    expect(corner).toContain("top: auto");
+    expect(corner).toContain("width: 100%");
+  });
+});
+
 describe("a table's footer in a narrow window", () => {
   // Measured on a phone: every column with no total drew an empty strip of its
   // own, ruled top and bottom, under a footer that kept a table's width.

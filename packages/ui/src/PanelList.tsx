@@ -13,6 +13,8 @@ import { headingOf } from "./heading.js";
 import { ListSelect } from "./ListSelect.js";
 import { IconMark } from "./icons.js";
 import { ColumnMenu, hiddenAtFirst } from "./ColumnMenu.js";
+import { Notice } from "./notice.js";
+import type { Said } from "./notice.js";
 import { remember, remembered } from "./remembered.js";
 import type {
   ActionNode,
@@ -449,7 +451,17 @@ export function PanelList({
   const bulk = page.columns.bulkActions;
   const chosen = page.rows.map(keyOf).filter((key) => key !== undefined);
   const selected = chosen.filter((key) => picked.has(String(key)));
-  const [said, setSaid] = useState<ActionAnswer["notification"] | undefined>(flash);
+  // Numbered, so a second message is a second toast with a timer of its own
+  // rather than the first one with its words changed under it.
+  const [said, setHeard] = useState<
+    { readonly notice: Said; readonly number: number } | undefined
+  >(flash === undefined ? undefined : { notice: flash, number: 0 });
+  const heard = useRef(0);
+  const setSaid = (notice: Said | undefined): void => {
+    setHeard(
+      notice === undefined ? undefined : { notice, number: (heard.current += 1) },
+    );
+  };
 
   /**
    * Opens what an action collects with, or runs it where it collects nothing.
@@ -672,13 +684,16 @@ export function PanelList({
         </div>
       )}
       {said === undefined ? null : (
-        // One live region for what an action answered, kept apart from the
-        // paging one below: they change for different reasons, and a reader
-        // hearing both at once hears neither.
-        <p className={`perch-notice perch-notice--${said.tone}`} role="status">
-          <strong>{said.title}</strong>
-          {said.body === undefined ? null : <span>{said.body}</span>}
-        </p>
+        // Its own announcement, kept apart from the paging one below: they
+        // change for different reasons, and a reader hearing both at once
+        // hears neither.
+        <Notice
+          key={said.number}
+          said={said.notice}
+          onClose={() => {
+            setSaid(undefined);
+          }}
+        />
       )}
       <div className="perch-list__table">
         <DataTable

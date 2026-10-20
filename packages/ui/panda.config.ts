@@ -2199,7 +2199,8 @@ export default defineConfig({
       fontWeight: "600",
     },
 
-    /* A request that failed, announced rather than swallowed. */
+    /* A request that failed, announced rather than swallowed, in the flow
+       beside the form it failed for. What an action answered is a toast. */
     ".perch-notice": {
       display: "flex",
       flexWrap: "wrap",
@@ -2215,24 +2216,113 @@ export default defineConfig({
       textWrap: "pretty",
     },
 
-    /* The base reads as a problem, which is what the only earlier caller was. A
-       tone says otherwise; `--danger` is what the base already looks like. */
-    ".perch-notice--success": {
+    /* What an action answered, over the page in its top corner rather than in
+       the flow above the table, so it moves no row while it is up. Over the
+       page's own popovers; a modal dialog is in the top layer, above anything
+       a z-index reaches, and a toast waits for it to close. */
+    ".perch-toasts": {
+      position: "fixed",
+      zIndex: "60",
+      top: "0",
+      right: "0",
+      display: "flex",
+      flexDirection: "column",
+      gap: "3",
+      width: "min(24rem, 100vw)",
+      maxWidth: "100vw",
+      margin: "0",
+      padding: "var(--perch-space-7)",
+      listStyle: "none",
+      outline: "none",
+      // The corner is empty most of the time, and an empty box over the page
+      // would still take the clicks meant for what is under it.
+      pointerEvents: "none",
+      // On a phone the top is the menu bar, and a toast there covered the
+      // button that opens the menu. At the foot, the width of the screen,
+      // where a phone's own apps say these things.
+      _narrow: {
+        top: "auto",
+        bottom: "0",
+        width: "100%",
+      },
+    },
+
+    ".perch-toast": {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "4",
+      padding:
+        "var(--perch-space-5) var(--perch-space-5) var(--perch-space-5) var(--perch-space-6)",
+      border: "1px solid var(--perch-danger-border)",
+      borderRadius: "md",
+      background: "danger-surface",
+      color: "danger-content",
+      boxShadow: "popover",
+      fontSize: "base",
+      textWrap: "pretty",
+      pointerEvents: "auto",
+    },
+
+    /* Each tone in the colours the strip it replaces used, so a theme that
+       chose them chose these. */
+    ".perch-toast--success": {
       borderColor: "accent-border",
       background: "success-surface",
       color: "success-content",
     },
 
-    ".perch-notice--warning": {
+    ".perch-toast--warning": {
       borderColor: "pending-border",
       background: "warning-surface",
       color: "warning-content",
     },
 
-    ".perch-notice--info": {
+    ".perch-toast--info": {
       borderColor: "border",
-      background: "surface-muted",
+      background: "surface",
       color: "content-secondary",
+    },
+
+    /* Followed under a finger, and put back if it is let go short of the edge. */
+    '.perch-toast[data-swipe="move"]': {
+      transform: "translateX(var(--radix-toast-swipe-move-x))",
+    },
+
+    '.perch-toast[data-swipe="cancel"]': {
+      transform: "translateX(0)",
+      transition: "transform 200ms ease-out",
+    },
+
+    ".perch-toast__text": {
+      display: "flex",
+      flex: "1",
+      flexDirection: "column",
+      gap: "1",
+      minWidth: "0",
+    },
+
+    ".perch-toast__title": {
+      fontWeight: "600",
+    },
+
+    ".perch-toast__close": {
+      display: "inline-flex",
+      flex: "none",
+      alignItems: "center",
+      justifyContent: "center",
+      // WCAG's pointer target, the floor every control here keeps.
+      minWidth: "24px",
+      minHeight: "24px",
+      padding: "0",
+      border: "0",
+      borderRadius: "var(--perch-space-1)",
+      background: "none",
+      color: "inherit",
+      cursor: "pointer",
+    },
+
+    ".perch-toast__close:hover": {
+      background: "surface-skeleton-strong",
     },
 
     ".perch-empty": {
